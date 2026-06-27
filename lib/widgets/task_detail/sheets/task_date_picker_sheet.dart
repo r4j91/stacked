@@ -294,6 +294,12 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
             children: [
               col(_hourCtrl, 24, (i) {
                 setState(() => _time = TimeOfDay(hour: i, minute: _time?.minute ?? 0));
+                // HORA-ONCHANGE: notificar pai imediatamente ao mudar hora
+                widget.onChanged?.call(DatePickerResult(
+                  date: _selected,
+                  time: _time,
+                  recurrence: _recurrence,
+                ));
               }),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -301,6 +307,12 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
               ),
               col(_minCtrl, 60, (i) {
                 setState(() => _time = TimeOfDay(hour: _time?.hour ?? 0, minute: i));
+                // HORA-ONCHANGE: notificar pai imediatamente ao mudar minuto
+                widget.onChanged?.call(DatePickerResult(
+                  date: _selected,
+                  time: _time,
+                  recurrence: _recurrence,
+                ));
               }),
               const SizedBox(width: 24),
               GestureDetector(
@@ -382,7 +394,10 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
                   IconButton(
                     icon: const Icon(Icons.close, size: 20),
                     color: AppColors.textSecondary,
-                    onPressed: _cancel,
+                    // CANCEL-OLD: botão X cancelava descartando seleção
+                    // onPressed: _cancel,
+                    // CANCEL-FIX: botão X confirma como as opções rápidas
+                    onPressed: _confirm,
                   ),
                   Expanded(
                     child: Text(

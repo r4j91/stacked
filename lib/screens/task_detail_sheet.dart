@@ -370,13 +370,14 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
     // HORA-FALLBACK: dueDate sem componente de hora — tentar campo 'hora' separado
     if (_dueDate != null && _dueTime == null && widget.task?.time != null) {
       final parts = widget.task!.time!.split(':');
-      if (parts.length == 2) {
+      if (parts.length >= 2) {
         _dueTime = TimeOfDay(
           hour: int.tryParse(parts[0]) ?? 0,
           minute: int.tryParse(parts[1]) ?? 0,
         );
       }
     }
+
 
     _subtasks = (widget.task?.subtasks ?? [])
         .map((s) => SubtaskItem(title: s.title, description: s.description, done: s.done, priority: s.priority, valor: s.valor))

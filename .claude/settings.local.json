@@ -149,7 +149,12 @@
       "Bash(perl -pi -e 's/_UserPill/UserPill/g; s/_HeaderLiquidPill/HeaderLiquidPill/g' lib/screens/browse_screen.dart)",
       "Bash(perl -pi -e 's/_HomeScreenState/HomeScreenState/g' lib/screens/home_screen.dart)",
       "Bash(find / -maxdepth 4 -iname \"*lumen_app_icon_pack*\" -type d)",
-      "Bash(perl -0777 -pi -e ' *)"
+      "Bash(perl -0777 -pi -e ' *)",
+      "Bash(sed -n '/_cancel/,/^  }/p' lib/widgets/task_detail/sheets/task_date_picker_sheet.dart)",
+      "Bash(sed -n '/_confirm/,/^  }/p' lib/widgets/task_detail/sheets/task_date_picker_sheet.dart)",
+      "Bash(tee /private/tmp/claude-501/-Users-roarns-Documents-lumen-app/51179871-b087-4eda-a413-ea9bce683cf6/scratchpad/flutter_run.log)",
+      "Bash(pkill -f \"flutter run -d 37E1ED30\")",
+      "Bash(tee /private/tmp/claude-501/-Users-roarns-Documents-lumen-app/51179871-b087-4eda-a413-ea9bce683cf6/scratchpad/flutter_run2.log)"
     ],
     "additionalDirectories": [
       "/proc/10836/fd"
