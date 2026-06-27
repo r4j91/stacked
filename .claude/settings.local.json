@@ -136,7 +136,20 @@
       "Bash(grep -n \"label_outline\\\\|Icon\\(Icons.label\\\\|labelColor\\\\|TagChip\\\\|Container\\(\\\\s*$\" /Users/roarns/Documents/lumen_app/lib/widgets/subtask_list.dart)",
       "Bash(grep -n 'hasSubtasks\\\\|'\\\\''$done/$total'\\\\''\\\\|checklist\\\\|Icons\\\\.' lib/widgets/task_tile.dart)",
       "Bash(curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh -o /private/tmp/claude-501/-Users-roarns-Documents-lumen-app/73551b0f-a814-4cc1-ad5e-21d579d96735/scratchpad/install.sh)",
-      "Bash(bash /private/tmp/claude-501/-Users-roarns-Documents-lumen-app/73551b0f-a814-4cc1-ad5e-21d579d96735/scratchpad/install.sh)"
+      "Bash(bash /private/tmp/claude-501/-Users-roarns-Documents-lumen-app/73551b0f-a814-4cc1-ad5e-21d579d96735/scratchpad/install.sh)",
+      "Bash(cat /mnt/skills/user/tasker-design/SKILL.md 2>&1 | head -200)",
+      "Read(//mnt/skills/user/tasker-design/**)",
+      "Read(//mnt/skills/**)",
+      "Bash(find / -maxdepth 3 -iname \"*tasker*\")",
+      "Bash(sed -n '/class _HeaderLiquidPill/,/^}/p' lib/screens/browse_screen.dart)",
+      "Bash(sed -n '/static const _colors/,/];/p' lib/widgets/project_options_sheet.dart)",
+      "Bash(awk '/class _SettingsSheet/,0' lib/screens/browse_screen.dart)",
+      "Bash(awk '/class _SettingsSheet/{f=1} f{print NR} /^}/{if\\(f && NR>763\\) {print \"END:\"NR; exit}}' lib/screens/browse_screen.dart)",
+      "Bash(perl -pi -e 's/_SettingsSheet/SettingsSheet/g; s/_NotificationsSheet/NotificationsSheet/g' lib/screens/browse_screen.dart)",
+      "Bash(perl -pi -e 's/_UserPill/UserPill/g; s/_HeaderLiquidPill/HeaderLiquidPill/g' lib/screens/browse_screen.dart)",
+      "Bash(perl -pi -e 's/_HomeScreenState/HomeScreenState/g' lib/screens/home_screen.dart)",
+      "Bash(find / -maxdepth 4 -iname \"*lumen_app_icon_pack*\" -type d)",
+      "Bash(perl -0777 -pi -e ' *)"
     ],
     "additionalDirectories": [
       "/proc/10836/fd"

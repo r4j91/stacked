@@ -50,6 +50,57 @@
 		</dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
+			<!-- ICON-PACK-OLD: chaves abaixo (nevoa/grafite/branco_neve/areia/...)
+			     são da geração 1, sem AppIconOption Dart correspondente hoje —
+			     mantidas, não removidas. Pack v2_refinado adicionado abaixo.
+			     grafite_claro agora é o ícone padrão (CFBundlePrimaryIcon
+			     acima); azul_nevoa deixou de ser padrão e ganhou entrada
+			     alternate abaixo. -->
+			<key>azul_nevoa</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-azul_nevoa</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>azul_oceano</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-azul_oceano</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>branco_cinza</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-branco_cinza</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>grafite_claro</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-grafite_claro</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>preto_grafite</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIcon-preto_grafite</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
 			<key>nevoa</key>
 			<dict>
 				<key>CFBundleIconFiles</key>

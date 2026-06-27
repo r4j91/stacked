@@ -997,7 +997,82 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   // M5-EXPAND: linha de subtarefa indentada, exibida quando o id da
   // tarefa pai está em _expandedListIds.
   // SUBTASK-TAP-OLD: sem InkWell/GestureDetector — toque não fazia nada.
+  static const _listSubtaskPtMonths = [
+    'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+    'jul', 'ago', 'set', 'out', 'nov', 'dez',
+  ];
+
+  Widget _listSubtaskMetaChip(Color color, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _listSubtaskChips(Subtask sub) {
+    final chips = <Widget>[];
+
+    if (sub.dueDate != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final due = DateTime(sub.dueDate!.year, sub.dueDate!.month, sub.dueDate!.day);
+      final diff = due.difference(today).inDays;
+      final Color dotColor;
+      final String label;
+      if (diff == 0) {
+        dotColor = const Color(0xFF7ECC49);
+        label = 'Hoje';
+      } else if (diff < 0) {
+        dotColor = const Color(0xFFDC4C3E);
+        label = '${due.day} ${_listSubtaskPtMonths[due.month - 1]}';
+      } else {
+        dotColor = const Color(0xFFF0A830);
+        label = '${due.day} ${_listSubtaskPtMonths[due.month - 1]}';
+      }
+      chips.add(_listSubtaskMetaChip(dotColor, label));
+    }
+
+    if (sub.labelIds.isNotEmpty) {
+      for (final id in sub.labelIds) {
+        final option = _allLabels.where((l) => l.id == id).firstOrNull;
+        if (option != null) {
+          chips.add(_listSubtaskMetaChip(option.color, option.name));
+        } else {
+          chips.add(_listSubtaskMetaChip(AppColors.textTertiary, id));
+        }
+      }
+    }
+
+    return chips;
+  }
+
   Widget _buildTaskListSubtaskRow(Task task, Subtask sub) {
+    final priColor = switch (sub.priority) {
+      SubtaskPriority.high => const Color(0xFFDC4C3E),
+      SubtaskPriority.medium => const Color(0xFFEB8909),
+      SubtaskPriority.low => const Color(0xFF246FE0),
+      null => AppColors.textTertiary,
+    };
+    final chips = _listSubtaskChips(sub);
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => _openSubtaskDetail(task, sub),
@@ -1021,9 +1096,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 margin: const EdgeInsets.only(top: 1, right: 8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: sub.done ? const Color(0xFF22C55E) : Colors.transparent,
+                  color: sub.done ? const Color(0xFF22C55E) : priColor.withValues(alpha: 0.08),
                   border: Border.all(
-                    color: sub.done ? const Color(0xFF22C55E) : Colors.white.withValues(alpha: 0.3),
+                    color: sub.done ? const Color(0xFF22C55E) : priColor,
                     width: 2,
                   ),
                 ),
@@ -1033,15 +1108,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               ),
             ),
             Expanded(
-              child: Text(
-                sub.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.7),
-                  decoration: sub.done ? TextDecoration.lineThrough : TextDecoration.none,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    sub.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.7),
+                      decoration: sub.done ? TextDecoration.lineThrough : TextDecoration.none,
+                    ),
+                  ),
+                  if (chips.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Wrap(spacing: 5, runSpacing: 4, children: chips),
+                    ),
+                ],
               ),
             ),
           ],

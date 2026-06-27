@@ -27,6 +27,81 @@
         </activity>
         <!-- Alternate app icons — only one alias should be enabled at a time.
              Managed by AppIconService via flutter_dynamic_icon. -->
+        <!-- ICON-PACK-OLD: aliases abaixo (nevoaAlias/grafiteAlias/...) são
+             da geração 1, sem AppIconOption Dart correspondente hoje —
+             mantidos, não removidos. Também têm um bug pré-existente:
+             android:icon="@mipmap/ic_launcher" aponta pro ícone padrão, não
+             pro mipmap específico (ic_launcher_nevoa etc.) — nunca trocava
+             o ícone de fato no Android. Não corrigido aqui (fora de
+             escopo); os novos abaixo já usam o mipmap correto.
+             grafite_claro agora é o ícone padrão (android:icon do
+             <application> acima) — sem alias própria; azul_nevoa deixou
+             de ser padrão e ganhou alias abaixo. -->
+        <activity-alias
+            android:name=".azulNevoaAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".azulOceanoAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".brancoCinzaAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".grafiteClaroAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".pretoGrafiteAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+
         <activity-alias
             android:name=".nevoaAlias"
             android:enabled="false"

@@ -219,7 +219,7 @@ class _BrowseHomeState extends State<_BrowseHome> {
     );
   }
 
-  void _showSettings() => _SettingsSheet.show(context);
+  void _showSettings() => SettingsSheet.show(context);
 
   @override
   Widget build(BuildContext context) {
@@ -248,18 +248,18 @@ class _BrowseHomeState extends State<_BrowseHome> {
                 // User pill
                 GestureDetector(
                   onTap: () => showProductivitySheet(context),
-                  child: _UserPill(email: email, apelido: apelido, nome: nome, avatarPath: avatarPath),
+                  child: UserPill(email: email, apelido: apelido, nome: nome, avatarPath: avatarPath),
                 ),
                 const Spacer(),
                 // Bell + Gear — only on mobile (desktop has sidebar settings)
                 if (!isDesktop)
-                  _HeaderLiquidPill(
+                  HeaderLiquidPill(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 11),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
-                          onTap: () => _NotificationsSheet.show(context),
+                          onTap: () => NotificationsSheet.show(context),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Icon(Icons.notifications_outlined, size: 22, color: AppColors.textSecondary),
@@ -438,10 +438,10 @@ BoxShadow _cardShadow() => BoxShadow(
 /// pill) — same blur/fill/border/shadow recipe as the bottom nav's
 /// `_LiquidGlassPill` (responsive_layout.dart), reused here so both header
 /// pills match the nav bar's already-correct visual language.
-class _HeaderLiquidPill extends StatelessWidget {
+class HeaderLiquidPill extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-  const _HeaderLiquidPill({required this.child, required this.padding});
+  const HeaderLiquidPill({required this.child, required this.padding});
 
   @override
   Widget build(BuildContext context) {
@@ -474,12 +474,12 @@ class _HeaderLiquidPill extends StatelessWidget {
   }
 }
 
-class _UserPill extends StatelessWidget {
+class UserPill extends StatelessWidget {
   final String email;
   final String apelido;
   final String nome;
   final String? avatarPath;
-  const _UserPill({required this.email, this.apelido = '', this.nome = '', this.avatarPath});
+  const UserPill({required this.email, this.apelido = '', this.nome = '', this.avatarPath});
 
   String get _initials {
     final display = apelido.isNotEmpty ? apelido : nome.isNotEmpty ? nome : email.split('@').first;
@@ -502,7 +502,7 @@ class _UserPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _HeaderLiquidPill(
+    return HeaderLiquidPill(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -760,8 +760,8 @@ class _EmptyProjects extends StatelessWidget {
 
 // ── Settings sheet ────────────────────────────────────────────────────────────
 
-class _SettingsSheet extends StatelessWidget {
-  const _SettingsSheet();
+class SettingsSheet extends StatelessWidget {
+  const SettingsSheet();
 
   static void show(BuildContext context) {
     showModalBottomSheet(
@@ -774,7 +774,7 @@ class _SettingsSheet extends StatelessWidget {
       builder: (ctx) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => Navigator.of(ctx, rootNavigator: true).pop(),
-        child: const _SettingsSheet(),
+        child: const SettingsSheet(),
       ),
     );
   }
@@ -1095,8 +1095,8 @@ class _IOSSlideRoute<T> extends PageRouteBuilder<T> {
 
 // ── Bell / Notifications Sheet ─────────────────────────────────────────────
 
-class _NotificationsSheet extends StatefulWidget {
-  const _NotificationsSheet();
+class NotificationsSheet extends StatefulWidget {
+  const NotificationsSheet();
 
   static void show(BuildContext context) {
     showModalBottomSheet(
@@ -1104,15 +1104,15 @@ class _NotificationsSheet extends StatefulWidget {
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _NotificationsSheet(),
+      builder: (_) => const NotificationsSheet(),
     );
   }
 
   @override
-  State<_NotificationsSheet> createState() => _NotificationsSheetState();
+  State<NotificationsSheet> createState() => NotificationsSheetState();
 }
 
-class _NotificationsSheetState extends State<_NotificationsSheet> {
+class NotificationsSheetState extends State<NotificationsSheet> {
   List<Map<String, dynamic>> _upcoming = [];
   bool _loading = true;
 
