@@ -26,78 +26,63 @@ class AppIconOption {
 
   bool get isDefault => iosIconName == null;
 
-  // Pacote "Camadas Empilhadas" (assets/lumen_icones_completo/) — substitui o
-  // pacote colorido antigo. Grafite é a variante oficial/padrão do app.
+  // ICON-PACK-OLD: pacote "Camadas Empilhadas" (lumen_new_*.png, 10
+  // variantes) — wiring nativo (Info.plist/AndroidManifest/Assets.xcassets)
+  // nunca existiu para esses nomes (geração 1 nativa usava nevoa/grafite/
+  // branco_neve/... que tampouco batiam com isso); switcher ficava sempre
+  // silenciosamente sem efeito. Substituído pelo pack v2_refinado (5
+  // variantes), com wiring nativo real criado do zero para os 4
+  // alternativos + azul_nevoa como ícone padrão (ver pubspec.yaml
+  // flutter_launcher_icons).
+  // static const List<AppIconOption> all = [
+  //   AppIconOption(id: 'grafite', label: 'Grafite', assetPath: 'assets/icon/lumen_new_grafite.png', iosIconName: null, androidAlias: null),
+  //   AppIconOption(id: 'cinza_escuro', label: 'Cinza Escuro', assetPath: 'assets/icon/lumen_new_cinza_escuro.png', iosIconName: 'cinza_escuro', androidAlias: 'cinzaEscuroAlias'),
+  //   AppIconOption(id: 'cinza_medio', label: 'Cinza Médio', assetPath: 'assets/icon/lumen_new_cinza_medio.png', iosIconName: 'cinza_medio', androidAlias: 'cinzaMedioAlias'),
+  //   AppIconOption(id: 'cinza_claro', label: 'Cinza Claro', assetPath: 'assets/icon/lumen_new_cinza_claro.png', iosIconName: 'cinza_claro', androidAlias: 'cinzaClaroAlias'),
+  //   AppIconOption(id: 'branco', label: 'Branco', assetPath: 'assets/icon/lumen_new_branco.png', iosIconName: 'branco', androidAlias: 'brancoAlias'),
+  //   AppIconOption(id: 'carvao', label: 'Carvão', assetPath: 'assets/icon/lumen_new_carvao.png', iosIconName: 'carvao', androidAlias: 'carvaoAlias'),
+  //   AppIconOption(id: 'azul_nevoa', label: 'Azul Névoa', assetPath: 'assets/icon/lumen_new_azul_nevoa.png', iosIconName: 'azul_nevoa', androidAlias: 'azulNevoaAlias'),
+  //   AppIconOption(id: 'azul_oceano', label: 'Azul Oceano', assetPath: 'assets/icon/lumen_new_azul_oceano.png', iosIconName: 'azul_oceano', androidAlias: 'azulOceanoAlias'),
+  //   AppIconOption(id: 'titanio', label: 'Titânio', assetPath: 'assets/icon/lumen_new_titanio.png', iosIconName: 'titanio', androidAlias: 'titanioAlias'),
+  //   AppIconOption(id: 'fosco', label: 'Fosco', assetPath: 'assets/icon/lumen_new_fosco.png', iosIconName: 'fosco', androidAlias: 'foscoAlias'),
+  // ];
+  // ICON-PACK-OLD: azul_nevoa era o padrão (iosIconName/androidAlias null).
+  // Agora grafite_claro é o padrão; azul_nevoa virou alternativo.
   static const List<AppIconOption> all = [
     AppIconOption(
-      id: 'grafite',
-      label: 'Grafite',
-      assetPath: 'assets/icon/lumen_new_grafite.png',
+      id: 'grafite_claro',
+      label: 'Grafite Claro',
+      assetPath: 'assets/icon/v2_refinado/grafite_claro_1024_flat.png',
       iosIconName: null,
       androidAlias: null,
     ),
     AppIconOption(
-      id: 'cinza_escuro',
-      label: 'Cinza Escuro',
-      assetPath: 'assets/icon/lumen_new_cinza_escuro.png',
-      iosIconName: 'cinza_escuro',
-      androidAlias: 'cinzaEscuroAlias',
-    ),
-    AppIconOption(
-      id: 'cinza_medio',
-      label: 'Cinza Médio',
-      assetPath: 'assets/icon/lumen_new_cinza_medio.png',
-      iosIconName: 'cinza_medio',
-      androidAlias: 'cinzaMedioAlias',
-    ),
-    AppIconOption(
-      id: 'cinza_claro',
-      label: 'Cinza Claro',
-      assetPath: 'assets/icon/lumen_new_cinza_claro.png',
-      iosIconName: 'cinza_claro',
-      androidAlias: 'cinzaClaroAlias',
-    ),
-    AppIconOption(
-      id: 'branco',
-      label: 'Branco',
-      assetPath: 'assets/icon/lumen_new_branco.png',
-      iosIconName: 'branco',
-      androidAlias: 'brancoAlias',
-    ),
-    AppIconOption(
-      id: 'carvao',
-      label: 'Carvão',
-      assetPath: 'assets/icon/lumen_new_carvao.png',
-      iosIconName: 'carvao',
-      androidAlias: 'carvaoAlias',
-    ),
-    AppIconOption(
       id: 'azul_nevoa',
       label: 'Azul Névoa',
-      assetPath: 'assets/icon/lumen_new_azul_nevoa.png',
+      assetPath: 'assets/icon/v2_refinado/azul_nevoa_1024_flat.png',
       iosIconName: 'azul_nevoa',
       androidAlias: 'azulNevoaAlias',
     ),
     AppIconOption(
       id: 'azul_oceano',
       label: 'Azul Oceano',
-      assetPath: 'assets/icon/lumen_new_azul_oceano.png',
+      assetPath: 'assets/icon/v2_refinado/azul_oceano_1024_flat.png',
       iosIconName: 'azul_oceano',
       androidAlias: 'azulOceanoAlias',
     ),
     AppIconOption(
-      id: 'titanio',
-      label: 'Titânio',
-      assetPath: 'assets/icon/lumen_new_titanio.png',
-      iosIconName: 'titanio',
-      androidAlias: 'titanioAlias',
+      id: 'branco_cinza',
+      label: 'Branco Cinza',
+      assetPath: 'assets/icon/v2_refinado/branco_cinza_1024_flat.png',
+      iosIconName: 'branco_cinza',
+      androidAlias: 'brancoCinzaAlias',
     ),
     AppIconOption(
-      id: 'fosco',
-      label: 'Fosco',
-      assetPath: 'assets/icon/lumen_new_fosco.png',
-      iosIconName: 'fosco',
-      androidAlias: 'foscoAlias',
+      id: 'preto_grafite',
+      label: 'Preto Grafite',
+      assetPath: 'assets/icon/v2_refinado/preto_grafite_1024_flat.png',
+      iosIconName: 'preto_grafite',
+      androidAlias: 'pretoGrafiteAlias',
     ),
   ];
 }
@@ -124,7 +109,8 @@ class AppIconService {
   Future<AppIconOption> getCurrentIcon() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final id = prefs.getString(_prefKey) ?? 'grafite';
+      // ICON-PACK-OLD: ?? 'grafite', depois ?? 'azul_nevoa'.
+      final id = prefs.getString(_prefKey) ?? 'grafite_claro';
       return AppIconOption.all.firstWhere(
         (o) => o.id == id,
         orElse: () => AppIconOption.all.first,

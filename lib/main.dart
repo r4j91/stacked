@@ -9,7 +9,8 @@ import 'theme/app_colors.dart';
 import 'screens/auth_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/upcoming_screen.dart';
-import 'screens/browse_screen.dart';
+// HOME-V2-OLD: import 'screens/browse_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/filters_screen.dart';
 import 'screens/inbox_screen.dart';
 import 'services/auth_service.dart';
@@ -107,6 +108,7 @@ class RootScreen extends StatefulWidget {
 
 class _RootScreenState extends State<RootScreen> {
   int _index = 0;
+  final _homeKey = GlobalKey<HomeScreenState>();
   final _todayKey = GlobalKey<TodayScreenState>();
   final _inboxKey = GlobalKey<InboxScreenState>();
 
@@ -123,7 +125,8 @@ class _RootScreenState extends State<RootScreen> {
     super.initState();
     ThemeProvider.instance.addListener(_onThemeChanged);
     _screens = [
-      const BrowseScreen(),
+      // HOME-V2-OLD: const BrowseScreen(),
+      HomeScreen(key: _homeKey, onNavigateToTab: _onTabSelected),
       InboxScreen(key: _inboxKey),
       TodayScreen(key: _todayKey),
       const UpcomingScreen(),
@@ -145,6 +148,10 @@ class _RootScreenState extends State<RootScreen> {
       }
       return;
     }
+    // HOME-REFRESH: voltando pra tab Home a partir de outra — recarrega
+    // tarefas/projetos (mesma necessidade de Inbox/Today ao reentrar,
+    // sem RouteObserver: troca de tab não passa pelo Navigator).
+    if (i == 0) _homeKey.currentState?.reload();
     setState(() => _index = i);
   }
 

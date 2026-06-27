@@ -31,6 +31,32 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
   late Color _selectedColor;
   bool _saving = false;
 
+  // ICONS-OLD: sem seleção de ícone — só cor. Persistido em _saveEdits
+  // com fallback (coluna 'icone' pode ainda não existir no banco).
+  String? _selectedIcon;
+
+  static const _projectIcons = [
+    (icon: Icons.folder_rounded, name: 'folder'),
+    (icon: Icons.work_rounded, name: 'work'),
+    (icon: Icons.home_rounded, name: 'home'),
+    (icon: Icons.school_rounded, name: 'school'),
+    (icon: Icons.fitness_center_rounded, name: 'fitness'),
+    (icon: Icons.shopping_cart_rounded, name: 'shopping'),
+    (icon: Icons.favorite_rounded, name: 'favorite'),
+    (icon: Icons.star_rounded, name: 'star'),
+    (icon: Icons.rocket_launch_rounded, name: 'rocket'),
+    (icon: Icons.lightbulb_rounded, name: 'lightbulb'),
+    (icon: Icons.music_note_rounded, name: 'music'),
+    (icon: Icons.travel_explore_rounded, name: 'travel'),
+    (icon: Icons.attach_money_rounded, name: 'money'),
+    (icon: Icons.health_and_safety_rounded, name: 'health'),
+    (icon: Icons.code_rounded, name: 'code'),
+    (icon: Icons.brush_rounded, name: 'art'),
+  ];
+
+  // COLORS-OLD: 12 cores — mantidas todas, +8 novas abaixo. (O pedido
+  // sugeriu records (name, hex), mas _colors aqui é List<Color> simples,
+  // usado direto por _selectedColor/_saveEdits; mantido o formato real.)
   static const _colors = [
     Color(0xFF63C7D8), // Ocean Mist
     Color(0xFF6F8FB8), // Slate Blue
@@ -44,6 +70,14 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
     Color(0xFFD3B36A), // Soft Amber
     Color(0xFF7F99A8), // Steel Blue
     Color(0xFF9CA3AF), // Mist Grey
+    Color(0xFFF43F5E), // Rose
+    Color(0xFFEC4899), // Pink
+    Color(0xFFD946EF), // Fuchsia
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFF10B981), // Emerald
+    Color(0xFF84CC16), // Lime
+    Color(0xFFF59E0B), // Amber
+    Color(0xFFF97316), // Orange
   ];
 
   @override
@@ -64,10 +98,23 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
     setState(() => _saving = true);
     try {
       final hex = '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-      await supabase.from('projects').update({
-        'nome': _nameCtrl.text.trim(),
-        'cor': hex,
-      }).eq('id', widget.project.id);
+      // ICON-SAVE-OLD: update sem 'icone' — coluna não existia no banco.
+      // Tenta com 'icone'; se a coluna não existir (ainda não migrada),
+      // cai no update sem ela (mesmo padrão de fallback usado em
+      // project_detail_screen.dart para colunas opcionais).
+      try {
+        await supabase.from('projects').update({
+          'nome': _nameCtrl.text.trim(),
+          'cor': hex,
+          if (_selectedIcon != null) 'icone': _selectedIcon,
+        }).eq('id', widget.project.id);
+      } catch (e) {
+        if (!e.toString().contains('icone')) rethrow;
+        await supabase.from('projects').update({
+          'nome': _nameCtrl.text.trim(),
+          'cor': hex,
+        }).eq('id', widget.project.id);
+      }
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         widget.onEdited();
@@ -208,6 +255,45 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
+              ),
+            ),
+            // ICONS-OLD: grid de ícones não existia — só o bloco de cor abaixo.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Ícone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textTertiary, letterSpacing: 0.5)),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    children: _projectIcons.map((item) {
+                      final isSelected = _selectedIcon == item.name;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedIcon = item.name),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? _selectedColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? _selectedColor : Colors.white.withValues(alpha: 0.08),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Icon(
+                            item.icon,
+                            size: 22,
+                            color: isSelected ? _selectedColor : Colors.white.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
             ),
             Padding(
