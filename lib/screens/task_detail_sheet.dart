@@ -271,24 +271,63 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
     }
   }
 
+  // HORA-SYNC-OLD: só atualizava data_vencimento
+  // Future<void> _autosaveDueDate() async {
+  //   if (_isNew) return;
+  //   String? dueDateStr;
+  //   if (_dueDate != null) {
+  //     if (_dueTime != null) {
+  //       dueDateStr = DateTime(
+  //         _dueDate!.year, _dueDate!.month, _dueDate!.day,
+  //         _dueTime!.hour, _dueTime!.minute,
+  //       ).toIso8601String();
+  //     } else {
+  //       dueDateStr = '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}';
+  //     }
+  //   }
+  //   try {
+  //     await supabase.from('tasks').update({'data_vencimento': dueDateStr}).eq('id', widget.task!.id);
+  //   } catch (e) {
+  //     // ignore: avoid_print
+  //     print('[TaskDetail] autosave data_vencimento falhou: $e');
+  //   }
+  // }
+
   Future<void> _autosaveDueDate() async {
-    if (_isNew) return;
+    if (_isNew || widget.task?.id == null) return;
+
     String? dueDateStr;
+    String? horaStr;
+
     if (_dueDate != null) {
       if (_dueTime != null) {
-        dueDateStr = DateTime(
+        final full = DateTime(
           _dueDate!.year, _dueDate!.month, _dueDate!.day,
           _dueTime!.hour, _dueTime!.minute,
-        ).toIso8601String();
+        );
+        dueDateStr = full.toIso8601String();
+        // Sincronizar hora no formato HH:mm (mesmo formato que outras partes do app esperam em Task.time)
+        horaStr = '${_dueTime!.hour.toString().padLeft(2, '0')}:'
+            '${_dueTime!.minute.toString().padLeft(2, '0')}';
       } else {
-        dueDateStr = '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}';
+        dueDateStr = '${_dueDate!.year}-'
+            '${_dueDate!.month.toString().padLeft(2, '0')}-'
+            '${_dueDate!.day.toString().padLeft(2, '0')}';
+        horaStr = null; // sem hora — limpar o campo
       }
     }
+
     try {
-      await supabase.from('tasks').update({'data_vencimento': dueDateStr}).eq('id', widget.task!.id);
+      await supabase
+          .from('tasks')
+          .update({
+            'data_vencimento': dueDateStr,
+            'hora': horaStr, // HORA-SYNC: manter em sincronia
+          })
+          .eq('id', widget.task!.id);
     } catch (e) {
       // ignore: avoid_print
-      print('[TaskDetail] autosave data_vencimento falhou: $e');
+      print('[TaskDetail] autosave falhou: $e');
     }
   }
 
@@ -325,6 +364,17 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
         _dueDate = DateTime(rawDate.year, rawDate.month, rawDate.day);
       } else {
         _dueDate = rawDate;
+      }
+    }
+
+    // HORA-FALLBACK: dueDate sem componente de hora — tentar campo 'hora' separado
+    if (_dueDate != null && _dueTime == null && widget.task?.time != null) {
+      final parts = widget.task!.time!.split(':');
+      if (parts.length == 2) {
+        _dueTime = TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 0,
+          minute: int.tryParse(parts[1]) ?? 0,
+        );
       }
     }
 
@@ -663,6 +713,11 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
         // ADICIONADO_SECAO_PROJETO: persistido junto com project_id.
         'section_id': _sectionId,
         'data_vencimento': dueDateStr,
+        // HORA-SYNC: manter em sincronia com data_vencimento
+        'hora': _dueTime != null
+            ? '${_dueTime!.hour.toString().padLeft(2, '0')}:'
+                '${_dueTime!.minute.toString().padLeft(2, '0')}'
+            : null,
         'recorrencia': _recurrence?.toJsonString(),
       };
 
