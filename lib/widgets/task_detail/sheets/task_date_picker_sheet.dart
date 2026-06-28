@@ -358,10 +358,10 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
     final shortcuts = [
       // COLORS-OLD: Color(0xFFF5A623)/Color(0xFF4D9FEC)/Color(0xFFB18CF5) — duplicavam priorityMedium/priorityLow/tagPurple
       // 0xFF3BAA6E sem token equivalente — FIXED-COLOR: acento decorativo único deste shortcut
-      (label: 'Hoje', icon: Icons.calendar_today_rounded, color: const Color(0xFF3BAA6E), date: today),
-      (label: 'Amanhã', icon: Icons.wb_sunny_rounded, color: AppColors.priorityMedium, date: tomorrow),
-      (label: 'Este fim de semana', icon: Icons.weekend_rounded, color: AppColors.priorityLow, date: weekend),
-      (label: 'Próxima semana', icon: Icons.arrow_forward_rounded, color: AppColors.tagPurple, date: nextMonday),
+      (label: 'Hoje', hugeIcon: HugeIcons.strokeRoundedCalendar01, color: const Color(0xFF3BAA6E), date: today),
+      (label: 'Amanhã', hugeIcon: HugeIcons.strokeRoundedSun01, color: AppColors.priorityMedium, date: tomorrow),
+      (label: 'Este fim de semana', hugeIcon: HugeIcons.strokeRoundedSofaSingle, color: AppColors.priorityLow, date: weekend),
+      (label: 'Próxima semana', hugeIcon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.tagPurple, date: nextMonday),
     ];
 
     bool isSameDay(DateTime? a, DateTime b) =>
@@ -442,7 +442,7 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                   child: Row(
                     children: [
-                      Icon(s.icon, size: 20, color: s.color),
+                      HugeIcon(icon: s.hugeIcon, size: 20, color: s.color),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(

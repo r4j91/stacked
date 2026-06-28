@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 
@@ -105,8 +106,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     label: 'Senha',
                     obscureText: _obscurePassword,
                     suffix: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      icon: HugeIcon(
+                        icon: _obscurePassword
+                            ? HugeIcons.strokeRoundedView
+                            : HugeIcons.strokeRoundedViewOff,
                         size: 18,
                         color: AppColors.textTertiary,
                       ),

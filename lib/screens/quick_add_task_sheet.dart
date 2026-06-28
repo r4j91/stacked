@@ -374,13 +374,13 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
       anchorKey: _priorityKey,
       items: [
         // COLORS-OLD: Color(0xFFDC4C3E)/Color(0xFFEB8909)/Color(0xFF246FE0)
-        AnchoredMenuItem(id: 'high',   label: 'Prioridade 1', icon: Icons.flag,
+        AnchoredMenuItem(id: 'high',   label: 'Prioridade 1', hugeIcon: HugeIcons.strokeRoundedFlag01,
             iconColor: AppColors.subtaskPriorityHigh, selected: _priority == Priority.high),
-        AnchoredMenuItem(id: 'medium', label: 'Prioridade 2', icon: Icons.flag,
+        AnchoredMenuItem(id: 'medium', label: 'Prioridade 2', hugeIcon: HugeIcons.strokeRoundedFlag01,
             iconColor: AppColors.subtaskPriorityMedium, selected: _priority == Priority.medium),
-        AnchoredMenuItem(id: 'low',    label: 'Prioridade 3', icon: Icons.flag,
+        AnchoredMenuItem(id: 'low',    label: 'Prioridade 3', hugeIcon: HugeIcons.strokeRoundedFlag01,
             iconColor: AppColors.subtaskPriorityLow, selected: _priority == Priority.low),
-        AnchoredMenuItem(id: 'none',   label: 'Sem prioridade', icon: Icons.flag_outlined,
+        AnchoredMenuItem(id: 'none',   label: 'Sem prioridade', hugeIcon: HugeIcons.strokeRoundedFlag01,
             iconColor: AppColors.textTertiary, selected: _priority == null),
       ],
     );
@@ -425,12 +425,13 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
       anchorKey: _projectKey,
       items: [
         AnchoredMenuItem(id: 'none', label: 'Sem projeto',
-            icon: Icons.radio_button_unchecked,
+            hugeIcon: HugeIcons.strokeRoundedRecord,
             iconColor: AppColors.textTertiary.withValues(alpha: 0.5),
             selected: _project == null),
         ..._projects.map((p) => AnchoredMenuItem(
               id: p.id, label: p.name,
-              icon: Icons.circle, iconColor: p.color ?? AppColors.accent,
+              hugeIcon: HugeIcons.strokeRoundedRecord,
+              iconColor: p.color ?? AppColors.accent,
               selected: _project?.id == p.id)),
       ],
     );
@@ -478,7 +479,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
       anchorKey: _projectKey,
       items: [
         AnchoredMenuItem(id: '__back__', label: '‹ Voltar',
-            icon: Icons.arrow_back_ios_new,
+            hugeIcon: HugeIcons.strokeRoundedArrowLeft01,
             iconColor: AppColors.textTertiary),
         AnchoredMenuItem(id: '__none__', label: 'Sem seção',
             selected: _selectedSectionId == null),
@@ -659,7 +660,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: AppColors.surfaceVariant.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(PopoverStyle.radius),
               ),
               child: TextField(
@@ -712,7 +713,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
             child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.surfaceVariant.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(PopoverStyle.radius),
             ),
             child: TextField(
@@ -748,7 +749,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
         Divider(
           height: 1,
           thickness: 0.5,
-          color: Colors.white.withValues(alpha: 0.10),
+          color: AppColors.textTertiary.withValues(alpha: 0.15),
         ),
 
         // ── B.9 Problem 2: 2-line footer ─────────────────────────────────────
@@ -768,7 +769,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
             children: [
               _QuickPill(
                 key: _labelsKey,
-                icon: _labelIds.isNotEmpty ? Icons.label : Icons.label_outline,
+                hugeIcon: HugeIcons.strokeRoundedTag01,
                 active: _labelIds.isNotEmpty,
                 activeColor: _labelPillColor,
                 activeLabel: _labelPillName,
@@ -778,7 +779,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
               const SizedBox(width: 7),
               _QuickPill(
                 key: _dateKey,
-                icon: Icons.calendar_today_outlined,
+                hugeIcon: HugeIcons.strokeRoundedCalendar01,
                 active: _dueDate != null,
                 activeColor: _datePillColor,
                 activeLabel: _dueDate != null ? _datePillLabel : null,
@@ -787,7 +788,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
               const SizedBox(width: 7),
               _QuickPill(
                 key: _priorityKey,
-                icon: _priority != null ? Icons.flag : Icons.flag_outlined,
+                hugeIcon: HugeIcons.strokeRoundedFlag01,
                 active: _priority != null,
                 activeColor: _priorityColor,
                 activeLabel: _priority != null ? _priorityLabel : null,
@@ -799,7 +800,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
               // tarefa (se houver título) e abre o InstallmentGeneratorSheet
               // com o taskId real.
               _QuickPill(
-                icon: Icons.payments_outlined,
+                hugeIcon: HugeIcons.strokeRoundedMoney01,
                 active: false,
                 activeColor: AppColors.accent,
                 subtleBg: true,
@@ -979,7 +980,7 @@ const double _kFooterPillHeight = _pillRadius * 2; // 44.0 — shared with the s
 const double _kSendButtonWidth = 64.0; // matches the visual width of the Inbox/Project pill
 
 class _QuickPill extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final bool active;
   final Color activeColor;
   final String? activeLabel;
@@ -991,7 +992,7 @@ class _QuickPill extends StatelessWidget {
 
   const _QuickPill({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.active,
     required this.activeColor,
     required this.onTap,
@@ -1007,7 +1008,7 @@ class _QuickPill extends StatelessWidget {
     // Background: colored tint when active (unless subtleBg), neutral otherwise.
     final Color bg = (active && !subtleBg)
         ? activeColor.withValues(alpha: 0.12)
-        : Colors.white.withValues(alpha: 0.05);
+        : AppColors.surfaceVariant.withValues(alpha: 0.4);
 
     return GestureDetector(
       onTap: onTap,
@@ -1022,14 +1023,14 @@ class _QuickPill extends StatelessWidget {
           color: bg,
           borderRadius: BorderRadius.circular(_pillRadius),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: AppColors.textTertiary.withValues(alpha: 0.12),
             width: 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16,
+            HugeIcon(icon: hugeIcon, size: 16,
                 color: active ? activeColor : AppColors.textSecondary),
             if (activeLabel != null) ...[
               const SizedBox(width: 5),
@@ -1078,7 +1079,7 @@ class _ProjectPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color bg = active
         ? dotColor.withValues(alpha: 0.12)
-        : Colors.white.withValues(alpha: 0.05);
+        : AppColors.surfaceVariant.withValues(alpha: 0.4);
 
     return GestureDetector(
       onTap: onTap,
@@ -1089,7 +1090,7 @@ class _ProjectPill extends StatelessWidget {
           color: bg,
           borderRadius: BorderRadius.circular(_pillRadius),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: AppColors.textTertiary.withValues(alpha: 0.12),
             width: 1,
           ),
         ),

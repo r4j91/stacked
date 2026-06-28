@@ -290,24 +290,24 @@ class _FiltersScreenState extends State<FiltersScreen> {
                   ),
                 )
               : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   child: Column(
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.warning_amber_rounded,
+                              hugeIcon: HugeIcons.strokeRoundedAlert01,
                               label: 'Atrasadas',
                               count: _overdueCount,
                               color: AppColors.priorityHigh,
                               onTap: () => _loadFilter(_FilterView.overdue),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.today_rounded,
+                              hugeIcon: HugeIcons.strokeRoundedCalendar01,
                               label: 'Hoje',
                               count: _todayCount,
                               color: AppColors.accent,
@@ -316,22 +316,22 @@ class _FiltersScreenState extends State<FiltersScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: AppSpacing.md),
                       Row(
                         children: [
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.date_range_rounded,
+                              hugeIcon: HugeIcons.strokeRoundedCalendar03,
                               label: 'Próximos 7 dias',
                               count: _weekCount,
                               color: AppColors.tagPurple,
                               onTap: () => _loadFilter(_FilterView.week),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.check_circle_outline_rounded,
+                              hugeIcon: HugeIcons.strokeRoundedTaskDone01,
                               label: 'Concluídas hoje',
                               count: _completedCount,
                               color: AppColors.tagGreen,
@@ -513,14 +513,14 @@ class _FiltersScreenState extends State<FiltersScreen> {
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final int count;
   final Color color;
   final VoidCallback onTap;
 
   const _StatCard({
-    required this.icon,
+    required this.hugeIcon,
     required this.label,
     required this.count,
     required this.color,
@@ -532,10 +532,10 @@ class _StatCard extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(
             color: count > 0 ? color.withValues(alpha: 0.2) : Colors.transparent,
             width: 1,
@@ -553,7 +553,7 @@ class _StatCard extends StatelessWidget {
                     color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: Icon(icon, size: 17, color: color),
+                  child: HugeIcon(icon: hugeIcon, size: 17, color: color),
                 ),
                 const Spacer(),
                 if (count > 0)
@@ -620,89 +620,74 @@ class _ProjectStatRow extends StatelessWidget {
           borderRadius: AppRadius.cardSm,
         ),
         child: Row(
-            children: [
-              // Color stripe
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Container(
-                  width: 3,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+          children: [
+            const SizedBox(width: 14),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+                border: Border.all(color: color.withValues(alpha: 0.75), width: 2),
+              ),
+              child: Center(
+                child: HugeIcon(
+                  icon: ProjectIcons.resolve(project.icone),
+                  size: 16,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 12),
-              // FILTERS-ICON-OLD: width: 34, height: 34, borderRadius: 12,
-              // border branco translúcido, HugeIcons.strokeRoundedPackage
-              // fixo (genérico, não refletia o ícone real do projeto)
-              // Icon container — mesmo estilo da aba Navegar
-              Container(
-                // FILTERS-ICON-V1: 28x28 radius 7, igual à home
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: HugeIcon(icon: ProjectIcons.resolve(project.icone), size: 14, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      project.name,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    project.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
-                    const SizedBox(height: 5),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: project.total == 0
-                            ? 0
-                            : (project.total - project.pending) / project.total,
-                        minHeight: 4,
-                        backgroundColor: AppColors.surfaceVariant,
-                        valueColor: AlwaysStoppedAnimation<Color>(color),
-                      ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: project.total == 0
+                          ? 0
+                          : (project.total - project.pending) / project.total,
+                      minHeight: 4,
+                      backgroundColor: AppColors.surfaceVariant,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.textTertiary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${project.pending}/${project.total}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textTertiary,
                 ),
               ),
-              const SizedBox(width: 14),
-              // Badge — mesmo estilo da aba Navegar
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    width: 0.8,
-                  ),
-                ),
-                child: Text(
-                  '${project.pending}/${project.total}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-            ],
-          ),
+            ),
+            const SizedBox(width: 14),
+          ],
         ),
-      );
+      ),
+    );
   }
 }

@@ -120,7 +120,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         else if (_projects.isEmpty)
           const Expanded(
             child: EmptyState(
-              icon: Icons.folder_open,
+              hugeIcon: HugeIcons.strokeRoundedFolder01,
               title: 'Nenhum projeto ainda',
               subtitle: 'Crie projetos para organizar suas tarefas por contexto ou objetivo.',
             ),
@@ -345,8 +345,10 @@ class _InlineProjectDetailState extends State<_InlineProjectDetail> {
           value: 'toggle_completed',
           child: Row(
             children: [
-              Icon(
-                _showCompleted ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              HugeIcon(
+                icon: _showCompleted
+                    ? HugeIcons.strokeRoundedViewOff
+                    : HugeIcons.strokeRoundedView,
                 size: 17,
                 color: AppColors.textSecondary,
               ),
@@ -400,7 +402,7 @@ class _InlineProjectDetailState extends State<_InlineProjectDetail> {
         else if (_tasks.isEmpty && _completedTasks.isEmpty)
           const Expanded(
             child: EmptyState(
-              icon: Icons.task_alt,
+              hugeIcon: HugeIcons.strokeRoundedTaskDone01,
               title: 'Nenhuma tarefa ainda',
               subtitle: 'Adicione tarefas a este projeto usando o botão acima.',
             ),
@@ -528,10 +530,10 @@ class _ProjectCard extends StatelessWidget {
                     color: AppColors.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: Icon(
-                    complete
-                        ? Icons.folder_off_rounded
-                        : Icons.folder_rounded,
+                  child: HugeIcon(
+                    icon: complete
+                        ? HugeIcons.strokeRoundedTaskDone01
+                        : HugeIcons.strokeRoundedFolder01,
                     size: 18,
                     color: AppColors.accent,
                   ),

@@ -227,10 +227,10 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
       context: context,
       anchorKey: _priorityChipKey,
       items: [
-        AnchoredMenuItem(id: 'high', label: 'Prioridade 1', icon: Icons.flag, iconColor: AppColors.priorityHigh, selected: _priority == SubtaskPriority.high),
-        AnchoredMenuItem(id: 'medium', label: 'Prioridade 2', icon: Icons.flag, iconColor: AppColors.priorityMedium, selected: _priority == SubtaskPriority.medium),
-        AnchoredMenuItem(id: 'low', label: 'Prioridade 3', icon: Icons.flag, iconColor: AppColors.priorityLow, selected: _priority == SubtaskPriority.low),
-        AnchoredMenuItem(id: 'none', label: 'Sem prioridade', icon: Icons.flag_outlined, iconColor: AppColors.textTertiary, selected: _priority == null),
+        AnchoredMenuItem(id: 'high', label: 'Prioridade 1', hugeIcon: HugeIcons.strokeRoundedFlag01, iconColor: AppColors.priorityHigh, selected: _priority == SubtaskPriority.high),
+        AnchoredMenuItem(id: 'medium', label: 'Prioridade 2', hugeIcon: HugeIcons.strokeRoundedFlag01, iconColor: AppColors.priorityMedium, selected: _priority == SubtaskPriority.medium),
+        AnchoredMenuItem(id: 'low', label: 'Prioridade 3', hugeIcon: HugeIcons.strokeRoundedFlag01, iconColor: AppColors.priorityLow, selected: _priority == SubtaskPriority.low),
+        AnchoredMenuItem(id: 'none', label: 'Sem prioridade', hugeIcon: HugeIcons.strokeRoundedFlag01, iconColor: AppColors.textTertiary, selected: _priority == null),
       ],
     );
     if (result == null || !mounted) return;
@@ -306,14 +306,14 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
   // ADICIONADO_REDESIGN_SUBTASK: mesmo padrão de _dueDateColor do
   // TaskDetailSheet — vermelho se atrasada, verde se hoje, neutro se futura.
   Color get _dueDateColor {
-    if (_dueDate == null) return Colors.white.withValues(alpha: 0.85);
+    if (_dueDate == null) return AppColors.textPrimary;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final due = DateTime(_dueDate!.year, _dueDate!.month, _dueDate!.day);
     final diff = due.difference(today).inDays;
     if (diff == 0) return const Color(0xFF7ECC49);
     if (diff < 0) return const Color(0xFFDC4C3E);
-    return Colors.white.withValues(alpha: 0.85);
+    return AppColors.textPrimary;
   }
 
   // ADICIONADO_REDESIGN_SUBTASK: chips de etiqueta com bolinha colorida,
@@ -334,7 +334,7 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 6, height: 6, decoration: BoxDecoration(color: l.color, shape: BoxShape.circle)),
+              HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 11, color: l.color),
               const SizedBox(width: 4),
               Text(l.name, style: TextStyle(fontSize: 11, color: l.color.withValues(alpha: 0.9), fontWeight: FontWeight.w500)),
             ],
@@ -439,11 +439,11 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                   child: Row(
                     children: [
                       HugeIcon(icon: HugeIcons.strokeRoundedArrowDownRight01,
-                          size: 12, color: Colors.white.withValues(alpha: 0.25)),
+                          size: 12, color: AppColors.textTertiary),
                       const SizedBox(width: 4),
                       Text(
                         widget.parentTaskTitle!,
-                        style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.3)),
+                        style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
                       ),
                     ],
                   ),
@@ -573,7 +573,7 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                       if (_priority != null) ...[
                         MetaRow(
                           key: _priorityChipKey,
-                          icon: Icons.flag_outlined,
+                          hugeIcon: HugeIcons.strokeRoundedFlag01,
                           onTap: () => _showPriorityMenu(),
                           child: PriorityValueWidget(
                             priority: switch (_priority!) {
@@ -583,27 +583,27 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                             },
                           ),
                         ),
-                        const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                        Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                       ],
                       if (_dueDate != null) ...[
                         MetaRow(
-                          icon: Icons.calendar_today_outlined,
+                          hugeIcon: HugeIcons.strokeRoundedCalendar01,
                           onTap: () => _showDateSheet(),
                           child: Text(
                             _formatDate(_dueDate!, _dueTime),
                             style: TextStyle(fontSize: 13, color: _dueDateColor),
                           ),
                         ),
-                        const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                        Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                       ],
                       if (_labelIds.isNotEmpty) ...[
                         MetaRow(
                           key: _labelsChipKey,
-                          icon: Icons.label_outline,
+                          hugeIcon: HugeIcons.strokeRoundedTag01,
                           onTap: () => _showLabelsMenu(),
                           child: _buildLabelChips(),
                         ),
-                        const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                        Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                       ],
                     ],
                   ),
@@ -627,7 +627,7 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: FieldPill(
-                              icon: Icons.calendar_today_outlined,
+                              hugeIcon: HugeIcons.strokeRoundedCalendar01,
                               label: 'Data',
                               onTap: _showDateSheet,
                             ),
@@ -643,7 +643,7 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                               // silenciosamente (anchored_select_menu.dart:56)
                               // — o tap parecia não fazer nada.
                               key: _priorityChipKey,
-                              icon: Icons.flag_outlined,
+                              hugeIcon: HugeIcons.strokeRoundedFlag01,
                               label: 'Prioridade',
                               onTap: _showPriorityMenu,
                             ),
@@ -654,7 +654,7 @@ class _SubtaskDetailSheetState extends State<SubtaskDetailSheet> {
                             // _priorityChipKey acima, agora para
                             // _labelsChipKey/showAnchoredMultiSelectMenu.
                             key: _labelsChipKey,
-                            icon: Icons.label_outline,
+                            hugeIcon: HugeIcons.strokeRoundedTag01,
                             label: 'Etiquetas',
                             onTap: _showLabelsMenu,
                           ),

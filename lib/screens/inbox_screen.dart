@@ -164,8 +164,10 @@ class InboxScreenState extends State<InboxScreen> {
           value: 'toggle_completed',
           child: Row(
             children: [
-              Icon(
-                _showCompleted ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              HugeIcon(
+                icon: _showCompleted
+                    ? HugeIcons.strokeRoundedViewOff
+                    : HugeIcons.strokeRoundedView,
                 size: 17,
                 color: AppColors.textSecondary,
               ),
@@ -237,7 +239,7 @@ class InboxScreenState extends State<InboxScreen> {
         else if (_tasks.isEmpty && _completedTasks.isEmpty)
           const SliverToBoxAdapter(
             child: EmptyState(
-              icon: Icons.inbox_outlined,
+              hugeIcon: HugeIcons.strokeRoundedInbox,
               title: 'Inbox limpo',
               subtitle: 'Nenhuma tarefa sem data ou projeto',
             ),

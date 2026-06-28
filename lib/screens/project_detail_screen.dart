@@ -380,9 +380,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           child: Container(
             margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.textTertiary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -407,13 +407,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           HugeIcon(icon: HugeIcons.strokeRoundedGrid, size: 18,
                               color: _displayMode == 'cards'
                                   ? AppColors.accent
-                                  : Colors.white.withValues(alpha: 0.4)),
+                                  : AppColors.textTertiary),
                           const SizedBox(height: 3),
                           Text('Balões', style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w500,
                             color: _displayMode == 'cards'
                                 ? AppColors.accent
-                                : Colors.white.withValues(alpha: 0.4),
+                                : AppColors.textTertiary,
                           )),
                         ],
                       ),
@@ -421,7 +421,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   ),
                 ),
                 Container(width: 1, height: 36,
-                    color: Colors.white.withValues(alpha: 0.08)),
+                    color: AppColors.textTertiary.withValues(alpha: 0.15)),
                 Expanded(
                   // GESTURE-OLD: GestureDetector sem feedback visual
                   child: Pressable(
@@ -443,13 +443,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           HugeIcon(icon: HugeIcons.strokeRoundedListView, size: 18,
                               color: _displayMode == 'list'
                                   ? AppColors.accent
-                                  : Colors.white.withValues(alpha: 0.4)),
+                                  : AppColors.textTertiary),
                           const SizedBox(height: 3),
                           Text('Lista', style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w500,
                             color: _displayMode == 'list'
                                 ? AppColors.accent
-                                : Colors.white.withValues(alpha: 0.4),
+                                : AppColors.textTertiary,
                           )),
                         ],
                       ),
@@ -464,8 +464,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           value: 'toggle_completed',
           child: Row(
             children: [
-              Icon(
-                _showCompleted ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              HugeIcon(
+                icon: _showCompleted
+                    ? HugeIcons.strokeRoundedViewOff
+                    : HugeIcons.strokeRoundedView,
                 size: 17,
                 color: AppColors.textSecondary,
               ),
@@ -743,7 +745,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       constraints: const BoxConstraints(minHeight: 48),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
+          bottom: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.12), width: 0.5),
         ),
       ),
       child: InkWell(
@@ -786,11 +788,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   if (mounted) setState(() => _completingTaskIds.remove(task.id));
                 },
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 2, right: 10),
-                  // PriorityDot já é um AnimatedContainer interno (150ms,
-                  // ver task_tile.dart) — preserva a cor por prioridade, não
-                  // substituído pela decoration fixa verde do pedido (perderia
-                  // a cor de prioridade quando não concluída).
+                  padding: const EdgeInsets.all(12),
                   child: PriorityDot(priority: task.priority, done: done),
                 ),
               ),
@@ -806,7 +804,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     //   style: TextStyle(
                     //     fontSize: 15,
                     //     fontWeight: FontWeight.w500,
-                    //     color: done ? Colors.white.withValues(alpha: 0.35) : AppColors.textPrimary,
+                    //     color: done ? AppColors.textTertiary : AppColors.textPrimary,
                     //     decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
                     //   ),
                     // ),
@@ -815,9 +813,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: done ? Colors.white.withValues(alpha: 0.35) : AppColors.textPrimary,
+                        color: done ? AppColors.textTertiary : AppColors.textPrimary,
                         decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
-                        decorationColor: Colors.white.withValues(alpha: 0.3),
+                        decorationColor: AppColors.textTertiary,
                       ),
                       child: Text(
                         // Sem style: aqui — herda do AnimatedDefaultTextStyle
@@ -836,7 +834,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           softWrap: false,
-                          style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.38)),
+                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
                       ),
                     // BUG2-OLD: modo Lista nunca renderizava task.labels (já
@@ -859,9 +857,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         child: Row(
                           children: [
                             if (subtaskTotal > 0) ...[
-                              HugeIcon(icon: HugeIcons.strokeRoundedTaskDone01, size: 12, color: Colors.white.withValues(alpha: 0.35)),
+                              HugeIcon(icon: HugeIcons.strokeRoundedTaskDone01, size: 12, color: AppColors.textTertiary),
                               const SizedBox(width: 3),
-                              Text('$subtaskDone/$subtaskTotal', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.35))),
+                              Text('$subtaskDone/$subtaskTotal', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
                               const SizedBox(width: 8),
                             ],
                             if (dateChip != null) ...[
@@ -869,9 +867,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                               const SizedBox(width: 8),
                             ],
                             if (task.commentCount > 0) ...[
-                              HugeIcon(icon: HugeIcons.strokeRoundedComment01, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+                              HugeIcon(icon: HugeIcons.strokeRoundedComment01, size: 12, color: AppColors.textTertiary),
                               const SizedBox(width: 3),
-                              Text('${task.commentCount}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.3))),
+                              Text('${task.commentCount}', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
                             ],
                           ],
                         ),
@@ -883,7 +881,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               // if (task.hasSubtasks)
               //   Padding(
               //     padding: const EdgeInsets.only(left: 8, top: 2),
-              //     child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 18, color: Colors.white.withValues(alpha: 0.3)),
+              //     child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 18, color: AppColors.textTertiary),
               //   ),
               // EXPAND-BTN-OLD: padding (left:8, top:2) só — área de toque
               // bem menor que 44x44 (HIG mínimo).
@@ -904,7 +902,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               //       child: Icon(
               //         expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
               //         size: 20,
-              //         color: Colors.white.withValues(alpha: 0.3),
+              //         color: AppColors.textTertiary,
               //       ),
               //     ),
               //   ),
@@ -934,7 +932,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       curve: Curves.easeOutCubic,
                       child: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01,
                         size: 22,
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: AppColors.textTertiary,
                       ),
                     ),
                   ),
@@ -1088,9 +1086,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(36, 8, 18, 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.015),
+          color: AppColors.textTertiary.withValues(alpha: 0.06),
           border: Border(
-            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.03), width: 0.5),
+            bottom: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.1), width: 0.5),
           ),
         ),
         child: Row(
@@ -1128,7 +1126,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: AppColors.textPrimary.withValues(alpha: 0.85),
                       decoration: sub.done ? TextDecoration.lineThrough : TextDecoration.none,
                     ),
                   ),
@@ -1374,10 +1372,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: AppColors.surfaceVariant.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
+                            color: AppColors.textTertiary.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -1420,10 +1418,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: AppColors.surfaceVariant.withValues(alpha: 0.55),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.15),
+                          color: AppColors.textTertiary.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
@@ -1455,7 +1453,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2))
           : isEmpty
-              ? const Center(child: EmptyState(icon: Icons.task_alt_outlined, title: 'Nenhuma tarefa', subtitle: 'Adicione tarefas usando o botão +'))
+              ? const Center(child: EmptyState(hugeIcon: HugeIcons.strokeRoundedTaskDone01, title: 'Nenhuma tarefa', subtitle: 'Adicione tarefas usando o botão +'))
               : _buildTaskListView(bottomInset),
     );
   }

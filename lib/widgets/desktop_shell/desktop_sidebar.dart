@@ -63,11 +63,11 @@ class _DesktopSidebarState extends State<DesktopSidebar>
   static const _kMaxSubItems = 8;
 
   // Hard-coded filter items matching FiltersScreen._FilterView
-  static const _filterDefs = [
-    (icon: Icons.warning_amber_rounded,      label: 'Atrasadas'),
-    (icon: Icons.today_rounded,               label: 'Hoje'),
-    (icon: Icons.date_range_rounded,          label: 'Próximos 7 dias'),
-    (icon: Icons.check_circle_outline_rounded, label: 'Concluídas'),
+  static final _filterDefs = [
+    (icon: HugeIcons.strokeRoundedAlert01, label: 'Atrasadas'),
+    (icon: HugeIcons.strokeRoundedCalendar01, label: 'Hoje'),
+    (icon: HugeIcons.strokeRoundedCalendar03, label: 'Próximos 7 dias'),
+    (icon: HugeIcons.strokeRoundedTaskDone01, label: 'Concluídas'),
   ];
 
   bool get _accentIsLight => AppColors.accent.computeLuminance() > 0.5;
@@ -233,7 +233,7 @@ class _DesktopSidebarState extends State<DesktopSidebar>
             child: Column(
               children: [
                 _SBNavItem(
-                  icon: Icons.move_to_inbox_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedInbox,
                   label: 'Inbox',
                   selected: _localIndex == 1,
                   badge: _inboxCount,
@@ -249,14 +249,14 @@ class _DesktopSidebarState extends State<DesktopSidebar>
                   onTap: () => _select(2),
                 ),
                 _SBNavItem(
-                  icon: Icons.calendar_month_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedCalendar03,
                   label: 'Em breve',
                   selected: _localIndex == 3,
                   accentIsLight: al,
                   onTap: () => _select(3),
                 ),
                 _SBNavItem(
-                  icon: Icons.check_circle_outline_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedTaskDone01,
                   label: 'Concluídas',
                   selected: false,
                   accentIsLight: al,
@@ -386,7 +386,7 @@ class _DesktopSidebarState extends State<DesktopSidebar>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             ..._filterDefs.map((f) => _SubNavItem(
-                              icon: f.icon,
+                              hugeIcon: f.icon,
                               label: f.label,
                               accentIsLight: al,
                               onTap: () => _select(4),
@@ -420,7 +420,7 @@ class _DesktopSidebarState extends State<DesktopSidebar>
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 20),
             child: _SBNavItem(
-              icon: Icons.settings_outlined,
+              hugeIcon: HugeIcons.strokeRoundedSettings01,
               label: 'Configurações',
               selected: false,
               accentIsLight: al,
@@ -463,7 +463,7 @@ class _SBLogo extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.asset(
-              'assets/icon/lumen_fosco.png',
+              'assets/icon/stacked_fosco.png',
               width: 28,
               height: 28,
               fit: BoxFit.cover,
@@ -645,7 +645,7 @@ class _SectionHeaderState extends State<_SectionHeader> {
 
 class _SubNavItem extends StatefulWidget {
   final Color? dot;
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final String label;
   final bool accentIsLight;
   final bool selected;
@@ -653,7 +653,7 @@ class _SubNavItem extends StatefulWidget {
 
   const _SubNavItem({
     this.dot,
-    this.icon,
+    this.hugeIcon,
     required this.label,
     required this.accentIsLight,
     this.selected = false,
@@ -716,8 +716,8 @@ class _SubNavItemState extends State<_SubNavItem> {
                             shape: BoxShape.circle,
                           ),
                         )
-                      : Icon(
-                          widget.icon,
+                      : HugeIcon(
+                          icon: widget.hugeIcon!,
                           size: 14,
                           color: _textColor,
                         ),
@@ -807,7 +807,7 @@ class _SeeAllRowState extends State<_SeeAllRow> {
 // ── Nav item (with optional badge) ────────────────────────────────────────────
 
 class _SBNavItem extends StatefulWidget {
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final Widget Function(bool selected)? iconBuilder;
   final String label;
   final bool selected;
@@ -816,7 +816,7 @@ class _SBNavItem extends StatefulWidget {
   final VoidCallback? onTap;
 
   const _SBNavItem({
-    this.icon,
+    this.hugeIcon,
     this.iconBuilder,
     required this.label,
     required this.selected,
@@ -874,7 +874,7 @@ class _SBNavItemState extends State<_SBNavItem> {
                 child: Center(
                   child: widget.iconBuilder != null
                       ? widget.iconBuilder!(widget.selected)
-                      : Icon(widget.icon, size: 18, color: _fg),
+                      : HugeIcon(icon: widget.hugeIcon!, size: 18, color: _fg),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1098,7 +1098,7 @@ class _DesktopSidebarState extends State<DesktopSidebar> {
             child: Column(
               children: [
                 _SidebarNavItem(
-                  icon: Icons.move_to_inbox_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedInbox,
                   label: 'Caixa de entrada',
                   selected: _localIndex == 1,
                   onTap: () => _select(1),
@@ -1110,7 +1110,7 @@ class _DesktopSidebarState extends State<DesktopSidebar> {
                   onTap: () => _select(2),
                 ),
                 _SidebarNavItem(
-                  icon: Icons.calendar_month_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedCalendar03,
                   label: 'Em breve',
                   selected: _localIndex == 3,
                   onTap: () => _select(3),
@@ -1119,13 +1119,13 @@ class _DesktopSidebarState extends State<DesktopSidebar> {
                 _SidebarDivider(),
                 const SizedBox(height: 4),
                 _SidebarNavItem(
-                  icon: Icons.grid_view_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedHome01,
                   label: 'Projetos',
                   selected: _localIndex == 0,
                   onTap: () => _select(0),
                 ),
                 _SidebarNavItem(
-                  icon: Icons.filter_list_rounded,
+                  hugeIcon: HugeIcons.strokeRoundedFilterHorizontal,
                   label: 'Filtros',
                   selected: _localIndex == 4,
                   onTap: () => _select(4),
@@ -1149,7 +1149,7 @@ class _DesktopSidebarState extends State<DesktopSidebar> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
             child: _SidebarNavItem(
-              icon: Icons.settings_outlined,
+              hugeIcon: HugeIcons.strokeRoundedSettings01,
               label: 'Configurações',
               selected: false,
               onTap: widget.onSettings,
@@ -1171,7 +1171,7 @@ class _SidebarLogo extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset('assets/icon/lumen_fosco.png', width: 28, height: 28, fit: BoxFit.cover),
+            child: Image.asset('assets/icon/stacked_fosco.png', width: 28, height: 28, fit: BoxFit.cover),
           ),
           const SizedBox(width: 10),
           Text('STACKED', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.3)),
@@ -1189,12 +1189,12 @@ class _SidebarDivider extends StatelessWidget {
 }
 
 class _SidebarNavItem extends StatefulWidget {
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final Widget Function(bool selected)? iconBuilder;
   final String label;
   final bool selected;
   final VoidCallback? onTap;
-  const _SidebarNavItem({this.icon, this.iconBuilder, required this.label, required this.selected, this.onTap});
+  const _SidebarNavItem({this.hugeIcon, this.iconBuilder, required this.label, required this.selected, this.onTap});
   @override
   State<_SidebarNavItem> createState() => _SidebarNavItemState();
 }
@@ -1229,7 +1229,7 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
               SizedBox(width: 20, height: 20, child: Center(
                 child: widget.iconBuilder != null
                     ? widget.iconBuilder!(widget.selected)
-                    : Icon(widget.icon, size: 18, color: _fgColor),
+                    : HugeIcon(icon: widget.hugeIcon!, size: 18, color: _fgColor),
               )),
               const SizedBox(width: 10),
               Expanded(child: AnimatedDefaultTextStyle(

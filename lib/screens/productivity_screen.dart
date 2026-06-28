@@ -587,8 +587,10 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
                       if (diff != null)
                         Row(
                           children: [
-                            Icon(
-                              diff >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                            HugeIcon(
+                              icon: diff >= 0
+                                  ? HugeIcons.strokeRoundedArrowUp01
+                                  : HugeIcons.strokeRoundedArrowDown01,
                               size: 13,
                               color: diff >= 0 ? AppColors.tagGreen : AppColors.priorityHigh,
                             ),

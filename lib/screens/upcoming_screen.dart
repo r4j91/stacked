@@ -5,6 +5,7 @@ import '../services/haptic_service.dart';
 import '../services/supabase_client.dart';
 import '../services/task_repository.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/pressable.dart';
@@ -242,7 +243,9 @@ class _UpcomingScreenState extends State<UpcomingScreen>
         // ── Mode toggle bar ──────────────────────────────────────────────────
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.md + 2, AppSpacing.lg, AppSpacing.sm,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -261,7 +264,9 @@ class _UpcomingScreenState extends State<UpcomingScreen>
         if (_mode == _CalMode.agenda)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md,
+              ),
               child: Row(
                 children: [
                   HugeIcon(icon: HugeIcons.strokeRoundedListView, size: 15, color: AppColors.accent),
@@ -322,7 +327,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
         if (_filtered.isEmpty)
           const SliverFillRemaining(
             child: EmptyState(
-              icon: Icons.calendar_month,
+              hugeIcon: HugeIcons.strokeRoundedCalendar03,
               title: 'Nenhuma tarefa',
               subtitle:
                   'Selecione outro dia ou adicione uma tarefa com data de vencimento.',

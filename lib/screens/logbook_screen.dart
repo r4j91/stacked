@@ -7,6 +7,7 @@ import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 class LogbookScreen extends StatefulWidget {
   const LogbookScreen({super.key});
@@ -92,7 +93,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2))
           : _tasks.isEmpty
-              ? const Center(child: EmptyState(icon: Icons.history_rounded, title: 'Nenhuma tarefa concluída', subtitle: 'As tarefas concluídas aparecerão aqui'))
+              ? const Center(child: EmptyState(hugeIcon: HugeIcons.strokeRoundedClock02, title: 'Nenhuma tarefa concluída', subtitle: 'As tarefas concluídas aparecerão aqui'))
               : RefreshIndicator(
                   color: AppColors.accent,
                   backgroundColor: AppColors.surface,

@@ -29,24 +29,25 @@ Future<void> showTaskContextMenu(
     context,
     origin: tapPosition,
     items: [
-      _MenuItem('edit',      Icons.edit_outlined,        'Editar'),
-      _MenuItem('complete',  Icons.check_circle_outline, 'Concluir'),
-      _MenuItem('duplicate', Icons.copy_outlined,        'Duplicar'),
-      _MenuItem('priority',  Icons.flag_outlined,        'Prioridade',
+      _MenuItem('edit',      HugeIcons.strokeRoundedEdit01,        'Editar'),
+      _MenuItem('complete',  HugeIcons.strokeRoundedCheckmarkCircle01, 'Concluir'),
+      _MenuItem('duplicate', HugeIcons.strokeRoundedCopy01,        'Duplicar'),
+      _MenuItem('priority',  HugeIcons.strokeRoundedFlag01,        'Prioridade',
         hasArrow: true,
         subTitle: 'Prioridade',
         subItems: [
-          _MenuItem('priority:high',   Icons.flag, 'Alta',
+          _MenuItem('priority:high',   HugeIcons.strokeRoundedFlag01, 'Alta',
               selected: task.priority == Priority.high,
               iconColor: AppColors.priorityHigh),
-          _MenuItem('priority:medium', Icons.flag, 'Média',
+          _MenuItem('priority:medium', HugeIcons.strokeRoundedFlag01, 'Média',
               selected: task.priority == Priority.medium,
               iconColor: AppColors.priorityMedium),
-          _MenuItem('priority:low',    Icons.flag, 'Baixa',
+          _MenuItem('priority:low',    HugeIcons.strokeRoundedFlag01, 'Baixa',
               selected: task.priority == Priority.low,
               iconColor: AppColors.priorityLow),
-          _MenuItem('priority:none', Icons.flag_outlined, 'Sem prioridade',
-              selected: task.priority == null),
+          _MenuItem('priority:none', HugeIcons.strokeRoundedFlag01, 'Sem prioridade',
+              selected: task.priority == null,
+              iconColor: AppColors.textTertiary),
         ],
       ),
       // SUBSTITUIDO_SECAO_PROJETO: "Mover para" agora é dois níveis
@@ -67,15 +68,15 @@ Future<void> showTaskContextMenu(
       // _MenuItem do projeto). Se o projeto não tiver seções, o
       // subItemsLoader retorna null e a navegação finaliza direto com o
       // valor do projeto (sem seção) — ver _navigateTo, que trata esse caso.
-      _MenuItem('move', Icons.folder_outlined, 'Mover para projeto',
+      _MenuItem('move', HugeIcons.strokeRoundedFolder01, 'Mover para projeto',
         hasArrow: true,
         subTitle: 'Mover para',
         subItemsLoader: () async {
           final projects = await projectsFuture;
           return [
-            _MenuItem('move:|', Icons.inbox_outlined, 'Sem projeto'),
+            _MenuItem('move:|', HugeIcons.strokeRoundedInbox, 'Sem projeto'),
             ...projects.map((p) => _MenuItem(
-                  'move:${p.id}|', Icons.folder_outlined, p.name,
+                  'move:${p.id}|', HugeIcons.strokeRoundedFolder01, p.name,
                   hasArrow: true,
                   subTitle: p.name,
                   subItemsLoader: () async {
@@ -83,10 +84,10 @@ Future<void> showTaskContextMenu(
                         await SectionRepository().getSectionsForProject(p.id);
                     if (sections.isEmpty) return null;
                     return [
-                      _MenuItem('move:${p.id}|', Icons.subdirectory_arrow_right_outlined, 'Sem seção'),
+                      _MenuItem('move:${p.id}|', HugeIcons.strokeRoundedArrowRight01, 'Sem seção'),
                       ...sections.map((s) => _MenuItem(
                             'move:${p.id}|${s.id}',
-                            Icons.subdirectory_arrow_right_outlined,
+                            HugeIcons.strokeRoundedArrowRight01,
                             s.name,
                           )),
                     ];
@@ -95,7 +96,7 @@ Future<void> showTaskContextMenu(
           ];
         },
       ),
-      _MenuItem('delete', Icons.delete_outline, 'Excluir', destructive: true),
+      _MenuItem('delete', HugeIcons.strokeRoundedDelete01, 'Excluir', destructive: true),
     ],
   );
 
@@ -157,7 +158,7 @@ Future<void> showTaskContextMenu(
 
 class _MenuItem {
   final String value;
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final bool hasArrow;
   final bool destructive;
@@ -171,7 +172,7 @@ class _MenuItem {
   // direto com o value do próprio item, em vez de empurrar uma página vazia.
   final Future<List<_MenuItem>?> Function()? subItemsLoader;
 
-  const _MenuItem(this.value, this.icon, this.label,
+  const _MenuItem(this.value, this.hugeIcon, this.label,
       {this.hasArrow = false,
        this.destructive = false,
        this.selected = false,
@@ -679,7 +680,7 @@ class _MenuRow extends StatelessWidget {
                 horizontal: AppSpacing.lg, vertical: 13),
             child: Row(
               children: [
-                Icon(item.icon, size: 18, color: iconFg),
+                HugeIcon(icon: item.hugeIcon, size: 18, color: iconFg),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(

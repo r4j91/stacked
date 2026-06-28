@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Stacked CLI — atalhos locais do projeto.
+# Uso: stacked -sim [args extras do flutter run]
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+usage() {
+  cat <<'EOF'
+Stacked — atalhos de desenvolvimento
+
+  stacked -sim [-- <args flutter run>]
+      Abre o Simulator (se precisar) e roda flutter run no iOS.
+
+  stacked devices
+      Lista dispositivos Flutter disponíveis.
+
+Exemplos:
+  stacked -sim
+  stacked -sim -- --dart-define=FOO=bar
+EOF
+}
+
+DEFAULT_IOS_SIM_ID="37E1ED30-FC23-4FAB-ACEF-29667A2E11B3"
+
+resolve_ios_sim_id() {
+  if [[ -n "${STACKED_IOS_SIM_ID:-}" ]]; then
+    echo "$STACKED_IOS_SIM_ID"
+    return 0
+  fi
+
+  local line id
+  line="$(flutter devices 2>/dev/null | grep -E '\(simulator\)' | grep -i 'ios' | head -1 || true)"
+  if [[ -n "$line" ]]; then
+    id="$(echo "$line" | awk -F'•' '{print $2}' | xargs)"
+    if [[ -n "$id" ]]; then
+      echo "$id"
+      return 0
+    fi
+  fi
+
+  echo "$DEFAULT_IOS_SIM_ID"
+}
+
+boot_ios_simulator() {
+  local sim_id="$1"
+  xcrun simctl boot "$sim_id" 2>/dev/null || true
+  open -a Simulator
+  for _ in $(seq 1 30); do
+    xcrun simctl list devices booted 2>/dev/null | grep -q Booted && break
+    sleep 1
+  done
+}
+
+run_sim() {
+  local sim_id
+  sim_id="$(resolve_ios_sim_id)"
+  boot_ios_simulator "$sim_id"
+  if [[ "${1:-}" == "--" ]]; then
+    shift
+  fi
+  exec flutter run -d "$sim_id" "$@"
+}
+
+case "${1:-}" in
+  -sim|--sim)
+    shift
+    run_sim "$@"
+    ;;
+  devices)
+    flutter devices
+    ;;
+  -h|--help|help|"")
+    usage
+    ;;
+  *)
+    echo "Opção desconhecida: $1" >&2
+    echo >&2
+    usage >&2
+    exit 1
+    ;;
+esac

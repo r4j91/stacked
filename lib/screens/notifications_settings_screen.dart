@@ -161,7 +161,7 @@ class _NotificationsSettingsScreenState
               children: [
                 _Section(children: [
                   _Row(
-                    icon: Icons.notifications_outlined,
+                    hugeIcon: HugeIcons.strokeRoundedNotification01,
                     label: 'Ativar notificações',
                     trailing: Switch.adaptive(
                       value: _enabled,
@@ -174,7 +174,7 @@ class _NotificationsSettingsScreenState
                   const SizedBox(height: 20),
                   _Section(children: [
                     _Row(
-                      icon: Icons.access_time_outlined,
+                      hugeIcon: HugeIcons.strokeRoundedClock01,
                       label: 'Horário padrão',
                       trailing: GestureDetector(
                         onTap: _pickTime,
@@ -199,7 +199,7 @@ class _NotificationsSettingsScreenState
                   const SizedBox(height: 16),
                   _Section(children: [
                     _Row(
-                      icon: Icons.wb_sunny_outlined,
+                      hugeIcon: HugeIcons.strokeRoundedSun01,
                       label: 'Resumo diário',
                       sublabel: 'Resumo das tarefas do dia às 8h da manhã',
                       trailing: Switch.adaptive(
@@ -246,11 +246,11 @@ class _Section extends StatelessWidget {
 
 class _Row extends StatelessWidget {
   const _Row(
-      {required this.icon,
+      {required this.hugeIcon,
       required this.label,
       this.sublabel,
       required this.trailing});
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final String? sublabel;
   final Widget trailing;
@@ -260,7 +260,7 @@ class _Row extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(children: [
-        Icon(icon, color: AppColors.textSecondary, size: 20),
+        HugeIcon(icon: hugeIcon, color: AppColors.textSecondary, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

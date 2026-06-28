@@ -12,22 +12,22 @@ import '../theme/app_spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_sheet.dart';
 import 'desktop_shell/desktop_app_shell.dart';
+import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 class _NavItem {
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final String label;
   final Widget Function(bool selected)? iconBuilder;
-  const _NavItem(this.icon, this.label, {this.iconBuilder});
+  const _NavItem({this.hugeIcon, required this.label, this.iconBuilder});
 }
 
-// Solid/filled icons — never outline
 final _navItems = [
-  _NavItem(Icons.grid_view_rounded, 'Navegar'),
-  _NavItem(Icons.move_to_inbox_rounded, 'Inbox'),
-  _NavItem(null, 'Hoje', iconBuilder: (selected) => _TodayIcon(selected: selected)),
-  _NavItem(Icons.calendar_month, 'Em breve'),
-  _NavItem(Icons.filter_list_rounded, 'Filtros'),
+  _NavItem(hugeIcon: HugeIcons.strokeRoundedHome01, label: 'Navegar'),
+  _NavItem(hugeIcon: HugeIcons.strokeRoundedInbox, label: 'Inbox'),
+  _NavItem(label: 'Hoje', iconBuilder: (selected) => _TodayIcon(selected: selected)),
+  _NavItem(hugeIcon: HugeIcons.strokeRoundedCalendar03, label: 'Em breve'),
+  _NavItem(hugeIcon: HugeIcons.strokeRoundedFilterHorizontal, label: 'Filtros'),
 ];
 
 /// Ícone da aba Hoje: quadrado arredondado com o número do dia, estilo Todoist iOS.
@@ -99,7 +99,9 @@ class ResponsiveLayout extends StatelessWidget {
         );
       }
 
-      // ── Mobile ────────────────────────────────────────────────────────────
+      final adaptedBody = _adaptBodyForScreenWidth(body, screenWidth);
+
+      // ── Mobile / Tablet ─────────────────────────────────────────────────────
       final bottomPadding = MediaQuery.of(context).padding.bottom;
       const pillHeight = 62.0;
       const fabSize = 56.0;
@@ -111,7 +113,7 @@ class ResponsiveLayout extends StatelessWidget {
       return Scaffold(
         backgroundColor: AppColors.background,
         extendBody: true,
-        body: SafeArea(bottom: false, child: body),
+        body: SafeArea(bottom: false, child: adaptedBody),
         bottomNavigationBar: Material(
           color: Colors.transparent,
           child: SizedBox(
@@ -152,6 +154,18 @@ class ResponsiveLayout extends StatelessWidget {
   }
 }
 
+/// Tablet: center content with readable max width. Phone: full bleed.
+Widget _adaptBodyForScreenWidth(Widget body, double screenWidth) {
+  if (screenWidth < 600) return body;
+  return Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: screenWidth >= 768 ? 720 : 640),
+      child: body,
+    ),
+  );
+}
+
 // ── New project sheet (standalone, usable from FAB) ───────────────────────────
 
 Future<void> _showNewProjectSheet(BuildContext context, {VoidCallback? onCreated}) async {
@@ -178,7 +192,6 @@ Future<void> _showNewProjectSheet(BuildContext context, {VoidCallback? onCreated
             Builder(
               builder: (ctx) => AppButton(
                 label: 'Criar projeto',
-                icon: Icons.folder_open_rounded,
                 onPressed: () async {
                   final name = nameCtrl.text.trim();
                   if (name.isEmpty) return;
@@ -206,7 +219,7 @@ Future<void> _showNewProjectSheet(BuildContext context, {VoidCallback? onCreated
 // ── FAB action descriptor ─────────────────────────────────────────────────────
 
 class _FabAction {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final String label;
   final VoidCallback? onTap;
   const _FabAction({required this.icon, required this.label, this.onTap});
@@ -266,17 +279,17 @@ class _ExpandableFABState extends State<_ExpandableFAB>
         onDismiss: _close,
         actions: [
           _FabAction(
-            icon: Icons.add_task_rounded,
+            icon: HugeIcons.strokeRoundedTaskAdd01,
             label: 'Nova tarefa',
             onTap: () { _close(); widget.onNewTask(); },
           ),
           _FabAction(
-            icon: Icons.folder_open_rounded,
+            icon: HugeIcons.strokeRoundedFolder01,
             label: 'Novo projeto',
             onTap: () { _close(); widget.onNewProject?.call(); },
           ),
           _FabAction(
-            icon: Icons.search_rounded,
+            icon: HugeIcons.strokeRoundedSearch01,
             label: 'Buscar',
             onTap: () { _close(); widget.onSearch?.call(); },
           ),
@@ -299,7 +312,8 @@ class _ExpandableFABState extends State<_ExpandableFAB>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
+      pressedScale: 0.92,
       onTap: _toggle,
       child: AnimatedBuilder(
         animation: _rotation,
@@ -464,14 +478,14 @@ class _FabOverlayState extends State<_FabOverlay> with TickerProviderStateMixin 
 // ── Single action row ──────────────────────────────────────────────────────────
 
 class _FabMenuItem extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final String label;
   final VoidCallback? onTap;
   const _FabMenuItem({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: () {
         HapticService().selectionClick();
         onTap?.call();
@@ -518,7 +532,7 @@ class _FabMenuItem extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(icon, size: 20, color: AppColors.accent),
+            child: HugeIcon(icon: icon, size: 20, color: AppColors.accent),
           ),
         ],
       ),
@@ -680,7 +694,7 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
                 .entries
                 .map((e) => Expanded(
                       child: _PillItem(
-                        icon: e.value.icon,
+                        hugeIcon: e.value.hugeIcon,
                         iconBuilder: e.value.iconBuilder,
                         label: e.value.label,
                         selected: widget.selectedIndex == e.key,
@@ -701,14 +715,14 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
 // ── Single pill item with bounce on selection ─────────────────────────────────
 
 class _PillItem extends StatefulWidget {
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final Widget Function(bool selected)? iconBuilder;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _PillItem({
-    this.icon,
+    this.hugeIcon,
     this.iconBuilder,
     required this.label,
     required this.selected,
@@ -778,8 +792,8 @@ class _PillItemState extends State<_PillItem>
                       key: ValueKey(widget.selected),
                       child: widget.iconBuilder!(widget.selected),
                     )
-                  : Icon(
-                      widget.icon,
+                  : HugeIcon(
+                      icon: widget.hugeIcon!,
                       key: ValueKey(widget.selected),
                       size: 22,
                       color: widget.selected
@@ -792,7 +806,7 @@ class _PillItemState extends State<_PillItem>
           AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 200),
             style: TextStyle(
-              fontSize: 9.5,
+              fontSize: 11,
               fontWeight:
                   widget.selected ? FontWeight.w600 : FontWeight.w400,
               color: widget.selected

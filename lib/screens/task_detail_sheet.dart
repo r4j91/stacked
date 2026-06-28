@@ -852,16 +852,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // SUBSTITUIDO_REDESIGN_DETAIL
-                // HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 11, color: l.color),
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: l.color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 11, color: l.color),
                 const SizedBox(width: 4),
                 Text(
                   l.name,
@@ -886,7 +877,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
   // atrasada, verde se hoje, neutro se futura. Mesmo padrão já usado nos
   // chips de subtarefa em task_tile.dart (_buildSubtaskChips).
   Color get _dueDateColor {
-    if (_dueDate == null) return Colors.white.withValues(alpha: 0.85);
+    if (_dueDate == null) return AppColors.textPrimary;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final due = DateTime(_dueDate!.year, _dueDate!.month, _dueDate!.day);
@@ -894,7 +885,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
     // COLORS-OLD: Color(0xFF7ECC49)/Color(0xFFDC4C3E)
     if (diff == 0) return AppColors.dateDueToday;
     if (diff < 0) return AppColors.dateOverdue;
-    return Colors.white.withValues(alpha: 0.85);
+    return AppColors.textPrimary;
   }
 
   String get _recurrenceLabel => _recurrence?.displayLabel ?? 'Repetir';
@@ -1168,7 +1159,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           const SizedBox(height: 8),
           _AttrPanelRow(
             key: _projectChipKey,
-            icon: Icons.grid_view_rounded,
+            hugeIcon: HugeIcons.strokeRoundedFolder01,
             label: 'Projeto',
             value: _project?.name ?? 'Sem projeto',
             active: _project != null,
@@ -1177,7 +1168,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           _AttrPanelDivider(),
           _AttrPanelRow(
             key: _dateChipKey,
-            icon: Icons.calendar_today_outlined,
+            hugeIcon: HugeIcons.strokeRoundedCalendar01,
             label: 'Data',
             value: dateActive ? _dateLabel : 'Nenhuma',
             active: dateActive,
@@ -1186,7 +1177,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           _AttrPanelDivider(),
           _AttrPanelRow(
             key: _priorityChipKey,
-            icon: Icons.flag_outlined,
+            hugeIcon: HugeIcons.strokeRoundedFlag01,
             label: 'Prioridade',
             value: prioLabel(),
             active: prioActive,
@@ -1196,7 +1187,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           _AttrPanelDivider(),
           _AttrPanelRow(
             key: _labelsChipKey,
-            icon: Icons.label_outline,
+            hugeIcon: HugeIcons.strokeRoundedTag01,
             label: 'Etiquetas',
             value: labelValue(),
             active: labelActive,
@@ -1205,7 +1196,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           _AttrPanelDivider(),
           _AttrPanelRow(
             key: _recurChipKey,
-            icon: Icons.repeat,
+            hugeIcon: HugeIcons.strokeRoundedRepeat,
             label: 'Repetir',
             value: recurActive ? _recurrenceLabel : 'Nunca',
             active: recurActive,
@@ -1351,7 +1342,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
           children: [
             _DesktopChip(
               key: _dateChipKey,
-              icon: Icons.calendar_today_outlined,
+              hugeIcon: HugeIcons.strokeRoundedCalendar01,
               label: dateActive ? _dateLabel : 'Data',
               active: dateActive,
               onTap: () => _showDateSheet(context),
@@ -1359,7 +1350,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             const SizedBox(width: 8),
             _DesktopChip(
               key: _priorityChipKey,
-              icon: Icons.flag_outlined,
+              hugeIcon: HugeIcons.strokeRoundedFlag01,
               label: prioActive
                   ? switch (_priority!) {
                       Priority.high   => 'Alta',
@@ -1374,7 +1365,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             const SizedBox(width: 8),
             _DesktopChip(
               key: _labelsChipKey,
-              icon: Icons.label_outline,
+              hugeIcon: HugeIcons.strokeRoundedTag01,
               label: labelActive
                   ? '${_labelIds.length} etiqueta${_labelIds.length != 1 ? 's' : ''}'
                   : 'Etiquetas',
@@ -1384,7 +1375,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             const SizedBox(width: 8),
             _DesktopChip(
               key: _recurChipKey,
-              icon: Icons.repeat,
+              hugeIcon: HugeIcons.strokeRoundedRepeat,
               label: recurActive ? _recurrenceLabel : 'Repetir',
               active: recurActive,
               onTap: () => _showDateSheet(context),
@@ -1680,7 +1671,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             //   children: [
             //     TaskMetaRow(
             //       key: _projectChipKey,
-            //       icon: Icons.grid_view_rounded,
+            //       hugeIcon: HugeIcons.strokeRoundedFolder01,
             //       title: 'Projeto',
             //       value: _project?.name ?? 'Sem projeto',
             //       active: _project != null,
@@ -1688,7 +1679,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             //     ),
             //     _cardDivider,
             //     TaskMetaRow(
-            //       icon: Icons.calendar_today_outlined,
+            //       hugeIcon: HugeIcons.strokeRoundedCalendar01,
             //       title: 'Data',
             //       value: _dueDate != null ? _dateLabel : 'Sem data',
             //       active: _dueDate != null,
@@ -1697,7 +1688,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             //     _cardDivider,
             //     TaskMetaRow(
             //       key: _priorityChipKey,
-            //       icon: Icons.flag_outlined,
+            //       hugeIcon: HugeIcons.strokeRoundedFlag01,
             //       title: 'Prioridade',
             //       value: _priority == null ? 'Sem prioridade' : null,
             //       valueWidget: _priority != null ? PriorityValueWidget(priority: _priority!) : null,
@@ -1707,7 +1698,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             //     _cardDivider,
             //     TaskMetaRow(
             //       key: _labelsChipKey,
-            //       icon: Icons.label_outline,
+            //       hugeIcon: HugeIcons.strokeRoundedTag01,
             //       title: 'Etiquetas',
             //       value: _labelIds.isEmpty ? 'Sem etiquetas' : null,
             //       valueWidget: _labelIds.isNotEmpty ? _buildLabelValue() : null,
@@ -1717,7 +1708,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             //     if (_recurrence != null) ...[
             //       _cardDivider,
             //       TaskMetaRow(
-            //         icon: Icons.repeat,
+            //         hugeIcon: HugeIcons.strokeRoundedRepeat,
             //         title: 'Repetição',
             //         value: _recurrenceLabel,
             //         active: true,
@@ -1739,7 +1730,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                     // ícone já usado para "projeto" em projects_screen.dart
                     // (cards de projeto listados).
                     // icon: Icons.view_sidebar_outlined,
-                    icon: Icons.folder_rounded,
+                    hugeIcon: HugeIcons.strokeRoundedFolder01,
                     onTap: () => _showProjectMenu(context),
                     child: Text(
                       // ADICIONADO_SECAO_PROJETO: agora mostra "Projeto › Seção".
@@ -1747,8 +1738,8 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                       style: TextStyle(
                         fontSize: 13,
                         color: _project != null
-                            ? Colors.white.withValues(alpha: 0.85)
-                            : Colors.white.withValues(alpha: 0.35),
+                            ? AppColors.textPrimary
+                            : AppColors.textTertiary,
                       ),
                     ),
                   ),
@@ -1759,22 +1750,22 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                 // dinâmico de pílulas, pois não tem um estado "vazio" útil
                 // nesse fluxo).
                 if (_recurrence != null) ...[
-                  const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                  Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: MetaRow(
-                      icon: Icons.repeat,
+                      hugeIcon: HugeIcons.strokeRoundedRepeat,
                       onTap: () => _showDateSheet(context),
                       child: Text(
                         _recurrenceLabel,
-                        style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85)),
+                        style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
                       ),
                     ),
                   ),
                 ],
 
                 if (_dueDate != null || _priority != null || _labelIds.isNotEmpty)
-                  const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                  Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
 
                 // ADICIONADO_REDESIGN_DETAIL: MetaRows — só aparecem quando
                 // o campo correspondente está preenchido.
@@ -1785,7 +1776,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: MetaRow(
-                      icon: Icons.calendar_today_outlined,
+                      hugeIcon: HugeIcons.strokeRoundedCalendar01,
                       onTap: () => _showDateSheet(context),
                       child: Text(
                         _dateLabel,
@@ -1793,31 +1784,31 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                       ),
                     ),
                   ),
-                  const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                  Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                 ],
                 if (_priority != null) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: MetaRow(
                       key: _priorityChipKey,
-                      icon: Icons.flag_outlined,
+                      hugeIcon: HugeIcons.strokeRoundedFlag01,
                       onTap: () => _showPriorityMenu(context),
                       child: PriorityValueWidget(priority: _priority!),
                     ),
                   ),
-                  const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                  Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                 ],
                 if (_labelIds.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: MetaRow(
                       key: _labelsChipKey,
-                      icon: Icons.label_outline,
+                      hugeIcon: HugeIcons.strokeRoundedTag01,
                       onTap: () => _showLabelsMenu(context),
                       child: _buildLabelValue(),
                     ),
                   ),
-                  const Divider(height: 1, thickness: 1, color: Color.fromRGBO(255, 255, 255, 0.06)),
+                  Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
                 ],
 
                 if (_dueDate == null || _priority == null || _labelIds.isEmpty || !_isNew)
@@ -1832,7 +1823,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: FieldPill(
-                                icon: Icons.calendar_today_outlined,
+                                hugeIcon: HugeIcons.strokeRoundedCalendar01,
                                 label: 'Data',
                                 onTap: () => _showDateSheet(context),
                               ),
@@ -1850,7 +1841,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                                 // (anchorKey.currentContext == null) e o
                                 // toque parecia não responder.
                                 key: _priorityChipKey,
-                                icon: Icons.flag_outlined,
+                                hugeIcon: HugeIcons.strokeRoundedFlag01,
                                 label: 'Prioridade',
                                 onTap: () => _showPriorityMenu(context),
                               ),
@@ -1863,7 +1854,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                                 // FieldPill de Prioridade acima, para o
                                 // MetaRow de Etiquetas (_labelsChipKey).
                                 key: _labelsChipKey,
-                                icon: Icons.label_outline,
+                                hugeIcon: HugeIcons.strokeRoundedTag01,
                                 label: 'Etiquetas',
                                 onTap: () => _showLabelsMenu(context),
                               ),
@@ -1872,7 +1863,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                           // _buildSubtasksSection e vira pílula aqui.
                           if (!_isNew)
                             FieldPill(
-                              icon: Icons.receipt_long,
+                              hugeIcon: HugeIcons.strokeRoundedLayers01,
                               label: 'Parcelas',
                               onTap: () => showInstallmentGeneratorSheet(
                                 context,
@@ -2020,17 +2011,17 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
+                              color: AppColors.surfaceVariant.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.07),
+                                color: AppColors.textTertiary.withValues(alpha: 0.12),
                               ),
                             ),
                             child: Text(
                               texto,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.85),
+                                color: AppColors.textPrimary,
                                 height: 1.4,
                               ),
                             ),
@@ -2042,7 +2033,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                                 _formatCommentDate(createdAt),
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white.withValues(alpha: 0.3),
+                                  color: AppColors.textTertiary,
                                 ),
                               ),
                             ),
@@ -2366,28 +2357,28 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
         AnchoredMenuItem(
           id: 'high',
           label: 'Prioridade 1',
-          icon: Icons.flag,
+          hugeIcon: HugeIcons.strokeRoundedFlag01,
           iconColor: AppColors.subtaskPriorityHigh,
           selected: _priority == Priority.high,
         ),
         AnchoredMenuItem(
           id: 'medium',
           label: 'Prioridade 2',
-          icon: Icons.flag,
+          hugeIcon: HugeIcons.strokeRoundedFlag01,
           iconColor: AppColors.subtaskPriorityMedium,
           selected: _priority == Priority.medium,
         ),
         AnchoredMenuItem(
           id: 'low',
           label: 'Prioridade 3',
-          icon: Icons.flag,
+          hugeIcon: HugeIcons.strokeRoundedFlag01,
           iconColor: AppColors.subtaskPriorityLow,
           selected: _priority == Priority.low,
         ),
         AnchoredMenuItem(
           id: 'none',
           label: 'Sem prioridade',
-          icon: Icons.flag_outlined,
+          hugeIcon: HugeIcons.strokeRoundedFlag01,
           iconColor: AppColors.textTertiary,
           selected: _priority == null,
         ),
@@ -2481,10 +2472,10 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                       ...filtered.map((l) {
                         final selected = tempIds.contains(l.id);
                         return _DesktopPickerRow(
-                          leading: Container(
-                            width: 10, height: 10,
-                            decoration: BoxDecoration(
-                                color: l.color, shape: BoxShape.circle),
+                          leading: HugeIcon(
+                            icon: HugeIcons.strokeRoundedTag01,
+                            size: 14,
+                            color: l.color,
                           ),
                           label: l.name,
                           selected: selected,
@@ -2620,14 +2611,14 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
       AnchoredMenuItem(
         id: 'none',
         label: 'Sem projeto',
-        icon: Icons.radio_button_unchecked,
+        hugeIcon: HugeIcons.strokeRoundedRecord,
         iconColor: AppColors.textTertiary.withValues(alpha: 0.5),
         selected: _project == null,
       ),
       ..._projects.map((p) => AnchoredMenuItem(
             id: p.id,
             label: p.name,
-            icon: Icons.circle,
+            hugeIcon: HugeIcons.strokeRoundedRecord,
             iconColor: p.color ?? AppColors.accent,
             selected: _project?.id == p.id,
           )),
@@ -2678,7 +2669,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
       AnchoredMenuItem(
         id: '__back__',
         label: '‹ Projeto',
-        icon: Icons.arrow_back_ios_new,
+        hugeIcon: HugeIcons.strokeRoundedArrowLeft01,
         iconColor: AppColors.textTertiary,
       ),
       AnchoredMenuItem(
@@ -3040,7 +3031,7 @@ class _DesktopPickerRowState extends State<_DesktopPickerRow> {
 // ── Desktop chip button ───────────────────────────────────────────────────────
 
 class _DesktopChip extends StatefulWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final bool active;
   final Color? color;
@@ -3048,7 +3039,7 @@ class _DesktopChip extends StatefulWidget {
 
   const _DesktopChip({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.label,
     required this.active,
     this.color,
@@ -3093,7 +3084,7 @@ class _DesktopChipState extends State<_DesktopChip> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 13, color: fgColor),
+              HugeIcon(icon: widget.hugeIcon, size: 13, color: fgColor),
               const SizedBox(width: 5),
               Text(
                 widget.label,
@@ -3114,7 +3105,7 @@ class _DesktopChipState extends State<_DesktopChip> {
 // ── Desktop attribute panel widgets (dialog V2 — coluna direita) ──────────────
 
 class _AttrPanelRow extends StatefulWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final String value;
   final bool active;
@@ -3123,7 +3114,7 @@ class _AttrPanelRow extends StatefulWidget {
 
   const _AttrPanelRow({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.label,
     required this.value,
     this.active = false,
@@ -3162,7 +3153,7 @@ class _AttrPanelRowState extends State<_AttrPanelRow> {
               : Colors.transparent,
           child: Row(
             children: [
-              Icon(widget.icon, size: 15, color: iconColor),
+              HugeIcon(icon: widget.hugeIcon, size: 15, color: iconColor),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

@@ -1,5 +1,6 @@
 // SCROLL-FADE-V1
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 /// Aplica um gradiente de fade na borda inferior de um widget scrollável,
 /// simulando o efeito do Todoist onde o conteúdo dissolve antes da navbar.
@@ -16,9 +17,6 @@ class ScrollFadeOverlay extends StatelessWidget {
   const ScrollFadeOverlay({
     super.key,
     required this.child,
-    // SCROLL-FADE-OLD: this.fadeHeight = 80.0,
-    // SCROLL-FADE-OLD: this.fadeHeight = 120.0,
-    // SCROLL-FADE-V3
     this.fadeHeight = 150.0,
   });
 
@@ -32,33 +30,25 @@ class ScrollFadeOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     if (MediaQuery.of(context).size.width >= 1024) return child;
 
+    final bg = AppColors.background;
+
     return ShaderMask(
       shaderCallback: (Rect bounds) {
+        final fadeStart = 1.0 - (fadeHeight / bounds.height).clamp(0.0, 0.55);
+        final fadeMid = 1.0 - (fadeHeight / bounds.height * 0.35).clamp(0.0, 0.25);
         return LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          // SCROLL-FADE-OLD
-          // colors: const [
-          //   Colors.white,
-          //   Colors.white,
-          //   Colors.transparent,
-          // ],
-          // stops: [
-          //   0.0,
-          //   1.0 - (fadeHeight / bounds.height).clamp(0.0, 0.6),
-          //   1.0,
-          // ],
-          // SCROLL-FADE-V2
-          colors: const [
-            Colors.white,
-            Colors.white,
-            Color(0x55FFFFFF),
-            Colors.transparent,
+          colors: [
+            bg,
+            bg,
+            bg.withValues(alpha: 0.55),
+            bg.withValues(alpha: 0),
           ],
           stops: [
             0.0,
-            1.0 - (fadeHeight / bounds.height).clamp(0.0, 0.55),
-            1.0 - (fadeHeight / bounds.height * 0.35).clamp(0.0, 0.25),
+            fadeStart,
+            fadeMid,
             1.0,
           ],
         ).createShader(bounds);

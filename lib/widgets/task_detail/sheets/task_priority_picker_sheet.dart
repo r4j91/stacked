@@ -15,10 +15,10 @@ class TaskPriorityPickerSheet extends StatelessWidget {
   });
 
   static final _opts = [
-    (value: Priority.high,   label: 'Prioridade 1', color: const Color(0xFFDC4C3E), icon: Icons.flag),
-    (value: Priority.medium, label: 'Prioridade 2', color: const Color(0xFFEB8909), icon: Icons.flag),
-    (value: Priority.low,    label: 'Prioridade 3', color: const Color(0xFF246FE0), icon: Icons.flag),
-    (value: null as Priority?,         label: 'Sem prioridade', color: const Color(0xFF6B6E76), icon: Icons.flag_outlined),
+    (value: Priority.high,   label: 'Prioridade 1', color: const Color(0xFFDC4C3E), hugeIcon: HugeIcons.strokeRoundedFlag01),
+    (value: Priority.medium, label: 'Prioridade 2', color: const Color(0xFFEB8909), hugeIcon: HugeIcons.strokeRoundedFlag01),
+    (value: Priority.low,    label: 'Prioridade 3', color: const Color(0xFF246FE0), hugeIcon: HugeIcons.strokeRoundedFlag01),
+    (value: null as Priority?, label: 'Sem prioridade', color: const Color(0xFF6B6E76), hugeIcon: HugeIcons.strokeRoundedFlag01),
   ];
 
   @override
@@ -44,12 +44,12 @@ class TaskPriorityPickerSheet extends StatelessWidget {
             child: Text('Prioridade', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
           for (final opt in _opts)
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-              leading: Icon(opt.icon, size: 20, color: opt.color),
+              leading: HugeIcon(icon: opt.hugeIcon, size: 20, color: opt.color),
               title: Text(opt.label, style: TextStyle(fontSize: 16, color: AppColors.textPrimary, fontWeight: FontWeight.w500)),
               trailing: current == opt.value ? HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 18, color: opt.color) : null,
               dense: true,

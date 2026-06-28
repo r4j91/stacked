@@ -173,12 +173,12 @@ class _TaskContextSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
 
           // Group 1: Editar, Concluir, Duplicar
           _SheetTile(
-            icon: Icons.edit_outlined,
+            hugeIcon: HugeIcons.strokeRoundedEdit01,
             label: 'Editar',
             onTap: () {
               _pop(context);
@@ -187,7 +187,7 @@ class _TaskContextSheet extends StatelessWidget {
             },
           ),
           _SheetTile(
-            icon: Icons.check_circle_outline,
+            hugeIcon: HugeIcons.strokeRoundedCheckmarkCircle01,
             label: 'Concluir',
             onTap: () {
               _pop(context);
@@ -196,25 +196,25 @@ class _TaskContextSheet extends StatelessWidget {
             },
           ),
           _SheetTile(
-            icon: Icons.copy_outlined,
+            hugeIcon: HugeIcons.strokeRoundedCopy01,
             label: 'Duplicar',
             onTap: () => _duplicate(context),
           ),
 
           const SizedBox(height: 4),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
 
           // Group 2: Prioridade, Mover para projeto
           _SheetTile(
-            icon: Icons.flag_outlined,
+            hugeIcon: HugeIcons.strokeRoundedFlag01,
             label: 'Prioridade',
             trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01,
                 size: 18, color: AppColors.textTertiary),
             onTap: () => _showPrioritySheet(context),
           ),
           _SheetTile(
-            icon: Icons.folder_outlined,
+            hugeIcon: HugeIcons.strokeRoundedFolder01,
             label: 'Mover para projeto',
             trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01,
                 size: 18, color: AppColors.textTertiary),
@@ -222,12 +222,12 @@ class _TaskContextSheet extends StatelessWidget {
           ),
 
           const SizedBox(height: 4),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
 
           // Group 3: Excluir
           _SheetTile(
-            icon: Icons.delete_outline,
+            hugeIcon: HugeIcons.strokeRoundedDelete01,
             label: 'Excluir',
             destructive: true,
             onTap: () => _confirmDelete(context),
@@ -244,14 +244,14 @@ class _TaskContextSheet extends StatelessWidget {
 // ── Shared tile ───────────────────────────────────────────────────────────────
 
 class _SheetTile extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final bool destructive;
   final Widget? trailing;
   final VoidCallback onTap;
 
   const _SheetTile({
-    required this.icon,
+    required this.hugeIcon,
     required this.label,
     required this.onTap,
     this.destructive = false,
@@ -265,7 +265,7 @@ class _SheetTile extends StatelessWidget {
     return ListTile(
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      leading: Icon(icon, size: 20, color: color),
+      leading: HugeIcon(icon: hugeIcon, size: 20, color: color),
       title: Text(
         label,
         style: TextStyle(
@@ -337,14 +337,14 @@ class _PrioritySheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
           for (final opt in _options)
             ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-              leading: Icon(
-                opt.value == 'none' ? Icons.flag_outlined : Icons.flag,
+              leading: HugeIcon(
+                icon: HugeIcons.strokeRoundedFlag01,
                 size: 20,
                 color: opt.color,
               ),
@@ -433,7 +433,7 @@ class _ProjectSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
           Flexible(
             child: SingleChildScrollView(
@@ -444,10 +444,10 @@ class _ProjectSheet extends StatelessWidget {
                     ListTile(
                       contentPadding:
                           const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                      leading: Icon(
-                        proj.id.isEmpty
-                            ? Icons.inbox_outlined
-                            : Icons.folder_outlined,
+                      leading: HugeIcon(
+                        icon: proj.id.isEmpty
+                            ? HugeIcons.strokeRoundedInbox
+                            : HugeIcons.strokeRoundedFolder01,
                         size: 20,
                         color: AppColors.textSecondary,
                       ),

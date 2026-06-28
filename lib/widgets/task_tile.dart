@@ -6,6 +6,7 @@ import '../models/subtask.dart';
 import '../services/haptic_service.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
 import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
 // ADICIONADO_ETAPA3B
@@ -201,7 +202,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.md + 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(
@@ -265,7 +266,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                             curve: Curves.easeOutCubic,
                             child: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01,
                               size: 22,
-                              color: Colors.white.withValues(alpha: 0.35),
+                              color: AppColors.textTertiary.withValues(alpha: 0.7),
                             ),
                           ),
                         ),
@@ -341,7 +342,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
       } else if (d == today) {
         dateColor = AppColors.success;
       } else {
-        dateColor = Colors.white.withValues(alpha: 0.45);
+        dateColor = AppColors.textSecondary;
       }
       const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
       final label = d == today ? 'Hoje' : '${d.day} ${months[d.month - 1]}';
@@ -367,7 +368,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
               onTap: _animating ? null : widget.onCompleted,
               onTapDown: (_) {},
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 2, 10, 2),
+                padding: const EdgeInsets.all(12),
                 child: AnimatedBuilder(
                   animation: _dotScale,
                   builder: (_, child) =>
@@ -491,7 +492,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                     children: [
                       HugeIcon(icon: HugeIcons.strokeRoundedTaskDone01,
                         size: 13,
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: AppColors.textTertiary,
                       ),
                       const SizedBox(width: 3),
                       Text(
@@ -517,14 +518,14 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                     children: [
                       HugeIcon(icon: HugeIcons.strokeRoundedComment01,
                         size: 12,
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: AppColors.textTertiary,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         '${task.commentCount}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: AppColors.textTertiary,
                         ),
                       ),
                     ],
@@ -680,7 +681,7 @@ class SubtaskList extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant.withValues(alpha: 0.45),
         borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(14)),
+            BorderRadius.vertical(bottom: Radius.circular(AppRadius.md + 2)),
       ),
       child: Column(
         children: [
@@ -691,7 +692,7 @@ class SubtaskList extends StatelessWidget {
               child: _buildSubtaskRow(context, subtasks[i], i),
             ),
             if (i < subtasks.length - 1)
-              Divider(height: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.04)),
+              Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.08)),
           ],
           const SizedBox(height: 4),
         ],
@@ -712,7 +713,7 @@ class SubtaskList extends StatelessWidget {
             onToggle(index);
           },
           child: Padding(
-            padding: const EdgeInsets.only(top: 2, right: 10),
+            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
             child: _buildSubtaskCircle(sub, done),
           ),
         ),
@@ -783,10 +784,10 @@ class SubtaskList extends StatelessWidget {
         fontSize: 14,
         fontWeight: FontWeight.normal,
         color: done
-            ? Colors.white.withValues(alpha: 0.40)
-            : Colors.white.withValues(alpha: 0.88),
+            ? AppColors.textTertiary
+            : AppColors.textPrimary.withValues(alpha: 0.88),
         decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
-        decorationColor: Colors.white.withValues(alpha: 0.40),
+        decorationColor: AppColors.textTertiary,
       ),
       child: Text(sub.title),
     );
@@ -800,7 +801,7 @@ class SubtaskList extends StatelessWidget {
         sub.description!,
         style: TextStyle(
           fontSize: 12,
-          color: Colors.white.withValues(alpha: done ? 0.20 : 0.35),
+          color: AppColors.textSecondary.withValues(alpha: done ? 0.55 : 0.85),
         ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
@@ -1076,17 +1077,7 @@ class TagChip extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (showIcon) ...[
-          // CORRIGIDO_ETAPA3B_CHIP: ícone substituído por bolinha colorida,
-          // para padronizar com o estilo de chip já usado nas subtarefas.
-          // HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 13, color: color),
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
+          HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 11, color: color),
           const SizedBox(width: 4),
         ],
         Flexible(

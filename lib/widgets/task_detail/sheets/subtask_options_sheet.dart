@@ -245,8 +245,8 @@ class _SubtaskOptionsSheetState extends State<SubtaskOptionsSheet> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                val != null ? Icons.flag : Icons.flag_outlined,
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedFlag01,
                                 size: 18,
                                 color: active ? color : AppColors.textTertiary,
                               ),
@@ -614,13 +614,10 @@ class _SubtaskOptionsSheetState extends State<SubtaskOptionsSheet> {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: l.color,
-                              shape: BoxShape.circle,
-                            ),
+                          HugeIcon(
+                            icon: HugeIcons.strokeRoundedTag01,
+                            size: 16,
+                            color: l.color,
                           ),
                           const SizedBox(width: 12),
                           Expanded(

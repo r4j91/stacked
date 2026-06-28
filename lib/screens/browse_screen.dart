@@ -296,11 +296,11 @@ class _BrowseHomeState extends State<_BrowseHome> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      Expanded(child: _QuickCard(icon: Icons.search, label: 'Buscar', subtitle: 'Tarefas e projetos', onTap: () => showSearchScreen(context))),
+                      Expanded(child: _QuickCard(hugeIcon: HugeIcons.strokeRoundedSearch01, label: 'Buscar', subtitle: 'Tarefas e projetos', onTap: () => showSearchScreen(context))),
                       const SizedBox(width: 10),
-                      Expanded(child: _QuickCard(icon: Icons.history_rounded, label: 'Registro', subtitle: 'Tarefas concluídas', onTap: () => Navigator.of(context).push(_IOSSlideRoute(builder: (_) => const LogbookScreen())))),
+                      Expanded(child: _QuickCard(hugeIcon: HugeIcons.strokeRoundedClock01, label: 'Registro', subtitle: 'Tarefas concluídas', onTap: () => Navigator.of(context).push(_IOSSlideRoute(builder: (_) => const LogbookScreen())))),
                       const SizedBox(width: 10),
-                      Expanded(child: _QuickCard(icon: Icons.bar_chart_rounded, label: 'Relatórios', subtitle: 'Produtividade', onTap: () => showProductivitySheet(context))),
+                      Expanded(child: _QuickCard(hugeIcon: HugeIcons.strokeRoundedAnalytics01, label: 'Relatórios', subtitle: 'Produtividade', onTap: () => showProductivitySheet(context))),
                     ],
                   ),
                 )
@@ -310,11 +310,11 @@ class _BrowseHomeState extends State<_BrowseHome> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
-                      _QuickCard(icon: Icons.search, label: 'Buscar', subtitle: 'Tarefas e projetos', onTap: () => showSearchScreen(context)),
+                      _QuickCard(hugeIcon: HugeIcons.strokeRoundedSearch01, label: 'Buscar', subtitle: 'Tarefas e projetos', onTap: () => showSearchScreen(context)),
                       const SizedBox(width: 10),
-                      _QuickCard(icon: Icons.history_rounded, label: 'Registro', subtitle: 'Tarefas concluídas', onTap: () => Navigator.of(context).push(_IOSSlideRoute(builder: (_) => const LogbookScreen()))),
+                      _QuickCard(hugeIcon: HugeIcons.strokeRoundedClock01, label: 'Registro', subtitle: 'Tarefas concluídas', onTap: () => Navigator.of(context).push(_IOSSlideRoute(builder: (_) => const LogbookScreen()))),
                       const SizedBox(width: 10),
-                      _QuickCard(icon: Icons.bar_chart_rounded, label: 'Relatórios', subtitle: 'Produtividade', onTap: () => showProductivitySheet(context)),
+                      _QuickCard(hugeIcon: HugeIcons.strokeRoundedAnalytics01, label: 'Relatórios', subtitle: 'Produtividade', onTap: () => showProductivitySheet(context)),
                     ],
                   ),
                 ),
@@ -552,11 +552,11 @@ class UserPill extends StatelessWidget {
 }
 
 class _QuickCard extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
-  const _QuickCard({required this.icon, required this.label, required this.subtitle, required this.onTap});
+  const _QuickCard({required this.hugeIcon, required this.label, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -574,7 +574,7 @@ class _QuickCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 22, color: AppColors.accent),
+            HugeIcon(icon: hugeIcon, size: 22, color: AppColors.accent),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -644,10 +644,10 @@ class _ProjectRow extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: AppColors.surfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.07),
+                  color: AppColors.textTertiary.withValues(alpha: 0.12),
                   width: 1,
                 ),
               ),
@@ -674,7 +674,7 @@ class _ProjectRow extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.07),
+                  color: AppColors.textTertiary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -695,8 +695,10 @@ class _ProjectRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 // FIXED-COLOR: dourado decorativo único de "favorito"
-                child: Icon(
-                  project.favorite ? Icons.star_rounded : Icons.star_border_rounded,
+                child: HugeIcon(
+                  icon: project.favorite
+                      ? HugeIcons.strokeRoundedFavourite
+                      : HugeIcons.strokeRoundedStar,
                   size: 17,
                   color: project.favorite
                       ? const Color(0xFFF4C95D)
@@ -836,17 +838,17 @@ class SettingsSheet extends StatelessWidget {
               // Preferences
               _settingSection('Preferências'),
               _settingsCard([
-                _SettingItem(icon: Icons.notifications_outlined, label: 'Notificações', onTap: () {
+                _SettingItem(hugeIcon: HugeIcons.strokeRoundedNotification01, label: 'Notificações', onTap: () {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const NotificationsSettingsScreen()),
                   );
                 }),
-                _SettingItem(icon: Icons.palette_outlined, label: 'Aparência', onTap: () {
+                _SettingItem(hugeIcon: HugeIcons.strokeRoundedPaintBoard, label: 'Aparência', onTap: () {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const AppearanceScreen()),
                   );
                 }),
-                _SettingItem(icon: Icons.language_outlined, label: 'Idioma', onTap: () {}),
+                _SettingItem(hugeIcon: HugeIcons.strokeRoundedGlobe02, label: 'Idioma', onTap: () {}),
               ]),
               const SizedBox(height: 20),
 
@@ -854,7 +856,7 @@ class SettingsSheet extends StatelessWidget {
               _settingSection('Organização'),
               _settingsCard([
                 _SettingItem(
-                  icon: Icons.label_outline,
+                  hugeIcon: HugeIcons.strokeRoundedTag01,
                   label: 'Gerenciar Etiquetas',
                   onTap: () {
                     Navigator.of(context, rootNavigator: true).push(
@@ -997,10 +999,10 @@ class _ProfileCard extends StatelessWidget {
 }
 
 class _SettingItem extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final VoidCallback? onTap;
-  const _SettingItem({required this.icon, required this.label, this.onTap});
+  const _SettingItem({required this.hugeIcon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1011,7 +1013,7 @@ class _SettingItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: AppColors.textSecondary),
+            HugeIcon(icon: hugeIcon, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

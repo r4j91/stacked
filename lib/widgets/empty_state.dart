@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 
 class EmptyState extends StatefulWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String title;
   final String? subtitle;
 
   const EmptyState({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.title,
     this.subtitle,
   });
@@ -32,7 +34,6 @@ class _EmptyStateState extends State<EmptyState>
       vsync: this,
     );
 
-    // Stagger: ícone → título (60ms depois) → subtítulo (60ms depois)
     _iconAnim = CurvedAnimation(
       parent: _ctrl,
       curve: const Interval(0.00, 0.55, curve: Curves.easeOutCubic),
@@ -57,13 +58,17 @@ class _EmptyStateState extends State<EmptyState>
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.hero - 8,
+          vertical: AppSpacing.xxxl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Ícone com "sol de pêssego" espiando atrás
             FadeTransition(
               opacity: _iconAnim,
               child: ScaleTransition(
@@ -74,7 +79,6 @@ class _EmptyStateState extends State<EmptyState>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Accent "sol" deslocado para cima-direita
                       Positioned(
                         top: 2,
                         right: 2,
@@ -87,7 +91,6 @@ class _EmptyStateState extends State<EmptyState>
                           ),
                         ),
                       ),
-                      // Círculo principal
                       Container(
                         width: 80,
                         height: 80,
@@ -95,8 +98,8 @@ class _EmptyStateState extends State<EmptyState>
                           shape: BoxShape.circle,
                           color: AppColors.surfaceVariant,
                         ),
-                        child: Icon(
-                          widget.icon,
+                        child: HugeIcon(
+                          icon: widget.hugeIcon,
                           size: 34,
                           color: AppColors.textTertiary,
                         ),
@@ -106,9 +109,8 @@ class _EmptyStateState extends State<EmptyState>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: AppSpacing.xl),
 
-            // Título
             FadeTransition(
               opacity: _titleAnim,
               child: SlideTransition(
@@ -118,20 +120,14 @@ class _EmptyStateState extends State<EmptyState>
                 ).animate(_titleAnim),
                 child: Text(
                   widget.title,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    height: 1.3,
-                  ),
+                  style: textTheme.titleLarge?.copyWith(height: 1.3),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
             if (widget.subtitle != null) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: AppSpacing.sm),
 
-              // Subtítulo
               FadeTransition(
                 opacity: _subtitleAnim,
                 child: SlideTransition(
@@ -141,9 +137,8 @@ class _EmptyStateState extends State<EmptyState>
                   ).animate(_subtitleAnim),
                   child: Text(
                     widget.subtitle!,
-                    style: TextStyle(
+                    style: textTheme.bodyMedium?.copyWith(
                       fontSize: 13.5,
-                      color: AppColors.textSecondary,
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,

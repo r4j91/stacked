@@ -4,6 +4,8 @@ import '../models/task.dart';
 import '../services/haptic_service.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_radius.dart';
 import '../widgets/modal_media_query.dart' show ModalSheetRoute;
 import '../widgets/project_options_sheet.dart';
 import '../widgets/task_tile.dart' show TagChip;
@@ -258,11 +260,43 @@ class HomeScreenState extends State<HomeScreen> {
     return 'Boa noite';
   }
 
-  String get _greetingEmoji {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return '☀️';
-    if (hour < 18) return '👋';
-    return '👋';
+  BoxDecoration _overdueDecoration(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: AppColors.overdue.withValues(alpha: isDark ? 0.14 : 0.10),
+      border: Border.all(color: AppColors.overdue.withValues(alpha: 0.32)),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+    );
+  }
+
+  BoxDecoration _liquidGlassDecoration(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.05)
+          : AppColors.surfaceVariant.withValues(alpha: 0.6),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : AppColors.textTertiary.withValues(alpha: 0.15),
+      ),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+    );
+  }
+
+  BoxDecoration _emptyStateDecoration(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : AppColors.surfaceVariant.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : AppColors.textTertiary.withValues(alpha: 0.12),
+      ),
+    );
   }
 
   // SCROLL-PATTERN-OLD: Scaffold + SafeArea + um único SliverToBoxAdapter
@@ -299,22 +333,20 @@ class HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeader(),
-                        _buildGreeting(),
-                        // HOME-SPACING-OLD: SizedBox(height: 4)
-                        const SizedBox(height: 8),
+                        _buildGreeting(context),
+                        SizedBox(height: AppSpacing.xl),
                         if (_loadingTasks)
                           const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
+                            padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
                             child: Center(child: CupertinoActivityIndicator()),
                           )
                         else ...[
-                          _buildOverdueCard(),
-                          _buildTodayCard(),
+                          _buildOverdueCard(context),
+                          _buildTodayCard(context),
                         ],
-                        // HOME-SPACING-OLD: SizedBox(height: 4)
-                        const SizedBox(height: 8),
+                        SizedBox(height: AppSpacing.xl),
                         _buildShortcutsGrid(),
-                        _buildProjectsList(),
+                        _buildProjectsList(context),
                       ],
                     ),
                   ),
@@ -341,7 +373,9 @@ class HomeScreenState extends State<HomeScreen> {
     final avatarPath = meta['avatar_url'] as String?;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm,
+      ),
       child: Row(
         children: [
           // GESTURE-OLD: GestureDetector sem feedback visual
@@ -378,66 +412,29 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.07),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Icon(icon, size: 18, color: AppColors.textSecondary),
-      ),
-    );
-  }
-
   // ── SAUDAÇÃO ─────────────────────────────────────────
-  Widget _buildGreeting() {
+  Widget _buildGreeting(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                '$_greeting, $_userName $_greetingEmoji',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
+          Text(
+            '$_greeting, $_userName',
+            style: textTheme.headlineMedium?.copyWith(letterSpacing: -0.3),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: AppSpacing.xs),
           Text(
             'Vamos focar no que realmente importa hoje.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w400,
-            ),
+            style: textTheme.bodyMedium,
           ),
         ],
       ),
     );
   }
-
-  BoxDecoration get _liquidGlassDecoration => BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        borderRadius: BorderRadius.circular(20),
-      );
 
   // COLORS-OLD: static const _overdueColor = Color(0xFFEF4444);
   static const _overdueColor = AppColors.overdue;
@@ -458,18 +455,17 @@ class HomeScreenState extends State<HomeScreen> {
   // TASK-NEXT-OLD: _buildNextTaskCard — label accent 'PRÓXIMA TAREFA',
   // chip de data fixo 'Hoje', sem prioridade, SizedBox.shrink() se vazio.
   // ── CARD TAREFA ATRASADA ─────────────────────────────
-  Widget _buildOverdueCard() {
+  Widget _buildOverdueCard(BuildContext context) {
     final task = _overdueTask;
     if (task == null) {
-      // HOME-OVERDUE-OLD: margin EdgeInsets.fromLTRB(16, 16, 16, 0)
       return Container(
-        // HOME-SPACING-V1
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        padding: const EdgeInsets.all(16),
-        // COLORS-OLD: const Color(0xFF22C55E) em todo este bloco
+        margin: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0,
+        ),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: AppColors.success.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
         ),
         child: Row(
@@ -480,12 +476,12 @@ class HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), shape: BoxShape.circle),
               child: const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 20, color: AppColors.success),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: AppSpacing.md),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Tudo em dia!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.success)),
-                Text('Nenhuma tarefa atrasada', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.45))),
+                Text('Nenhuma tarefa atrasada', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               ],
             ),
           ],
@@ -493,50 +489,44 @@ class HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // HOME-OVERDUE-OLD: margin EdgeInsets.fromLTRB(16, 16, 16, 0)
-    // HOME-OVERDUE-OLD: padding EdgeInsets.all(16)
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      // HOME-OVERDUE-V1
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-      decoration: _liquidGlassDecoration,
+    return Pressable(
+      onTap: () => showTaskDetailSheet(context, task, onSaved: _loadTasks),
+      child: Container(
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: _overdueDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              HugeIcon(icon: HugeIcons.strokeRoundedAlert01, size: 12, color: _overdueColor),
+              HugeIcon(icon: HugeIcons.strokeRoundedAlert01, size: 13, color: _overdueColor),
               const SizedBox(width: 6),
-              // HOME-OVERDUE-OLD: fontSize: 11
               Text(
                 'TAREFA ATRASADA',
-                // HOME-OVERDUE-V1
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: _overdueColor),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: _overdueColor),
               ),
             ],
           ),
-          // HOME-OVERDUE-OLD: SizedBox(height: 10)
-          const SizedBox(height: 3),
-          // HOME-OVERDUE-OLD: fontSize: 20
+          const SizedBox(height: AppSpacing.sm),
           Text(
             task.title,
-            // HOME-OVERDUE-V1
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          // HOME-OVERDUE-OLD: SizedBox(height: 8)
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.sm),
           if (task.dueDate != null)
             Row(
               children: [
                 HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 13, color: _overdueColor),
                 const SizedBox(width: 4),
-                // HOME-OVERDUE-OLD: fontSize: 12
-                Text(_formatOverdueDate(task.dueDate!), style: TextStyle(fontSize: 11, color: _overdueColor)),
+                Text(_formatOverdueDate(task.dueDate!), style: TextStyle(fontSize: 12, color: _overdueColor)),
               ],
             ),
-          const SizedBox(height: 6),
+          if (task.dueDate != null) const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               if (task.priority != null)
@@ -570,66 +560,56 @@ class HomeScreenState extends State<HomeScreen> {
                     child: TagChip(label: l.name, color: l.color),
                   )),
               const Spacer(),
-              // HOME-OVERDUE-OLD: width/height: 36
-              // GESTURE-OLD: GestureDetector sem feedback visual
-              Pressable(
-                onTap: () => showTaskDetailSheet(context, task, onSaved: _loadTasks),
-                child: Container(
-                  // HOME-OVERDUE-V1
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.accent.withValues(alpha: 0.15),
-                    border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
-                  ),
-                  child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: AppColors.accent),
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accent.withValues(alpha: 0.15),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
                 ),
+                child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 16, color: AppColors.accent),
               ),
             ],
           ),
         ],
       ),
+    ),
     );
   }
 
   // ── CARD HOJE ────────────────────────────────────────
   // TODAY-EMPTY-OLD: if (_todayTotal == 0) return const SizedBox.shrink();
-  Widget _buildTodayCard() {
+  Widget _buildTodayCard(BuildContext context) {
     if (_todayTotal == 0) {
-      // HOME-TODAY-OLD: margin EdgeInsets.fromLTRB(16, 12, 16, 0)
       return Container(
-        // HOME-SPACING-V1
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        margin: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0,
         ),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: _emptyStateDecoration(context),
         child: Row(
           children: [
-            HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 18, color: Colors.white.withValues(alpha: 0.3)),
-            const SizedBox(width: 12),
-            Text('Nenhuma tarefa para hoje', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.4))),
+            HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 18, color: AppColors.textTertiary),
+            SizedBox(width: AppSpacing.md),
+            Text('Nenhuma tarefa para hoje', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
           ],
         ),
       );
     }
     final percent = ((_todayDone / _todayTotal) * 100).round();
+    final percentColor = percent > 0 ? AppColors.success : AppColors.textSecondary;
 
-    // HOME-TODAY-OLD: margin EdgeInsets.fromLTRB(16, 12, 16, 0)
-    // HOME-TODAY-OLD: padding EdgeInsets.all(16)
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      // HOME-TODAY-V1
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-      decoration: _liquidGlassDecoration,
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: _liquidGlassDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HOME-TODAY-OLD: "Hoje" e contagem em Column (linhas separadas)
-          // HOME-TODAY-V1: título e contagem inline
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -639,36 +619,28 @@ class HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const Spacer(),
-              // HOME-TODAY-OLD: fontSize: 22
               Text(
                 '$percent%',
-                // HOME-TODAY-V1
-                // COLORS-OLD: color: Color(0xFF22C55E)
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.success),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: percentColor),
               ),
               const SizedBox(width: 4),
               Text('concluídas', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
             ],
           ),
-          // HOME-TODAY-OLD: SizedBox(height: 12)
-          const SizedBox(height: 5),
+          const SizedBox(height: AppSpacing.sm),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: _todayTotal > 0 ? _todayDone / _todayTotal : 0,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              // COLORS-OLD: AlwaysStoppedAnimation(Color(0xFF22C55E))
-              valueColor: const AlwaysStoppedAnimation(AppColors.success),
-              // HOME-TODAY-OLD: minHeight: 6
-              minHeight: 3.0,
+              backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.6),
+              valueColor: AlwaysStoppedAnimation(percent > 0 ? AppColors.success : AppColors.textTertiary.withValues(alpha: 0.4)),
+              minHeight: 5.0,
             ),
           ),
-          // HOME-TODAY-OLD: SizedBox(height: 8)
-          const SizedBox(height: 5),
-          // HOME-TODAY-OLD: fontSize: 12
+          const SizedBox(height: AppSpacing.sm),
           Text(
             '$_todayDone concluídas • ${_todayTotal - _todayDone} restantes',
-            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -681,58 +653,79 @@ class HomeScreenState extends State<HomeScreen> {
   // Trocado por Row+Expanded (altura segue o conteúdo via mainAxisSize.min,
   // não fixada por um aspect ratio arbitrário).
   Widget _buildShortcutsGrid() {
+    const gap = AppSpacing.sm + 2.0;
+    final items = [
+      (
+        icon: HugeIcons.strokeRoundedInbox,
+        label: 'Inbox',
+        count: _inboxCount,
+        color: AppColors.shortcutInbox,
+        onTap: () => widget.onNavigateToTab?.call(1),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedCalendar01,
+        label: 'Hoje',
+        count: _todayTotal,
+        color: AppColors.shortcutToday,
+        onTap: () => widget.onNavigateToTab?.call(2),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedClock01,
+        label: 'Em breve',
+        count: _upcomingCount,
+        color: AppColors.shortcutUpcoming,
+        onTap: () => widget.onNavigateToTab?.call(3),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedFilterHorizontal,
+        label: 'Filtros',
+        count: _filterCount,
+        color: AppColors.shortcutFilters,
+        onTap: () => widget.onNavigateToTab?.call(4),
+      ),
+    ];
+
+    Widget shortcutAt(int i) => _buildShortcutItem(
+          icon: items[i].icon,
+          label: items[i].label,
+          count: items[i].count,
+          color: items[i].color,
+          onTap: items[i].onTap,
+        );
+
+    Widget rowPair(int a, int b) => Row(
+          children: [
+            Expanded(child: shortcutAt(a)),
+            const SizedBox(width: gap),
+            Expanded(child: shortcutAt(b)),
+          ],
+        );
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildShortcutItem(
-              // HOME-SHORTCUTS-OLD: icon: Icons.inbox_rounded,
-              icon: HugeIcons.strokeRoundedInbox,
-              label: 'Inbox',
-              count: _inboxCount,
-              // COLORS-OLD: color: const Color(0xFF246FE0)
-              color: AppColors.shortcutInbox,
-              onTap: () => widget.onNavigateToTab?.call(1),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildShortcutItem(
-              // HOME-SHORTCUTS-OLD: icon: Icons.calendar_today_rounded,
-              icon: HugeIcons.strokeRoundedCalendar01,
-              label: 'Hoje',
-              count: _todayTotal,
-              // COLORS-OLD: color: const Color(0xFF22C55E)
-              color: AppColors.shortcutToday,
-              onTap: () => widget.onNavigateToTab?.call(2),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildShortcutItem(
-              // HOME-SHORTCUTS-OLD: icon: Icons.schedule_rounded,
-              icon: HugeIcons.strokeRoundedClock01,
-              label: 'Em breve',
-              count: _upcomingCount,
-              // COLORS-OLD: color: const Color(0xFFEB8909)
-              color: AppColors.shortcutUpcoming,
-              onTap: () => widget.onNavigateToTab?.call(3),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildShortcutItem(
-              // HOME-SHORTCUTS-OLD: icon: Icons.filter_list_rounded,
-              icon: HugeIcons.strokeRoundedFilterHorizontal,
-              label: 'Filtros',
-              count: _filterCount,
-              // COLORS-OLD: color: const Color(0xFF884DFF)
-              color: AppColors.shortcutFilters,
-              onTap: () => widget.onNavigateToTab?.call(4),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, 0, AppSpacing.lg, 0,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow = constraints.maxWidth < 380;
+          if (!narrow) {
+            return Row(
+              children: [
+                for (int i = 0; i < items.length; i++) ...[
+                  if (i > 0) const SizedBox(width: gap),
+                  Expanded(child: shortcutAt(i)),
+                ],
+              ],
+            );
+          }
+          return Column(
+            children: [
+              rowPair(0, 1),
+              const SizedBox(height: gap),
+              rowPair(2, 3),
+            ],
+          );
+        },
       ),
     );
   }
@@ -750,40 +743,42 @@ class HomeScreenState extends State<HomeScreen> {
     return Pressable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md + 2, horizontal: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // HOME-SHORTCUTS-OLD: Container 40x40, BoxDecoration retangular
-            // com color: color.withValues(alpha: 0.15), borderRadius: 12,
-            // child: Icon(icon, size: 20, color: color)
-            // HOME-SHORTCUTS-V1: bolinha neutra, ícone colorido
             Container(
-              width: 28,
-              height: 28,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: HugeIcon(icon: icon, size: 14, color: color),
+                child: HugeIcon(icon: icon, size: 18, color: color),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: AppSpacing.sm),
             Text(
               label,
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 2),
-            Text('$count', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            SizedBox(height: AppSpacing.xs / 2),
+            Text(
+              '$count',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
           ],
         ),
       ),
@@ -793,19 +788,24 @@ class HomeScreenState extends State<HomeScreen> {
   // ── SEÇÃO PROJETOS ───────────────────────────────────
   // HOME-PROJECTS-OLD: Padding solta, sem container/fundo/borda — seção
   // visualmente "flutuando" diferente dos cards de tarefa atrasada/hoje.
-  Widget _buildProjectsList() {
+  Widget _buildProjectsList(BuildContext context) {
     return Padding(
-      // HOME-SPACING-V1
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      // HOME-PROJECTS-V1: mesmo estilo visual dos cards acima
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg, AppSpacing.xxl, AppSpacing.lg, 0,
+      ),
       child: Container(
-        decoration: _liquidGlassDecoration,
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+        decoration: _liquidGlassDecoration(context),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md + 1, vertical: AppSpacing.md,
+        ),
         child: Column(
           children: [
             Row(
               children: [
-                Text('Projetos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                Text(
+                  'Projetos',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const Spacer(),
                 // GESTURE-OLD: GestureDetector sem feedback visual
                 Pressable(
@@ -829,7 +829,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: AppSpacing.md),
             if (_loadingProjects)
               const Center(child: CupertinoActivityIndicator())
             else
@@ -845,8 +845,11 @@ class HomeScreenState extends State<HomeScreen> {
                         children: [
                           for (int i = 0; i < _projects.length; i++) ...[
                             if (i > 0)
-                              // HOME-PROJECTS-V1: divisor interno
-                              Divider(height: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.08)),
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: AppColors.textTertiary.withValues(alpha: 0.12),
+                              ),
                             _buildProjectRow(_projects[i]),
                           ],
                         ],
@@ -875,7 +878,12 @@ class HomeScreenState extends State<HomeScreen> {
         Navigator.of(context, rootNavigator: true).push(
           ModalSheetRoute<void>(
             builder: (_) => ProjectOptionsSheet(
-              project: ProjectSheetData(id: p.id, name: p.name),
+              project: ProjectSheetData(
+                id: p.id,
+                name: p.name,
+                color: p.color,
+                iconName: p.iconName,
+              ),
               onEdited: () {
                 if (mounted) _loadProjects();
               },
@@ -888,33 +896,44 @@ class HomeScreenState extends State<HomeScreen> {
       },
       // HOME-PROJECTS-OLD: padding: EdgeInsets.symmetric(vertical: 8)
       child: Padding(
-        // HOME-PROJECTS-V1
-        padding: const EdgeInsets.symmetric(vertical: 7),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
             Container(
-              width: 4,
-              height: 36,
-              decoration: BoxDecoration(color: p.color, borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(width: 12),
-            // PROJECT-SIZE-OLD: width: 36, height: 36, borderRadius: 9, HugeIcon size: 18
-            // PROJECT-SIZE-V2
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: p.color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(7)),
-              // PROJECT-ICONS-OLD: child: Icon(_iconFromName(p.iconName), size: 18, color: p.color),
-              child: HugeIcon(icon: ProjectIcons.resolve(p.iconName), size: 14, color: p.color),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+                border: Border.all(color: p.color.withValues(alpha: 0.75), width: 2),
+              ),
+              child: Center(
+                child: HugeIcon(
+                  icon: ProjectIcons.resolve(p.iconName),
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(p.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+              child: Text(
+                p.name,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+              ),
             ),
             if (p.taskCount > 0)
-              Text('${p.taskCount}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-            const SizedBox(width: 8),
-            HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 16, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.textTertiary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${p.taskCount}',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textTertiary),
+                ),
+              ),
           ],
         ),
       ),

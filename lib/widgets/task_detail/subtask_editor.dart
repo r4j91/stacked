@@ -237,17 +237,16 @@ class _SubtaskEditorRowState extends State<SubtaskEditorRow> {
                         children: [
                           if (hasDate)
                             SubtaskMetaChip(
-                              icon: Icons.calendar_today_outlined,
+                              hugeIcon: HugeIcons.strokeRoundedCalendar01,
                               label: _formatDate(widget.item),
                               color: const Color(0xFF4D9FEC),
                             ),
                           ...widget.labels
                               .where((l) => widget.item.labelIds.contains(l.id))
                               .map((l) => SubtaskMetaChip(
-                                    icon: Icons.label_outline,
+                                    hugeIcon: HugeIcons.strokeRoundedTag01,
                                     label: l.name,
                                     color: l.color,
-                                    useDot: true, // CORRIGIDO_REDESIGN_DETAIL_SUBTASK_LABEL
                                   )),
                           // Valor da parcela (gerador de parcelas / edição manual).
                           if (hasValor)
@@ -281,15 +280,10 @@ class _SubtaskEditorRowState extends State<SubtaskEditorRow> {
 }
 
 class SubtaskMetaChip extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>>? hugeIcon;
   final String label;
   final Color color;
-  // CORRIGIDO_REDESIGN_DETAIL_SUBTASK_LABEL: quando true, exibe bolinha
-  // colorida no lugar do ícone (usado pelo chip de etiqueta, mesmo padrão
-  // já aplicado em task_tile.dart e _buildLabelValue() do TaskDetailSheet).
-  // O chip de data continua usando o ícone normalmente (useDot: false).
-  final bool useDot;
-  const SubtaskMetaChip({super.key, required this.icon, required this.label, required this.color, this.useDot = false});
+  const SubtaskMetaChip({super.key, this.hugeIcon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -302,13 +296,11 @@ class SubtaskMetaChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          useDot
-              ? Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                )
-              : Icon(icon, size: 11, color: color.withValues(alpha: 0.85)),
+          HugeIcon(
+            icon: hugeIcon ?? HugeIcons.strokeRoundedCalendar01,
+            size: 11,
+            color: color.withValues(alpha: 0.85),
+          ),
           const SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.9), fontWeight: FontWeight.w500)),
         ],

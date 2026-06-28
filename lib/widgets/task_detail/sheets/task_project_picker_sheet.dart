@@ -44,7 +44,7 @@ class TaskProjectPickerSheet extends StatelessWidget {
             child: Text('Projeto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
           Flexible(
             child: SingleChildScrollView(

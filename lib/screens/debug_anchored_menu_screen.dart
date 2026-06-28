@@ -24,45 +24,45 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
   String? _longPicked;
   String? _bottomPicked;
 
-  static const _priorityItems = [
+  static final _priorityItems = [
     AnchoredMenuItem(
         id: 'p1',
         label: 'Prioridade 1',
-        icon: Icons.flag,
+        hugeIcon: HugeIcons.strokeRoundedFlag01,
         iconColor: Color(0xFFDC4C3E),
         selected: false),
     AnchoredMenuItem(
         id: 'p2',
         label: 'Prioridade 2',
-        icon: Icons.flag,
+        hugeIcon: HugeIcons.strokeRoundedFlag01,
         iconColor: Color(0xFFEB8909),
         selected: false),
     AnchoredMenuItem(
         id: 'p3',
         label: 'Prioridade 3',
-        icon: Icons.flag,
+        hugeIcon: HugeIcons.strokeRoundedFlag01,
         iconColor: Color(0xFF246FE0),
         selected: false),
     AnchoredMenuItem(
         id: 'p4',
         label: 'Sem prioridade',
-        icon: Icons.flag_outlined,
+        hugeIcon: HugeIcons.strokeRoundedFlag01,
         iconColor: Color(0xFF6B6E76),
         selected: false),
   ];
 
-  static const _labelItems = [
-    AnchoredMenuItem(id: 'work', label: 'Trabalho', icon: Icons.circle, iconColor: Color(0xFF14AAF5)),
-    AnchoredMenuItem(id: 'personal', label: 'Pessoal', icon: Icons.circle, iconColor: Color(0xFF299438)),
-    AnchoredMenuItem(id: 'idea', label: 'Ideia', icon: Icons.circle, iconColor: Color(0xFFAF38EB)),
-    AnchoredMenuItem(id: 'urgent', label: 'Urgente', icon: Icons.circle, iconColor: Color(0xFFDB4035)),
+  static final _labelItems = [
+    AnchoredMenuItem(id: 'work', label: 'Trabalho', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFF14AAF5)),
+    AnchoredMenuItem(id: 'personal', label: 'Pessoal', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFF299438)),
+    AnchoredMenuItem(id: 'idea', label: 'Ideia', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFFAF38EB)),
+    AnchoredMenuItem(id: 'urgent', label: 'Urgente', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFFDB4035)),
   ];
 
-  static const _projectItems = [
-    AnchoredMenuItem(id: 'inbox', label: 'Caixa de entrada', icon: Icons.move_to_inbox_rounded),
-    AnchoredMenuItem(id: 'proj1', label: 'Design System', icon: Icons.circle, iconColor: Color(0xFF5FD3DC)),
-    AnchoredMenuItem(id: 'proj2', label: 'Stacked App', icon: Icons.circle, iconColor: Color(0xFFB18CF5)),
-    AnchoredMenuItem(id: 'proj3', label: 'Pessoal', icon: Icons.circle, iconColor: Color(0xFF8FD46B)),
+  static final _projectItems = [
+    AnchoredMenuItem(id: 'inbox', label: 'Caixa de entrada', hugeIcon: HugeIcons.strokeRoundedInbox),
+    AnchoredMenuItem(id: 'proj1', label: 'Design System', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFF5FD3DC)),
+    AnchoredMenuItem(id: 'proj2', label: 'Stacked App', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFFB18CF5)),
+    AnchoredMenuItem(id: 'proj3', label: 'Pessoal', hugeIcon: HugeIcons.strokeRoundedRecord, iconColor: Color(0xFF8FD46B)),
   ];
 
   Future<void> _showPriority() async {
@@ -70,7 +70,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
         .map((e) => AnchoredMenuItem(
               id: e.id,
               label: e.label,
-              icon: e.icon,
+              hugeIcon: e.hugeIcon,
               iconColor: e.iconColor,
               selected: e.id == _priority,
             ))
@@ -85,12 +85,11 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
   }
 
   Future<void> _showLabels() async {
-    // Multi-select demo: open menu repeatedly to toggle
     final items = _labelItems
         .map((e) => AnchoredMenuItem(
               id: e.id,
               label: e.label,
-              icon: e.icon,
+              hugeIcon: e.hugeIcon,
               iconColor: e.iconColor,
               selected: _labels.contains(e.id),
             ))
@@ -116,7 +115,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
         .map((e) => AnchoredMenuItem(
               id: e.id,
               label: e.label,
-              icon: e.icon,
+              hugeIcon: e.hugeIcon,
               iconColor: e.iconColor,
               selected: e.id == _project,
             ))
@@ -153,7 +152,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
         .map((e) => AnchoredMenuItem(
               id: e.id,
               label: e.label,
-              icon: e.icon,
+              hugeIcon: e.hugeIcon,
               iconColor: e.iconColor,
               selected: e.id == _bottomPicked,
             ))
@@ -205,7 +204,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
                     : _priorityItems
                         .firstWhere((e) => e.id == _priority)
                         .label,
-                icon: Icons.flag_outlined,
+                hugeIcon: HugeIcons.strokeRoundedFlag01,
                 active: _priority != null,
                 onTap: _showPriority,
               ),
@@ -214,7 +213,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
                 label: _labels.isEmpty
                     ? 'Etiquetas'
                     : 'Etiquetas (${_labels.length})',
-                icon: Icons.label_outline,
+                hugeIcon: HugeIcons.strokeRoundedTag01,
                 active: _labels.isNotEmpty,
                 onTap: _showLabels,
               ),
@@ -225,7 +224,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
                     : _projectItems
                         .firstWhere((e) => e.id == _project)
                         .label,
-                icon: Icons.grid_view_rounded,
+                hugeIcon: HugeIcons.strokeRoundedFolder01,
                 active: _project != null,
                 onTap: _showProject,
               ),
@@ -237,18 +236,18 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
           _Chip(
             key: _longKey,
             label: _longPicked == null ? 'Lista longa (12 itens)' : 'Selecionado: $_longPicked',
-            icon: Icons.list_rounded,
+            hugeIcon: HugeIcons.strokeRoundedLeftToRightListBullet,
             active: _longPicked != null,
             onTap: _showLong,
           ),
           const SizedBox(height: 32),
           _SectionLabel('Descrição do comportamento'),
           const SizedBox(height: 8),
-          _InfoRow(icon: Icons.flip_outlined, text: 'Flip automático: se não cabe abaixo, abre acima do chip'),
-          _InfoRow(icon: Icons.touch_app_outlined, text: 'Fecha ao tocar fora, pressionar Esc ou selecionar'),
-          _InfoRow(icon: Icons.animation_outlined, text: 'Scale+fade 150ms, origem no canto do menu'),
-          _InfoRow(icon: Icons.highlight_alt_outlined, text: 'Linha inteira iluminada no item selecionado (não só checkmark)'),
-          _InfoRow(icon: Icons.devices_outlined, text: 'Mesmo componente em mobile e desktop'),
+          _InfoRow(hugeIcon: HugeIcons.strokeRoundedArrowReloadHorizontal, text: 'Flip automático: se não cabe abaixo, abre acima do chip'),
+          _InfoRow(hugeIcon: HugeIcons.strokeRoundedTouchpad01, text: 'Fecha ao tocar fora, pressionar Esc ou selecionar'),
+          _InfoRow(hugeIcon: HugeIcons.strokeRoundedSparkles, text: 'Scale+fade 150ms, origem no canto do menu'),
+          _InfoRow(hugeIcon: HugeIcons.strokeRoundedCheckmarkSquare01, text: 'Linha inteira iluminada no item selecionado (não só checkmark)'),
+          _InfoRow(hugeIcon: HugeIcons.strokeRoundedComputerPhoneSync, text: 'Mesmo componente em mobile e desktop'),
           const SizedBox(height: 40),
           _SectionLabel('Flip (âncora perto do fim da tela)'),
           const SizedBox(height: 12),
@@ -257,7 +256,7 @@ class _DebugAnchoredMenuScreenState extends State<DebugAnchoredMenuScreen> {
             child: _Chip(
               key: _bottomKey,
               label: _bottomPicked == null ? 'Abre acima ↑' : _priorityItems.firstWhere((e) => e.id == _bottomPicked).label,
-              icon: Icons.keyboard_arrow_up_rounded,
+              hugeIcon: HugeIcons.strokeRoundedArrowUp01,
               active: _bottomPicked != null,
               onTap: _showBottom,
             ),
@@ -295,14 +294,14 @@ class _SectionLabel extends StatelessWidget {
 
 class _Chip extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final bool active;
   final VoidCallback onTap;
 
   const _Chip({
     super.key,
     required this.label,
-    required this.icon,
+    required this.hugeIcon,
     required this.active,
     required this.onTap,
   });
@@ -327,7 +326,7 @@ class _Chip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 15, color: active ? AppColors.accent : AppColors.textSecondary),
+            HugeIcon(icon: hugeIcon, size: 15, color: active ? AppColors.accent : AppColors.textSecondary),
             const SizedBox(width: 6),
             Text(
               label,
@@ -345,24 +344,21 @@ class _Chip extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String text;
-  const _InfoRow({required this.icon, required this.text});
+  const _InfoRow({required this.hugeIcon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: AppColors.textTertiary),
+          HugeIcon(icon: hugeIcon, size: 16, color: AppColors.textTertiary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.4),
-            ),
+            child: Text(text, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           ),
         ],
       ),

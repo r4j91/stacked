@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/task.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 class TaskPriorityCircle extends StatelessWidget {
@@ -30,10 +31,8 @@ class TaskPriorityCircle extends StatelessWidget {
 }
 
 /// Linha de metadado com layout [ícone] [título] ··· [valor] [chevron].
-/// Todos os ícones são exibidos em tom neutro (textSecondary).
-/// O valor pode ser texto simples (via [value]) ou widget customizado (via [valueWidget]).
 class TaskMetaRow extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String title;
   final String? value;
   final Widget? valueWidget;
@@ -42,7 +41,7 @@ class TaskMetaRow extends StatelessWidget {
 
   const TaskMetaRow({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.title,
     this.value,
     this.valueWidget,
@@ -59,7 +58,7 @@ class TaskMetaRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.textSecondary),
+            HugeIcon(icon: hugeIcon, size: 16, color: AppColors.textSecondary),
             const SizedBox(width: 12),
             Text(
               title,
@@ -99,16 +98,14 @@ class TaskMetaRow extends StatelessWidget {
   }
 }
 
-// ADICIONADO_REDESIGN_DETAIL: pílula compacta para campos vazios (scroll
-// horizontal), padrão Todoist.
 class FieldPill extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
   final VoidCallback onTap;
 
   const FieldPill({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.label,
     required this.onTap,
   });
@@ -118,25 +115,21 @@ class FieldPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // CORRIGIDO_VISUAL_A: padding aumentado (10/5 -> 12/7).
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          // CORRIGIDO_REDESIGN_DETAIL_PILL: fundo/borda ajustados (cores
-          // brancas explícitas, não herdadas de surfaceVariant do tema).
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.15)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // CORRIGIDO_VISUAL_A: ícone 13 -> 15.
-            Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.5)),
+            HugeIcon(icon: hugeIcon, size: 15, color: AppColors.textSecondary),
             const SizedBox(width: 5),
-            // CORRIGIDO_VISUAL_A: texto 11 -> 13.
-            Text(label,
-                style: TextStyle(
-                    fontSize: 13, color: Colors.white.withValues(alpha: 0.55))),
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
           ],
         ),
       ),
@@ -144,16 +137,14 @@ class FieldPill extends StatelessWidget {
   }
 }
 
-// ADICIONADO_REDESIGN_DETAIL: linha de metadado compacta para campos já
-// preenchidos (substitui TaskMetaRow nesse estado, sem título nem chevron).
 class MetaRow extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> hugeIcon;
   final Widget child;
   final VoidCallback onTap;
 
   const MetaRow({
     super.key,
-    required this.icon,
+    required this.hugeIcon,
     required this.child,
     required this.onTap,
   });
@@ -162,20 +153,14 @@ class MetaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      // CORRIGIDO_SUBTASK_TAP: behavior opaco garante que toda a área do
-      // Padding (não só onde há pixels desenhados) responda ao toque.
       mouseCursor: SystemMouseCursors.click,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       child: Padding(
-        // CORRIGIDO_SUBTASK_TAP: padding vertical 6 -> 9 (18px de altura
-        // extra de área de toque, mais próximo do mínimo recomendado).
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(
           children: [
-            // CORRIGIDO_VISUAL_A: ícone 14 -> 18.
-            Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.35)),
-            // CORRIGIDO_VISUAL_A: espaçamento 10 -> 12.
+            HugeIcon(icon: hugeIcon, size: 18, color: AppColors.textTertiary),
             const SizedBox(width: 12),
             Expanded(child: child),
           ],

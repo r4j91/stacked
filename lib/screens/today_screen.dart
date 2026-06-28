@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import '../models/subtask.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
@@ -177,7 +178,7 @@ class TodayScreenState extends State<TodayScreen> {
       duration: const Duration(seconds: 5),
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.surfaceVariant,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       action: SnackBarAction(
         label: 'Desfazer',
         textColor: AppColors.accent,
@@ -200,7 +201,7 @@ class TodayScreenState extends State<TodayScreen> {
             content: Text('Erro ao excluir: $e'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.priorityHigh,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
           ));
         }
       }
@@ -236,7 +237,7 @@ class TodayScreenState extends State<TodayScreen> {
       duration: const Duration(seconds: 5),
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.surfaceVariant,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       action: SnackBarAction(
         label: 'Desfazer',
         textColor: AppColors.accent,
@@ -258,7 +259,7 @@ class TodayScreenState extends State<TodayScreen> {
             content: Text('Erro ao excluir: $e'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.priorityHigh,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
           ));
         }
       }
@@ -309,8 +310,10 @@ class TodayScreenState extends State<TodayScreen> {
           value: 'toggle_completed',
           child: Row(
             children: [
-              Icon(
-                _showCompleted ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              HugeIcon(
+                icon: _showCompleted
+                    ? HugeIcons.strokeRoundedViewOff
+                    : HugeIcons.strokeRoundedView,
                 size: 17,
                 color: AppColors.textSecondary,
               ),
@@ -405,7 +408,9 @@ class TodayScreenState extends State<TodayScreen> {
         // ── Header ──────────────────────────────────────────────────────────
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.sm,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -430,13 +435,13 @@ class TodayScreenState extends State<TodayScreen> {
             ),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
 
         // ── Empty state ───────────────────────────────────────────────────────
         if (_tasks.isEmpty && _completedTasks.isEmpty)
           const SliverToBoxAdapter(
             child: EmptyState(
-              icon: Icons.wb_sunny_outlined,
+              hugeIcon: HugeIcons.strokeRoundedSun01,
               title: 'Nenhuma tarefa para hoje',
               subtitle: 'Aproveite o dia livre',
             ),

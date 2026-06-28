@@ -13,7 +13,9 @@ class NotificationService {
 
   bool _initialized = false;
 
-  static const _channelId = 'lumen_tasks';
+  static const _channelId = 'stacked_tasks';
+  static const _legacyChannelId = 'lumen_tasks';
+  static const _prefChannelMigrated = 'notifications_channel_migrated_v2';
   static const _channelName = 'Tarefas';
   static const _prefEnabled = 'notifications_enabled';
   static const _prefDefaultHour = 'notifications_default_hour';
@@ -36,7 +38,18 @@ class NotificationService {
     await _plugin.initialize(
       const fln.InitializationSettings(android: android, iOS: ios),
     );
+    await _migrateNotificationChannel();
     _initialized = true;
+  }
+
+  /// Migra canal Android legado `lumen_tasks` → `stacked_tasks`.
+  Future<void> _migrateNotificationChannel() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_prefChannelMigrated) ?? false) return;
+    await _plugin.cancelAll();
+    await prefs.setBool(_prefChannelMigrated, true);
+    // _legacyChannelId mantido só como referência do id antigo.
+    assert(_legacyChannelId == 'lumen_tasks');
   }
 
   // ── Permissão ──────────────────────────────────────────────────────────────

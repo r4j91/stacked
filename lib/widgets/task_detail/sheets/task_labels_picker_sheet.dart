@@ -66,7 +66,7 @@ class _TaskLabelsPickerSheetState extends State<TaskLabelsPickerSheet> {
             child: Text('Etiquetas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5, color: Color(0xFF3A3B40)),
+          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.22)),
           const SizedBox(height: 4),
           Flexible(
             child: SingleChildScrollView(
@@ -76,9 +76,10 @@ class _TaskLabelsPickerSheetState extends State<TaskLabelsPickerSheet> {
                   final selected = _ids.contains(l.id);
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                    leading: Container(
-                      width: 12, height: 12,
-                      decoration: BoxDecoration(color: l.color, shape: BoxShape.circle),
+                    leading: HugeIcon(
+                      icon: HugeIcons.strokeRoundedTag01,
+                      size: 16,
+                      color: l.color,
                     ),
                     title: Text(l.name, style: TextStyle(fontSize: 16, color: AppColors.textPrimary,
                         fontWeight: selected ? FontWeight.w600 : FontWeight.w500)),

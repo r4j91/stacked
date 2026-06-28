@@ -269,8 +269,8 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
   );
 
   BoxDecoration get _inputDecoration => BoxDecoration(
-    color: Colors.white.withValues(alpha: 0.07),
-    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+    color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+    border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.15)),
     borderRadius: BorderRadius.circular(12),
   );
 
@@ -363,14 +363,16 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.accent : Colors.white.withValues(alpha: 0.06),
+          color: selected ? AppColors.accent : AppColors.surfaceVariant.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(99),
-          border: selected ? null : Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          border: selected ? null : Border.all(color: AppColors.textTertiary.withValues(alpha: 0.15)),
         ),
         child: Text(label, style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: selected ? Colors.black.withValues(alpha: 0.85) : AppColors.textSecondary,
+          color: selected
+              ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.92)
+              : AppColors.textSecondary,
         )),
       ),
     );
@@ -381,8 +383,8 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
     final remaining = _quantity - visible.length;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        color: AppColors.surfaceVariant.withValues(alpha: 0.35),
+        border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.12)),
         borderRadius: BorderRadius.circular(14),
       ),
       padding: const EdgeInsets.all(14),
@@ -401,7 +403,7 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
           ),
           const SizedBox(height: 10),
           for (var i = 0; i < visible.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+            if (i > 0) Divider(height: 1, color: AppColors.textTertiary.withValues(alpha: 0.12)),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -462,7 +464,7 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.surfaceVariant.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text('Cancelar', style: TextStyle(
@@ -485,13 +487,21 @@ class _InstallmentGeneratorSheetState extends State<InstallmentGeneratorSheet> {
               borderRadius: BorderRadius.circular(99),
             ),
             child: _generating
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
                   )
-                : Text('Gerar $_quantity Parcelas', style: const TextStyle(
-                    fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.black,
-                  )),
+                : Text(
+                    'Gerar $_quantity Parcelas',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
           ),
         ),
       ),

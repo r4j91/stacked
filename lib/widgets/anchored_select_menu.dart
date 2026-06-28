@@ -13,6 +13,7 @@ class AnchoredMenuItem {
   final String id;
   final String label;
   final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final Color? iconColor;
   final bool selected;
 
@@ -20,6 +21,7 @@ class AnchoredMenuItem {
     required this.id,
     required this.label,
     this.icon,
+    this.hugeIcon,
     this.iconColor,
     this.selected = false,
   });
@@ -464,15 +466,24 @@ class _MenuItemRowState extends State<_MenuItemRow> {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             children: [
-              if (item.icon != null) ...[
-                Icon(
-                  item.icon,
-                  size: 18,
-                  color: item.iconColor ??
-                      (item.selected
-                          ? AppColors.accent
-                          : AppColors.textSecondary),
-                ),
+              if (item.hugeIcon != null || item.icon != null) ...[
+                item.hugeIcon != null
+                    ? HugeIcon(
+                        icon: item.hugeIcon!,
+                        size: 18,
+                        color: item.iconColor ??
+                            (item.selected
+                                ? AppColors.accent
+                                : AppColors.textSecondary),
+                      )
+                    : Icon(
+                        item.icon,
+                        size: 18,
+                        color: item.iconColor ??
+                            (item.selected
+                                ? AppColors.accent
+                                : AppColors.textSecondary),
+                      ),
                 const SizedBox(width: 11),
               ],
               Expanded(
@@ -727,13 +738,10 @@ class _MultiSelectItemRowState extends State<_MultiSelectItemRow> {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: item.dotColor ?? AppColors.textTertiary,
-                  shape: BoxShape.circle,
-                ),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedTag01,
+                size: 16,
+                color: item.dotColor ?? AppColors.textTertiary,
               ),
               const SizedBox(width: 12),
               Expanded(
