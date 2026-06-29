@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_client.dart';
 import '../../theme/app_colors.dart';
@@ -16,6 +17,7 @@ class DesktopSidebar extends StatefulWidget {
   final VoidCallback? onSettings;
   final VoidCallback? onNewTask;
   final VoidCallback? onLogbookTap;
+  final void Function(int filterIndex)? onFilterTap;
   // id e name da etiqueta clicada na sidebar
   final void Function(String id, String name)? onLabelTap;
   // id do projeto atualmente aberto (para highlight no sidebar)
@@ -28,6 +30,7 @@ class DesktopSidebar extends StatefulWidget {
     this.onSettings,
     this.onNewTask,
     this.onLogbookTap,
+    this.onFilterTap,
     this.onLabelTap,
     this.selectedProjectId,
   });
@@ -227,11 +230,18 @@ class _DesktopSidebarState extends State<DesktopSidebar>
             ),
           ),
 
-          // ── Fixed nav: Inbox, Hoje, Em breve ──────────────────────────────
+          // ── Fixed nav: Navegar, Inbox, Hoje, Em breve ─────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
               children: [
+                _SBNavItem(
+                  hugeIcon: HugeIcons.strokeRoundedHome01,
+                  label: 'Navegar',
+                  selected: _localIndex == 0,
+                  accentIsLight: al,
+                  onTap: () => _select(0),
+                ),
                 _SBNavItem(
                   hugeIcon: HugeIcons.strokeRoundedInbox,
                   label: 'Inbox',
@@ -385,12 +395,18 @@ class _DesktopSidebarState extends State<DesktopSidebar>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ..._filterDefs.map((f) => _SubNavItem(
-                              hugeIcon: f.icon,
-                              label: f.label,
-                              accentIsLight: al,
-                              onTap: () => _select(4),
-                            )),
+                            ...List.generate(_filterDefs.length, (i) {
+                              final f = _filterDefs[i];
+                              return _SubNavItem(
+                                hugeIcon: f.icon,
+                                label: f.label,
+                                accentIsLight: al,
+                                onTap: () {
+                                  widget.onFilterTap?.call(i);
+                                  _select(4);
+                                },
+                              );
+                            }),
                             const SizedBox(height: 6),
                           ],
                         ),
@@ -666,6 +682,23 @@ class _SubNavItem extends StatefulWidget {
 
 class _SubNavItemState extends State<_SubNavItem> {
   bool _hovered = false;
+  bool _focused = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (mounted) setState(() => _focused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   Color get _bg {
     if (widget.selected) {
@@ -686,7 +719,22 @@ class _SubNavItemState extends State<_SubNavItem> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: widget.label,
+      child: Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.space) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -700,6 +748,12 @@ class _SubNavItemState extends State<_SubNavItem> {
           decoration: BoxDecoration(
             color: _bg,
             borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: _focused
+                  ? AppColors.accent.withValues(alpha: 0.75)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
           ),
           child: Row(
             children: [
@@ -739,6 +793,8 @@ class _SubNavItemState extends State<_SubNavItem> {
             ],
           ),
         ),
+      ),
+      ),
       ),
     );
   }
@@ -831,6 +887,23 @@ class _SBNavItem extends StatefulWidget {
 
 class _SBNavItemState extends State<_SBNavItem> {
   bool _hovered = false;
+  bool _focused = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (mounted) setState(() => _focused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   Color get _bg {
     if (widget.selected) {
@@ -851,7 +924,22 @@ class _SBNavItemState extends State<_SBNavItem> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: widget.label,
+      child: Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.space) {
+            widget.onTap?.call();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -865,6 +953,12 @@ class _SBNavItemState extends State<_SBNavItem> {
           decoration: BoxDecoration(
             color: _bg,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _focused
+                  ? AppColors.accent.withValues(alpha: 0.75)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
           ),
           child: Row(
             children: [
@@ -909,6 +1003,8 @@ class _SBNavItemState extends State<_SBNavItem> {
             ],
           ),
         ),
+      ),
+      ),
       ),
     );
   }

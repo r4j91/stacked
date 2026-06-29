@@ -12,6 +12,7 @@ class AppButton extends StatefulWidget {
   final IconData? icon;
   final bool destructive;
   final bool fullWidth;
+  final bool _isSecondary;
 
   const AppButton({
     super.key,
@@ -21,7 +22,7 @@ class AppButton extends StatefulWidget {
     this.icon,
     this.destructive = false,
     this.fullWidth = true,
-  });
+  }) : _isSecondary = false;
 
   /// Secondary ghost variant — surface background, primary text.
   const AppButton.secondary({
@@ -31,7 +32,8 @@ class AppButton extends StatefulWidget {
     this.loading = false,
     this.icon,
     this.fullWidth = true,
-  })  : destructive = false;
+  })  : destructive = false,
+        _isSecondary = true;
 
   @override
   State<AppButton> createState() => _AppButtonState();
@@ -59,16 +61,24 @@ class _AppButtonState extends State<AppButton>
 
   Color get _bg {
     if (widget.destructive) return AppColors.priorityHigh;
+    if (widget._isSecondary) return AppColors.surfaceVariant;
     return AppColors.accent;
   }
 
-  Color get _fg => AppColors.background;
+  Color get _fg {
+    if (widget._isSecondary) return AppColors.textPrimary;
+    return AppColors.background;
+  }
 
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onPressed != null && !widget.loading;
 
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: widget.label,
+      enabled: enabled,
+      child: GestureDetector(
       onTapDown: enabled ? (_) => _ctrl.forward() : null,
       onTapUp: enabled
           ? (_) {
@@ -122,6 +132,7 @@ class _AppButtonState extends State<AppButton>
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -146,7 +157,11 @@ class AppTextButton extends StatelessWidget {
         HapticService().selectionClick();
         onPressed?.call();
       },
-      child: Padding(
+      child: Semantics(
+        button: true,
+        label: label,
+        enabled: onPressed != null,
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Text(
           label,
@@ -156,6 +171,7 @@ class AppTextButton extends StatelessWidget {
             color: color ?? AppColors.accent,
           ),
         ),
+      ),
       ),
     );
   }

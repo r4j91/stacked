@@ -4,9 +4,11 @@ import 'desktop_sidebar.dart';
 import 'desktop_top_bar.dart';
 import 'desktop_content_area.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
 import '../../screens/appearance_screen.dart';
 import '../../screens/logbook_screen.dart';
 import '../../screens/labels_screen.dart';
+import '../../screens/search_screen.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 class DesktopAppShell extends StatefulWidget {
@@ -16,6 +18,7 @@ class DesktopAppShell extends StatefulWidget {
   final VoidCallback? onNewTask;
   final VoidCallback? onSearch;
   final VoidCallback? onProjectCreated;
+  final void Function(int filterIndex)? onFilterTap;
 
   const DesktopAppShell({
     super.key,
@@ -25,6 +28,7 @@ class DesktopAppShell extends StatefulWidget {
     this.onNewTask,
     this.onSearch,
     this.onProjectCreated,
+    this.onFilterTap,
   });
 
   @override
@@ -34,7 +38,7 @@ class DesktopAppShell extends StatefulWidget {
 class _DesktopAppShellState extends State<DesktopAppShell> {
   // Título de cada aba (índice 0-4)
   static const _sectionTitles = [
-    'Projetos',
+    'Navegar',
     'Inbox',
     'Hoje',
     'Em breve',
@@ -149,23 +153,25 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
   }
 
   void _openLabelFilter(String labelId, String labelName) {
-    // Navega para a tela de etiquetas mostrando todas (roteamento completo
-    // com filtro por label será implementado quando go_router for integrado)
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            color: AppColors.background,
-            constraints: const BoxConstraints(maxWidth: 560, maxHeight: 700),
-            child: const LabelsScreen(),
+    if (labelId.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              color: AppColors.background,
+              constraints: const BoxConstraints(maxWidth: 560, maxHeight: 700),
+              child: const LabelsScreen(),
+            ),
           ),
         ),
-      ),
-    );
+      );
+      return;
+    }
+    showSearchScreen(context, initialQuery: labelName);
   }
 
   void _showShortcutsDialog() {
@@ -192,6 +198,7 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
               onSettings: _openSettings,
               onNewTask: widget.onNewTask,
               onLogbookTap: _openLogbook,
+              onFilterTap: widget.onFilterTap,
               onLabelTap: (id, name) => _openLabelFilter(id, name),
             ),
             // ── Vertical divider ─────────────────────────────────────────────
@@ -229,7 +236,7 @@ class _ShortcutsPanel extends StatelessWidget {
     ('Navegação', [
       ('Q', 'Nova tarefa'),
       ('⌘K', 'Busca rápida'),
-      ('⌘1 – ⌘5', 'Ir para aba (Projetos → Filtros)'),
+      ('⌘1 – ⌘5', 'Ir para aba (Navegar → Filtros)'),
       ('Esc', 'Fechar modal / sheet'),
       ('? (Shift+/)', 'Esta tela de atalhos'),
     ]),
@@ -247,14 +254,8 @@ class _ShortcutsPanel extends StatelessWidget {
       width: 400,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.surfaceVariant),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),

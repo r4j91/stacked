@@ -7,6 +7,7 @@ class UserPill extends StatelessWidget {
   final String apelido;
   final String nome;
   final String? avatarPath;
+  final bool showName;
 
   const UserPill({
     super.key,
@@ -14,6 +15,7 @@ class UserPill extends StatelessWidget {
     this.apelido = '',
     this.nome = '',
     this.avatarPath,
+    this.showName = true,
   });
 
   String get _initials {
@@ -39,7 +41,10 @@ class UserPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return HeaderLiquidPill(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: showName ? 12 : 8,
+        vertical: 8,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -66,15 +71,17 @@ class UserPill extends StatelessWidget {
                     ),
                   ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            _displayName,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          if (showName) ...[
+            const SizedBox(width: 8),
+            Text(
+              _displayName,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

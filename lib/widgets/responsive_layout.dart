@@ -10,6 +10,7 @@ import '../theme/app_layout.dart';
 import 'bottom_nav_scope.dart';
 import '../theme/app_colors.dart';
 import '../widgets/new_project_sheet.dart';
+import '../widgets/today_day_icon.dart';
 import 'desktop_shell/desktop_app_shell.dart';
 import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -24,40 +25,12 @@ class _NavItem {
 final _navItems = [
   _NavItem(hugeIcon: HugeIcons.strokeRoundedHome01, label: 'Navegar'),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedInbox, label: 'Inbox'),
-  _NavItem(label: 'Hoje', iconBuilder: (selected) => _TodayIcon(selected: selected)),
+  _NavItem(label: 'Hoje', iconBuilder: (selected) => TodayDayIcon(
+        color: selected ? AppColors.accent : AppColors.textTertiary,
+      )),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedCalendar03, label: 'Em breve'),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedFilterHorizontal, label: 'Filtros'),
 ];
-
-/// Ícone da aba Hoje: quadrado arredondado com o número do dia, estilo Todoist iOS.
-class _TodayIcon extends StatelessWidget {
-  final bool selected;
-  const _TodayIcon({required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? AppColors.accent : AppColors.textTertiary;
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: color, width: 1.8),
-      ),
-      child: Center(
-        child: Text(
-          '${DateTime.now().day}',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            color: color,
-            height: 1,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class ResponsiveLayout extends StatelessWidget {
   final int selectedIndex;
@@ -66,6 +39,7 @@ class ResponsiveLayout extends StatelessWidget {
   final VoidCallback? onTaskCreated;
   final VoidCallback? onSearchTap;
   final VoidCallback? onProjectCreated;
+  final void Function(int filterIndex)? onDesktopFilterTap;
 
   const ResponsiveLayout({
     super.key,
@@ -75,6 +49,7 @@ class ResponsiveLayout extends StatelessWidget {
     this.onTaskCreated,
     this.onSearchTap,
     this.onProjectCreated,
+    this.onDesktopFilterTap,
   });
 
   @override
@@ -97,6 +72,7 @@ class ResponsiveLayout extends StatelessWidget {
           onNewTask: openNewTask,
           onSearch: openSearch,
           onProjectCreated: onProjectCreated,
+          onFilterTap: onDesktopFilterTap,
         );
       }
 
@@ -266,7 +242,11 @@ class _ExpandableFABState extends State<_ExpandableFAB>
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
+    return Semantics(
+      button: true,
+      label: _open ? 'Fechar menu de ações' : 'Criar novo',
+      hint: _open ? null : 'Abre opções de nova tarefa, projeto e busca',
+      child: Pressable(
       pressedScale: 0.92,
       onTap: _toggle,
       child: AnimatedBuilder(
@@ -277,37 +257,17 @@ class _ExpandableFABState extends State<_ExpandableFAB>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.accent,
-            // FAB-GLOW-OLD: halo accent muito intenso (alpha 0.38, blur 16).
-            // boxShadow: [
-            //   BoxShadow(
-            //     color: AppColors.accent.withValues(alpha: 0.38),
-            //     blurRadius: 16,
-            //     offset: const Offset(0, 5),
-            //   ),
-            //   BoxShadow(
-            //     color: Colors.black.withValues(alpha: 0.18),
-            //     blurRadius: 6,
-            //     offset: const Offset(0, 2),
-            //   ),
-            // ],
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.08),
+              width: 0.8,
+            ),
           ),
           child: Center(
             child: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 27, color: AppColors.background),
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -439,7 +399,10 @@ class _FabMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
+    return Semantics(
+      button: true,
+      label: label,
+      child: Pressable(
       onTap: () {
         HapticService().selectionClick();
         onTap?.call();
@@ -453,13 +416,9 @@ class _FabMenuItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
             ),
             child: Text(
               label,
@@ -478,17 +437,14 @@ class _FabMenuItem extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
             ),
             child: HugeIcon(icon: icon, size: 20, color: AppColors.accent),
           ),
         ],
+      ),
       ),
     );
   }
@@ -571,14 +527,6 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
                   color: AppColors.textPrimary.withValues(alpha: 0.06),
                   width: 0.8,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.20),
-                    blurRadius: 20,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
               ),
               child: _buildPillContent(),
             )
@@ -593,14 +541,6 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
               color: AppColors.textPrimary.withValues(alpha: 0.06),
               width: 0.8,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.20),
-                blurRadius: 20,
-                spreadRadius: -2,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: _buildPillContent(),
         ),
@@ -727,7 +667,12 @@ class _PillItemState extends State<_PillItem>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: widget.label,
+      hint: widget.selected ? 'Aba atual' : 'Ir para ${widget.label}',
+      child: GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
       child: Column(
@@ -771,6 +716,7 @@ class _PillItemState extends State<_PillItem>
             child: Text(widget.label),
           ),
         ],
+      ),
       ),
     );
   }

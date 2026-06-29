@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 
 /// Shimmer animado para estado de carregamento das listas de tarefas.
 class SkeletonLoader extends StatefulWidget {
@@ -20,7 +21,29 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
     _ctrl = AnimationController(
       duration: const Duration(milliseconds: 1400),
       vsync: this,
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    final shouldAnimate = AppMotion.enabled(context);
+    if (shouldAnimate) {
+      if (!_ctrl.isAnimating) _ctrl.repeat();
+    } else {
+      _ctrl.stop();
+      _ctrl.value = 0;
+    }
+  }
+
+  @override
+  void deactivate() {
+    _ctrl.stop();
+    super.deactivate();
   }
 
   @override
@@ -42,28 +65,29 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
               base,
             );
             return LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [base, highlight, base],
-            stops: [
-              (_ctrl.value - 0.35).clamp(0.0, 1.0),
-              _ctrl.value.clamp(0.0, 1.0),
-              (_ctrl.value + 0.35).clamp(0.0, 1.0),
-            ],
-          ).createShader(bounds);
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [base, highlight, base],
+              stops: [
+                (_ctrl.value - 0.35).clamp(0.0, 1.0),
+                _ctrl.value.clamp(0.0, 1.0),
+                (_ctrl.value + 0.35).clamp(0.0, 1.0),
+              ],
+            ).createShader(bounds);
           },
           blendMode: BlendMode.srcATop,
           child: child,
         );
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: widget.itemCount,
-        itemBuilder: (_, i) => _SkeletonCard(
-          titleWidth: i % 3 == 0 ? 0.55 : (i % 3 == 1 ? 0.75 : 0.65),
-          hasSecondLine: i % 2 == 0,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < widget.itemCount; i++)
+            _SkeletonCard(
+              titleWidth: i % 3 == 0 ? 0.55 : (i % 3 == 1 ? 0.75 : 0.65),
+              hasSecondLine: i % 2 == 0,
+            ),
+        ],
       ),
     );
   }

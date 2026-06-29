@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/haptic_service.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
@@ -32,15 +31,12 @@ class _ProductivitySheet extends StatefulWidget {
 }
 
 class _ProductivitySheetState extends State<_ProductivitySheet> {
-  int _tab = 1; // 0=Config, 1=Diário, 2=Semanal, 3=Karma
+  int _tab = 0; // 0=Diário, 1=Semanal
   bool _loading = true;
 
   // Dados brutos do Supabase
   List<DateTime> _completionDates = [];
   int _totalCompleted = 0;
-
-  // Preferências
-  int _dailyGoal = 5;
 
   // Perfil
   String _displayName = '';
@@ -64,9 +60,6 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _dailyGoal = prefs.getInt('meta_diaria') ?? 5;
-
     try {
       final taskRows = await supabase
           .from('tasks')
@@ -107,49 +100,6 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
       .where((d) => DateTime(d.year, d.month, d.day) == _today)
       .length;
 
-  /// Dias seguidos com pelo menos 1 tarefa concluída
-  int get _currentStreak {
-    final Set<DateTime> days = _completionDates
-        .map((d) => DateTime(d.year, d.month, d.day))
-        .toSet();
-    int streak = 0;
-    var day = _today;
-    while (days.contains(day)) {
-      streak++;
-      day = day.subtract(const Duration(days: 1));
-    }
-    return streak;
-  }
-
-  /// Streak mais longa já registrada e suas datas de início/fim
-  ({int length, DateTime? start, DateTime? end}) get _longestStreak {
-    if (_completionDates.isEmpty) return (length: 0, start: null, end: null);
-    final days = _completionDates
-        .map((d) => DateTime(d.year, d.month, d.day))
-        .toSet()
-        .toList()
-      ..sort();
-
-    int best = 1, cur = 1;
-    DateTime bestStart = days.first, bestEnd = days.first, curStart = days.first;
-
-    for (int i = 1; i < days.length; i++) {
-      final diff = days[i].difference(days[i - 1]).inDays;
-      if (diff == 1) {
-        cur++;
-        if (cur > best) {
-          best = cur;
-          bestStart = curStart;
-          bestEnd = days[i];
-        }
-      } else {
-        cur = 1;
-        curStart = days[i];
-      }
-    }
-    return (length: best, start: bestStart, end: bestEnd);
-  }
-
   List<int> get _last7Days {
     return List.generate(7, (i) {
       final day = _today.subtract(Duration(days: 6 - i));
@@ -183,46 +133,6 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
           .where((d) => DateTime(d.year, d.month, d.day) == day)
           .length;
     });
-  }
-
-  int get _karma => _totalCompleted;
-
-  String get _karmaLevel {
-    if (_karma >= 500) return 'Platina';
-    if (_karma >= 200) return 'Ouro';
-    if (_karma >= 50) return 'Prata';
-    return 'Bronze';
-  }
-
-  // FIXED-COLOR: paleta de níveis de karma (Bronze/Prata/Ouro/Platina) —
-  // cores de medalha com sentido universal, fixas por design, não migram
-  // pra AppColors (mesmo padrão de paleta de etiqueta/projeto).
-  Color get _karmaColor {
-    if (_karma >= 500) return const Color(0xFF7FD7F0);
-    if (_karma >= 200) return const Color(0xFFFFD166);
-    if (_karma >= 50) return const Color(0xFFB0B8C1);
-    return const Color(0xFFCD7F32);
-  }
-
-  double get _karmaProgress {
-    if (_karma >= 500) return 1.0;
-    if (_karma >= 200) return (_karma - 200) / 300;
-    if (_karma >= 50) return (_karma - 50) / 150;
-    return _karma / 50;
-  }
-
-  int get _karmaNextLevel {
-    if (_karma >= 500) return 500;
-    if (_karma >= 200) return 500;
-    if (_karma >= 50) return 200;
-    return 50;
-  }
-
-  String get _karmaNextName {
-    if (_karma >= 500) return 'Platina (máximo)';
-    if (_karma >= 200) return 'Platina';
-    if (_karma >= 50) return 'Ouro';
-    return 'Prata';
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -268,7 +178,7 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
         children: [
-          Text('Produtividade', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+          Text('Relatório', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
           const Spacer(),
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
@@ -341,8 +251,7 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
   }
 
   Widget _buildSegmentedControl() {
-    const tabs = ['Diário', 'Semanal', 'Karma'];
-    // Map tab index: 1=Diário, 2=Semanal, 3=Karma
+    const tabs = ['Diário', 'Semanal'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Container(
@@ -353,11 +262,10 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
         ),
         child: Row(
           children: List.generate(tabs.length, (i) {
-            final tabIndex = i + 1;
-            final active = _tab == tabIndex;
+            final active = _tab == i;
             return Expanded(
               child: GestureDetector(
-                onTap: () { HapticService().tabChanged(); setState(() => _tab = tabIndex); },
+                onTap: () { HapticService().tabChanged(); setState(() => _tab = i); },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
@@ -386,165 +294,87 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
 
   Widget _buildTabContent(MediaQueryData mq) {
     switch (_tab) {
-      case 1: return _buildDailyTab();
-      case 2: return _buildWeeklyTab();
-      case 3: return _buildKarmaTab();
-      default: return const SizedBox.shrink();
+      case 0:
+        return _buildDailyTab();
+      case 1:
+        return _buildWeeklyTab();
+      default:
+        return const SizedBox.shrink();
     }
   }
 
   // ── Aba Diária ─────────────────────────────────────────────────────────────
 
   Widget _buildDailyTab() {
-    final streak = _currentStreak;
-    final longest = _longestStreak;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Objetivo diário
           _buildCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    // FIXED-COLOR: paleta de níveis de karma
-                    HugeIcon(icon: HugeIcons.strokeRoundedMedal01, size: 18, color: const Color(0xFFFFD166)),
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedTaskDone01,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
                     const SizedBox(width: 8),
-                    Text('Objetivo diário', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _editDailyGoal,
-                      child: Text('Editar', style: TextStyle(fontSize: 12, color: AppColors.accent)),
+                    Text(
+                      'Concluídas hoje',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
-                      '$_todayCount',
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1),
-                    ),
-                    Text(
-                      ' / $_dailyGoal',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w400, color: AppColors.textTertiary, height: 1),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (_todayCount / math.max(1, _dailyGoal)).clamp(0.0, 1.0),
-                    backgroundColor: AppColors.surfaceVariant,
-                    valueColor: AlwaysStoppedAnimation(AppColors.accent),
-                    minHeight: 6,
+                Text(
+                  '$_todayCount',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    height: 1,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _todayCount == 1 ? 'tarefa' : 'tarefas',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.textTertiary),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 10),
-
-          // Streak
-          _buildCard(
-            child: Row(
-              children: [
-                Text('🔥', style: const TextStyle(fontSize: 22)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '$streak',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'dias seguidos',
-                            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                      if (longest.length > 0 && longest.start != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Mais longa: ${longest.length} dias  '
-                          '(${_fmtDate(longest.start!)} – ${_fmtDate(longest.end!)})',
-                          style: TextStyle(fontSize: 11.5, color: AppColors.textTertiary),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Gráfico últimos 7 dias
           _buildCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Últimos 7 dias', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                Text(
+                  'Últimos 7 dias',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                _HorizontalBarChart(values: _last7Days, maxValue: math.max(1, _last7Days.reduce(math.max))),
+                _HorizontalBarChart(
+                  values: _last7Days,
+                  maxValue: math.max(1, _last7Days.reduce(math.max)),
+                ),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _editDailyGoal() async {
-    final ctrl = TextEditingController(text: '$_dailyGoal');
-    try { await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Meta diária', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Número de tarefas',
-            hintStyle: TextStyle(color: AppColors.textTertiary),
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final val = int.tryParse(ctrl.text.trim());
-              if (val != null && val > 0) {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setInt('meta_diaria', val);
-                if (mounted) setState(() => _dailyGoal = val);
-              }
-              if (ctx.mounted) Navigator.of(ctx).pop();
-            },
-            child: Text('Salvar', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    ); } finally { ctrl.dispose(); }
   }
 
   // ── Aba Semanal ────────────────────────────────────────────────────────────
@@ -600,7 +430,7 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: diff >= 0 ? AppColors.tagGreen : AppColors.priorityHigh,
+                                color: diff >= 0 ? AppColors.textSecondary : AppColors.textTertiary,
                               ),
                             ),
                           ],
@@ -633,123 +463,6 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
     );
   }
 
-  // ── Aba Karma ──────────────────────────────────────────────────────────────
-
-  Widget _buildKarmaTab() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Column(
-        children: [
-          // Pontuação + nível
-          _buildCard(
-            child: Row(
-              children: [
-                _KarmaBadge(level: _karmaLevel, color: _karmaColor),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_karmaLevel, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _karmaColor)),
-                      const SizedBox(height: 2),
-                      Text('$_karma pontos de karma', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Progresso para próximo nível
-          if (_karma < 500)
-            _buildCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Próximo nível: $_karmaNextName', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                      Text('$_karma / $_karmaNextLevel', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: _karmaProgress,
-                      backgroundColor: AppColors.surfaceVariant,
-                      valueColor: AlwaysStoppedAnimation(_karmaColor),
-                      minHeight: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Faltam ${_karmaNextLevel - _karma} tarefas para $_karmaNextName',
-                    style: TextStyle(fontSize: 11.5, color: AppColors.textTertiary),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 10),
-
-          // Escala de níveis
-          _buildCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Escala de níveis', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                const SizedBox(height: 12),
-                // FIXED-COLOR: paleta de níveis de karma
-                ...[
-                  ('Bronze',  0,   50,   const Color(0xFFCD7F32)),
-                  ('Prata',   50,  200,  const Color(0xFFB0B8C1)),
-                  ('Ouro',    200, 500,  const Color(0xFFFFD166)),
-                  ('Platina', 500, null, const Color(0xFF7FD7F0)),
-                ].map((e) {
-                  final (name, from, to, color) = e;
-                  final isActive = _karmaLevel == name;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10, height: 10,
-                          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                              color: isActive ? color : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          to == null ? '$from+ pts' : '$from – $to pts',
-                          style: TextStyle(fontSize: 11.5, color: AppColors.textTertiary),
-                        ),
-                        if (isActive) ...[
-                          const SizedBox(width: 6),
-                          HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle01, size: 14, color: color),
-                        ],
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Widget _buildCard({required Widget child}) {
@@ -762,12 +475,6 @@ class _ProductivitySheetState extends State<_ProductivitySheet> {
       ),
       child: child,
     );
-  }
-
-  String _fmtDate(DateTime d) {
-    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-                    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    return '${d.day} ${months[d.month - 1]}';
   }
 }
 
@@ -835,7 +542,10 @@ class _HorizontalBarChart extends StatelessWidget {
                           // quebra ao trocar tema. 0xFF4CAF50 é stop decorativo
                           // único, sem token equivalente — mantido fixo.
                           gradient: LinearGradient(
-                            colors: [const Color(0xFF4CAF50), AppColors.accent],
+                            colors: [
+                              AppColors.accent.withValues(alpha: 0.45),
+                              AppColors.accent,
+                            ],
                           ),
                         ),
                       ),
@@ -896,30 +606,6 @@ class _AvatarWidget extends StatelessWidget {
                 ),
               ),
             ),
-    );
-  }
-}
-
-class _KarmaBadge extends StatelessWidget {
-  final String level;
-  final Color color;
-  const _KarmaBadge({required this.level, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 64, height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.12),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
-      ),
-      child: Center(
-        child: Text(
-          level[0],
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color),
-        ),
-      ),
     );
   }
 }

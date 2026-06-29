@@ -24,12 +24,16 @@ const kTaskSelect = '''
 /// Resumo do card "Hoje" na home.
 class HomeTaskSummary {
   final List<Task> todayTasks;
-  final Task? overdueTask;
+  final int overdueCount;
 
-  const HomeTaskSummary({required this.todayTasks, this.overdueTask});
+  const HomeTaskSummary({
+    required this.todayTasks,
+    required this.overdueCount,
+  });
 
   int get todayTotal => todayTasks.length;
   int get todayDone => todayTasks.where((t) => t.done).length;
+  int get todayPending => todayTotal - todayDone;
 }
 
 /// Contagens do dashboard de filtros.
@@ -187,6 +191,7 @@ class TaskRepository {
         .from('tasks')
         .update({'data_vencimento': isoDate})
         .eq('id', id);
+    TaskSync.instance.notifyChanged();
   }
 
   Future<void> deleteTask(String id) async {
@@ -208,20 +213,16 @@ class TaskRepository {
           .eq('data_vencimento', todayStr),
       supabase
           .from('tasks')
-          .select(kTaskSelect)
+          .select('id')
           .eq('user_id', userId)
           .eq('concluida', false)
-          .lt('data_vencimento', todayStr)
-          .order('data_vencimento', ascending: true)
-          .limit(1),
+          .lt('data_vencimento', todayStr),
     ]);
 
     final todayTasks = _mapList(results[0]);
-    final overdueRows = results[1] as List;
-    final overdueTask =
-        overdueRows.isEmpty ? null : Task.fromJson(overdueRows.first as Map<String, dynamic>);
+    final overdueCount = (results[1] as List).length;
 
-    return HomeTaskSummary(todayTasks: todayTasks, overdueTask: overdueTask);
+    return HomeTaskSummary(todayTasks: todayTasks, overdueCount: overdueCount);
   }
 
   /// Linhas `{project_id}` de tarefas pendentes — para contagem por projeto/inbox.

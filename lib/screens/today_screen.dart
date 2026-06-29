@@ -17,8 +17,10 @@ import '../services/notification_service.dart';
 import '../services/task_repository.dart';
 import '../services/task_sync.dart';
 import '../services/supabase_client.dart';
+import '../services/label_repository.dart';
 import 'task_detail_sheet.dart';
 import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 const _kShowCompletedKey = 'today_show_completed';
@@ -41,9 +43,11 @@ class TodayScreen extends StatefulWidget {
 }
 
 class TodayScreenState extends State<TodayScreen> {
+  static const _labelRepo = LabelRepository();
   final _repo = const TaskRepository();
   List<Task> _tasks = [];
   List<Task> _completedTasks = [];
+  List<TaskLabel> _allLabels = [];
   bool _loading = true;
   String? _error;
   late final ScrollController _scrollCtrl;
@@ -98,11 +102,13 @@ class TodayScreenState extends State<TodayScreen> {
       final results = await Future.wait([
         repo.fetchTodayTasks(),
         repo.fetchCompletedTodayTasks(),
+        _labelRepo.fetchLabels(),
       ]);
       if (mounted) {
         setState(() {
-          _tasks = results[0];
-          _completedTasks = results[1];
+          _tasks = results[0] as List<Task>;
+          _completedTasks = results[1] as List<Task>;
+          _allLabels = results[2] as List<TaskLabel>;
           _loading = false;
         });
       }
@@ -391,30 +397,17 @@ class TodayScreenState extends State<TodayScreen> {
       slivers: [
         // ── Header ──────────────────────────────────────────────────────────
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.sm,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Hoje', style: Theme.of(context).textTheme.headlineLarge),
-                      const SizedBox(height: 2),
-                      Text(dateLabel, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  key: _optionsKey,
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontal, color: AppColors.textSecondary),
-                  onPressed: _showOptionsMenu,
-                  tooltip: 'Opções',
-                ),
-              ],
+          child: ScreenHeader(
+            title: 'Hoje',
+            subtitle: dateLabel,
+            trailing: IconButton(
+              key: _optionsKey,
+              icon: HugeIcon(
+                icon: HugeIcons.strokeRoundedMoreHorizontal,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: _showOptionsMenu,
+              tooltip: 'Opções',
             ),
           ),
         ),
@@ -455,6 +448,7 @@ class TodayScreenState extends State<TodayScreen> {
                     onRefresh: _loadTasks,
                     child: TaskTile(
                       task: task,
+                      allLabels: _allLabels,
                       onSubtaskToggled: (si) => _toggleSubtask(idx, si),
                       onCompleted: () => _toggleDone(idx),
                       onTap: () => showTaskDetailSheet(context, task, onSaved: _loadTasks),
@@ -509,6 +503,7 @@ class TodayScreenState extends State<TodayScreen> {
                     onRefresh: _loadTasks,
                     child: TaskTile(
                       task: task,
+                      allLabels: _allLabels,
                       onSubtaskToggled: (si) => _toggleSubtask(idx, si),
                       onCompleted: () => _toggleDone(idx),
                       onTap: () => showTaskDetailSheet(context, task, onSaved: _loadTasks),
@@ -557,6 +552,7 @@ class TodayScreenState extends State<TodayScreen> {
                     onRefresh: _loadTasks,
                     child: TaskTile(
                       task: _completedTasks[i],
+                      allLabels: _allLabels,
                       onSubtaskToggled: (_) {},
                       onCompleted: () => _toggleUndone(i),
                       onTap: () => showTaskDetailSheet(context, _completedTasks[i], onSaved: _loadTasks),

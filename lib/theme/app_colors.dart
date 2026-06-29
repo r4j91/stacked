@@ -29,7 +29,7 @@ class AppColors {
   // ver auditoria. Conceitos mantidos separados mesmo quando o hex
   // coincide, conforme escopo de uso original.
   static const success = Color(0xFF22C55E); // concluído / hoje em dia
-  static const overdue = Color(0xFFEF4444); // tarefa atrasada (badge/texto)
+  static const overdue = priorityHigh; // alinhado ao design system (#EF5A5F)
 
   // Escala própria de prioridade de subtarefa — paralela a priorityHigh/
   // Medium/Low, valores diferentes por design original (task_tile.dart).

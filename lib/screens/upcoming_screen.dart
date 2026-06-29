@@ -5,6 +5,7 @@ import '../services/haptic_service.dart';
 import '../services/supabase_client.dart';
 import '../services/task_repository.dart';
 import '../services/task_sync.dart';
+import '../services/label_repository.dart';
 import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -16,6 +17,7 @@ import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
 import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 // ── Calendar mode ─────────────────────────────────────────────────────────────
@@ -37,10 +39,12 @@ class UpcomingScreen extends StatefulWidget {
 
 class _UpcomingScreenState extends State<UpcomingScreen>
     with SingleTickerProviderStateMixin {
+  static const _labelRepo = LabelRepository();
   final _repo = const TaskRepository();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Task> _tasks = [];
+  List<TaskLabel> _allLabels = [];
   // Cached per-day map — rebuilt only when _tasks changes, not on every build.
   Map<DateTime, List<Task>> _tasksByDay = {};
   bool _loading = true;
@@ -83,6 +87,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
 
   Future<void> _loadTasks() async {
     try {
+      final labelsFuture = _labelRepo.fetchLabels();
       final rows = await supabase
           .from('tasks')
           .select('''
@@ -96,6 +101,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           .not('data_vencimento', 'is', null)
           .order('data_vencimento', ascending: true)
           .order('ordem', ascending: true);
+      final allLabels = await labelsFuture;
 
       final tasks = (rows as List)
           .map((r) => TaskRepository.mapRow(r as Map<String, dynamic>))
@@ -106,7 +112,14 @@ class _UpcomingScreenState extends State<UpcomingScreen>
         final d = DateTime.utc(t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
         byDay.putIfAbsent(d, () => []).add(t);
       }
-      if (mounted) setState(() { _tasks = tasks; _tasksByDay = byDay; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _tasksByDay = byDay;
+          _allLabels = allLabels;
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -249,21 +262,9 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       slivers: [
         // ── Mode toggle bar ──────────────────────────────────────────────────
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.md + 2, AppSpacing.lg, AppSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Em breve',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                ),
-                _ModeToggle(current: _mode, onChanged: _setMode),
-              ],
-            ),
+          child: ScreenHeader(
+            title: 'Em breve',
+            trailing: _ModeToggle(current: _mode, onChanged: _setMode),
           ),
         ),
 
@@ -370,6 +371,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
                     onRefresh: _loadTasks,
                     child: TaskTile(
                       task: t,
+                      allLabels: _allLabels,
                       onSubtaskToggled: (_) {},
                       onCompleted: () async {
                         await supabase

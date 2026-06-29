@@ -9,11 +9,14 @@ import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/app_sheet.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/pressable.dart';
+import '../widgets/skeleton_loader.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
 import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/screen_header.dart';
 import '../utils/project_icons.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -44,10 +47,10 @@ class FiltersScreen extends StatefulWidget {
   const FiltersScreen({super.key});
 
   @override
-  State<FiltersScreen> createState() => _FiltersScreenState();
+  FiltersScreenState createState() => FiltersScreenState();
 }
 
-class _FiltersScreenState extends State<FiltersScreen> {
+class FiltersScreenState extends State<FiltersScreen> {
   static const _repo = TaskRepository();
   static const _projectRepo = ProjectRepository();
   // Dashboard stats
@@ -145,6 +148,17 @@ class _FiltersScreenState extends State<FiltersScreen> {
         _FilterView.completed => TaskFilterKind.completedToday,
         _FilterView.dashboard => null,
       };
+
+  /// Abre um filtro específico (usado pela sidebar desktop).
+  void openFilter(TaskFilterKind kind) {
+    final view = switch (kind) {
+      TaskFilterKind.overdue => _FilterView.overdue,
+      TaskFilterKind.today => _FilterView.today,
+      TaskFilterKind.week => _FilterView.week,
+      TaskFilterKind.completedToday => _FilterView.completed,
+    };
+    _loadFilter(view);
+  }
 
   Future<void> _loadFilter(_FilterView view) async {
     setState(() {
@@ -249,23 +263,16 @@ class _FiltersScreenState extends State<FiltersScreen> {
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
-            child: Text(
-              'Filtros',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-          ),
+          child: ScreenHeader(title: 'Filtros'),
         ),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
 
         // ── Stat grid ───────────────────────────────────────────────────────
         SliverToBoxAdapter(
-          child: _loading
-              ? SizedBox(
+          child:           _loading
+              ? const SizedBox(
                   height: 160,
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.accent),
-                  ),
+                  child: SkeletonLoader(itemCount: 2),
                 )
               : Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -302,7 +309,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
                               hugeIcon: HugeIcons.strokeRoundedCalendar03,
                               label: 'Próximos 7 dias',
                               count: _weekCount,
-                              color: AppColors.tagPurple,
+                              color: AppColors.accent,
                               onTap: () => _loadFilter(_FilterView.week),
                             ),
                           ),
@@ -312,7 +319,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
                               hugeIcon: HugeIcons.strokeRoundedTaskDone01,
                               label: 'Concluídas hoje',
                               count: _completedCount,
-                              color: AppColors.tagGreen,
+                              color: AppColors.accent,
                               onTap: () => _loadFilter(_FilterView.completed),
                             ),
                           ),
@@ -336,12 +343,10 @@ class _FiltersScreenState extends State<FiltersScreen> {
           ),
           if (_projects.isEmpty)
             SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Text(
-                  'Nenhum projeto criado ainda.',
-                  style: TextStyle(fontSize: 14, color: AppColors.textTertiary),
-                ),
+              child: EmptyState(
+                hugeIcon: HugeIcons.strokeRoundedFolderOpen,
+                title: 'Nenhum projeto',
+                subtitle: 'Crie um projeto para ver o progresso aqui',
               ),
             )
           else
@@ -371,8 +376,8 @@ class _FiltersScreenState extends State<FiltersScreen> {
     final color = switch (_view) {
       _FilterView.overdue => AppColors.priorityHigh,
       _FilterView.today => AppColors.accent,
-      _FilterView.week => AppColors.tagPurple,
-      _FilterView.completed => AppColors.tagGreen,
+      _FilterView.week => AppColors.accent,
+      _FilterView.completed => AppColors.accent,
       _FilterView.dashboard => AppColors.accent,
     };
     final bottomInset = AppLayout.bottomListInset(context);
@@ -424,29 +429,15 @@ class _FiltersScreenState extends State<FiltersScreen> {
         const SliverToBoxAdapter(child: SizedBox(height: 4)),
 
         if (_filterLoading)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 60),
-              child: Center(
-                  child: CircularProgressIndicator(color: AppColors.accent)),
-            ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 280, child: SkeletonLoader(itemCount: 4)),
           )
         else if (_filterTasks.isEmpty)
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60),
-              child: Column(
-                children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                      size: 44, color: AppColors.textTertiary),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Nenhuma tarefa aqui',
-                    style: TextStyle(
-                        fontSize: 15, color: AppColors.textTertiary),
-                  ),
-                ],
-              ),
+            child: EmptyState(
+              hugeIcon: HugeIcons.strokeRoundedCheckmarkCircle02,
+              title: 'Nenhuma tarefa aqui',
+              subtitle: 'Tudo em dia nesta categoria',
             ),
           )
         else

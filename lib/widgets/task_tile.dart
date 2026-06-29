@@ -9,6 +9,7 @@ import '../services/supabase_client.dart';
 import '../services/task_sync.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_motion.dart';
 import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
 // ADICIONADO_ETAPA3B
@@ -176,6 +177,14 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
     _animating = true;
 
     HapticService().taskCompleted();
+
+    if (!AppMotion.enabled(context)) {
+      if (mounted) setState(() => _strikethrough = true);
+      _animating = false;
+      widget.onDismissed?.call();
+      return;
+    }
+
     _completionCtrl.forward(from: 0);
     await Future.delayed(const Duration(milliseconds: 80));
     if (!mounted) { _animating = false; return; }
@@ -199,12 +208,21 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
   void _toggleExpand() {
     _ensureExpandController();
     HapticService().selectionClick();
+    final instant = !AppMotion.enabled(context);
     setState(() {
       _expanded = !_expanded;
       if (_expanded) {
-        _expandCtrl!.forward();
+        if (instant) {
+          _expandCtrl!.value = 1.0;
+        } else {
+          _expandCtrl!.forward();
+        }
       } else {
-        _expandCtrl!.reverse();
+        if (instant) {
+          _expandCtrl!.value = 0.0;
+        } else {
+          _expandCtrl!.reverse();
+        }
       }
     });
   }
@@ -239,14 +257,9 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md + 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                      alpha: isDark ? 0.22 : 0.07),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: isDark ? 0.06 : 0.08),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,8 +401,13 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _animating ? null : widget.onCompleted,
-              onTapDown: (_) {},
-              child: Padding(
+              child: Semantics(
+                button: true,
+                label: task.done
+                    ? 'Marcar tarefa como pendente'
+                    : 'Marcar tarefa como concluída',
+                enabled: !_animating,
+                child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: AnimatedBuilder(
                   animation: _dotScale,
@@ -398,6 +416,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                   child: PriorityDot(
                       priority: task.priority, done: task.done),
                 ),
+              ),
               ),
             ),
             Expanded(
