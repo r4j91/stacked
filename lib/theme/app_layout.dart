@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/bottom_nav_scope.dart';
 
 /// Layout helpers for consistent screen insets (nav pill, FAB, home indicator).
 class AppLayout {
@@ -34,7 +35,11 @@ class AppLayout {
   }
 
   /// Bottom padding for scroll views — keeps last items above pill + FAB hit area.
+  /// Rotas sem navbar (detalhe de projeto, busca, etc.) usam só safe area.
   static double bottomListInset(BuildContext context) {
+    if (!BottomNavScope.isVisible(context)) {
+      return MediaQuery.paddingOf(context).bottom + 16;
+    }
     return totalBottomChromeHeight(context) + 8;
   }
 }

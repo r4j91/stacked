@@ -7,6 +7,7 @@ import '../screens/task_detail_sheet.dart';
 import '../screens/search_screen.dart';
 import '../services/haptic_service.dart';
 import '../theme/app_layout.dart';
+import 'bottom_nav_scope.dart';
 import '../theme/app_colors.dart';
 import '../widgets/new_project_sheet.dart';
 import 'desktop_shell/desktop_app_shell.dart';
@@ -110,7 +111,13 @@ class ResponsiveLayout extends StatelessWidget {
       return Scaffold(
         backgroundColor: AppColors.background,
         extendBody: true,
-        body: SafeArea(bottom: false, child: adaptedBody),
+        body: SafeArea(
+          bottom: false,
+          child: BottomNavScope(
+            visible: true,
+            child: adaptedBody,
+          ),
+        ),
         bottomNavigationBar: Material(
           color: Colors.transparent,
           child: SizedBox(

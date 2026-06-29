@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_layout.dart';
+import 'bottom_nav_scope.dart';
 
 /// Scrim gradient on the bottom edge of scrollable content so items dissolving
 /// under the floating nav pill + FAB stay legible and don't bleed through
@@ -24,6 +25,7 @@ class ScrollFadeOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (MediaQuery.of(context).size.width >= 1024) return child;
+    if (!BottomNavScope.isVisible(context)) return child;
 
     final bg = AppColors.background;
     final height = fadeHeight ?? AppLayout.totalBottomChromeHeight(context) + 28;
