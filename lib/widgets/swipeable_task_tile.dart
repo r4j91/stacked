@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/task.dart';
 import '../services/haptic_service.dart';
+import '../services/task_repository.dart';
 import '../theme/app_colors.dart';
 import 'package:hugeicons/hugeicons.dart';
 // import 'task_context_sheet.dart'; // replaced by overlay menu below
@@ -30,10 +31,8 @@ class SwipeableTaskTile extends StatefulWidget {
 }
 
 class _SwipeableTaskTileState extends State<SwipeableTaskTile>
-    with TickerProviderStateMixin { // was SingleTickerProviderStateMixin (needed 2nd controller for elevation)
+    with SingleTickerProviderStateMixin {
   late final SlidableController _slidableCtrl;
-  late final AnimationController _elevCtrl;
-  late final Animation<double> _elevAnim;
 
   static const _startExtent = 0.28;
   static const _endExtent = 0.5;
@@ -46,18 +45,12 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
     super.initState();
     _slidableCtrl = SlidableController(this);
     _slidableCtrl.animation.addListener(_onRatioChanged);
-    _elevCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    );
-    _elevAnim = CurvedAnimation(parent: _elevCtrl, curve: Curves.easeOutCubic);
   }
 
   @override
   void dispose() {
     _slidableCtrl.animation.removeListener(_onRatioChanged);
     _slidableCtrl.dispose();
-    _elevCtrl.dispose();
     super.dispose();
   }
 
@@ -92,8 +85,32 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
     );
   }
 
+  Future<void> _postpone(BuildContext context) async {
+    HapticService().dateConfirmed();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final current = widget.task.dueDate;
+    final DateTime next;
+    if (current == null) {
+      next = today.add(const Duration(days: 1));
+    } else {
+      final due = DateTime(current.year, current.month, current.day);
+      next = !due.isAfter(today)
+          ? today.add(const Duration(days: 1))
+          : due.add(const Duration(days: 1));
+    }
+    final iso =
+        '${next.year}-${next.month.toString().padLeft(2, '0')}-${next.day.toString().padLeft(2, '0')}';
+    try {
+      await const TaskRepository().updateTaskDate(widget.task.id, iso);
+      widget.onRefresh?.call();
+      if (!context.mounted) return;
+      _slidableCtrl.close();
+      _showSnack(context, '"${widget.task.title}" adiada para amanhã');
+    } catch (_) {}
+  }
+
   Future<void> _openContextMenu(BuildContext context, Offset tapPosition) async {
-    _elevCtrl.forward();
     // OLD: showTaskContextSheet (bottom sheet) — commented for revert:
     // showTaskContextSheet(context, task: widget.task, onEdit: widget.onEdit,
     //   onComplete: widget.onCompleted, onDelete: widget.onDeleteRequested,
@@ -107,7 +124,6 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
       onDelete: widget.onDeleteRequested,
       onRefresh: widget.onRefresh,
     );
-    if (mounted) _elevCtrl.reverse();
   }
 
   @override
@@ -122,7 +138,10 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
           motion: const DrawerMotion(),
           extentRatio: _startExtent,
           children: [
-            CustomSlidableAction(
+            Semantics(
+              button: true,
+              label: 'Concluir tarefa',
+              child: CustomSlidableAction(
               onPressed: (_) {
                 HapticService().taskCompleted();
                 widget.onCompleted?.call();
@@ -132,16 +151,19 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
               foregroundColor: Colors.white,
               borderRadius:
                   const BorderRadius.horizontal(left: Radius.circular(12)),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 22),
-                  SizedBox(height: 4),
-                  Text('Concluir',
-                      style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
+              child: const ExcludeSemantics(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 22),
+                    SizedBox(height: 4),
+                    Text('Concluir',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
+            ),
             ),
           ],
         ),
@@ -149,25 +171,31 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
           motion: const DrawerMotion(),
           extentRatio: _endExtent,
           children: [
-            CustomSlidableAction(
-              onPressed: (_) {
-                HapticService().dateConfirmed();
-                _showSnack(context, '"${widget.task.title}" adiada');
-              },
+            Semantics(
+              button: true,
+              label: 'Adiar tarefa para amanhã',
+              child: CustomSlidableAction(
+              onPressed: (_) => _postpone(context),
               backgroundColor: AppColors.priorityMedium,
               foregroundColor: Colors.white,
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 22),
-                  SizedBox(height: 4),
-                  Text('Adiar',
-                      style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
+              child: const ExcludeSemantics(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 22),
+                    SizedBox(height: 4),
+                    Text('Adiar',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
             ),
-            CustomSlidableAction(
+            ),
+            Semantics(
+              button: true,
+              label: 'Excluir tarefa',
+              child: CustomSlidableAction(
               onPressed: (_) {
                 HapticService().taskDeleted();
                 widget.onDeleteRequested?.call();
@@ -176,44 +204,23 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
               foregroundColor: Colors.white,
               borderRadius:
                   const BorderRadius.horizontal(right: Radius.circular(12)),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedDelete01, size: 22),
-                  SizedBox(height: 4),
-                  Text('Excluir',
-                      style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
+              child: const ExcludeSemantics(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HugeIcon(icon: HugeIcons.strokeRoundedDelete01, size: 22),
+                    SizedBox(height: 4),
+                    Text('Excluir',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
+            ),
             ),
           ],
         ),
-        child: AnimatedBuilder(
-          animation: _elevAnim,
-          builder: (ctx, child) {
-            final t = _elevAnim.value;
-            return Transform.translate(
-              offset: Offset(0, -6 * t),
-              child: Container(
-                decoration: t > 0.01
-                    ? BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.20 * t),
-                            blurRadius: 16,
-                            spreadRadius: -2,
-                            offset: Offset(0, 6 * t),
-                          ),
-                        ],
-                      )
-                    : null,
-                child: child,
-              ),
-            );
-          },
-          child: widget.child,
-        ),
+        child: widget.child,
       ),
     );
   }

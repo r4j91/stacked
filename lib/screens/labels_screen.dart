@@ -317,7 +317,6 @@ class _ColorGrid extends StatelessWidget {
               shape: BoxShape.circle,
               color: color,
               border: isSelected ? Border.all(color: Colors.white, width: 2.5) : null,
-              boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 6)] : null,
             ),
             child: isSelected ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 14, color: Colors.white) : null,
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import '../theme/app_motion.dart';
 
 /// Wraps any widget with a 0.97 press-scale + spring-release feedback.
 /// Use instead of plain GestureDetector/InkWell on cards and interactive tiles.
@@ -47,10 +48,15 @@ class _PressableState extends State<Pressable>
 
   void _press() {
     if (!widget.enabled) return;
+    if (!AppMotion.enabled(context)) return;
     _ctrl.forward();
   }
 
   void _release() {
+    if (!AppMotion.enabled(context)) {
+      _ctrl.value = 0;
+      return;
+    }
     _ctrl.animateWith(
       SpringSimulation(_spring, _ctrl.value, 0.0, -6.0),
     );
@@ -132,6 +138,7 @@ class _PressableCardState extends State<PressableCard>
   }
 
   void _press() {
+    if (!AppMotion.enabled(context)) return;
     _pressed = true;
     _down.forward();
   }
@@ -139,6 +146,11 @@ class _PressableCardState extends State<PressableCard>
   void _release({bool callTap = false}) {
     if (!_pressed) return;
     _pressed = false;
+    if (!AppMotion.enabled(context)) {
+      _down.value = 0;
+      if (callTap) widget.onTap?.call();
+      return;
+    }
     _down.animateBack(0,
       duration: const Duration(milliseconds: 200),
       curve: Curves.elasticOut,
@@ -149,6 +161,10 @@ class _PressableCardState extends State<PressableCard>
   void _cancel() {
     if (!_pressed) return;
     _pressed = false;
+    if (!AppMotion.enabled(context)) {
+      _down.value = 0;
+      return;
+    }
     _down.animateBack(0,
       duration: const Duration(milliseconds: 200),
       curve: Curves.elasticOut,

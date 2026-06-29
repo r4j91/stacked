@@ -597,9 +597,6 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
                       color: isSelected ? Colors.white : Colors.transparent,
                       width: 2.5,
                     ),
-                    boxShadow: isSelected
-                        ? [BoxShadow(color: c.withValues(alpha: 0.6), blurRadius: 8)]
-                        : [],
                   ),
                   child: isSelected
                       ? const HugeIcon(

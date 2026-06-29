@@ -11,13 +11,13 @@ import 'theme/app_colors.dart';
 import 'screens/auth_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/upcoming_screen.dart';
-// HOME-V2-OLD: import 'screens/browse_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/filters_screen.dart';
 import 'screens/inbox_screen.dart';
 import 'services/auth_service.dart';
 import 'services/haptic_service.dart';
 import 'services/notification_service.dart';
+import 'services/task_repository.dart';
 import 'services/task_sync.dart';
 import 'widgets/responsive_layout.dart';
 
@@ -185,6 +185,7 @@ class _RootScreenState extends State<RootScreen> {
   final _homeKey = GlobalKey<HomeScreenState>();
   final _todayKey = GlobalKey<TodayScreenState>();
   final _inboxKey = GlobalKey<InboxScreenState>();
+  final _filtersKey = GlobalKey<FiltersScreenState>();
 
   // Lazy — monta aba só na primeira visita; evita rajada de queries no boot.
   final List<Widget?> _screens = List<Widget?>.filled(5, null);
@@ -192,11 +193,15 @@ class _RootScreenState extends State<RootScreen> {
   Widget _lazyScreen(int i) {
     if (_screens[i] != null) return _screens[i]!;
     _screens[i] = switch (i) {
-      0 => HomeScreen(key: _homeKey, onNavigateToTab: _onTabSelected),
+      0 => HomeScreen(
+        key: _homeKey,
+        onNavigateToTab: _onTabSelected,
+        onNavigateToFilter: _openFilter,
+      ),
       1 => InboxScreen(key: _inboxKey),
       2 => TodayScreen(key: _todayKey),
       3 => const UpcomingScreen(),
-      4 => const FiltersScreen(),
+      4 => FiltersScreen(key: _filtersKey),
       _ => const SizedBox.shrink(),
     };
     return _screens[i]!;
@@ -243,6 +248,24 @@ class _RootScreenState extends State<RootScreen> {
     _homeKey.currentState?.reload();
   }
 
+  void _openDesktopFilter(int filterIndex) {
+    const kinds = [
+      TaskFilterKind.overdue,
+      TaskFilterKind.today,
+      TaskFilterKind.week,
+      TaskFilterKind.completedToday,
+    ];
+    if (filterIndex < 0 || filterIndex >= kinds.length) return;
+    _openFilter(kinds[filterIndex]);
+  }
+
+  void _openFilter(TaskFilterKind kind) {
+    _onTabSelected(4);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _filtersKey.currentState?.openFilter(kind);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return ResponsiveLayout(
@@ -257,6 +280,7 @@ class _RootScreenState extends State<RootScreen> {
       ),
       onTaskCreated: _onTaskCreated,
       onProjectCreated: _onProjectCreated,
+      onDesktopFilterTap: _openDesktopFilter,
     );
   }
 }

@@ -50,12 +50,18 @@ class _NewProjectSheetFormState extends State<NewProjectSheetForm> {
 
   late final TextEditingController _nameCtrl;
   late Color _selectedColor;
+  String? _nameError;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
     _selectedColor = _colorPalette.first;
+    _nameCtrl.addListener(() {
+      if (_nameError != null && _nameCtrl.text.trim().isNotEmpty) {
+        setState(() => _nameError = null);
+      }
+    });
   }
 
   @override
@@ -64,9 +70,14 @@ class _NewProjectSheetFormState extends State<NewProjectSheetForm> {
     super.dispose();
   }
 
-  InputDecoration get _nameDecoration => InputDecoration(
-        hintText: 'Nome do projeto',
+  bool get _hasUnsavedInput => _nameCtrl.text.trim().isNotEmpty;
+
+  InputDecoration _nameDecoration() => InputDecoration(
+        labelText: 'Nome do projeto',
+        labelStyle: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        hintText: 'Ex.: Reforma da cozinha',
         hintStyle: TextStyle(color: AppColors.textTertiary),
+        errorText: _nameError,
         filled: true,
         fillColor: AppColors.surfaceVariant,
         border: OutlineInputBorder(
@@ -84,12 +95,63 @@ class _NewProjectSheetFormState extends State<NewProjectSheetForm> {
             width: 1,
           ),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: AppColors.priorityHigh, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: AppColors.priorityHigh, width: 1.5),
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       );
 
+  Future<void> _confirmDiscard() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Descartar projeto?',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'O nome digitado será perdido.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Continuar editando',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Descartar',
+              style: TextStyle(
+                color: AppColors.priorityHigh,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (leave == true && mounted) Navigator.pop(context);
+  }
+
   Future<void> _submit() async {
     final name = _nameCtrl.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      setState(() => _nameError = 'Digite um nome para o projeto');
+      return;
+    }
     HapticService().saved();
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -109,78 +171,88 @@ class _NewProjectSheetFormState extends State<NewProjectSheetForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        0,
-        AppSpacing.lg,
-        AppSpacing.xl,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _nameCtrl,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-            cursorColor: AppColors.accent,
-            decoration: _nameDecoration,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Cor',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
+    return PopScope(
+      canPop: !_hasUnsavedInput,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _hasUnsavedInput) _confirmDiscard();
+      },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _nameCtrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              cursorColor: AppColors.accent,
+              decoration: _nameDecoration(),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm + 2),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _colorPalette.map((c) {
-              final selected = c == _selectedColor;
-              return Pressable(
-                onTap: () {
-                  HapticService().selectionClick();
-                  setState(() => _selectedColor = c);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: c,
-                    border: selected
-                        ? Border.all(color: Colors.white, width: 2.5)
-                        : null,
-                    boxShadow: selected
-                        ? [BoxShadow(color: c.withValues(alpha: 0.5), blurRadius: 8)]
-                        : null,
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Cor',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm + 2),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _colorPalette.map((c) {
+                final selected = c == _selectedColor;
+                final hex =
+                    '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+                return Semantics(
+                  button: true,
+                  selected: selected,
+                  label: 'Cor do projeto $hex',
+                  child: Pressable(
+                    onTap: () {
+                      HapticService().selectionClick();
+                      setState(() => _selectedColor = c);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: c,
+                        border: selected
+                            ? Border.all(color: Colors.white, width: 2.5)
+                            : null,
+                      ),
+                      child: selected
+                          ? const HugeIcon(
+                              icon: HugeIcons.strokeRoundedTick01,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
                   ),
-                  child: selected
-                      ? const HugeIcon(
-                          icon: HugeIcons.strokeRoundedTick01,
-                          size: 16,
-                          color: Colors.white,
-                        )
-                      : null,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(
-            label: 'Criar projeto',
-            onPressed: _submit,
-          ),
-        ],
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            AppButton(
+              label: 'Criar projeto',
+              onPressed: _submit,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,18 +2,22 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/app_sheet.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-class NotificationsSettingsScreen extends StatefulWidget {
-  const NotificationsSettingsScreen({super.key});
+/// Shared body for notification preferences — used in sheet and full screen.
+class NotificationsSettingsContent extends StatefulWidget {
+  const NotificationsSettingsContent({super.key});
 
   @override
-  State<NotificationsSettingsScreen> createState() =>
-      _NotificationsSettingsScreenState();
+  State<NotificationsSettingsContent> createState() =>
+      _NotificationsSettingsContentState();
 }
 
-class _NotificationsSettingsScreenState
-    extends State<NotificationsSettingsScreen> {
+class _NotificationsSettingsContentState
+    extends State<NotificationsSettingsContent> {
   final _svc = NotificationService();
 
   bool _enabled = false;
@@ -132,6 +136,101 @@ class _NotificationsSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: AppColors.accent,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Section(children: [
+            _Row(
+              hugeIcon: HugeIcons.strokeRoundedNotification01,
+              label: 'Ativar notificações',
+              trailing: Switch.adaptive(
+                value: _enabled,
+                onChanged: _toggleEnabled,
+                activeThumbColor: AppColors.accent,
+              ),
+            ),
+          ]),
+          if (_enabled) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _Section(children: [
+              _Row(
+                hugeIcon: HugeIcons.strokeRoundedClock01,
+                label: 'Horário padrão',
+                trailing: GestureDetector(
+                  onTap: _pickTime,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Text(
+                      '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+            const SizedBox(height: AppSpacing.md),
+            _Section(children: [
+              _Row(
+                hugeIcon: HugeIcons.strokeRoundedSun01,
+                label: 'Resumo diário',
+                sublabel: 'Resumo das tarefas do dia às 8h da manhã',
+                trailing: Switch.adaptive(
+                  value: _dailySummary,
+                  onChanged: (v) async {
+                    await _svc.setDailySummaryEnabled(v);
+                    if (mounted) setState(() => _dailySummary = v);
+                  },
+                  activeThumbColor: AppColors.accent,
+                ),
+              ),
+            ]),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'As notificações são agendadas automaticamente quando você salva uma tarefa com data de vencimento.',
+              style: TextStyle(
+                  color: AppColors.textTertiary,
+                  fontSize: 13,
+                  height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class NotificationsSettingsScreen extends StatelessWidget {
+  const NotificationsSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -140,90 +239,16 @@ class _NotificationsSettingsScreenState
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.textPrimary,
-        title: Text(
-          'Notificações',
-          style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary),
-        ),
+        title: Text('Notificações', style: appSheetTitleStyle(context)),
         leading: IconButton(
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, size: 18),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: _loading
-          ? Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.accent, strokeWidth: 2))
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _Section(children: [
-                  _Row(
-                    hugeIcon: HugeIcons.strokeRoundedNotification01,
-                    label: 'Ativar notificações',
-                    trailing: Switch.adaptive(
-                      value: _enabled,
-                      onChanged: _toggleEnabled,
-                      activeThumbColor: AppColors.accent,
-                    ),
-                  ),
-                ]),
-                if (_enabled) ...[
-                  const SizedBox(height: 20),
-                  _Section(children: [
-                    _Row(
-                      hugeIcon: HugeIcons.strokeRoundedClock01,
-                      label: 'Horário padrão',
-                      trailing: GestureDetector(
-                        onTap: _pickTime,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                                color: AppColors.accent,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 16),
-                  _Section(children: [
-                    _Row(
-                      hugeIcon: HugeIcons.strokeRoundedSun01,
-                      label: 'Resumo diário',
-                      sublabel: 'Resumo das tarefas do dia às 8h da manhã',
-                      trailing: Switch.adaptive(
-                        value: _dailySummary,
-                        onChanged: (v) async {
-                          await _svc.setDailySummaryEnabled(v);
-                          if (mounted) setState(() => _dailySummary = v);
-                        },
-                        activeThumbColor: AppColors.accent,
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 24),
-                  Text(
-                    'As notificações são agendadas automaticamente quando você salva uma tarefa com data de vencimento.',
-                    style: TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 13,
-                        height: 1.5),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
-            ),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xl),
+        child: NotificationsSettingsContent(),
+      ),
     );
   }
 }
@@ -236,8 +261,8 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(children: children),
     );
@@ -258,10 +283,11 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.md - 2),
       child: Row(children: [
         HugeIcon(icon: hugeIcon, color: AppColors.textSecondary, size: 20),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,6 +7,9 @@ import '../../screens/profile_screen.dart';
 import '../../services/auth_service.dart';
 import '../../services/supabase_client.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../app_sheet.dart';
 import '../pressable.dart';
 
 class SettingsSheet extends StatelessWidget {
@@ -31,7 +34,8 @@ class SettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final view = View.of(context);
-    final bottomClearance = view.padding.bottom / view.devicePixelRatio + 24.0;
+    final bottomClearance = view.padding.bottom / view.devicePixelRatio + AppSpacing.lg;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.68,
       minChildSize: 0.4,
@@ -40,92 +44,107 @@ class SettingsSheet extends StatelessWidget {
       snapSizes: const [0.68],
       builder: (_, ctrl) => GestureDetector(
         onTap: () {},
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: ctrl,
-            padding: EdgeInsets.fromLTRB(20, 0, 20, bottomClearance),
+        child: Material(
+          color: AppColors.surface,
+          borderRadius: AppRadius.sheetTop,
+          child: Column(
             children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.textTertiary.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
+              const AppSheetHandle(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Configurações', style: appSheetTitleStyle(context)),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: ctrl,
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    0,
+                    AppSpacing.lg,
+                    bottomClearance,
                   ),
+                  children: [
+                    _ProfileCard(onTap: () {
+                      Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
+                      );
+                    }),
+                    const SizedBox(height: AppSpacing.lg),
+                    _settingSection('Preferências'),
+                    _settingsCard([
+                      _SettingItem(
+                        hugeIcon: HugeIcons.strokeRoundedNotification01,
+                        label: 'Notificações',
+                        onTap: () {
+                          showAppSheet(
+                            context: context,
+                            title: 'Notificações',
+                            scrollable: true,
+                            child: const NotificationsSettingsContent(),
+                          );
+                        },
+                      ),
+                      _SettingItem(
+                        hugeIcon: HugeIcons.strokeRoundedPaintBoard,
+                        label: 'Aparência',
+                        onTap: () {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(builder: (_) => const AppearanceScreen()),
+                          );
+                        },
+                      ),
+                      _SettingItem(
+                        hugeIcon: HugeIcons.strokeRoundedGlobe02,
+                        label: 'Idioma',
+                        onTap: () {},
+                      ),
+                    ]),
+                    const SizedBox(height: AppSpacing.lg),
+                    _settingSection('Organização'),
+                    _settingsCard([
+                      _SettingItem(
+                        hugeIcon: HugeIcons.strokeRoundedTag01,
+                        label: 'Gerenciar Etiquetas',
+                        onTap: () {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(builder: (_) => const LabelsScreen()),
+                          );
+                        },
+                      ),
+                    ]),
+                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          AuthService().signOut();
+                        },
+                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedLogout01, size: 16),
+                        label: const Text('Sair da conta'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.priorityHigh,
+                          side: const BorderSide(color: AppColors.priorityHigh),
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 2),
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
                 ),
               ),
-              Text(
-                'Configurações',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 20),
-              _ProfileCard(onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
-                );
-              }),
-              const SizedBox(height: 24),
-              _settingSection('Preferências'),
-              _settingsCard([
-                _SettingItem(
-                  hugeIcon: HugeIcons.strokeRoundedNotification01,
-                  label: 'Notificações',
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => const NotificationsSettingsScreen()),
-                    );
-                  },
-                ),
-                _SettingItem(
-                  hugeIcon: HugeIcons.strokeRoundedPaintBoard,
-                  label: 'Aparência',
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => const AppearanceScreen()),
-                    );
-                  },
-                ),
-                _SettingItem(hugeIcon: HugeIcons.strokeRoundedGlobe02, label: 'Idioma', onTap: () {}),
-              ]),
-              const SizedBox(height: 20),
-              _settingSection('Organização'),
-              _settingsCard([
-                _SettingItem(
-                  hugeIcon: HugeIcons.strokeRoundedTag01,
-                  label: 'Gerenciar Etiquetas',
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => const LabelsScreen()),
-                    );
-                  },
-                ),
-              ]),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    AuthService().signOut();
-                  },
-                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedLogout01, size: 16),
-                  label: const Text('Sair da conta'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.priorityHigh,
-                    side: const BorderSide(color: AppColors.priorityHigh),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -135,7 +154,7 @@ class SettingsSheet extends StatelessWidget {
 
   static Widget _settingSection(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Text(
         label,
         style: TextStyle(
@@ -152,7 +171,7 @@ class SettingsSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
         children: [
@@ -199,10 +218,10 @@ class _ProfileCard extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppSpacing.md - 2),
         decoration: BoxDecoration(
           color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md + 2),
         ),
         child: Row(
           children: [
@@ -213,7 +232,7 @@ class _ProfileCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppColors.accent.withValues(alpha: 0.15),
                 image: hasPhoto
-                    ? DecorationImage(image: NetworkImage(avatarPath!), fit: BoxFit.cover)
+                    ? DecorationImage(image: NetworkImage(avatarPath), fit: BoxFit.cover)
                     : null,
               ),
               child: hasPhoto
@@ -229,7 +248,7 @@ class _ProfileCard extends StatelessWidget {
                       ),
                     ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,15 +286,15 @@ class _SettingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Pressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md - 2, vertical: AppSpacing.md - 1),
         child: Row(
           children: [
             HugeIcon(icon: hugeIcon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 label,

@@ -13,13 +13,13 @@ import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-Future<void> showSearchScreen(BuildContext context) {
+Future<void> showSearchScreen(BuildContext context, {String? initialQuery}) {
   return Navigator.of(context).push(
     PageRouteBuilder(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 260),
       reverseTransitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (ctx, a, b) => const SearchScreen(),
+      pageBuilder: (ctx, a, b) => SearchScreen(initialQuery: initialQuery),
       transitionsBuilder: (ctx, anim, b, child) {
         return FadeTransition(
           opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
@@ -37,7 +37,9 @@ Future<void> showSearchScreen(BuildContext context) {
 }
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -56,6 +58,11 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    final q = widget.initialQuery?.trim();
+    if (q != null && q.isNotEmpty) {
+      _ctrl.text = q;
+      _query = q.toLowerCase();
+    }
     _loadAll();
   }
 
@@ -84,7 +91,11 @@ class _SearchScreenState extends State<SearchScreen> {
           .map((r) => TaskRepository.mapRow(r as Map<String, dynamic>))
           .toList();
       if (mounted) {
-        setState(() { _allTasks = tasks; _loadingAll = false; });
+        setState(() {
+          _allTasks = tasks;
+          _loadingAll = false;
+          if (_query.isNotEmpty) _results = _filter(_query);
+        });
         _focus.requestFocus();
       }
     } catch (_) {

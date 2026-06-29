@@ -5,16 +5,17 @@ import '../services/notification_service.dart';
 import '../services/task_repository.dart';
 import '../services/task_sync.dart';
 import '../services/supabase_client.dart';
+import '../services/label_repository.dart';
 import '../screens/task_detail_sheet.dart';
 import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
 import '../widgets/anchored_select_menu.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 const _kInboxShowCompletedKey = 'inbox_show_completed';
@@ -27,9 +28,11 @@ class InboxScreen extends StatefulWidget {
 }
 
 class InboxScreenState extends State<InboxScreen> {
+  static const _labelRepo = LabelRepository();
   final _repo = TaskRepository();
   List<Task> _tasks = [];
   List<Task> _completedTasks = [];
+  List<TaskLabel> _allLabels = [];
   bool _loading = true;
   bool _showCompleted = true;
   bool _completedExpanded = false;
@@ -75,11 +78,13 @@ class InboxScreenState extends State<InboxScreen> {
     final results = await Future.wait([
       _repo.fetchInboxTasks(),
       _repo.fetchCompletedInboxTasks(),
+      _labelRepo.fetchLabels(),
     ]);
     if (mounted) {
       setState(() {
-        _tasks = results[0];
-        _completedTasks = results[1];
+        _tasks = results[0] as List<Task>;
+        _completedTasks = results[1] as List<Task>;
+        _allLabels = results[2] as List<TaskLabel>;
         _loading = false;
       });
     }
@@ -183,31 +188,18 @@ class InboxScreenState extends State<InboxScreen> {
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.sm),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Caixa de entrada', style: Theme.of(context).textTheme.headlineLarge),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${_tasks.length} ${_tasks.length == 1 ? 'tarefa' : 'tarefas'}',
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textTertiary),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  key: _optionsKey,
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontal, color: AppColors.textSecondary),
-                  onPressed: _showOptionsMenu,
-                  tooltip: 'Opções',
-                ),
-              ],
+          child: ScreenHeader(
+            title: 'Caixa de entrada',
+            subtitle:
+                '${_tasks.length} ${_tasks.length == 1 ? 'tarefa' : 'tarefas'}',
+            trailing: IconButton(
+              key: _optionsKey,
+              icon: HugeIcon(
+                icon: HugeIcons.strokeRoundedMoreHorizontal,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: _showOptionsMenu,
+              tooltip: 'Opções',
             ),
           ),
         ),
@@ -242,6 +234,7 @@ class InboxScreenState extends State<InboxScreen> {
                   onRefresh: loadTasks,
                   child: TaskTile(
                     task: _tasks[i],
+                    allLabels: _allLabels,
                     onSubtaskToggled: (si) => _toggleSubtask(i, si),
                     onCompleted: () => _toggleDone(i),
                     onTap: () => showTaskDetailSheet(context, _tasks[i], onSaved: loadTasks),
@@ -288,6 +281,7 @@ class InboxScreenState extends State<InboxScreen> {
                     onRefresh: loadTasks,
                     child: TaskTile(
                       task: _completedTasks[i],
+                      allLabels: _allLabels,
                       onSubtaskToggled: (_) {},
                       onCompleted: () => _toggleUndone(i),
                       onTap: () => showTaskDetailSheet(context, _completedTasks[i], onSaved: loadTasks),

@@ -18,6 +18,33 @@ import 'collapsible_section_header.dart';
 ///   ),
 /// );
 /// ```
+/// Drag handle shown at the top of sheets.
+class AppSheetHandle extends StatelessWidget {
+  const AppSheetHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(
+            top: AppSpacing.sm + 2, bottom: AppSpacing.xs),
+        width: 36,
+        height: 4,
+        decoration: BoxDecoration(
+          color: AppColors.textTertiary.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+
+TextStyle appSheetTitleStyle(BuildContext context) => TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w700,
+      color: AppColors.textPrimary,
+    );
+
 class AppSheet extends StatelessWidget {
   final String? title;
   final Widget child;
@@ -49,19 +76,7 @@ class AppSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Handle ────────────────────────────────────────────────────────
-          if (showHandle)
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(
-                    top: AppSpacing.sm + 2, bottom: AppSpacing.xs),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.textTertiary.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
+          if (showHandle) const AppSheetHandle(),
 
           // ── Header row (only if title or actions provided) ────────────────
           if (title != null || leadingAction != null || trailingAction != null)
@@ -76,11 +91,7 @@ class AppSheet extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title!,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: appSheetTitleStyle(context),
                       ),
                     )
                   else

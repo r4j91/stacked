@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -57,10 +58,42 @@ class _SearchButton extends StatefulWidget {
 
 class _SearchButtonState extends State<_SearchButton> {
   bool _hovered = false;
+  bool _focused = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (mounted) setState(() => _focused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    return Semantics(
+      button: true,
+      label: 'Buscar',
+      hint: 'Atalho Command K',
+      child: Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.space) {
+            widget.onTap?.call();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
@@ -74,6 +107,12 @@ class _SearchButtonState extends State<_SearchButton> {
                 ? AppColors.surfaceVariant
                 : AppColors.surface,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _focused
+                  ? AppColors.accent.withValues(alpha: 0.75)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -108,6 +147,8 @@ class _SearchButtonState extends State<_SearchButton> {
             ],
           ),
         ),
+      ),
+      ),
       ),
     );
   }
