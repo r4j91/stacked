@@ -13,6 +13,7 @@ import '../widgets/project_options_sheet.dart';
 import 'productivity_screen.dart' show showProductivitySheet;
 import 'project_detail_screen.dart';
 import '../widgets/settings/settings.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/scroll_fade_overlay.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/empty_state.dart';
@@ -79,6 +80,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   List<_HomeProject> _projects = [];
   bool _loadingProjects = true;
+  String? _loadError;
   final _scrollCtrl = ScrollController();
 
   @override
@@ -173,10 +175,16 @@ class HomeScreenState extends State<HomeScreen> {
           _inboxCount = inboxCount;
           _upcomingCount = upcomingCount;
           _loadingProjects = false;
+          _loadError = null;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loadingProjects = false);
+      if (mounted) {
+        setState(() {
+          _loadingProjects = false;
+          if (_projects.isEmpty) _loadError ??= e.toString();
+        });
+      }
     }
   }
 
@@ -212,10 +220,16 @@ class HomeScreenState extends State<HomeScreen> {
           _todayDone = summary.todayDone;
           _overdueCount = summary.overdueCount;
           _loadingTasks = false;
+          _loadError = null;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loadingTasks = false);
+      if (mounted) {
+        setState(() {
+          _loadingTasks = false;
+          if (_todayTotal == 0 && _inboxCount == 0) _loadError ??= e.toString();
+        });
+      }
     }
   }
 
@@ -229,6 +243,22 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = AppLayout.homeDockBottomInset(context);
+
+    if (_loadError != null &&
+        !_loadingTasks &&
+        !_loadingProjects &&
+        _projects.isEmpty &&
+        _todayTotal == 0 &&
+        _inboxCount == 0) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: LoadErrorView(onRetry: () {
+          setState(() => _loadError = null);
+          reload();
+        }),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: _loading
@@ -242,6 +272,7 @@ class HomeScreenState extends State<HomeScreen> {
               },
               color: AppColors.accent,
               child: ScrollFadeOverlay(
+                scrollController: _scrollCtrl,
                 child: CustomScrollView(
                   controller: _scrollCtrl,
                   physics: const AlwaysScrollableScrollPhysics(),

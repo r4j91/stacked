@@ -37,11 +37,10 @@ class AppColors {
   /// Status positivo discreto (ex.: "Tudo em dia" na Home).
   static Color get onTrackMuted => tagGreen.withValues(alpha: 0.72);
 
-  // Escala própria de prioridade de subtarefa — paralela a priorityHigh/
-  // Medium/Low, valores diferentes por design original (task_tile.dart).
-  static const subtaskPriorityHigh   = Color(0xFFDC4C3E);
-  static const subtaskPriorityMedium = Color(0xFFEB8909);
-  static const subtaskPriorityLow    = Color(0xFF246FE0);
+  // Escala de prioridade unificada — tasks e subtarefas usam os mesmos tokens.
+  static const subtaskPriorityHigh   = priorityHigh;
+  static const subtaskPriorityMedium = priorityMedium;
+  static const subtaskPriorityLow    = priorityLow;
 
   // Escala de proximidade de data de subtarefa (hoje/atrasada/futura) —
   // conceito distinto da prioridade, mesmo quando o hex de "atrasada"

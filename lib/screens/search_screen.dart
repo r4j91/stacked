@@ -5,6 +5,7 @@ import '../models/task.dart';
 import '../services/supabase_client.dart';
 import '../services/task_repository.dart';
 import '../theme/app_layout.dart';
+import '../widgets/load_error_view.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/app_sheet.dart';
@@ -52,6 +53,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Task> _allTasks = [];
   List<Task> _results = [];
   bool _loadingAll = true;
+  String? _loadError;
   String _query = '';
   Timer? _debounce;
 
@@ -94,12 +96,13 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           _allTasks = tasks;
           _loadingAll = false;
+          _loadError = null;
           if (_query.isNotEmpty) _results = _filter(_query);
         });
         _focus.requestFocus();
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingAll = false);
+    } catch (e) {
+      if (mounted) setState(() { _loadingAll = false; _loadError = e.toString(); });
     }
   }
 
@@ -246,7 +249,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       strokeWidth: 2,
                     ),
                   )
-                : _query.isEmpty
+                : _loadError != null
+                    ? LoadErrorView(onRetry: () {
+                        setState(() {
+                          _loadingAll = true;
+                          _loadError = null;
+                        });
+                        _loadAll();
+                      })
+                    : _query.isEmpty
                     ? _EmptyPrompt()
                     : _results.isEmpty
                         ? _NoResults(query: _query)
@@ -431,9 +442,13 @@ class _SearchResultTile extends StatelessWidget {
                       children: [
                         HugeIcon(icon: HugeIcons.strokeRoundedFolder01, size: 11, color: AppColors.textTertiary),
                         const SizedBox(width: 4),
-                        Text(
-                          task.project,
-                          style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                        Expanded(
+                          child: Text(
+                            task.project,
+                            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         if (task.time != null) ...[
                           const SizedBox(width: 8),

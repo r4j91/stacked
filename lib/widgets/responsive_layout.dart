@@ -89,7 +89,7 @@ class ResponsiveLayout extends StatelessWidget {
       final adaptedBody = _adaptBodyForScreenWidth(body, screenWidth);
 
       // ── Mobile / Tablet ─────────────────────────────────────────────────────
-      final bottomPadding = MediaQuery.of(context).padding.bottom;
+      final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
       const sideMargin = AppLayout.fabSideMargin;
       final pillMarginBottom = bottomPadding + AppLayout.bottomNavPillMargin;
       final totalBarHeight = AppLayout.totalBottomChromeHeight(context);
@@ -209,7 +209,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
   void _openMenu() {
     HapticService().fabOpened();
     final mq = MediaQuery.of(context);
-    final fabBottom = mq.padding.bottom + AppLayout.bottomNavPillMargin + AppLayout.bottomNavPillHeight + _fabGap;
+    final fabBottom = mq.viewPadding.bottom + AppLayout.bottomNavPillMargin + AppLayout.bottomNavPillHeight + _fabGap;
 
     _overlay = OverlayEntry(
       builder: (_) => _FabOverlay(
@@ -475,7 +475,13 @@ class _FabMenuItem extends StatelessWidget {
                 color: AppColors.textPrimary.withValues(alpha: 0.08),
               ),
             ),
-            child: HugeIcon(icon: icon, size: 20, color: AppColors.accent),
+            child: Center(
+              child: HugeIcon(
+                icon: icon,
+                size: 18,
+                color: AppColors.accent,
+              ),
+            ),
           ),
         ],
       ),

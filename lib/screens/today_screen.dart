@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import '../models/subtask.dart';
-import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
@@ -19,7 +18,8 @@ import '../services/task_sync.dart';
 import '../services/supabase_client.dart';
 import '../services/label_repository.dart';
 import 'task_detail_sheet.dart';
-import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/task_list_scaffold.dart';
 import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -328,49 +328,20 @@ class TodayScreenState extends State<TodayScreen> {
     if (_loading) return const SkeletonLoader();
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.surfaceVariant,
-                ),
-                child: HugeIcon(icon: HugeIcons.strokeRoundedWifiOff01, size: 34, color: AppColors.textTertiary),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Sem conexão',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.3),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Verifique sua conexão e tente novamente.',
-                style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.5),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () { setState(() { _loading = true; _error = null; }); _loadTasks(); },
-                style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                child: const Text('Tentar novamente', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-        ),
+      return LoadErrorView(
+        onRetry: () {
+          setState(() {
+            _loading = true;
+            _error = null;
+          });
+          _loadTasks();
+        },
       );
     }
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dateLabel = _formatDate(now);
-    final bottomInset = AppLayout.bottomListInset(context);
 
     // Split into overdue (before today) and today.
     // Precompute index map to avoid O(n) indexOf inside the SliverList builder.
@@ -387,13 +358,9 @@ class TodayScreenState extends State<TodayScreen> {
       }
     }
 
-    return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surface,
+    return TaskListScaffold(
+      scrollController: _scrollCtrl,
       onRefresh: _loadTasks,
-      child: ScrollFadeOverlay(child: CustomScrollView(
-      controller: _scrollCtrl,
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         // ── Header ──────────────────────────────────────────────────────────
         SliverToBoxAdapter(
@@ -564,9 +531,8 @@ class TodayScreenState extends State<TodayScreen> {
             ),
         ],
 
-        SliverToBoxAdapter(child: SizedBox(height: bottomInset)),
       ],
-    )));
+    );
   }
 
   String _formatDate(DateTime date) =>

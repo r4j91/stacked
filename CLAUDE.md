@@ -33,11 +33,18 @@ App de gerenciamento de tarefas estilo Todoist/Things 3, sendo reconstruído do 
 - Texto secundário (projeto/descrição): ~12.5-13px
 
 ### Telas (bottom navigation, 5 abas)
-1. Hoje — lista de tarefas do dia
-2. Em breve — calendário + próximas tarefas
-3. Projetos — lista de projetos com progresso
-4. Filtros — repensar como "Inbox real" (tarefas sem projeto/data) no futuro
-5. Perfil — configurações e dados do usuário
+1. Navegar (Home) — hub com visão geral e projetos
+2. Inbox — tarefas sem projeto/data
+3. Hoje — lista de tarefas do dia
+4. Em breve — calendário + próximas tarefas
+5. Filtros — dashboard de filtros e projetos
+
+### Layout responsivo (lib/theme/app_layout.dart)
+- **Mobile/tablet (< 1024px):** bottom nav flutuante (pill) + FAB — [`ResponsiveLayout`](lib/widgets/responsive_layout.dart)
+- **Desktop (≥ 1024px):** sidebar customizada — [`DesktopAppShell`](lib/widgets/desktop_shell/desktop_app_shell.dart)
+- **Tablet centering (≥ 600px):** conteúdo centralizado, max-width 640px (≥ 768px: 720px)
+- **720px** é max-width de conteúdo em tablet, **não** o breakpoint mobile/desktop (esse é **1024px**)
+- Inset inferior do nav/FAB usa `MediaQuery.viewPadding.bottom` (home indicator)
 
 ## Estrutura de pastas
 lib/

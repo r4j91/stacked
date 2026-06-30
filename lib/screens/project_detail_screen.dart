@@ -26,6 +26,7 @@ import '../widgets/project_detail/project_list_models.dart';
 import '../widgets/task_tile.dart';
 import 'quick_add_task_sheet.dart';
 import 'task_detail_sheet.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/scroll_fade_overlay.dart';
 import '../widgets/pressable.dart';
 
@@ -54,6 +55,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<TaskLabel> _allLabels = [];
   final Set<String> _collapsedSectionIds = {};
   bool _loading = true;
+  String? _loadError;
   bool _showCompleted = true;
   bool _completedExpanded = false;
 
@@ -254,10 +256,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           // CORRIGIDO_ETAPA3B
           _allLabels = allLabels;
           _loading = false;
+          _loadError = null;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _loadError = e.toString(); });
     }
   }
 
@@ -1270,7 +1273,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2))
-          : isEmpty
+          : _loadError != null && _tasks.isEmpty && _completedTasks.isEmpty
+              ? LoadErrorView(onRetry: () {
+                  setState(() {
+                    _loading = true;
+                    _loadError = null;
+                  });
+                  _loadTasks();
+                })
+              : isEmpty
               ? const Center(child: EmptyState(hugeIcon: HugeIcons.strokeRoundedTaskDone01, title: 'Nenhuma tarefa', subtitle: 'Adicione tarefas usando o botão +'))
               : _buildTaskListView(bottomInset),
     );

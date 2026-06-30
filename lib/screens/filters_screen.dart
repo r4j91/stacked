@@ -4,7 +4,6 @@ import '../services/project_repository.dart';
 import '../services/task_repository.dart';
 import '../services/task_sync.dart';
 import '../services/supabase_client.dart';
-import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
@@ -15,7 +14,8 @@ import '../widgets/skeleton_loader.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
-import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/task_list_scaffold.dart';
 import '../widgets/screen_header.dart';
 import '../utils/project_icons.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -55,6 +55,7 @@ class FiltersScreenState extends State<FiltersScreen> {
   static const _projectRepo = ProjectRepository();
   // Dashboard stats
   bool _loading = true;
+  String? _statsError;
   int _overdueCount = 0;
   int _todayCount = 0;
   int _weekCount = 0;
@@ -65,6 +66,7 @@ class FiltersScreenState extends State<FiltersScreen> {
   _FilterView _view = _FilterView.dashboard;
   List<Task> _filterTasks = [];
   bool _filterLoading = false;
+  String? _filterError;
 
   @override
   void initState() {
@@ -132,10 +134,11 @@ class FiltersScreenState extends State<FiltersScreen> {
           _completedCount = counts.completedToday;
           _projects = projects;
           _loading = false;
+          _statsError = null;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _statsError = e.toString(); });
     }
   }
 
@@ -188,10 +191,11 @@ class FiltersScreenState extends State<FiltersScreen> {
         setState(() {
           _filterTasks = tasks;
           _filterLoading = false;
+          _filterError = null;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _filterLoading = false);
+    } catch (e) {
+      if (mounted) setState(() { _filterLoading = false; _filterError = e.toString(); });
     }
   }
 
@@ -257,10 +261,20 @@ class FiltersScreenState extends State<FiltersScreen> {
   // ── Dashboard ──────────────────────────────────────────────────────────────
 
   Widget _buildDashboard() {
-    final bottomInset = AppLayout.bottomListInset(context);
+    if (!_loading && _statsError != null && _projects.isEmpty) {
+      return LoadErrorView(
+        onRetry: () {
+          setState(() {
+            _loading = true;
+            _statsError = null;
+          });
+          _loadStats();
+        },
+      );
+    }
 
-    return ScrollFadeOverlay(child: CustomScrollView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+    return TaskListScaffold(
+      onRefresh: _loadStats,
       slivers: [
         SliverToBoxAdapter(
           child: ScreenHeader(title: 'Filtros'),
@@ -358,14 +372,22 @@ class FiltersScreenState extends State<FiltersScreen> {
             ),
         ],
 
-        SliverToBoxAdapter(child: SizedBox(height: bottomInset)),
       ],
-    ));
+    );
   }
 
   // ── Filter list view ───────────────────────────────────────────────────────
 
   Widget _buildFilterView() {
+    if (!_filterLoading && _filterError != null && _filterTasks.isEmpty) {
+      return LoadErrorView(
+        onRetry: () {
+          setState(() => _filterError = null);
+          _loadFilter(_view);
+        },
+      );
+    }
+
     final label = switch (_view) {
       _FilterView.overdue => 'Atrasadas',
       _FilterView.today => 'Hoje',
@@ -380,10 +402,8 @@ class FiltersScreenState extends State<FiltersScreen> {
       _FilterView.completed => AppColors.accent,
       _FilterView.dashboard => AppColors.accent,
     };
-    final bottomInset = AppLayout.bottomListInset(context);
 
-    return ScrollFadeOverlay(child: CustomScrollView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+    return TaskListScaffold(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
@@ -473,9 +493,8 @@ class FiltersScreenState extends State<FiltersScreen> {
             ),
           ),
 
-        SliverToBoxAdapter(child: SizedBox(height: bottomInset)),
       ],
-    ));
+    );
   }
 }
 

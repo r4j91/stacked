@@ -7,14 +7,15 @@ import '../services/task_sync.dart';
 import '../services/supabase_client.dart';
 import '../services/label_repository.dart';
 import '../screens/task_detail_sheet.dart';
-import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../widgets/anchored_select_menu.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
-import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/task_list_scaffold.dart';
 import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -34,6 +35,7 @@ class InboxScreenState extends State<InboxScreen> {
   List<Task> _completedTasks = [];
   List<TaskLabel> _allLabels = [];
   bool _loading = true;
+  String? _error;
   bool _showCompleted = true;
   bool _completedExpanded = false;
   late final ScrollController _scrollCtrl;
@@ -75,18 +77,28 @@ class InboxScreenState extends State<InboxScreen> {
   }
 
   Future<void> loadTasks() async {
-    final results = await Future.wait([
-      _repo.fetchInboxTasks(),
-      _repo.fetchCompletedInboxTasks(),
-      _labelRepo.fetchLabels(),
-    ]);
-    if (mounted) {
-      setState(() {
-        _tasks = results[0] as List<Task>;
-        _completedTasks = results[1] as List<Task>;
-        _allLabels = results[2] as List<TaskLabel>;
-        _loading = false;
-      });
+    try {
+      final results = await Future.wait([
+        _repo.fetchInboxTasks(),
+        _repo.fetchCompletedInboxTasks(),
+        _labelRepo.fetchLabels(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _tasks = results[0] as List<Task>;
+          _completedTasks = results[1] as List<Task>;
+          _allLabels = results[2] as List<TaskLabel>;
+          _loading = false;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -177,15 +189,25 @@ class InboxScreenState extends State<InboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = AppLayout.bottomListInset(context);
+    if (_loading && _error == null && _tasks.isEmpty && _completedTasks.isEmpty) {
+      return const SkeletonLoader();
+    }
 
-    return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surface,
+    if (_error != null && _tasks.isEmpty && _completedTasks.isEmpty) {
+      return LoadErrorView(
+        onRetry: () {
+          setState(() {
+            _loading = true;
+            _error = null;
+          });
+          loadTasks();
+        },
+      );
+    }
+
+    return TaskListScaffold(
+      scrollController: _scrollCtrl,
       onRefresh: loadTasks,
-      child: ScrollFadeOverlay(child: CustomScrollView(
-      controller: _scrollCtrl,
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         SliverToBoxAdapter(
           child: ScreenHeader(
@@ -209,7 +231,12 @@ class InboxScreenState extends State<InboxScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 60),
-              child: Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2)),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.accent,
+                  strokeWidth: 2,
+                ),
+              ),
             ),
           )
         else if (_tasks.isEmpty && _completedTasks.isEmpty)
@@ -293,8 +320,7 @@ class InboxScreenState extends State<InboxScreen> {
             ),
         ],
 
-        SliverToBoxAdapter(child: SizedBox(height: bottomInset)),
       ],
-    )));
+    );
   }
 }

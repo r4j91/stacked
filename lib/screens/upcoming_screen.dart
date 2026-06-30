@@ -6,7 +6,6 @@ import '../services/supabase_client.dart';
 import '../services/task_repository.dart';
 import '../services/task_sync.dart';
 import '../services/label_repository.dart';
-import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/app_sheet.dart';
@@ -16,7 +15,8 @@ import '../widgets/skeleton_loader.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_sheet.dart';
-import '../widgets/scroll_fade_overlay.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/task_list_scaffold.dart';
 import '../widgets/screen_header.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -48,6 +48,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   // Cached per-day map — rebuilt only when _tasks changes, not on every build.
   Map<DateTime, List<Task>> _tasksByDay = {};
   bool _loading = true;
+  String? _error;
 
   _CalMode _mode = _CalMode.agenda;
   late final AnimationController _modeCtrl;
@@ -118,10 +119,11 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           _tasksByDay = byDay;
           _allLabels = allLabels;
           _loading = false;
+          _error = null;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = e.toString(); });
     }
   }
 
@@ -244,6 +246,18 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   Widget build(BuildContext context) {
     if (_loading) return const SkeletonLoader();
 
+    if (_error != null && _tasks.isEmpty) {
+      return LoadErrorView(
+        onRetry: () {
+          setState(() {
+            _loading = true;
+            _error = null;
+          });
+          _loadTasks();
+        },
+      );
+    }
+
     final grouped = <DateTime, List<Task>>{};
     for (final t in _filtered) {
       if (t.dueDate == null) continue;
@@ -251,22 +265,11 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       grouped.putIfAbsent(d, () => []).add(t);
     }
     final sortedDays = grouped.keys.toList()..sort();
-    final bottomInset = AppLayout.bottomListInset(context);
 
-    return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surface,
+    return TaskListScaffold(
       onRefresh: _loadTasks,
-      child: ScrollFadeOverlay(child: CustomScrollView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       slivers: [
-        // ── Mode toggle bar ──────────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: ScreenHeader(
-            title: 'Em breve',
-            trailing: _ModeToggle(current: _mode, onChanged: _setMode),
-          ),
-        ),
+        SliverToBoxAdapter(child: _buildUpcomingHeader(context)),
 
         // ── Agenda period indicator (shown only in agenda mode) ──────────────
         if (_mode == _CalMode.agenda)
@@ -396,9 +399,40 @@ class _UpcomingScreenState extends State<UpcomingScreen>
             ),
           ],
 
-        SliverToBoxAdapter(child: SizedBox(height: bottomInset)),
       ],
-    )));
+    );
+  }
+
+  Widget _buildUpcomingHeader(BuildContext context) {
+    const narrowBreakpoint = 360.0;
+    final width = MediaQuery.sizeOf(context).width;
+    final toggle = _ModeToggle(current: _mode, onChanged: _setMode);
+
+    if (width < narrowBreakpoint) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const ScreenHeader(title: 'Em breve'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: toggle,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ScreenHeader(
+      title: 'Em breve',
+      trailing: toggle,
+    );
   }
 
   Widget _buildCalendar() {

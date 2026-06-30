@@ -26,9 +26,13 @@ class AppLayout {
   static const double fabGap = 10;
   static const double fabSideMargin = 14;
 
+  /// Inset inferior seguro (home indicator) — sempre [viewPadding.bottom].
+  static double bottomSafeInset(BuildContext context) =>
+      MediaQuery.viewPaddingOf(context).bottom;
+
   /// Total stacked height of pill + FAB (used by [ResponsiveLayout] bottom bar).
   static double totalBottomChromeHeight(BuildContext context) {
-    return MediaQuery.of(context).viewPadding.bottom +
+    return bottomSafeInset(context) +
         bottomNavPillMargin +
         bottomNavPillHeight +
         fabGap +
@@ -37,7 +41,7 @@ class AppLayout {
 
   /// Distance from the physical screen bottom to the top edge of the FAB.
   static double fabTopFromBottom(BuildContext context) {
-    return MediaQuery.of(context).padding.bottom +
+    return bottomSafeInset(context) +
         bottomNavPillMargin +
         bottomNavPillHeight +
         fabGap +

@@ -1,6 +1,15 @@
-# stacked
+# Stacked
 
-A new Flutter project.
+Task manager estilo Todoist/Things 3 — Flutter + Supabase.
+
+## Layout
+
+| Largura | Shell |
+|---------|--------|
+| &lt; 1024px | Bottom nav (pill) + FAB |
+| ≥ 1024px | Desktop sidebar |
+
+Breakpoints definidos em `lib/theme/app_layout.dart`. Conteúdo em tablet (≥ 600px) é centralizado com max-width 640–720px.
 
 ## Getting Started
 
