@@ -10,6 +10,7 @@ import '../services/task_detail_persistence.dart';
 import '../services/section_repository.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_layout.dart';
 import '../widgets/installment_generator_sheet.dart';
 import '../widgets/popover_style.dart';
 import '../widgets/task_detail/sheets/task_date_picker_sheet.dart';
@@ -44,7 +45,7 @@ class _Label {
 
 Future<void> showTaskDetailSheet(BuildContext context, Task task,
     {VoidCallback? onSaved}) async {
-  final isDesktop = MediaQuery.of(context).size.width >= 1024;
+  final isDesktop = AppLayout.isDesktop(context);
   if (isDesktop) {
     await showDialog<void>(
       context: context,
@@ -2581,13 +2582,9 @@ class _DesktopPickerCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.08),
+            ),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14),

@@ -160,7 +160,7 @@ class SettingsSheet extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.textTertiary,
+          color: AppColors.textSecondary,
           letterSpacing: 0.6,
         ),
       ),
@@ -215,63 +215,67 @@ class _ProfileCard extends StatelessWidget {
         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
         : display.substring(0, display.length.clamp(0, 2)).toUpperCase();
 
-    return Pressable(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md - 2),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(AppRadius.md + 2),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.accent.withValues(alpha: 0.15),
-                image: hasPhoto
-                    ? DecorationImage(image: NetworkImage(avatarPath), fit: BoxFit.cover)
-                    : null,
-              ),
-              child: hasPhoto
-                  ? null
-                  : Center(
-                      child: Text(
-                        initials,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.accent,
+    return Semantics(
+      button: true,
+      label: 'Perfil, $displayName',
+      child: Pressable(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md - 2),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(AppRadius.md + 2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accent.withValues(alpha: 0.15),
+                  image: hasPhoto
+                      ? DecorationImage(image: NetworkImage(avatarPath), fit: BoxFit.cover)
+                      : null,
+                ),
+                child: hasPhoto
+                    ? null
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
                         ),
                       ),
-                    ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    email,
-                    style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ),
-            ),
-            HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 18, color: AppColors.textTertiary),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      email,
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 18, color: AppColors.textTertiary),
+            ],
+          ),
         ),
       ),
     );
@@ -286,23 +290,27 @@ class _SettingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md - 2, vertical: AppSpacing.md - 1),
-        child: Row(
-          children: [
-            HugeIcon(icon: hugeIcon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+    return Semantics(
+      button: true,
+      label: label,
+      child: Pressable(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md - 2, vertical: AppSpacing.md - 1),
+          child: Row(
+            children: [
+              HugeIcon(icon: hugeIcon, size: 18, color: AppColors.textSecondary),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                ),
               ),
-            ),
-            HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 16, color: AppColors.textTertiary),
-          ],
+              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 16, color: AppColors.textTertiary),
+            ],
+          ),
         ),
       ),
     );

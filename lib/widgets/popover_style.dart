@@ -27,20 +27,8 @@ abstract class PopoverStyle {
   static Shader borderGradientShader(Rect rect) =>
       borderGradient.createShader(rect);
 
-  /// The two layered drop-shadows used under every popover card.
-  static List<BoxShadow> get shadows => [
-    BoxShadow(
-      color: Colors.black.withValues(alpha: 0.24),
-      blurRadius: 24,
-      spreadRadius: -2,
-      offset: const Offset(0, 8),
-    ),
-    BoxShadow(
-      color: Colors.black.withValues(alpha: 0.10),
-      blurRadius: 6,
-      offset: const Offset(0, 2),
-    ),
-  ];
+  /// Flat-by-default: popovers use tonal fill + gradient border, not shadow.
+  static List<BoxShadow> get shadows => const [];
 
   /// Background color for the popover card (Liquid Glass fill).
   static Color get bg => AppColors.navBar.withValues(alpha: bgAlpha);

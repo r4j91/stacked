@@ -158,13 +158,9 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                border: Border.all(
+                  color: AppColors.textPrimary.withValues(alpha: 0.08),
+                ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
@@ -358,7 +354,7 @@ class _TaskDatePickerSheetState extends State<TaskDatePickerSheet> {
     final shortcuts = [
       // COLORS-OLD: Color(0xFFF5A623)/Color(0xFF4D9FEC)/Color(0xFFB18CF5) — duplicavam priorityMedium/priorityLow/tagPurple
       // 0xFF3BAA6E sem token equivalente — FIXED-COLOR: acento decorativo único deste shortcut
-      (label: 'Hoje', hugeIcon: HugeIcons.strokeRoundedCalendar01, color: const Color(0xFF3BAA6E), date: today),
+      (label: 'Hoje', hugeIcon: HugeIcons.strokeRoundedCalendar01, color: AppColors.dateDueToday, date: today),
       (label: 'Amanhã', hugeIcon: HugeIcons.strokeRoundedSun01, color: AppColors.priorityMedium, date: tomorrow),
       (label: 'Este fim de semana', hugeIcon: HugeIcons.strokeRoundedSofaSingle, color: AppColors.priorityLow, date: weekend),
       (label: 'Próxima semana', hugeIcon: HugeIcons.strokeRoundedArrowRight01, color: AppColors.tagPurple, date: nextMonday),

@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../services/haptic_service.dart';
 import '../services/task_repository.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import 'package:hugeicons/hugeicons.dart';
 // import 'task_context_sheet.dart'; // replaced by overlay menu below
 import 'task_context_menu.dart';
@@ -128,6 +129,10 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
 
   @override
   Widget build(BuildContext context) {
+    final slideMotion = AppMotion.enabled(context)
+        ? const DrawerMotion()
+        : const BehindMotion();
+
     return GestureDetector(
       onLongPressStart: (d) => _openContextMenu(context, d.globalPosition),
       onSecondaryTapDown: (d) => _openContextMenu(context, d.globalPosition),
@@ -135,7 +140,7 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
         key: ValueKey(widget.task.id),
         controller: _slidableCtrl,
         startActionPane: ActionPane(
-          motion: const DrawerMotion(),
+          motion: slideMotion,
           extentRatio: _startExtent,
           children: [
             Semantics(
@@ -147,8 +152,8 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
                 widget.onCompleted?.call();
                 _showSnack(context, '"${widget.task.title}" concluída');
               },
-              backgroundColor: const Color(0xFF3BAA6E),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.onColoredFill,
               borderRadius:
                   const BorderRadius.horizontal(left: Radius.circular(12)),
               child: const ExcludeSemantics(
@@ -168,7 +173,7 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
           ],
         ),
         endActionPane: ActionPane(
-          motion: const DrawerMotion(),
+          motion: slideMotion,
           extentRatio: _endExtent,
           children: [
             Semantics(
@@ -177,7 +182,7 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
               child: CustomSlidableAction(
               onPressed: (_) => _postpone(context),
               backgroundColor: AppColors.priorityMedium,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.onColoredFill,
               child: const ExcludeSemantics(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -201,7 +206,7 @@ class _SwipeableTaskTileState extends State<SwipeableTaskTile>
                 widget.onDeleteRequested?.call();
               },
               backgroundColor: AppColors.priorityHigh,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.onColoredFill,
               borderRadius:
                   const BorderRadius.horizontal(right: Radius.circular(12)),
               child: const ExcludeSemantics(

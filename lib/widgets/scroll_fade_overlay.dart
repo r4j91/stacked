@@ -24,7 +24,7 @@ class ScrollFadeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).size.width >= 1024) return child;
+    if (AppLayout.isDesktop(context)) return child;
     if (!BottomNavScope.isVisible(context)) return child;
 
     final bg = AppColors.background;

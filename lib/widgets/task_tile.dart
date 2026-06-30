@@ -9,6 +9,7 @@ import '../services/supabase_client.dart';
 import '../services/task_sync.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
 import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -239,12 +240,39 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
   // PRIORITY-CENTRAL-OLD: _priorityColor local, não referenciado — movido
   // pra PriorityExtension em lib/models/task.dart.
 
+  String _accessibilityLabel(Task task) {
+    final parts = <String>['Tarefa ${task.title}'];
+    if (task.done) parts.add('concluída');
+    if (task.dueDate != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final due = DateTime(
+        task.dueDate!.year,
+        task.dueDate!.month,
+        task.dueDate!.day,
+      );
+      if (due.isBefore(today)) {
+        parts.add('atrasada');
+      } else if (due == today) {
+        parts.add('vence hoje');
+      }
+    }
+    if (task.hasSubtasks) {
+      final done = _subtasksDone.where((d) => d).length;
+      parts.add('$done de ${task.subtasks.length} subtarefas');
+    }
+    return parts.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
     final isDark = AppColors.surface.computeLuminance() < 0.5;
 
-    return SizeTransition(
+    return Semantics(
+      button: true,
+      label: _accessibilityLabel(task),
+      child: SizeTransition(
       sizeFactor: _collapseAnim,
       alignment: Alignment.topCenter,
       child: SlideTransition(
@@ -252,7 +280,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
         child: FadeTransition(
           opacity: _exitFade,
           child: Container(
-            margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+            margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 10),
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -322,8 +350,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                       )
                     else
                       Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(4, 18, 14, 16),
+                        padding: const EdgeInsets.all(12),
                         child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01,
                           size: 18,
                           color: AppColors.textTertiary
@@ -384,6 +411,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
           ),
         ),
       ),
+    ),
     );
   }
 

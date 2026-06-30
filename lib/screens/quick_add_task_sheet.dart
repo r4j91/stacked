@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/section_repository.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_layout.dart';
 import '../widgets/anchored_select_menu.dart';
 import 'package:hugeicons/hugeicons.dart';
 // CORRIGIDO_ETAPA3B_PARCELAS
@@ -20,7 +21,7 @@ import '../widgets/task_detail/sheets/task_date_picker_sheet.dart';
 
 Future<void> showQuickAddTaskSheet(BuildContext context,
     {VoidCallback? onSaved, String? initialProjectId, String? initialSectionId}) async {
-  final isDesktop = MediaQuery.of(context).size.width >= 1024;
+  final isDesktop = AppLayout.isDesktop(context);
   if (isDesktop) {
     await showDialog<void>(
       context: context,
@@ -536,7 +537,7 @@ class _QuickAddTaskSheetState extends State<QuickAddTaskSheet> {
   // (Hoje=green, Amanhã=orange, Fim de semana=blue, Próxima semana=purple)
   // COLORS-OLD: Color(0xFFF5A623)/Color(0xFF4D9FEC)/Color(0xFFB18CF5) — duplicavam priorityMedium/priorityLow/tagPurple
   // 0xFF3BAA6E sem token equivalente — FIXED-COLOR: mesmo acento decorativo único do TaskDatePickerSheet
-  static const _dateColorToday    = Color(0xFF3BAA6E);
+  static const _dateColorToday    = AppColors.dateDueToday;
   static const _dateColorTomorrow = AppColors.priorityMedium;
   static const _dateColorWeekend  = AppColors.priorityLow;
   static const _dateColorNextWeek = AppColors.tagPurple;

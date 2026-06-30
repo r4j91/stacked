@@ -28,8 +28,14 @@ class AppColors {
   // COLORS-OLD: consolidação de Color(0xFF...) hardcoded espalhados —
   // ver auditoria. Conceitos mantidos separados mesmo quando o hex
   // coincide, conforme escopo de uso original.
-  static const success = Color(0xFF22C55E); // concluído / hoje em dia
+  static const success = Color(0xFF22C55E); // concluído / swipe concluir
   static const overdue = priorityHigh; // alinhado ao design system (#EF5A5F)
+
+  /// Ícones/texto sobre fundos saturados (swatches, swipe actions).
+  static const onColoredFill = Color(0xFFFFFFFF);
+
+  /// Status positivo discreto (ex.: "Tudo em dia" na Home).
+  static Color get onTrackMuted => tagGreen.withValues(alpha: 0.72);
 
   // Escala própria de prioridade de subtarefa — paralela a priorityHigh/
   // Medium/Low, valores diferentes por design original (task_tile.dart).

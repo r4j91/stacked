@@ -306,44 +306,24 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const Spacer(),
           HeaderLiquidPill(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Pressable(
+                _HeaderIconButton(
+                  label: 'Notificações',
+                  icon: HugeIcons.strokeRoundedNotification01,
                   onTap: () => NotificationsSheet.show(context),
-                  child: Semantics(
-                    button: true,
-                    label: 'Notificações',
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: HugeIcon(
-                        icon: HugeIcons.strokeRoundedNotification01,
-                        size: 22,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
                 ),
                 Container(
                   width: 1,
-                  height: 18,
+                  height: 20,
                   color: AppColors.textTertiary.withValues(alpha: 0.2),
                 ),
-                Pressable(
+                _HeaderIconButton(
+                  label: 'Configurações',
+                  icon: HugeIcons.strokeRoundedSettings01,
                   onTap: () => SettingsSheet.show(context),
-                  child: Semantics(
-                    button: true,
-                    label: 'Configurações',
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: HugeIcon(
-                        icon: HugeIcons.strokeRoundedSettings01,
-                        size: 22,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -397,7 +377,7 @@ class HomeScreenState extends State<HomeScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.8,
-          color: AppColors.textTertiary,
+          color: AppColors.textSecondary,
         ),
       ),
     );
@@ -406,7 +386,7 @@ class HomeScreenState extends State<HomeScreen> {
   // ── ALL CLEAR HINT ─────────────────────────────────
   Widget _buildAllClearHint() {
     const label = 'Tudo em dia';
-    final color = AppColors.success.withValues(alpha: 0.72);
+    final color = AppColors.onTrackMuted;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -570,6 +550,12 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text('$count', style: _countStyle),
+              const SizedBox(width: AppSpacing.sm),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                size: 16,
+                color: AppColors.textTertiary.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -602,7 +588,7 @@ class HomeScreenState extends State<HomeScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
-              color: AppColors.textTertiary,
+              color: AppColors.textSecondary,
             ),
           ),
         ),
@@ -712,6 +698,41 @@ class HomeScreenState extends State<HomeScreen> {
                 color: AppColors.textTertiary.withValues(alpha: 0.7),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ícone do header — 44×44 hit area, pill total alinhado ao avatar (44px).
+class _HeaderIconButton extends StatelessWidget {
+  final String label;
+  final List<List<dynamic>> icon;
+  final VoidCallback onTap;
+
+  const _HeaderIconButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: Pressable(
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: HugeIcon(
+              icon: icon,
+              size: 22,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ),

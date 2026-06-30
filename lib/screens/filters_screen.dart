@@ -498,7 +498,11 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
+    final countLabel = count == 1 ? '1 tarefa' : '$count tarefas';
+    return Semantics(
+      button: true,
+      label: '$label, $countLabel',
+      child: Pressable(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -560,11 +564,12 @@ class _StatCard extends StatelessWidget {
                   : '$count ${count == 1 ? 'tarefa' : 'tarefas'}',
               style: TextStyle(
                 fontSize: 11.5,
-                color: AppColors.textTertiary,
+                color: AppColors.textSecondary,
               ),
             ),
           ],
         ),
+      ),
       ),
     );
   }

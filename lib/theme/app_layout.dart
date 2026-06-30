@@ -5,6 +5,21 @@ import '../widgets/bottom_nav_scope.dart';
 class AppLayout {
   AppLayout._();
 
+  static const double breakpointPhone = 600;
+  static const double breakpointTabletWide = 768;
+  static const double breakpointDesktop = 1024;
+
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= breakpointDesktop;
+
+  static bool isTablet(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return w >= breakpointPhone && w < breakpointDesktop;
+  }
+
+  static double tabletContentMaxWidth(double screenWidth) =>
+      screenWidth >= breakpointTabletWide ? 720 : 640;
+
   static const double bottomNavPillHeight = 62;
   static const double bottomNavPillMargin = 12;
   static const double fabSize = 56;

@@ -7,27 +7,37 @@ import '../screens/task_detail_sheet.dart';
 import '../screens/search_screen.dart';
 import '../services/haptic_service.dart';
 import '../theme/app_layout.dart';
+import '../theme/app_durations.dart';
+import '../theme/app_icon_size.dart';
+import '../theme/app_motion.dart';
 import 'bottom_nav_scope.dart';
 import '../theme/app_colors.dart';
 import '../widgets/new_project_sheet.dart';
-import '../widgets/today_day_icon.dart';
 import 'desktop_shell/desktop_app_shell.dart';
 import 'pressable.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 class _NavItem {
-  final List<List<dynamic>>? hugeIcon;
+  final List<List<dynamic>> hugeIcon;
   final String label;
-  final Widget Function(bool selected)? iconBuilder;
-  const _NavItem({this.hugeIcon, required this.label, this.iconBuilder});
+  final double iconSize;
+
+  const _NavItem({
+    required this.hugeIcon,
+    required this.label,
+    this.iconSize = AppIconSize.nav,
+  });
 }
 
 final _navItems = [
   _NavItem(hugeIcon: HugeIcons.strokeRoundedHome01, label: 'Navegar'),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedInbox, label: 'Inbox'),
-  _NavItem(label: 'Hoje', iconBuilder: (selected) => TodayDayIcon(
-        color: selected ? AppColors.accent : AppColors.textTertiary,
-      )),
+  // Calendar02 tem mais padding interno no SVG — +2px para peso visual igual.
+  _NavItem(
+    hugeIcon: HugeIcons.strokeRoundedCalendar02,
+    label: 'Hoje',
+    iconSize: AppIconSize.xl,
+  ),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedCalendar03, label: 'Em breve'),
   _NavItem(hugeIcon: HugeIcons.strokeRoundedFilterHorizontal, label: 'Filtros'),
 ];
@@ -64,7 +74,7 @@ class ResponsiveLayout extends StatelessWidget {
           );
 
       // ── Desktop ───────────────────────────────────────────────────────────
-      if (screenWidth >= 1024) {
+      if (AppLayout.isDesktop(context)) {
         return DesktopAppShell(
           selectedIndex: selectedIndex,
           onDestinationSelected: onDestinationSelected,
@@ -136,11 +146,11 @@ class ResponsiveLayout extends StatelessWidget {
 
 /// Tablet: center content with readable max width. Phone: full bleed.
 Widget _adaptBodyForScreenWidth(Widget body, double screenWidth) {
-  if (screenWidth < 600) return body;
+  if (screenWidth < AppLayout.breakpointPhone) return body;
   return Align(
     alignment: Alignment.topCenter,
     child: ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: screenWidth >= 768 ? 720 : 640),
+      constraints: BoxConstraints(maxWidth: AppLayout.tabletContentMaxWidth(screenWidth)),
       child: body,
     ),
   );
@@ -175,17 +185,16 @@ class _ExpandableFABState extends State<_ExpandableFAB>
   OverlayEntry? _overlay;
   bool _open = false;
 
-  static const _pillHeight = 62.0;
-  static const _fabGap = 10.0;
-  static const _sideMargin = 14.0;
+  static const _fabGap = AppLayout.fabGap;
+  static const _sideMargin = AppLayout.fabSideMargin;
 
   @override
   void initState() {
     super.initState();
     _rotCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 220));
+        vsync: this, duration: AppDurations.medium);
     _rotation = Tween<double>(begin: 0.0, end: 0.125)
-        .animate(CurvedAnimation(parent: _rotCtrl, curve: Curves.easeOutCubic));
+        .animate(CurvedAnimation(parent: _rotCtrl, curve: AppCurves.easeOutCubic));
   }
 
   @override
@@ -200,7 +209,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
   void _openMenu() {
     HapticService().fabOpened();
     final mq = MediaQuery.of(context);
-    final fabBottom = mq.padding.bottom + 12 + _pillHeight + _fabGap;
+    final fabBottom = mq.padding.bottom + AppLayout.bottomNavPillMargin + AppLayout.bottomNavPillHeight + _fabGap;
 
     _overlay = OverlayEntry(
       builder: (_) => _FabOverlay(
@@ -296,19 +305,22 @@ class _FabOverlayState extends State<_FabOverlay> with TickerProviderStateMixin 
   late final List<AnimationController> _itemCtrls;
   late final List<Animation<double>> _fades;
   late final List<Animation<Offset>> _slides;
+  bool _animationsStarted = false;
 
-  @override
-  void initState() {
-    super.initState();
+  void _startAnimations() {
+    if (_animationsStarted) return;
+    _animationsStarted = true;
 
-    _barrierCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 180))
+    final motion = AppMotion.enabled(context);
+    final barrierMs = AppMotion.milliseconds(context, AppDurations.normal.inMilliseconds);
+    final itemMs = AppMotion.milliseconds(context, AppDurations.medium.inMilliseconds);
+
+    _barrierCtrl = AnimationController(vsync: this, duration: barrierMs)
       ..forward();
 
     _itemCtrls = List.generate(
       widget.actions.length,
-      (_) => AnimationController(
-          vsync: this, duration: const Duration(milliseconds: 200)),
+      (_) => AnimationController(vsync: this, duration: itemMs),
     );
 
     _fades = _itemCtrls
@@ -320,25 +332,47 @@ class _FabOverlayState extends State<_FabOverlay> with TickerProviderStateMixin 
         .map((c) => Tween<Offset>(
                     begin: const Offset(0, 0.25), end: Offset.zero)
                 .animate(
-                    CurvedAnimation(parent: c, curve: Curves.easeOutCubic)))
+                    CurvedAnimation(parent: c, curve: AppCurves.easeOutCubic)))
         .toList();
 
-    for (var i = 0; i < _itemCtrls.length; i++) {
-      Future.delayed(Duration(milliseconds: i * 45), () {
-        if (mounted) _itemCtrls[i].forward();
-      });
+    if (motion) {
+      for (var i = 0; i < _itemCtrls.length; i++) {
+        Future.delayed(Duration(milliseconds: i * 45), () {
+          if (mounted) _itemCtrls[i].forward();
+        });
+      }
+    } else {
+      for (final c in _itemCtrls) {
+        c.value = 1.0;
+      }
     }
   }
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _startAnimations();
+  }
+
+  @override
   void dispose() {
-    _barrierCtrl.dispose();
-    for (final c in _itemCtrls) { c.dispose(); }
+    if (_animationsStarted) {
+      _barrierCtrl.dispose();
+      for (final c in _itemCtrls) {
+        c.dispose();
+      }
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_animationsStarted) return const SizedBox.shrink();
     const fabSize = 56.0;
     const itemH = 44.0;
     const itemGap = 12.0;
@@ -475,10 +509,8 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
 
   static const _spring = SpringDescription(mass: 1, stiffness: 600, damping: 32);
 
-  // NAVBAR-PERF-V1: feature flag pra teste A/B de performance — false por
-  // padrão (blur real é o comportamento atual). Mudar pra true só pra medir
-  // se o BackdropFilter é o gargalo de scroll no iPhone; revertido depois.
-  static const bool _useSimulatedBlur = false;
+  // Sem blur quando reduced motion — menos custo GPU + alinhado a a11y.
+  bool _useSimulatedBlur(BuildContext context) => !AppMotion.enabled(context);
 
   // Indicator color: enough contrast on both dark and light themes
   Color get _indicatorColor => AppColors.navBar.computeLuminance() > 0.5
@@ -498,6 +530,10 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
   }
 
   void _springTo(double target) {
+    if (!AppMotion.enabled(context)) {
+      _ctrl.value = target;
+      return;
+    }
     final sim = SpringSimulation(_spring, _ctrl.value, target, _ctrl.velocity);
     _ctrl.animateWith(sim);
   }
@@ -516,7 +552,7 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
     return RepaintBoundary(
       child: ClipRRect(
       borderRadius: BorderRadius.circular(32),
-      child: _useSimulatedBlur
+      child: _useSimulatedBlur(context)
           // NAVBAR-PERF-V1: simulação de blur sem custo de GPU — usado só
           // pra teste A/B de performance, não é o comportamento padrão.
           ? Container(
@@ -589,7 +625,7 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
                 .map((e) => Expanded(
                       child: _PillItem(
                         hugeIcon: e.value.hugeIcon,
-                        iconBuilder: e.value.iconBuilder,
+                        iconSize: e.value.iconSize,
                         label: e.value.label,
                         selected: widget.selectedIndex == e.key,
                         onTap: () {
@@ -609,15 +645,15 @@ class _LiquidGlassPillState extends State<_LiquidGlassPill>
 // ── Single pill item with bounce on selection ─────────────────────────────────
 
 class _PillItem extends StatefulWidget {
-  final List<List<dynamic>>? hugeIcon;
-  final Widget Function(bool selected)? iconBuilder;
+  final List<List<dynamic>> hugeIcon;
+  final double iconSize;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _PillItem({
-    this.hugeIcon,
-    this.iconBuilder,
+    required this.hugeIcon,
+    required this.iconSize,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -636,7 +672,7 @@ class _PillItemState extends State<_PillItem>
   void initState() {
     super.initState();
     _bounceCtrl = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.medium,
       vsync: this,
     );
     _bounce = TweenSequence<double>([
@@ -654,7 +690,7 @@ class _PillItemState extends State<_PillItem>
   @override
   void didUpdateWidget(_PillItem old) {
     super.didUpdateWidget(old);
-    if (!old.selected && widget.selected) {
+    if (!old.selected && widget.selected && AppMotion.enabled(context)) {
       _bounceCtrl.forward(from: 0);
     }
   }
@@ -675,47 +711,55 @@ class _PillItemState extends State<_PillItem>
       child: GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
-      child: Column(
+      child: SizedBox(
+        height: AppLayout.bottomNavPillHeight,
+        child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AnimatedBuilder(
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Center(
+              child: AnimatedBuilder(
             animation: _bounce,
             builder: (context, child) =>
-                Transform.scale(scale: _bounce.value, child: child),
+                Transform.scale(scale: AppMotion.enabled(context) ? _bounce.value : 1.0, child: child),
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: AppMotion.duration(context, AppDurations.normal),
               transitionBuilder: (child, anim) =>
                   FadeTransition(opacity: anim, child: child),
-              child: widget.iconBuilder != null
-                  ? KeyedSubtree(
-                      key: ValueKey(widget.selected),
-                      child: widget.iconBuilder!(widget.selected),
-                    )
-                  : HugeIcon(
-                      icon: widget.hugeIcon!,
-                      key: ValueKey(widget.selected),
-                      size: 22,
-                      color: widget.selected
-                          ? AppColors.accent
-                          : AppColors.textTertiary,
-                    ),
+              child: HugeIcon(
+                icon: widget.hugeIcon,
+                key: ValueKey(widget.selected),
+                size: widget.iconSize,
+                color: widget.selected
+                    ? AppColors.accent
+                    : AppColors.textTertiary,
+              ),
             ),
           ),
-          const SizedBox(height: 3),
+            ),
+          ),
+          const SizedBox(height: 2),
           AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
+            duration: AppMotion.duration(context, AppDurations.normal),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight:
                   widget.selected ? FontWeight.w600 : FontWeight.w400,
               color: widget.selected
                   ? AppColors.accent
                   : AppColors.textTertiary,
               letterSpacing: 0,
+              height: 1.1,
             ),
-            child: Text(widget.label),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(widget.label, maxLines: 1),
+            ),
           ),
         ],
+        ),
       ),
       ),
     );

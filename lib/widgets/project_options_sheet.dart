@@ -594,7 +594,7 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
                     color: c,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? Colors.white : Colors.transparent,
+                      color: isSelected ? AppColors.onColoredFill : Colors.transparent,
                       width: 2.5,
                     ),
                   ),
@@ -602,7 +602,7 @@ class _ProjectOptionsSheetState extends State<ProjectOptionsSheet> {
                       ? const HugeIcon(
                           icon: HugeIcons.strokeRoundedTick01,
                           size: 16,
-                          color: Colors.white,
+                          color: AppColors.onColoredFill,
                         )
                       : null,
                 ),

@@ -41,16 +41,22 @@ class UserPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return HeaderLiquidPill(
-      padding: EdgeInsets.symmetric(
-        horizontal: showName ? 12 : 8,
-        vertical: 8,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        width: showName ? null : 44,
+        height: 44,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: showName ? 12 : 0,
+            vertical: showName ? 8 : 0,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: showName ? 28 : 32,
+                height: showName ? 28 : 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.accent.withValues(alpha: 0.18),
@@ -83,6 +89,8 @@ class UserPill extends StatelessWidget {
             ),
           ],
         ],
+          ),
+        ),
       ),
     );
   }

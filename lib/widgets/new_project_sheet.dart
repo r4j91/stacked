@@ -231,14 +231,14 @@ class _NewProjectSheetFormState extends State<NewProjectSheetForm> {
                         shape: BoxShape.circle,
                         color: c,
                         border: selected
-                            ? Border.all(color: Colors.white, width: 2.5)
+                            ? Border.all(color: AppColors.onColoredFill, width: 2.5)
                             : null,
                       ),
                       child: selected
                           ? const HugeIcon(
                               icon: HugeIcons.strokeRoundedTick01,
                               size: 16,
-                              color: Colors.white,
+                              color: AppColors.onColoredFill,
                             )
                           : null,
                     ),
