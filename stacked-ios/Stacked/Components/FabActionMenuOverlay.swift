@@ -81,7 +81,8 @@ struct FabActionMenuOverlay: View {
         let delay = Double(step) * staggerStep
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
           guard isOpen else { return }
-          withAnimation(AppMotion.bouncy) {
+          // SUBSTITUIDO_FASE5: withAnimation(AppMotion.bouncy)
+          AppMotion.animate(AppMotion.bouncy, reduceMotion: reduceMotion) {
             revealedStagger = step
           }
         }
@@ -93,7 +94,8 @@ struct FabActionMenuOverlay: View {
         let target = count - 2 - step
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
           guard !isOpen else { return }
-          withAnimation(AppMotion.snappy) {
+          // SUBSTITUIDO_FASE5: withAnimation(AppMotion.snappy)
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
             revealedStagger = target
           }
         }

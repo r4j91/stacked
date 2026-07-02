@@ -78,8 +78,8 @@ final class FiltersStore {
         filterTasks.removeAll { $0.id == taskId }
       },
       persist: {
-        try await taskRepo.toggleTaskDone(id: taskId, done: true)
-        await loadDashboard()
+        try await self.taskRepo.toggleTaskDone(id: taskId, done: true)
+        await self.loadDashboard()
       },
       rollback: { [self] in
         var restored = snapshot

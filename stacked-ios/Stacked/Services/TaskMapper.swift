@@ -24,6 +24,8 @@ enum TaskMapper {
     }
 
     let commentCount = row.task_comments?.first?.count ?? 0
+    let due = parseDueDate(row.data_vencimento)
+    let timeDisplay = row.hora.map { formatTimeDisplay($0) }
 
     return Task(
       id: row.id,
@@ -34,9 +36,12 @@ enum TaskMapper {
       sectionId: row.section_id,
       priority: Priority.parse(row.prioridade),
       time: row.hora,
+      timeDisplay: timeDisplay,
       labels: labels,
       subtasks: subtasks,
-      dueDate: parseDueDate(row.data_vencimento),
+      dueDate: due,
+      dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
+      dueDateChipColor: due.map { dateColor(for: $0) },
       done: row.concluida ?? false,
       commentCount: commentCount,
       recurrence: row.recorrencia
@@ -44,7 +49,8 @@ enum TaskMapper {
   }
 
   private static func mapSubtask(_ row: SubtaskRowDTO) -> Subtask {
-    Subtask(
+    let due = parseDueDate(row.data_vencimento)
+    return Subtask(
       id: row.id,
       taskId: nil,
       title: row.titulo ?? "",
@@ -53,7 +59,9 @@ enum TaskMapper {
       priority: Priority.parse(row.prioridade),
       order: row.ordem ?? 0,
       valor: row.valor,
-      dueDate: parseDueDate(row.data_vencimento),
+      dueDate: due,
+      dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
+      dueDateChipColor: due.map { dateColor(for: $0) },
       labelIds: row.label_ids ?? []
     )
   }
@@ -182,6 +190,18 @@ enum TaskMapper {
       return "\(parts[0]):\(parts[1])"
     }
     return time
+  }
+
+  private static let dueDateMonthLabels = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+
+  /// Paridade TaskMetaLine.dueDateChipLabel — centralizado para memoização no mapRow.
+  static func dueDateChipLabel(for date: Date, now: Date = Date()) -> String {
+    let today = startOfDay(now)
+    let due = startOfDay(date)
+    if due == today { return "Hoje" }
+    let day = Calendar.current.component(.day, from: date)
+    let month = Calendar.current.component(.month, from: date)
+    return "\(day) \(dueDateMonthLabels[month - 1])"
   }
 
   static func groupTasksByDay(_ tasks: [Task]) -> [(day: Date, tasks: [Task])] {

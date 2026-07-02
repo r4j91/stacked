@@ -24,6 +24,21 @@ enum HapticService {
     heavyGen.prepare()
   }
 
+  /// FASE5: touch-down antes de trocar aba.
+  static func prepareTabChange() {
+    selectionGen.prepare()
+  }
+
+  /// FASE5: touch-down antes de abrir FAB.
+  static func prepareFabOpen() {
+    lightGen.prepare()
+  }
+
+  /// FASE5: touch-down no início do long-press do menu de contexto.
+  static func prepareContextMenu() {
+    mediumGen.prepare()
+  }
+
   static func selection() {
     selectionGen.selectionChanged()
   }
@@ -49,11 +64,13 @@ enum HapticService {
   }
 
   static func error() {
-    _Concurrency.Task { @MainActor in
-      heavyGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(100))
-      heavyGen.impactOccurred()
-    }
+    // SUBSTITUIDO_FASE5: double heavy assíncrono com sleep
+    // _Concurrency.Task { @MainActor in
+    //   heavyGen.impactOccurred()
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(100))
+    //   heavyGen.impactOccurred()
+    // }
+    heavyGen.impactOccurred()
   }
 
   static func taskCompleted() {
@@ -63,28 +80,33 @@ enum HapticService {
     // _Concurrency.Task { @MainActor in
     //   lightGen.impactOccurred()
     //   try? await _Concurrency.Task.sleep(for: .milliseconds(80))
-    _Concurrency.Task { @MainActor in
-      try? await _Concurrency.Task.sleep(for: .milliseconds(80))
-      mediumGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(80))
-      heavyGen.impactOccurred()
-    }
+    // SUBSTITUIDO_FASE5: follow-ups medium/heavy com sleeps dessincronizados
+    // _Concurrency.Task { @MainActor in
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(80))
+    //   mediumGen.impactOccurred()
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(80))
+    //   heavyGen.impactOccurred()
+    // }
   }
 
   static func taskCreated() {
-    _Concurrency.Task { @MainActor in
-      lightGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(60))
-      mediumGen.impactOccurred()
-    }
+    // SUBSTITUIDO_FASE5: light + medium com sleep
+    // _Concurrency.Task { @MainActor in
+    //   lightGen.impactOccurred()
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(60))
+    //   mediumGen.impactOccurred()
+    // }
+    mediumGen.impactOccurred()
   }
 
   static func taskDeleted() {
-    _Concurrency.Task { @MainActor in
-      heavyGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(50))
-      mediumGen.impactOccurred()
-    }
+    // SUBSTITUIDO_FASE5: heavy + medium com sleep
+    // _Concurrency.Task { @MainActor in
+    //   heavyGen.impactOccurred()
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(50))
+    //   mediumGen.impactOccurred()
+    // }
+    heavyGen.impactOccurred()
   }
 
   static func tabChanged() {

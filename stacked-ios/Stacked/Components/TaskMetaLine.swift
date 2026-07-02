@@ -6,6 +6,9 @@ struct TaskMetaLine: View {
 
   let labels: [TaskLabel]
   var dueDate: Date?
+  /// FASE5: quando presentes, evitam formatação no body.
+  var dueDateLabel: String? = nil
+  var dueDateColor: Color? = nil
   var subtasksDone: Int = 0
   var subtasksTotal: Int = 0
   var commentCount: Int = 0
@@ -62,20 +65,21 @@ struct TaskMetaLine: View {
   }
 
   private func dueDateChip(_ date: Date) -> some View {
-    let color = TaskMapper.dateColor(for: date)
-    let label = dueDateChipLabel(date)
+    let color = dueDateColor ?? TaskMapper.dateColor(for: date)
+    let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
     return TagChip(label: label, color: color, icon: .calendar)
   }
 
-  private func dueDateChipLabel(_ date: Date) -> String {
-    let today = Calendar.current.startOfDay(for: Date())
-    let due = Calendar.current.startOfDay(for: date)
-    if due == today { return "Hoje" }
-    let monthLabels = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-    let day = Calendar.current.component(.day, from: date)
-    let month = Calendar.current.component(.month, from: date)
-    return "\(day) \(monthLabels[month - 1])"
-  }
+  // SUBSTITUIDO_FASE5: formatação inline no body a cada render
+  // private func dueDateChipLabel(_ date: Date) -> String {
+  //   let today = Calendar.current.startOfDay(for: Date())
+  //   let due = Calendar.current.startOfDay(for: date)
+  //   if due == today { return "Hoje" }
+  //   let monthLabels = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+  //   let day = Calendar.current.component(.day, from: date)
+  //   let month = Calendar.current.component(.month, from: date)
+  //   return "\(day) \(monthLabels[month - 1])"
+  // }
 
   private func metaCounter(icon: StackedIconKey, value: String) -> some View {
     HStack(alignment: .center, spacing: 3) {

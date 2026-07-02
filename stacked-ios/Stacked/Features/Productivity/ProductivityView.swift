@@ -109,6 +109,7 @@ struct ProductivityView: View {
       ForEach(tabs.indices, id: \.self) { i in
         let active = tab == i
         Button {
+          HapticService.prepareTabChange()
           HapticService.tabChanged()
           // SUBSTITUIDO_FASE2: withAnimation(.easeOut(duration: 0.2)) { tab = i }
           AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { tab = i }

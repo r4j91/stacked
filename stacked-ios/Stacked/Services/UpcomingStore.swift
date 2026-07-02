@@ -94,7 +94,7 @@ final class UpcomingStore {
       animatedRemoval: { [self] in
         tasks.removeAll { $0.id == taskId }
       },
-      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
       rollback: { [self] in
         var restored = snapshot
         restored.done = false

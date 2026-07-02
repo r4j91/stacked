@@ -47,6 +47,7 @@ struct TaskContextMenu: ViewModifier {
         minimumDuration: TaskContextLift.minimumDuration,
         pressing: { pressing in
           if pressing {
+            HapticService.prepareContextMenu()
             guard liftPhase == .normal else { return }
             AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
               liftPhase = .pressing

@@ -40,7 +40,8 @@ struct TaskRow: View {
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
       guard task.subtasks.contains(where: { !$0.labelIds.isEmpty }), allLabels.isEmpty else { return }
-      labelCatalog = (try? await LabelRepository.shared.fetchLabels()) ?? []
+      // SUBSTITUIDO_FASE5: fetch por row — LabelRepository.shared.fetchLabels()
+      labelCatalog = await LabelCatalogCache.labels()
     }
   }
 
@@ -59,7 +60,8 @@ struct TaskRow: View {
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
       guard task.subtasks.contains(where: { !$0.labelIds.isEmpty }), allLabels.isEmpty else { return }
-      labelCatalog = (try? await LabelRepository.shared.fetchLabels()) ?? []
+      // SUBSTITUIDO_FASE5: fetch por row — LabelRepository.shared.fetchLabels()
+      labelCatalog = await LabelCatalogCache.labels()
     }
   }
 
@@ -129,6 +131,8 @@ struct TaskRow: View {
       TaskMetaLine(
         labels: task.labels,
         dueDate: task.dueDate,
+        dueDateLabel: task.dueDateChipLabel,
+        dueDateColor: task.dueDateChipColor,
         subtasksDone: subtasksDone.filter { $0 }.count,
         subtasksTotal: subtasksDone.count,
         commentCount: task.commentCount,
@@ -149,10 +153,11 @@ struct TaskRow: View {
 
       Spacer(minLength: 4)
 
-      if let time = task.time {
+      if let timeDisplay = task.timeDisplay {
         HStack(spacing: 2) {
           StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
-          Text(TaskMapper.formatTimeDisplay(time))
+          // SUBSTITUIDO_FASE5: TaskMapper.formatTimeDisplay(time) no body
+          Text(timeDisplay)
             .font(.system(size: 11))
             .foregroundStyle(c.textTertiary)
         }
@@ -214,7 +219,9 @@ struct TaskRow: View {
               if hasExtra {
                 TaskMetaLine(
                   labels: labels,
-                  dueDate: sub.dueDate
+                  dueDate: sub.dueDate,
+                  dueDateLabel: sub.dueDateChipLabel,
+                  dueDateColor: sub.dueDateChipColor
                 )
               }
             }

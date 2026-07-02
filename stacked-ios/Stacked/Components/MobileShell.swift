@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/widgets/responsive_layout.dart — extendBody + overlay no fundo da tela.
 struct MobileShell<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Binding var selectedTab: NavTab
   @Binding var fabOpen: Bool
   var hideBottomChrome: Bool = false
@@ -47,6 +48,7 @@ struct MobileShell<Content: View>: View {
           // (scrim z30 cobre nav; FAB z50 fica acima). Fusão nav↔FAB sólido não é perceptível.
           GlassEffectContainer(spacing: 36) {
             BottomNavPill(selectedTab: selectedTab) { tab in
+              HapticService.prepareTabChange()
               HapticService.tabChanged()
               PopoverPresenter.shared.dismiss()
               fabOpen = false
@@ -91,6 +93,7 @@ struct MobileShell<Content: View>: View {
         }
       }
     }
+    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: fabOpen)
     .ignoresSafeArea(edges: .bottom)
     .background(c.background.ignoresSafeArea())
   }

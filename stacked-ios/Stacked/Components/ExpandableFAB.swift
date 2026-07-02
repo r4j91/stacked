@@ -28,7 +28,7 @@ struct ExpandableFAB: View {
         .clipShape(Circle())
         .overlay(Circle().stroke(c.textPrimary.opacity(0.08), lineWidth: 0.8))
     }
-    .buttonStyle(PressableStyle(scale: 0.94))
+    .buttonStyle(PressableStyle(scale: 0.94, onPrepare: HapticService.prepareFabOpen))
     .accessibilityLabel(isOpen ? "Fechar menu de ações" : "Criar novo")
   }
 }

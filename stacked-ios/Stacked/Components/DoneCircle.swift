@@ -69,14 +69,11 @@ struct DoneCircle: View {
   }
 
   private func playCompleteAnimation() {
-    if reduceMotion {
-      syncVisualState(animated: false)
-      return
-    }
     fillScale = Self.completeBeginScale
     tickScale = 0.5
     tickOpacity = 0
-    withAnimation(AppMotion.bouncy) {
+    // SUBSTITUIDO_FASE5: withAnimation(AppMotion.bouncy) sem reduceMotion
+    AppMotion.animate(AppMotion.bouncy, reduceMotion: reduceMotion) {
       fillScale = 1
       tickScale = 1
       tickOpacity = 1

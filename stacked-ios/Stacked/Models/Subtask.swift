@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // Paridade lib/models/subtask.dart
 struct Subtask: Identifiable, Equatable {
@@ -11,6 +12,9 @@ struct Subtask: Identifiable, Equatable {
   let order: Int
   let valor: Double?
   let dueDate: Date?
+  /// FASE5: chip de vencimento memoizado em TaskMapper.mapSubtask.
+  var dueDateChipLabel: String? = nil
+  var dueDateChipColor: Color? = nil
   let labelIds: [String]
 
   var idOrFallback: String { id ?? UUID().uuidString }

@@ -77,7 +77,7 @@ final class TaskStore {
         }
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
       },
-      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
       rollback: { [self] in
         todayCompleted.removeAll { $0.id == taskId }
         var restored = snapshot
@@ -109,7 +109,7 @@ final class TaskStore {
           inboxCompleted.insert(updated, at: 0)
         }
       },
-      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
       rollback: { [self] in
         inboxCompleted.removeAll { $0.id == taskId }
         var restored = snapshot
