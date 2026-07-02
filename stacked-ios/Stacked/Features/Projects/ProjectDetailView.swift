@@ -18,6 +18,7 @@ struct ProjectDetailView: View {
   @State private var showProjectOptions = false
   @State private var showNewSection = false
   @State private var newSectionName = ""
+  @Namespace private var taskDetailZoom
 
   let projectColorHex: String?
 
@@ -208,10 +209,12 @@ struct ProjectDetailView: View {
       Button("Cancelar", role: .cancel) { newSectionName = "" }
     }
     .fullScreenCover(item: $detailRoute) { route in
-      TaskDetailView(taskId: route.taskId) {
-        _Concurrency.Task { await store.load() }
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId) {
+          _Concurrency.Task { await store.load() }
+        }
+        .environment(ThemeManager.shared)
       }
-      .environment(ThemeManager.shared)
     }
   }
 
@@ -280,6 +283,7 @@ struct ProjectDetailView: View {
       }
     )
     .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

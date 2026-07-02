@@ -45,7 +45,7 @@ struct FabActionMenuOverlay: View {
           .opacity(itemRevealed(displayIndex: index) ? 1 : 0)
           .scaleEffect(itemRevealed(displayIndex: index) ? 1 : 0.8)
           .animation(
-            itemAnimation(displayIndex: index),
+            reduceMotion ? nil : (revealedStagger < 0 ? AppMotion.snappy : AppMotion.bouncy),
             value: revealedStagger
           )
       }
@@ -68,14 +68,6 @@ struct FabActionMenuOverlay: View {
   private func itemRevealed(displayIndex: Int) -> Bool {
     guard !reduceMotion else { return isOpen }
     return itemStaggerOrder(displayIndex: displayIndex) <= revealedStagger
-  }
-
-  private func itemAnimation(displayIndex: Int) -> Animation? {
-    guard !reduceMotion else { return nil }
-    if revealedStagger < 0 {
-      return AppMotion.snappy
-    }
-    return AppMotion.bouncy
   }
 
   private func syncVisibility(_ open: Bool) {

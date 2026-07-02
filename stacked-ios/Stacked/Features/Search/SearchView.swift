@@ -65,6 +65,7 @@ struct SearchView: View {
   @State private var store = SearchStore.shared
   @State private var detailRoute: TaskDetailRoute?
   @FocusState private var searchFocused: Bool
+  @Namespace private var taskDetailZoom
 
   var body: some View {
     let c = theme.colors
@@ -97,6 +98,7 @@ struct SearchView: View {
                   TaskRow(task: task, onToggle: { }, onTap: {
                     detailRoute = TaskDetailRoute(taskId: task.id)
                   })
+                  .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
                   .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                   .listRowSeparator(.hidden)
                   .listRowBackground(Color.clear)
@@ -127,10 +129,12 @@ struct SearchView: View {
         searchFocused = true
       }
       .fullScreenCover(item: $detailRoute) { route in
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task { await store.load() }
+        TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+          TaskDetailView(taskId: route.taskId) {
+            _Concurrency.Task { await store.load() }
+          }
+          .environment(ThemeManager.shared)
         }
-        .environment(ThemeManager.shared)
       }
     }
   }

@@ -7,6 +7,7 @@ struct LogbookView: View {
   @State private var tasks: [Task] = []
   @State private var loading = true
   @State private var detailRoute: TaskDetailRoute?
+  @Namespace private var taskDetailZoom
 
   private static let months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -29,14 +30,14 @@ struct LogbookView: View {
             ForEach(keys, id: \.self) { key in
               Section {
                 ForEach(grouped.groups[key] ?? []) { task in
-                  TaskRow(task: task, onToggle: {})
+                  TaskRow(task: task, onToggle: {}, onTap: {
+                    detailRoute = TaskDetailRoute(taskId: task.id)
+                  })
+                    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
                     .opacity(0.85)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .onTapGesture {
-                      detailRoute = TaskDetailRoute(taskId: task.id)
-                    }
                 }
               } header: {
                 SectionLabel(text: key)
@@ -54,10 +55,12 @@ struct LogbookView: View {
       .refreshable { await load() }
       .task { await load() }
       .fullScreenCover(item: $detailRoute) { route in
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task { await load() }
+        TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+          TaskDetailView(taskId: route.taskId) {
+            _Concurrency.Task { await load() }
+          }
+          .environment(ThemeManager.shared)
         }
-        .environment(ThemeManager.shared)
       }
     }
   }

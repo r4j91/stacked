@@ -8,6 +8,7 @@ struct FiltersView: View {
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var selectedProject: ProjectRoute?
+  @Namespace private var taskDetailZoom
 
   var body: some View {
     NavigationStack {
@@ -34,15 +35,17 @@ struct FiltersView: View {
       }
     }
     .fullScreenCover(item: $detailRoute) { route in
-      TaskDetailView(taskId: route.taskId) {
-        _Concurrency.Task {
-          await store.loadDashboard()
-          if case .filter(let kind) = store.mode {
-            await store.openFilter(kind)
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId) {
+          _Concurrency.Task {
+            await store.loadDashboard()
+            if case .filter(let kind) = store.mode {
+              await store.openFilter(kind)
+            }
           }
         }
+        .environment(ThemeManager.shared)
       }
-      .environment(ThemeManager.shared)
     }
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask) {
@@ -361,6 +364,7 @@ struct FiltersView: View {
       subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
     })
     .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

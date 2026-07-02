@@ -9,6 +9,7 @@ struct TodayView: View {
   @State private var completedExpanded = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
+  @Namespace private var taskDetailZoom
 
   var body: some View {
     let c = theme.colors
@@ -108,13 +109,15 @@ struct TodayView: View {
     .refreshable { await store.loadToday() }
     .task { await store.loadToday() }
     .fullScreenCover(item: $detailRoute) { route in
-      TaskDetailView(taskId: route.taskId) {
-        _Concurrency.Task {
-          await store.loadToday()
-          await store.loadInbox()
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId) {
+          _Concurrency.Task {
+            await store.loadToday()
+            await store.loadInbox()
+          }
         }
+        .environment(ThemeManager.shared)
       }
-      .environment(ThemeManager.shared)
     }
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask) {
@@ -148,6 +151,7 @@ struct TodayView: View {
       _Concurrency.Task { await store.loadToday() }
     })
     .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
