@@ -31,16 +31,8 @@ struct TaskRow: View {
     return VStack(spacing: 0) {
       rowHeader(expandTrailing: 8, expandTop: 8)
 
-      if task.hasSubtasks {
-        subtaskList
-          .frame(maxHeight: expanded ? nil : 0, alignment: .top)
-          .clipped()
-          .opacity(expanded ? 1 : 0)
-          .allowsHitTesting(expanded)
-      }
+      subtasksExpansion
     }
-    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.22), value: expanded)
-    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
     .frame(minHeight: AppLayout.taskRowHeight)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -59,18 +51,10 @@ struct TaskRow: View {
       rowHeader(expandTrailing: 12, expandTop: 8)
         .opacity(task.done ? 0.45 : 1)
 
-      if task.hasSubtasks {
-        subtaskList
-          .frame(maxHeight: expanded ? nil : 0, alignment: .top)
-          .clipped()
-          .opacity(expanded ? 1 : 0)
-          .allowsHitTesting(expanded)
-      }
+      subtasksExpansion
 
       Divider().overlay(c.textTertiary.opacity(0.12))
     }
-    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.22), value: expanded)
-    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
@@ -118,6 +102,17 @@ struct TaskRow: View {
     }
     .frame(minHeight: AppLayout.taskRowHeight)
   }
+
+  @ViewBuilder
+  private var subtasksExpansion: some View {
+    if task.hasSubtasks, expanded {
+      subtaskList
+        .transition(Self.subtaskExpandTransition)
+    }
+  }
+
+  private static let subtaskExpandTransition: AnyTransition =
+    .opacity.combined(with: .move(edge: .top))
 
   @ViewBuilder
   private var rowTextContent: some View {
@@ -170,12 +165,15 @@ struct TaskRow: View {
     let c = theme.colors
     return Button {
       HapticService.selection()
-      expanded.toggle()
+      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+        expanded.toggle()
+      }
     } label: {
       StackedIcons.image(.chevronDown)
         .font(.system(size: 12, weight: .semibold))
         .foregroundStyle(c.textTertiary)
         .rotationEffect(.degrees(expanded ? 180 : 0))
+        .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
         .frame(width: 32, height: 32)
         .contentShape(Rectangle())
     }
@@ -274,6 +272,16 @@ struct TaskRow: View {
     }
   }
 }
+
+// SUBSTITUIDO_FASE3D: subtaskList com frame(maxHeight:) + clip + opacity + .animation no VStack pai
+// if task.hasSubtasks {
+//   subtaskList
+//     .frame(maxHeight: expanded ? nil : 0, alignment: .top)
+//     .clipped()
+//     .opacity(expanded ? 1 : 0)
+//     .allowsHitTesting(expanded)
+// }
+// .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
 
 enum TaskRowStyle {
   case card
