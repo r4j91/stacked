@@ -258,6 +258,7 @@ struct AnchoredTapButton<Label: View>: View {
   let action: (CGRect) -> Void
   @ViewBuilder let label: () -> Label
 
+  @Environment(\.popoverAnchorSpaceName) private var anchorSpaceName
   @State private var anchorRect: CGRect = .zero
 
   var body: some View {
@@ -270,10 +271,19 @@ struct AnchoredTapButton<Label: View>: View {
     .background {
       GeometryReader { geo in
         Color.clear
-          .onAppear { anchorRect = geo.frame(in: .global) }
-          .onChange(of: geo.frame(in: .global)) { _, frame in anchorRect = frame }
+          .onAppear { anchorRect = anchorFrame(in: geo) }
+          .onChange(of: geo.size) { _, _ in anchorRect = anchorFrame(in: geo) }
+          .onChange(of: anchorSpaceName) { _, _ in anchorRect = anchorFrame(in: geo) }
       }
     }
+  }
+
+  // SUBSTITUIDO_FASE8A: .global fora do sheet; .named(...) dentro do PopoverHostScope.
+  private func anchorFrame(in geo: GeometryProxy) -> CGRect {
+    if let anchorSpaceName {
+      return geo.frame(in: .named(anchorSpaceName))
+    }
+    return geo.frame(in: .global)
   }
 }
 
