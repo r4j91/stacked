@@ -4,7 +4,7 @@ import SwiftUI
 // FASE1: glass puro iOS 26 — uma camada `.glassEffect(.regular.tint(...))`, sem Material+fill empilhados.
 enum LiquidGlass {
   /// Tint leve (~12%) preserva identidade do tema sem matar translucidez.
-  fileprivate static let glassTintOpacity: CGFloat = 0.12
+  static let glassTintOpacity: CGFloat = 0.12
 
   @ViewBuilder
   static func navBarPill<Content: View>(
@@ -101,10 +101,16 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
         .clipShape(shape)
     } else {
       content
-        .glassEffect(
-          .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),
-          in: shape
-        )
+        .background {
+          shape
+            .fill(.clear)
+            .glassEffect(
+              .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),
+              in: shape
+            )
+            .allowsHitTesting(false)
+        }
+        .clipShape(shape)
     }
   }
 }

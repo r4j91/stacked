@@ -89,6 +89,7 @@ final class HomeStore {
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
     }
     isLoading = false
@@ -130,6 +131,7 @@ final class ProjectDetailStore {
       pending = try await pendingReq
       completed = try await completedReq
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
     }
     isLoading = false

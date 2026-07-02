@@ -65,6 +65,7 @@ final class UpcomingStore {
     do {
       tasks = try await repo.fetchDatedPendingTasks()
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
     }
     isLoading = false

@@ -37,6 +37,7 @@ final class FiltersStore {
       counts = try await countsReq
       projects = try await projectsReq
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       dashboardError = error.localizedDescription
     }
     dashboardLoading = false
@@ -51,6 +52,7 @@ final class FiltersStore {
     do {
       filterTasks = try await taskRepo.fetchFilteredTasks(kind: kind, todayStr: todayStr, weekStr: weekStr)
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       filterError = error.localizedDescription
     }
     filterLoading = false

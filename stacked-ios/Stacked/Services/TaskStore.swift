@@ -35,6 +35,7 @@ final class TaskStore {
       todayCompleted = c
       WidgetSnapshotSync.updateFromToday(pending: p, completed: c)
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       todayError = error.localizedDescription
     }
     todayLoading = false
@@ -50,6 +51,7 @@ final class TaskStore {
       inboxPending = p
       inboxCompleted = c
     } catch {
+      if AsyncLoad.isCancellation(error) { return }
       inboxError = error.localizedDescription
     }
     inboxLoading = false

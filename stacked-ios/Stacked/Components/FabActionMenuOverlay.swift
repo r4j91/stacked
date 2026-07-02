@@ -32,9 +32,9 @@ struct FabActionMenuOverlay: View {
 
   private var menuEntries: [(String, StackedIconKey, () -> Void)] {
     [
-      ("Buscar", .search, { isOpen = false; onSearch() }),
-      ("Novo projeto", .newProject, { isOpen = false; onNewProject() }),
-      ("Nova tarefa", .newTask, { isOpen = false; onNewTask() }),
+      ("Buscar", .search, { closeMenu(); onSearch() }),
+      ("Novo projeto", .newProject, { closeMenu(); onNewProject() }),
+      ("Nova tarefa", .newTask, { closeMenu(); onNewTask() }),
     ]
   }
 
@@ -52,8 +52,7 @@ struct FabActionMenuOverlay: View {
     }
     .padding(.trailing, AppLayout.fabSideMargin)
     .padding(.bottom, menuBottomInset)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-    .allowsHitTesting(isOpen && revealedStagger >= 0)
+    .allowsHitTesting(isOpen)
     .onAppear { syncVisibility(isOpen) }
     .onChange(of: isOpen) { _, open in
       syncVisibility(open)
@@ -68,6 +67,11 @@ struct FabActionMenuOverlay: View {
   private func itemRevealed(displayIndex: Int) -> Bool {
     guard !reduceMotion else { return isOpen }
     return itemStaggerOrder(displayIndex: displayIndex) <= revealedStagger
+  }
+
+  private func closeMenu() {
+    isOpen = false
+    MobileChromeController.shared.closeFabMenu()
   }
 
   private func syncVisibility(_ open: Bool) {

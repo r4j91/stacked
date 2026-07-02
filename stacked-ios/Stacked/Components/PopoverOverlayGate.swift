@@ -5,8 +5,11 @@ struct PopoverOverlayGate: View {
   @Bindable private var presenter = PopoverPresenter.shared
 
   var body: some View {
-    if presenter.isPresented {
-      PopoverOverlayHost()
+    Group {
+      if presenter.isPresented {
+        PopoverOverlayHost()
+      }
     }
+    .allowsHitTesting(presenter.isPresented)
   }
 }

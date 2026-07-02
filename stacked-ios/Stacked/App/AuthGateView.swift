@@ -12,6 +12,7 @@ struct AuthGateView: View {
         loadingView
       } else if auth.isAuthenticated {
         RootView()
+          .environment(MobileChromeController.shared)
       } else {
         AuthView()
       }

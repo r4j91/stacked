@@ -2,34 +2,33 @@ import SwiftUI
 
 // Paridade lib/main.dart RootScreen + ResponsiveLayout (mobile)
 struct RootView: View {
-  @State private var selectedTab: NavTab = .home
+  @Environment(MobileChromeController.self) private var chrome
   @State private var showSearch = false
   @State private var showQuickAdd = false
   @State private var showNewProject = false
-  @State private var fabOpen = false
   @State private var router = AppNavigationRouter.shared
 
   var body: some View {
+    @Bindable var chrome = chrome
+    let currentTab = chrome.selectedTab
+
     MobileShell(
-      selectedTab: $selectedTab,
-      fabOpen: $fabOpen,
       onNewTask: { openQuickAdd() },
       onSearch: { showSearch = true },
       onNewProject: { showNewProject = true }
     ) {
-      tabContent(for: selectedTab)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      RootTabContent()
     }
-    .onChange(of: selectedTab) { _, _ in
-      dismissOverlays()
+    .onChange(of: currentTab) { _, tab in
+      reloadData(for: tab)
     }
     .onChange(of: router.pendingTab) { _, tab in
-      if let tab { selectedTab = tab }
+      if let tab { chrome.selectTab(tab) }
     }
     .onChange(of: router.pendingOpenSearch) { _, open in
       if open { showSearch = true }
     }
-    .task { reloadData(for: selectedTab) }
+    .task { reloadData(for: currentTab) }
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
@@ -56,25 +55,9 @@ struct RootView: View {
   }
 
   private func openQuickAdd() {
-    fabOpen = false
+    chrome.closeFabMenu()
     PopoverPresenter.shared.dismiss()
     showQuickAdd = true
-  }
-
-  private func dismissOverlays() {
-    fabOpen = false
-    PopoverPresenter.shared.dismiss()
-  }
-
-  @ViewBuilder
-  private func tabContent(for tab: NavTab) -> some View {
-    switch tab {
-    case .home: HomeView(onNavigateToTab: { selectedTab = $0 })
-    case .inbox: InboxView()
-    case .today: TodayView()
-    case .upcoming: UpcomingView()
-    case .filters: FiltersView()
-    }
   }
 
   private func reloadData(for tab: NavTab) {
@@ -90,12 +73,32 @@ struct RootView: View {
   }
 
   private func reloadAll() {
-    reloadData(for: selectedTab)
+    reloadData(for: chrome.selectedTab)
     _Concurrency.Task {
       await TaskStore.shared.loadToday()
       await TaskStore.shared.loadInbox()
       await UpcomingStore.shared.load()
       await HomeStore.shared.load()
+    }
+  }
+}
+
+/// Conteúdo por aba — lê `selectedTab` do environment para reagir a toques UIKit no dock.
+struct RootTabContent: View {
+  @Environment(MobileChromeController.self) private var chrome
+
+  var body: some View {
+    switch chrome.selectedTab {
+    case .home:
+      HomeView(onNavigateToTab: { chrome.selectTab($0) })
+    case .inbox:
+      InboxView()
+    case .today:
+      TodayView()
+    case .upcoming:
+      UpcomingView()
+    case .filters:
+      FiltersView()
     }
   }
 }
