@@ -72,13 +72,24 @@ final class PopoverPresenter {
 struct PopoverOverlayHost: View {
   var presenter: PopoverPresenter = .shared
   var hostBounds: CGRect = .zero
+  /// Deslocamento Y da âncora (sheet) para o espaço expandido do overlay local.
+  var anchorYOffset: CGFloat = 0
+  /// Sheet escopado: sempre abrir acima — não há espaço útil abaixo da âncora com teclado.
+  var forcePreferAbove: Bool = false
 
   @Bindable private var boundPresenter: PopoverPresenter
   @State private var keyboardHeight: CGFloat = 0
 
-  init(presenter: PopoverPresenter = .shared, hostBounds: CGRect = .zero) {
+  init(
+    presenter: PopoverPresenter = .shared,
+    hostBounds: CGRect = .zero,
+    anchorYOffset: CGFloat = 0,
+    forcePreferAbove: Bool = false
+  ) {
     self.presenter = presenter
     self.hostBounds = hostBounds
+    self.anchorYOffset = anchorYOffset
+    self.forcePreferAbove = forcePreferAbove
     _boundPresenter = Bindable(presenter)
   }
 
@@ -87,8 +98,10 @@ struct PopoverOverlayHost: View {
       if boundPresenter.isPresented {
         StackedPopoverOverlay(
           anchorRect: boundPresenter.anchorRect,
-          keyboardHeight: keyboardHeight,
+          keyboardHeight: forcePreferAbove ? 0 : keyboardHeight,
           hostBounds: resolvedHostBounds,
+          anchorYOffset: anchorYOffset,
+          forcePreferAbove: forcePreferAbove,
           preferAbove: boundPresenter.preferAbove,
           rootItems: boundPresenter.items,
           allowsToggle: boundPresenter.allowsToggle

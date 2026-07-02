@@ -20,6 +20,10 @@ struct StackedPopoverOverlay: View {
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
   var hostBounds: CGRect = UIScreen.main.bounds
+  /// Offset da âncora no espaço do host expandido (popover escopado em sheet).
+  var anchorYOffset: CGFloat = 0
+  /// Host de sheet: força abertura acima da âncora (teclado ocupa tudo abaixo).
+  var forcePreferAbove: Bool = false
   var preferAbove = false
   let rootItems: [PopoverMenuItem]
   let allowsToggle: Bool
@@ -55,8 +59,12 @@ struct StackedPopoverOverlay: View {
   private var currentPage: PopoverMenuPage { pageStack.last ?? PopoverMenuPage(title: nil, items: []) }
 
   private var localAnchorRect: CGRect {
-    guard hostBounds.width > 1, hostBounds.height > 1 else { return anchorRect }
-    return anchorRect.offsetBy(dx: -hostBounds.minX, dy: -hostBounds.minY)
+    var rect = anchorRect
+    if anchorYOffset > 0 {
+      rect = rect.offsetBy(dx: 0, dy: anchorYOffset)
+    }
+    guard hostBounds.width > 1, hostBounds.height > 1 else { return rect }
+    return rect.offsetBy(dx: -hostBounds.minX, dy: -hostBounds.minY)
   }
 
   private var layoutSize: CGSize {
@@ -64,14 +72,17 @@ struct StackedPopoverOverlay: View {
   }
 
   private var showsAbove: Bool {
+    if forcePreferAbove { return true }
     let anchor = localAnchorRect
     let screen = layoutSize
     let h = menuHeight
     let keyboardTop = screen.height - keyboardHeight
     let spaceBelow = keyboardTop - anchor.maxY - 10
-    let spaceAbove = anchor.minY - 60
+    let spaceAbove = anchor.minY - topInset
     return preferAbove || keyboardHeight > 0 || spaceBelow < h + 8 || spaceBelow < spaceAbove
   }
+
+  private var topInset: CGFloat { forcePreferAbove ? 8 : 60 }
 
   private var scaleAnchor: UnitPoint {
     showsAbove ? .bottomLeading : .topLeading
@@ -96,7 +107,7 @@ struct StackedPopoverOverlay: View {
 
     let top: CGFloat
     if showsAbove {
-      top = max(anchor.minY - h - 8, 60)
+      top = max(anchor.minY - h - 8, topInset)
     } else {
       top = min(anchor.maxY + 4, keyboardTop - h - 10)
     }

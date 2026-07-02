@@ -34,6 +34,15 @@ enum PopoverHostRegistry {
 struct PopoverHostScope: ViewModifier {
   let coordinateSpaceName: String
 
+  /// Espaço acima do sheet para o menu nascer acima da âncora (fora do clip do painel).
+  private var expansionTop: CGFloat {
+    coordinateSpaceName == "quickAddSheet" ? 340 : 0
+  }
+
+  private var forcePreferAbove: Bool {
+    coordinateSpaceName == "quickAddSheet"
+  }
+
   @State private var presenter = PopoverPresenter()
   @State private var hostBounds: CGRect = .zero
 
@@ -50,8 +59,21 @@ struct PopoverHostScope: ViewModifier {
             }
         }
       }
+      // SUBSTITUIDO_FASE8A: overlay expande para cima — host local não cabe menu acima da âncora.
       .overlay {
-        PopoverOverlayHost(presenter: presenter, hostBounds: hostBounds)
+        GeometryReader { geo in
+          let w = geo.size.width
+          let h = geo.size.height
+          let expand = expansionTop
+          PopoverOverlayHost(
+            presenter: presenter,
+            hostBounds: CGRect(x: 0, y: 0, width: w, height: h + expand),
+            anchorYOffset: expand,
+            forcePreferAbove: forcePreferAbove
+          )
+          .frame(width: w, height: h + expand, alignment: .bottom)
+          .offset(y: -expand)
+        }
       }
       .onAppear { PopoverHostRegistry.push(presenter) }
       .onDisappear {
