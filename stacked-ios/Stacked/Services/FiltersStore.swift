@@ -63,12 +63,30 @@ final class FiltersStore {
   }
 
   func complete(_ task: Task) {
-    filterTasks.removeAll { $0.id == task.id }
+    guard let i = filterTasks.firstIndex(where: { $0.id == task.id }) else { return }
+    guard !filterTasks[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = filterTasks[i]
+    let taskId = task.id
+
+    filterTasks[i].done = true
     HapticService.taskCompleted()
-    _Concurrency.Task {
-      try? await taskRepo.toggleTaskDone(id: task.id, done: true)
-      await loadDashboard()
-    }
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        filterTasks.removeAll { $0.id == taskId }
+      },
+      persist: {
+        try await taskRepo.toggleTaskDone(id: taskId, done: true)
+        await loadDashboard()
+      },
+      rollback: { [self] in
+        var restored = snapshot
+        restored.done = false
+        filterTasks.insert(restored, at: min(originalIndex, filterTasks.count))
+      }
+    )
   }
 
   func delete(_ task: Task) {

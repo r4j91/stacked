@@ -57,45 +57,66 @@ final class TaskStore {
 
   func completeToday(_ task: Task) {
     guard let i = todayPending.firstIndex(where: { $0.id == task.id }) else { return }
-    var updated = todayPending[i]
-    updated.done = true
-    todayPending.remove(at: i)
-    if !todayCompleted.contains(where: { $0.id == task.id }) {
-      todayCompleted.insert(updated, at: 0)
-    }
+    guard !todayPending[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = todayPending[i]
+    let taskId = task.id
+
+    todayPending[i].done = true
     HapticService.taskCompleted()
-    WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
-    _Concurrency.Task {
-      do {
-        try await repo.toggleTaskDone(id: task.id, done: true)
-      } catch {
-        await MainActor.run {
-          todayCompleted.removeAll { $0.id == task.id }
-          todayPending.insert(task, at: min(i, todayPending.count))
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        guard let idx = todayPending.firstIndex(where: { $0.id == taskId }) else { return }
+        var updated = todayPending[idx]
+        updated.done = true
+        todayPending.remove(at: idx)
+        if !todayCompleted.contains(where: { $0.id == taskId }) {
+          todayCompleted.insert(updated, at: 0)
         }
+        WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+      },
+      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      rollback: { [self] in
+        todayCompleted.removeAll { $0.id == taskId }
+        var restored = snapshot
+        restored.done = false
+        todayPending.insert(restored, at: min(originalIndex, todayPending.count))
+        WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
       }
-    }
+    )
   }
 
   func completeInbox(_ task: Task) {
     guard let i = inboxPending.firstIndex(where: { $0.id == task.id }) else { return }
-    var updated = inboxPending[i]
-    updated.done = true
-    inboxPending.remove(at: i)
-    if !inboxCompleted.contains(where: { $0.id == task.id }) {
-      inboxCompleted.insert(updated, at: 0)
-    }
+    guard !inboxPending[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = inboxPending[i]
+    let taskId = task.id
+
+    inboxPending[i].done = true
     HapticService.taskCompleted()
-    _Concurrency.Task {
-      do {
-        try await repo.toggleTaskDone(id: task.id, done: true)
-      } catch {
-        await MainActor.run {
-          inboxCompleted.removeAll { $0.id == task.id }
-          inboxPending.insert(task, at: min(i, inboxPending.count))
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        guard let idx = inboxPending.firstIndex(where: { $0.id == taskId }) else { return }
+        var updated = inboxPending[idx]
+        updated.done = true
+        inboxPending.remove(at: idx)
+        if !inboxCompleted.contains(where: { $0.id == taskId }) {
+          inboxCompleted.insert(updated, at: 0)
         }
+      },
+      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      rollback: { [self] in
+        inboxCompleted.removeAll { $0.id == taskId }
+        var restored = snapshot
+        restored.done = false
+        inboxPending.insert(restored, at: min(originalIndex, inboxPending.count))
       }
-    }
+    )
   }
 
   func deleteToday(_ task: Task) {
@@ -146,3 +167,12 @@ final class TaskStore {
     }
   }
 }
+
+// SUBSTITUIDO_FASE3B: remoção imediata do pending no mesmo frame do tap
+// func completeToday(_ task: Task) {
+//   guard let i = todayPending.firstIndex(where: { $0.id == task.id }) else { return }
+//   var updated = todayPending[i]
+//   updated.done = true
+//   todayPending.remove(at: i)
+//   ...
+// }

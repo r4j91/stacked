@@ -48,6 +48,9 @@ enum AppMotion {
   static let popoverPresentDuration: TimeInterval = 0.16
   static let popoverDismissDuration: TimeInterval = 0.12
 
+  /// Permanência do check preenchido antes da saída da célula (Fase 3B).
+  static let taskCompleteDwell: Duration = .milliseconds(300)
+
   // MARK: - Reduce Motion (decisão centralizada)
 
   static func snappy(reduceMotion: Bool) -> Animation? {

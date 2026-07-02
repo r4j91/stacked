@@ -278,6 +278,8 @@ struct ProjectDetailView: View {
         _Concurrency.Task { await store.load() }
       }
     )
+    .id(task.id)
+    .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)

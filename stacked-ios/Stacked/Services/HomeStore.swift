@@ -140,14 +140,31 @@ final class ProjectDetailStore {
 
   func complete(_ task: Task) {
     guard let i = pending.firstIndex(where: { $0.id == task.id }) else { return }
-    var updated = pending[i]
-    updated.done = true
-    pending.remove(at: i)
-    completed.insert(updated, at: 0)
+    guard !pending[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = pending[i]
+    let taskId = task.id
+
+    pending[i].done = true
     HapticService.taskCompleted()
-    _Concurrency.Task {
-      try? await TaskRepository.shared.toggleTaskDone(id: task.id, done: true)
-    }
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        guard let idx = pending.firstIndex(where: { $0.id == taskId }) else { return }
+        var updated = pending[idx]
+        updated.done = true
+        pending.remove(at: idx)
+        completed.insert(updated, at: 0)
+      },
+      persist: { try await TaskRepository.shared.toggleTaskDone(id: taskId, done: true) },
+      rollback: { [self] in
+        completed.removeAll { $0.id == taskId }
+        var restored = snapshot
+        restored.done = false
+        pending.insert(restored, at: min(originalIndex, pending.count))
+      }
+    )
   }
 
   func delete(_ task: Task) {

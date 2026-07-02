@@ -125,6 +125,8 @@ struct InboxView: View {
     }, onSubtaskChanged: {
       _Concurrency.Task { await store.loadInbox() }
     })
+    .id(task.id)
+    .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)

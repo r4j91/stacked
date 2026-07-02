@@ -80,11 +80,27 @@ final class UpcomingStore {
   }
 
   func complete(_ task: Task) {
-    tasks.removeAll { $0.id == task.id }
+    guard let i = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+    guard !tasks[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = tasks[i]
+    let taskId = task.id
+
+    tasks[i].done = true
     HapticService.taskCompleted()
-    _Concurrency.Task {
-      try? await repo.toggleTaskDone(id: task.id, done: true)
-    }
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        tasks.removeAll { $0.id == taskId }
+      },
+      persist: { try await repo.toggleTaskDone(id: taskId, done: true) },
+      rollback: { [self] in
+        var restored = snapshot
+        restored.done = false
+        tasks.insert(restored, at: min(originalIndex, tasks.count))
+      }
+    )
   }
 
   func delete(_ task: Task) {

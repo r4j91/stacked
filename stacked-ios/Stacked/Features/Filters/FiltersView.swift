@@ -360,6 +360,8 @@ struct FiltersView: View {
     }, onSubtaskTap: { sub in
       subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
     })
+    .id(task.id)
+    .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
