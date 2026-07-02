@@ -354,7 +354,6 @@ struct FiltersView: View {
   @ViewBuilder
   private func filterTaskRow(_ task: Task, canPostpone: Bool) -> some View {
     TaskRow(task: task, onToggle: {
-      HapticService.light()
       store.complete(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

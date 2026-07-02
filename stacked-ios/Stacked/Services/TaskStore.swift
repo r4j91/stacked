@@ -85,6 +85,7 @@ final class TaskStore {
     if !inboxCompleted.contains(where: { $0.id == task.id }) {
       inboxCompleted.insert(updated, at: 0)
     }
+    HapticService.taskCompleted()
     _Concurrency.Task {
       do {
         try await repo.toggleTaskDone(id: task.id, done: true)

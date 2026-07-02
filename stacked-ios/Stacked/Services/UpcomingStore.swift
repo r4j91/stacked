@@ -81,6 +81,7 @@ final class UpcomingStore {
 
   func complete(_ task: Task) {
     tasks.removeAll { $0.id == task.id }
+    HapticService.taskCompleted()
     _Concurrency.Task {
       try? await repo.toggleTaskDone(id: task.id, done: true)
     }

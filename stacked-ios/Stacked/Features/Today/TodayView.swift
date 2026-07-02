@@ -139,7 +139,6 @@ struct TodayView: View {
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
     TaskRow(task: task, onToggle: {
-      HapticService.light()
       store.completeToday(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

@@ -17,6 +17,13 @@ enum HapticService {
     notificationGen.prepare()
   }
 
+  /// Touch-down no check de tarefa — latência zero no impact do frame 0.
+  static func prepareTaskComplete() {
+    lightGen.prepare()
+    mediumGen.prepare()
+    heavyGen.prepare()
+  }
+
   static func selection() {
     selectionGen.selectionChanged()
   }
@@ -50,8 +57,13 @@ enum HapticService {
   }
 
   static func taskCompleted() {
+    // Frame 0 — síncrono com o início do preenchimento visual.
+    lightGen.impactOccurred()
+    // SUBSTITUIDO_FASE3A: sequência inteira assíncrona (primeiro impact atrasado ~1 frame)
+    // _Concurrency.Task { @MainActor in
+    //   lightGen.impactOccurred()
+    //   try? await _Concurrency.Task.sleep(for: .milliseconds(80))
     _Concurrency.Task { @MainActor in
-      lightGen.impactOccurred()
       try? await _Concurrency.Task.sleep(for: .milliseconds(80))
       mediumGen.impactOccurred()
       try? await _Concurrency.Task.sleep(for: .milliseconds(80))

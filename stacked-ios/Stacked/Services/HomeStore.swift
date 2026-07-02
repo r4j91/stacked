@@ -144,6 +144,7 @@ final class ProjectDetailStore {
     updated.done = true
     pending.remove(at: i)
     completed.insert(updated, at: 0)
+    HapticService.taskCompleted()
     _Concurrency.Task {
       try? await TaskRepository.shared.toggleTaskDone(id: task.id, done: true)
     }

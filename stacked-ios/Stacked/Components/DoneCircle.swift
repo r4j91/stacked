@@ -10,30 +10,82 @@ struct DoneCircle: View {
   var ringColor: Color = Color(hex: 0x6B6E76)
   var ringFillAlpha: CGFloat = 0
 
+  @State private var fillScale: CGFloat = 1
+  @State private var tickScale: CGFloat = 1
+  @State private var tickOpacity: Double = 1
+
   private static let doneColor = AppColors.success
+  private static let completeBeginScale: CGFloat = 0.6
 
   var body: some View {
-    Group {
+    ZStack {
       if done {
         Circle()
           .fill(Self.doneColor.opacity(0.15))
           .overlay(
             Circle().strokeBorder(Self.doneColor, lineWidth: borderWidth)
           )
-          .frame(width: size, height: size)
-          .overlay {
-            StackedIcons.icon(.check, size: tickSize, color: Self.doneColor)
-          }
+          .scaleEffect(fillScale)
+
+        StackedIcons.icon(.check, size: tickSize, color: Self.doneColor)
+          .scaleEffect(tickScale)
+          .opacity(tickOpacity)
       } else {
         Circle()
           .fill(ringFillAlpha > 0 ? ringColor.opacity(ringFillAlpha) : .clear)
           .overlay(
             Circle().strokeBorder(ringColor, lineWidth: borderWidth)
           )
-          .frame(width: size, height: size)
       }
     }
-    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.15), value: done)
-    .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: done)
+    .frame(width: size, height: size)
+    .onAppear { syncVisualState(animated: false) }
+    .onChange(of: done) { wasDone, isDone in
+      if isDone && !wasDone {
+        playCompleteAnimation()
+      } else if !isDone && wasDone {
+        resetVisualState()
+      }
+    }
+  }
+
+  private func syncVisualState(animated: Bool) {
+    if done {
+      fillScale = 1
+      tickScale = 1
+      tickOpacity = 1
+    } else {
+      fillScale = 1
+      tickScale = 0
+      tickOpacity = 0
+    }
+    _ = animated
+  }
+
+  private func resetVisualState() {
+    fillScale = 1
+    tickScale = 0
+    tickOpacity = 0
+  }
+
+  private func playCompleteAnimation() {
+    if reduceMotion {
+      syncVisualState(animated: false)
+      return
+    }
+    fillScale = Self.completeBeginScale
+    tickScale = 0.5
+    tickOpacity = 0
+    withAnimation(AppMotion.bouncy) {
+      fillScale = 1
+      tickScale = 1
+      tickOpacity = 1
+    }
   }
 }
+
+// SUBSTITUIDO_FASE3A: Group if/else + .animation(AppMotion.snappy(reduceMotion:), value: done)
+// Group {
+//   if done { Circle()... } else { Circle()... }
+// }
+// .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: done)

@@ -189,7 +189,6 @@ struct UpcomingView: View {
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
     TaskRow(task: task, onToggle: {
-      HapticService.light()
       store.complete(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

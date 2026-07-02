@@ -117,7 +117,6 @@ struct InboxView: View {
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
     TaskRow(task: task, onToggle: {
-      HapticService.light()
       store.completeInbox(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

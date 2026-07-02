@@ -34,7 +34,7 @@ struct TaskRow: View {
           PriorityDot(priority: task.priority, done: task.done)
             .padding(12)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
 
         VStack(alignment: .leading, spacing: 0) {
           titleRow
@@ -96,7 +96,7 @@ struct TaskRow: View {
           PriorityDot(priority: task.priority, done: task.done)
             .padding(12)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
 
         VStack(alignment: .leading, spacing: 0) {
           titleRow
@@ -196,7 +196,7 @@ struct TaskRow: View {
               .padding(.horizontal, 4)
               .padding(.vertical, hasExtra ? 13 : 0)
           }
-          .buttonStyle(.plain)
+          .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
 
           VStack(alignment: .leading, spacing: 0) {
             Text(sub.title)
@@ -256,9 +256,13 @@ struct TaskRow: View {
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
     guard let id = sub.id, index < subtasksDone.count else { return }
-    HapticService.light()
-    subtasksDone[index] = !subtasksDone[index]
-    let newDone = subtasksDone[index]
+    let newDone = !subtasksDone[index]
+    if newDone {
+      HapticService.taskCompleted()
+    } else {
+      HapticService.light()
+    }
+    subtasksDone[index] = newDone
     _Concurrency.Task {
       try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
       onSubtaskChanged?()

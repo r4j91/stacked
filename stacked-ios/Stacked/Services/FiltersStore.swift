@@ -64,6 +64,7 @@ final class FiltersStore {
 
   func complete(_ task: Task) {
     filterTasks.removeAll { $0.id == task.id }
+    HapticService.taskCompleted()
     _Concurrency.Task {
       try? await taskRepo.toggleTaskDone(id: task.id, done: true)
       await loadDashboard()

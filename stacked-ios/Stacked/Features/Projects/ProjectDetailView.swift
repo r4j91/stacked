@@ -266,7 +266,6 @@ struct ProjectDetailView: View {
       style: isListMode ? .list : .card,
       showProject: false,
       onToggle: {
-        HapticService.light()
         store.complete(task)
       },
       onTap: {
