@@ -1,8 +1,26 @@
 import SwiftUI
 import Hugeicons
 
+// Fase 4A — lift progressivo estilo Flutter task_context_menu.dart
+private enum TaskContextLift {
+  static let minimumDuration: Double = 0.35
+  static let scale: CGFloat = 1.02
+  static let offsetY: CGFloat = -5
+  static let shadowOpacity: Double = 0.16
+  static let shadowRadius: CGFloat = 10
+  static let shadowY: CGFloat = 5
+}
+
+private enum TaskContextLiftPhase: Equatable {
+  case normal
+  case pressing
+  case menuOpen
+}
+
 // Paridade lib/widgets/task_context_menu.dart
 struct TaskContextMenu: ViewModifier {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   let task: Task
   var onEdit: () -> Void
   var onComplete: () -> Void
@@ -11,20 +29,65 @@ struct TaskContextMenu: ViewModifier {
   var onRefresh: () -> Void
 
   @State private var anchorFrame: CGRect = .zero
+  @State private var liftPhase: TaskContextLiftPhase = .normal
 
   func body(content: Content) -> some View {
     content
       .readAnchor($anchorFrame)
-      .onLongPressGesture(minimumDuration: 0.45) {
-        HapticService.light()
-        PopoverPresenter.shared.present(
-          anchor: CGPoint(x: anchorFrame.midX, y: anchorFrame.midY),
-          items: menuItems
-        ) { result in
-          guard let result else { return }
-          handle(result)
-        }
+      .scaleEffect(liftScale)
+      .offset(y: liftOffset)
+      .shadow(
+        color: .black.opacity(isLifted && !reduceMotion ? TaskContextLift.shadowOpacity : 0),
+        radius: isLifted && !reduceMotion ? TaskContextLift.shadowRadius : 0,
+        y: isLifted && !reduceMotion ? TaskContextLift.shadowY : 0
+      )
+      .zIndex(isLifted ? 1 : 0)
+      .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: liftPhase)
+      .onLongPressGesture(
+        minimumDuration: TaskContextLift.minimumDuration,
+        pressing: { pressing in
+          if pressing {
+            guard liftPhase == .normal else { return }
+            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+              liftPhase = .pressing
+            }
+          } else if liftPhase == .pressing {
+            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+              liftPhase = .normal
+            }
+          }
+        },
+        perform: openContextMenu
+      )
+  }
+
+  private var isLifted: Bool {
+    liftPhase != .normal
+  }
+
+  private var liftScale: CGFloat {
+    guard !reduceMotion, isLifted else { return 1 }
+    return TaskContextLift.scale
+  }
+
+  private var liftOffset: CGFloat {
+    guard !reduceMotion, isLifted else { return 0 }
+    return TaskContextLift.offsetY
+  }
+
+  private func openContextMenu() {
+    HapticService.medium()
+    liftPhase = .menuOpen
+    PopoverPresenter.shared.present(
+      anchor: CGPoint(x: anchorFrame.midX, y: anchorFrame.midY),
+      items: menuItems
+    ) { result in
+      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+        liftPhase = .normal
       }
+      guard let result else { return }
+      handle(result)
+    }
   }
 
   private var menuItems: [PopoverMenuItem] {
@@ -116,6 +179,12 @@ struct TaskContextMenu: ViewModifier {
     }
   }
 }
+
+// SUBSTITUIDO_FASE4A: onLongPressGesture(0.45) sem lift + HapticService.light()
+// .onLongPressGesture(minimumDuration: 0.45) {
+//   HapticService.light()
+//   PopoverPresenter.shared.present(...) { result in ... }
+// }
 
 extension View {
   func taskContextMenu(
