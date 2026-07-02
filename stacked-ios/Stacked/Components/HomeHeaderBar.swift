@@ -24,7 +24,7 @@ struct HomeHeaderBar: View {
           .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
         }
       }
-      .buttonStyle(.plain)
+      .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
       .accessibilityLabel("Relatório de produtividade")
 
       Spacer()
@@ -52,6 +52,6 @@ struct HomeHeaderBar: View {
         .foregroundStyle(theme.colors.textSecondary)
         .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
     }
-    .buttonStyle(.plain)
+    .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
   }
 }

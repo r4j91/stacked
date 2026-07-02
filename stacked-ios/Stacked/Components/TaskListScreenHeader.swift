@@ -34,7 +34,7 @@ struct TaskListScreenHeader: View {
           .frame(width: 44, height: 44)
           .contentShape(Rectangle())
       }
-      .buttonStyle(.plain)
+      .buttonStyle(PressableStyle(cornerRadius: 10))
       .readAnchor($optionsAnchor)
       .accessibilityLabel("Opções")
     }

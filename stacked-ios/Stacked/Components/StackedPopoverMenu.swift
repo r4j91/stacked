@@ -246,20 +246,33 @@ struct AnchoredTapButton<Label: View>: View {
   let action: (CGRect) -> Void
   @ViewBuilder let label: () -> Label
 
+  @State private var anchorRect: CGRect = .zero
+
   var body: some View {
-    label()
-      .overlay {
-        GeometryReader { geo in
-          Button {
-            action(geo.frame(in: .global))
-          } label: {
-            Color.clear.contentShape(Rectangle())
-          }
-          .buttonStyle(.plain)
-        }
+    Button {
+      action(anchorRect)
+    } label: {
+      label()
+    }
+    .buttonStyle(PressableStyle(cornerRadius: 22))
+    .background {
+      GeometryReader { geo in
+        Color.clear
+          .onAppear { anchorRect = geo.frame(in: .global) }
+          .onChange(of: geo.frame(in: .global)) { _, frame in anchorRect = frame }
       }
+    }
   }
 }
+
+// SUBSTITUIDO_FASE3C: overlay com Button .plain em cima do label (press invisível)
+// label()
+//   .overlay {
+//     GeometryReader { geo in
+//       Button { action(geo.frame(in: .global)) } label: { Color.clear.contentShape(Rectangle()) }
+//         .buttonStyle(.plain)
+//     }
+//   }
 
 struct StackedPopoverModifier: ViewModifier {
   @Binding var isPresented: Bool

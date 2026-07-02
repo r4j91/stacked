@@ -307,7 +307,7 @@ struct QuickAddTaskView: View {
       .background(hasTitle ? c.accent : c.accent.opacity(0.28))
       .clipShape(RoundedRectangle(cornerRadius: pillRadius))
     }
-    .buttonStyle(.plain)
+    .buttonStyle(PressableStyle(cornerRadius: pillRadius))
     .disabled(!hasTitle || saving)
     .accessibilityLabel("Salvar tarefa")
   }

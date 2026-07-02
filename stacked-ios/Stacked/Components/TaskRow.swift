@@ -29,42 +29,7 @@ struct TaskRow: View {
     let c = theme.colors
 
     return VStack(spacing: 0) {
-      HStack(alignment: .top, spacing: 0) {
-        Button(action: onToggle) {
-          PriorityDot(priority: task.priority, done: task.done)
-            .padding(12)
-        }
-        .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
-
-        VStack(alignment: .leading, spacing: 0) {
-          titleRow
-          if let desc = task.description, !desc.isEmpty {
-            Text(desc)
-              .font(AppTypography.taskPreview)
-              .foregroundStyle(c.textTertiary)
-              .lineLimit(1)
-              .padding(.top, 4)
-          }
-          TaskMetaLine(
-            labels: task.labels,
-            dueDate: task.dueDate,
-            subtasksDone: subtasksDone.filter { $0 }.count,
-            subtasksTotal: subtasksDone.count,
-            commentCount: task.commentCount,
-            projectName: showProject ? task.project : nil
-          )
-        }
-        .padding(.vertical, 10)
-        .padding(.trailing, task.hasSubtasks ? 4 : 14)
-        .contentShape(Rectangle())
-        .onTapGesture { onTap?() }
-
-        if task.hasSubtasks {
-          expandButton
-            .padding(.trailing, 8)
-            .padding(.top, 8)
-        }
-      }
+      rowHeader(expandTrailing: 8, expandTop: 8)
 
       if task.hasSubtasks {
         subtaskList
@@ -91,36 +56,8 @@ struct TaskRow: View {
     let c = theme.colors
 
     return VStack(spacing: 0) {
-      HStack(alignment: .top, spacing: 0) {
-        Button(action: onToggle) {
-          PriorityDot(priority: task.priority, done: task.done)
-            .padding(12)
-        }
-        .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
-
-        VStack(alignment: .leading, spacing: 0) {
-          titleRow
-          TaskMetaLine(
-            labels: task.labels,
-            dueDate: task.dueDate,
-            subtasksDone: subtasksDone.filter { $0 }.count,
-            subtasksTotal: subtasksDone.count,
-            commentCount: task.commentCount,
-            projectName: showProject ? task.project : nil
-          )
-        }
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { onTap?() }
-
-        if task.hasSubtasks {
-          expandButton
-            .padding(.trailing, 12)
-            .padding(.top, 8)
-        }
-      }
-      .opacity(task.done ? 0.45 : 1)
+      rowHeader(expandTrailing: 12, expandTop: 8)
+        .opacity(task.done ? 0.45 : 1)
 
       if task.hasSubtasks {
         subtaskList
@@ -139,6 +76,69 @@ struct TaskRow: View {
     .task(id: task.id) {
       guard task.subtasks.contains(where: { !$0.labelIds.isEmpty }), allLabels.isEmpty else { return }
       labelCatalog = (try? await LabelRepository.shared.fetchLabels()) ?? []
+    }
+  }
+
+  private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
+    let expandReserve: CGFloat = task.hasSubtasks ? 40 : 0
+
+    return ZStack(alignment: .topLeading) {
+      Button(action: { onTap?() }) {
+        HStack(alignment: .top, spacing: 0) {
+          Color.clear.frame(width: 46)
+          rowTextContent
+            .padding(.vertical, 10)
+            .padding(.trailing, task.hasSubtasks ? 4 : 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          if task.hasSubtasks {
+            Color.clear.frame(width: expandReserve)
+          }
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(PressableStyle(cornerRadius: style == .card ? 12 : nil))
+      .disabled(onTap == nil)
+
+      HStack(alignment: .top, spacing: 0) {
+        // SUBSTITUIDO_FASE3C: onTapGesture na VStack de conteúdo
+        Button(action: onToggle) {
+          PriorityDot(priority: task.priority, done: task.done)
+            .padding(12)
+        }
+        .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
+
+        Spacer(minLength: 0)
+
+        if task.hasSubtasks {
+          expandButton
+            .padding(.trailing, expandTrailing)
+            .padding(.top, expandTop)
+        }
+      }
+    }
+    .frame(minHeight: AppLayout.taskRowHeight)
+  }
+
+  @ViewBuilder
+  private var rowTextContent: some View {
+    let c = theme.colors
+    VStack(alignment: .leading, spacing: 0) {
+      titleRow
+      if style == .card, let desc = task.description, !desc.isEmpty {
+        Text(desc)
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textTertiary)
+          .lineLimit(1)
+          .padding(.top, 4)
+      }
+      TaskMetaLine(
+        labels: task.labels,
+        dueDate: task.dueDate,
+        subtasksDone: subtasksDone.filter { $0 }.count,
+        subtasksTotal: subtasksDone.count,
+        commentCount: task.commentCount,
+        projectName: showProject ? task.project : nil
+      )
     }
   }
 
@@ -179,7 +179,7 @@ struct TaskRow: View {
         .frame(width: 32, height: 32)
         .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .buttonStyle(PressableStyle())
   }
 
   private var subtaskList: some View {
@@ -196,31 +196,36 @@ struct TaskRow: View {
               .padding(.horizontal, 4)
               .padding(.vertical, hasExtra ? 13 : 0)
           }
-          .buttonStyle(PrepareOnPressButtonStyle(onPrepare: HapticService.prepareTaskComplete))
+          .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
-          VStack(alignment: .leading, spacing: 0) {
-            Text(sub.title)
-              .font(.system(size: 14))
-              .foregroundStyle(done ? c.textTertiary : c.textPrimary.opacity(0.88))
-              .strikethrough(done)
-            if let desc = sub.description, !desc.isEmpty {
-              Text(desc)
-                .font(.system(size: 12))
-                .foregroundStyle(c.textSecondary.opacity(done ? 0.55 : 0.85))
-                .lineLimit(2)
-                .padding(.top, 2)
+          Button {
+            onSubtaskTap?(sub)
+          } label: {
+            VStack(alignment: .leading, spacing: 0) {
+              Text(sub.title)
+                .font(.system(size: 14))
+                .foregroundStyle(done ? c.textTertiary : c.textPrimary.opacity(0.88))
+                .strikethrough(done)
+              if let desc = sub.description, !desc.isEmpty {
+                Text(desc)
+                  .font(.system(size: 12))
+                  .foregroundStyle(c.textSecondary.opacity(done ? 0.55 : 0.85))
+                  .lineLimit(2)
+                  .padding(.top, 2)
+              }
+              if hasExtra {
+                TaskMetaLine(
+                  labels: labels,
+                  dueDate: sub.dueDate
+                )
+              }
             }
-            if hasExtra {
-              TaskMetaLine(
-                labels: labels,
-                dueDate: sub.dueDate
-              )
-            }
+            .padding(.vertical, hasExtra ? 9 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
           }
-          .padding(.vertical, hasExtra ? 9 : 12)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .contentShape(Rectangle())
-          .onTapGesture { onSubtaskTap?(sub) }
+          .buttonStyle(PressableStyle())
+          .disabled(onSubtaskTap == nil)
         }
         .padding(.leading, 36)
         .padding(.trailing, 12)

@@ -100,6 +100,7 @@ struct ProjectDetailView: View {
                   .foregroundStyle(c.textTertiary)
               }
             }
+            .buttonStyle(PressableStyle())
             .listRowBackground(Color.clear)
 
             if completedExpanded {
@@ -150,7 +151,7 @@ struct ProjectDetailView: View {
                 }
               }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableStyle(cornerRadius: 20))
           }
 
           Button { openToolbarMenu() } label: {
@@ -160,7 +161,7 @@ struct ProjectDetailView: View {
                 .foregroundStyle(c.textPrimary)
             }
           }
-          .buttonStyle(.plain)
+          .buttonStyle(PressableStyle(cornerRadius: 20))
         }
         .readAnchor($toolbarAnchor)
       }
