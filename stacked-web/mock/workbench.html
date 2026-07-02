@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stacked — Workbench</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Slate — lib/theme/app_theme_data.dart (AppThemeId.slate) */
+    :root {
+      --bg: #16161A;
+      --bg-chrome: #16161A;
+      --surface: #1C1C20;
+      --surface-variant: #2C2C32;
+      --surface-hover: #35353D;
+      --text: #F2F2F4;
+      --text-secondary: #9A9AA2;
+      --text-tertiary: #65656D;
+      --accent: #E8E8EC;
+      --accent-muted: rgba(232, 232, 236, 0.12);
+      --accent-text: #0A0A0A;
+      --done: #7ECC49;
+      --done-bg: rgba(126, 204, 73, 0.15);
+      --overdue: #EF5A5F;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-green: #8FD46B;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --sidebar-expanded: 260px;
+      --sidebar-collapsed: 56px;
+      --inspector: 400px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --z-dropdown: 10;
+      --z-sticky: 20;
+      --z-backdrop: 100;
+      --z-modal: 110;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+      scrollbar-width: thin;
+    }
+
+    .task-list,
+    .sb-scroll,
+    .inspector-body,
+    .palette-results {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    }
+    /* Lista de tarefas: sem trilha de scroll visível */
+    .task-list {
+      scrollbar-width: none;
+    }
+    .task-list::-webkit-scrollbar {
+      display: none;
+      width: 0;
+    }
+    .sb-scroll::-webkit-scrollbar,
+    .inspector-body::-webkit-scrollbar,
+    .palette-results::-webkit-scrollbar {
+      width: 7px;
+    }
+    .sb-scroll::-webkit-scrollbar-track,
+    .inspector-body::-webkit-scrollbar-track,
+    .palette-results::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sb-scroll::-webkit-scrollbar-thumb,
+    .inspector-body::-webkit-scrollbar-thumb,
+    .palette-results::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .sb-scroll::-webkit-scrollbar-thumb:hover,
+    .inspector-body::-webkit-scrollbar-thumb:hover,
+    .palette-results::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.22);
+      background-clip: padding-box;
+    }
+
+    button, input, textarea { font: inherit; color: inherit; }
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
+    }
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-sm { width: 15px; height: 15px; stroke-width: 2; }
+    .icon-lg { width: 20px; height: 20px; }
+
+    .app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+
+    /* Chrome bar */
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px;
+      height: 44px;
+      background: var(--bg-chrome);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chrome-traffic {
+      display: flex;
+      gap: 7px;
+      padding-right: 8px;
+    }
+    .chrome-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      opacity: 0.85;
+    }
+    .chrome-dot.red { background: #FF5F57; }
+    .chrome-dot.yellow { background: #FEBC2E; }
+    .chrome-dot.green { background: #28C840; }
+    .chrome-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .dev-badge {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      margin-left: auto;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .btn-ghost { color: var(--text-secondary); }
+    .btn-ghost:hover { background: var(--surface-variant); color: var(--text); }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .kbd {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      font-family: inherit;
+    }
+
+    .workbench { display: flex; flex: 1; min-height: 0; }
+
+    /* Sidebar única (paridade desktop_sidebar.dart) — colapsável */
+    .sidebar {
+      width: var(--sidebar-expanded);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.22s var(--ease-out);
+    }
+    .sidebar.is-collapsed {
+      width: var(--sidebar-collapsed);
+    }
+
+    .sb-top {
+      padding: 20px 12px 10px;
+      flex-shrink: 0;
+    }
+    .sidebar.is-collapsed .sb-top {
+      padding: 14px 8px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sb-logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px 14px;
+    }
+    .sidebar.is-collapsed .sb-logo-row {
+      padding: 0;
+      justify-content: center;
+    }
+    .sb-logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .sb-logo-text {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+    }
+
+    .sb-new-task {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-text);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .sb-new-task:hover { filter: brightness(1.06); }
+    .sidebar.is-collapsed .sb-new-task {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+    }
+
+    .sb-expand-only {
+      transition: opacity 0.15s var(--ease-out);
+    }
+    .sidebar.is-collapsed .sb-expand-only {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .sb-nav {
+      padding: 0 12px;
+      flex-shrink: 0;
+    }
+    .sidebar.is-collapsed .sb-nav {
+      padding: 0 8px;
+    }
+
+    .sb-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 2px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      text-align: left;
+    }
+    .sb-nav-item:hover {
+      background: var(--surface-variant);
+      color: var(--text);
+    }
+    .sb-nav-item.active {
+      background: var(--surface-variant);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .sidebar.is-collapsed .sb-nav-item {
+      justify-content: center;
+      padding: 8px 0;
+    }
+    .sb-nav-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sb-label {
+      flex: 1;
+      font-size: 13.5px;
+      white-space: nowrap;
+    }
+    .sb-badge {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+      min-width: 18px;
+      text-align: right;
+    }
+
+    .sb-divider {
+      height: 1px;
+      background: var(--surface-variant);
+      margin: 8px 12px;
+      flex-shrink: 0;
+    }
+    .sidebar.is-collapsed .sb-divider {
+      margin: 8px;
+    }
+
+    .sb-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 12px 8px;
+      min-height: 0;
+    }
+    .sidebar.is-collapsed .sb-scroll {
+      display: none;
+    }
+
+    .sb-section-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 8px 4px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: left;
+    }
+    .sb-section-head:hover { color: var(--text-secondary); }
+    .sb-section-title { flex: 1; }
+    .sb-chevron {
+      transition: transform 0.2s var(--ease-out);
+    }
+    .sb-section-head.is-open .sb-chevron {
+      transform: rotate(90deg);
+    }
+
+    .sb-sub-list {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.22s var(--ease-out);
+    }
+    .sb-sub-list.is-open {
+      max-height: 240px;
+    }
+
+    .sb-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px 10px 7px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      text-align: left;
+      font-size: 13.5px;
+    }
+    .sb-sub-item:hover {
+      background: var(--surface-variant);
+      color: var(--text);
+    }
+    .sb-project-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sb-sub-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-sub-count {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sb-footer {
+      flex-shrink: 0;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar.is-collapsed .sb-footer {
+      flex-direction: column;
+      padding: 8px;
+      gap: 6px;
+    }
+
+    .sb-user {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+    }
+    .sb-user:hover { background: var(--surface-variant); color: var(--text); }
+    .sidebar.is-collapsed .sb-user {
+      flex: none;
+      padding: 6px;
+      justify-content: center;
+    }
+    .sb-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--accent-muted);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .sb-user-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sb-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .sb-toggle:hover {
+      background: var(--surface-variant);
+      color: var(--text-secondary);
+    }
+    .sidebar.is-collapsed .sb-toggle {
+      width: 36px;
+      height: 36px;
+    }
+    .sb-toggle .icon-expand { display: none; }
+    .sidebar.is-collapsed .sb-toggle .icon-collapse { display: none; }
+    .sidebar.is-collapsed .sb-toggle .icon-expand { display: block; }
+
+    /* Canvas */
+    .canvas {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+    /* Paridade desktop_top_bar.dart — busca alinhada ao bloco de conteúdo (920px) */
+    .canvas-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .search-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 13px;
+      border: 1.5px solid transparent;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .search-trigger:hover {
+      background: var(--surface-variant);
+      color: var(--text);
+    }
+    .search-trigger:focus-visible {
+      border-color: rgba(232, 232, 236, 0.75);
+    }
+    .search-trigger .kbd {
+      margin-left: 4px;
+      background: var(--surface-variant);
+    }
+    /* Paridade desktop_content_area.dart — max 920px centralizado */
+    .canvas-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .canvas-header {
+      padding: 20px 0 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .canvas-title {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      text-wrap: balance;
+    }
+    .canvas-subtitle {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .stats-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .stat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .stat-chip strong {
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-chip.overdue strong { color: var(--overdue); }
+    .stat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+    .stat-dot.overdue { background: var(--overdue); }
+    .stat-dot.accent { background: var(--text-secondary); }
+
+    .task-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0 32px;
+    }
+    .section-block { margin-top: 8px; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 8px 8px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .section-title.overdue { color: var(--overdue); }
+    .section-count {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(239, 90, 95, 0.14);
+      color: var(--overdue);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Task row — título + preview + meta embaixo (paridade TaskMetaLine) */
+    .task-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+      min-height: 54px;
+      padding: 10px 12px 10px 4px;
+      border-radius: var(--radius-md);
+      text-align: left;
+      position: relative;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .task-row:hover { background: var(--surface); }
+    .task-row:focus-visible {
+      outline: 1px solid rgba(255, 255, 255, 0.12);
+      outline-offset: -1px;
+    }
+    .task-row.selected {
+      background: rgba(255, 255, 255, 0.035);
+      border-color: transparent;
+    }
+    .task-row.selected:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .task-row.done { opacity: 0.72; }
+    .task-row.done .task-title { text-decoration: line-through; color: var(--text-tertiary); }
+    .task-row.done .task-preview { opacity: 0.6; }
+
+    .done-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+    }
+    .done-circle:hover { border-color: var(--text-secondary); }
+    .done-circle.checked {
+      border-color: var(--done);
+      background: var(--done-bg);
+      color: var(--done);
+    }
+    .done-circle.checked:active { transform: scale(0.92); }
+
+    .task-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .task-title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .task-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 15.5px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.25;
+    }
+    .task-preview {
+      margin-top: 3px;
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.35;
+    }
+
+    /* Meta unificada abaixo do título — projeto · data · tag · subtarefas */
+    .task-meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .meta-item {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+    .meta-item.project { color: var(--text-secondary); }
+    .meta-item.overdue { color: var(--overdue); font-weight: 500; }
+    .meta-sep {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      opacity: 0.45;
+      user-select: none;
+    }
+    .meta-subtask-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+      padding: 0;
+      border: none;
+      background: none;
+      border-radius: 4px;
+    }
+    .meta-subtask-toggle:hover {
+      color: var(--text-secondary);
+    }
+    .meta-subtask-toggle .meta-chevron {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+      transition: transform 0.2s var(--ease-out);
+    }
+    .meta-subtask-toggle.is-open .meta-chevron {
+      transform: rotate(180deg);
+    }
+
+    .priority-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .priority-dot.p1 { background: var(--p1); }
+    .priority-dot.p2 { background: var(--p2); }
+    .priority-dot.p3 { background: var(--p3); }
+
+    .pill {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .pill-tag { background: rgba(143, 212, 107, 0.14); color: var(--tag-green); }
+
+    /* Lista inline de subtarefas */
+    .task-item { margin-bottom: 2px; }
+    .task-subtasks-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.22s var(--ease-out);
+    }
+    .task-subtasks-wrap.is-open {
+      grid-template-rows: 1fr;
+    }
+    .task-subtasks-inner { overflow: hidden; }
+    .inline-subtask-list {
+      padding: 2px 12px 10px 32px;
+    }
+    .inline-subtask-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .inline-subtask-row:hover { background: rgba(255, 255, 255, 0.04); }
+    .inline-subtask-row.selected {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .inline-subtask-row.done .inline-subtask-name {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+    .inline-subtask-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .done-circle.sub-sm {
+      width: 17px;
+      height: 17px;
+      border-width: 1.5px;
+    }
+
+    /* Ações rápidas: canto da linha do título, meta permanece visível */
+    .task-actions {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-variant);
+      border: 1px solid var(--border-strong);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      flex-shrink: 0;
+      transition: opacity 0.15s var(--ease-out), visibility 0.15s var(--ease-out);
+    }
+    .task-row:hover .task-actions,
+    .task-row:focus-within .task-actions {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .action-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .action-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .action-btn.complete:hover { color: var(--done); }
+    .action-btn.defer:hover { color: var(--p2); }
+    .action-btn.delete:hover { color: var(--overdue); }
+
+    /* Inspector */
+    .inspector {
+      width: var(--inspector);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .inspector.hidden { display: none; }
+    .inspector-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .inspector-breadcrumb {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .inspector-breadcrumb span { color: var(--text-secondary); }
+    .crumb-link {
+      color: var(--text-secondary);
+      padding: 0;
+      border: none;
+      background: none;
+      font: inherit;
+      cursor: pointer;
+    }
+    .crumb-link:hover { color: var(--text); text-decoration: underline; }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .icon-btn:hover { background: var(--surface-variant); color: var(--text-secondary); }
+
+    .inspector-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .inspector-title-row { display: flex; gap: 12px; align-items: flex-start; }
+    .inspector-title {
+      flex: 1;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      min-height: 28px;
+    }
+    .inspector-notes {
+      width: 100%;
+      min-height: 72px;
+      padding: 12px 14px;
+      background: var(--surface-variant);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      outline: none;
+      resize: vertical;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.5;
+      transition: border-color 0.18s var(--ease-out), color 0.18s var(--ease-out);
+    }
+    .inspector-notes::placeholder { color: var(--text-tertiary); }
+    .inspector-notes:focus {
+      border-color: rgba(232, 232, 236, 0.45);
+      color: var(--text);
+    }
+
+    .meta-card {
+      background: var(--surface-variant);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+    }
+    .meta-row:hover { background: var(--surface-hover); }
+    .meta-row + .meta-row { border-top: 1px solid var(--border); }
+    .meta-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .meta-label {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .meta-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .meta-value.danger { color: var(--overdue); }
+    .meta-value.accent { color: var(--tag-green); }
+    .meta-chevron { color: var(--text-tertiary); opacity: 0.7; }
+
+    .field-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 16px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .field-pill {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+    }
+    .field-pill:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+
+    .subtasks-card { background: var(--surface-variant); border-radius: var(--radius-md); overflow: hidden; }
+    .subtasks-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+    .subtasks-head-title { font-size: 14px; font-weight: 600; flex: 1; }
+    .subtasks-progress {
+      height: 3px;
+      flex: 1;
+      max-width: 80px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .subtasks-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--done);
+      transition: width 0.25s var(--ease-out);
+    }
+    .subtasks-count {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    .subtask-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .subtask-row:hover { background: rgba(255, 255, 255, 0.03); }
+    .subtask-row.selected { background: rgba(255, 255, 255, 0.05); }
+    .subtask-row.done .subtask-name {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+    .subtask-name { font-size: 14px; font-weight: 500; flex: 1; }
+
+    .inspector-footer {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .comment-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      background: var(--surface-variant);
+      border: 1px solid transparent;
+      outline: none;
+      font-size: 14px;
+      transition: border-color 0.18s var(--ease-out);
+    }
+    .comment-input:focus { border-color: rgba(232, 232, 236, 0.45); }
+    .send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      color: var(--accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { filter: brightness(1.06); }
+
+    /* Command palette */
+    .palette-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: var(--z-backdrop);
+      animation: fadeIn 0.15s var(--ease-out);
+    }
+    .palette {
+      position: fixed;
+      top: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(560px, 94vw);
+      z-index: var(--z-modal);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      animation: paletteIn 0.2s var(--ease-out);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes paletteIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.98); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    .palette-search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .palette-search .icon { color: var(--text-tertiary); }
+    .palette-search input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .palette-search input::placeholder { color: var(--text-tertiary); font-weight: 400; }
+    .palette-hint {
+      padding: 8px 18px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+    .palette-results { padding: 6px; max-height: 320px; overflow-y: auto; }
+    .palette-item {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .palette-item:hover, .palette-item.focused { background: var(--surface-variant); }
+    .palette-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .palette-item-body { flex: 1; min-width: 0; }
+    .palette-group {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      display: block;
+      margin-bottom: 1px;
+    }
+    .palette-label {
+      font-size: 14px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      :root { --inspector: 340px; --sidebar-expanded: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l6.59-6.59a1 1 0 0 0 0-1.41L12 2Z"/><path d="M7 7h.01"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+    <symbol id="i-calendar-clock" viewBox="0 0 24 24"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5M15 18h6M18 15v6"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M8 8l-4 4 4 4M16 8l4 4-4 4M8 16l-4-4 4-4M16 16l4-4-4-4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
+    <symbol id="i-done-list" viewBox="0 0 24 24"><path d="M11 18H3M11 6H3M15 12H3"/><path d="m15.5 9.5 2.5 2.5L22 8"/></symbol>
+    <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  </svg>
+
+  <div class="app">
+    <header class="chrome">
+      <div class="chrome-traffic" aria-hidden="true">
+        <span class="chrome-dot red"></span>
+        <span class="chrome-dot yellow"></span>
+        <span class="chrome-dot green"></span>
+      </div>
+      <span class="chrome-title">Stacked</span>
+      <span class="dev-badge">Slate · Mock Fase 0</span>
+    </header>
+
+    <div class="workbench">
+      <aside class="sidebar" id="sidebar" aria-label="Barra lateral">
+        <div class="sb-top">
+          <div class="sb-logo-row">
+            <div class="sb-logo-mark" aria-hidden="true">S</div>
+            <span class="sb-logo-text sb-expand-only">STACKED</span>
+          </div>
+          <button class="sb-new-task" type="button" title="Nova tarefa">
+            <svg class="icon icon-sm"><use href="#i-plus"/></svg>
+            <span class="sb-expand-only">Nova tarefa</span>
+          </button>
+        </div>
+
+        <nav class="sb-nav" aria-label="Navegação">
+          <button class="sb-nav-item" type="button" data-nav="home" title="Navegar">
+            <span class="sb-nav-icon"><svg class="icon icon-sm"><use href="#i-home"/></svg></span>
+            <span class="sb-label sb-expand-only">Navegar</span>
+          </button>
+          <button class="sb-nav-item" type="button" data-nav="inbox" title="Inbox">
+            <span class="sb-nav-icon"><svg class="icon icon-sm"><use href="#i-inbox"/></svg></span>
+            <span class="sb-label sb-expand-only">Inbox</span>
+            <span class="sb-badge sb-expand-only">12</span>
+          </button>
+          <button class="sb-nav-item active" type="button" data-nav="today" title="Hoje">
+            <span class="sb-nav-icon"><svg class="icon icon-sm"><use href="#i-sun"/></svg></span>
+            <span class="sb-label sb-expand-only">Hoje</span>
+            <span class="sb-badge sb-expand-only">5</span>
+          </button>
+          <button class="sb-nav-item" type="button" data-nav="upcoming" title="Em breve">
+            <span class="sb-nav-icon"><svg class="icon icon-sm"><use href="#i-calendar"/></svg></span>
+            <span class="sb-label sb-expand-only">Em breve</span>
+          </button>
+          <button class="sb-nav-item" type="button" data-nav="done" title="Concluídas">
+            <span class="sb-nav-icon"><svg class="icon icon-sm"><use href="#i-done-list"/></svg></span>
+            <span class="sb-label sb-expand-only">Concluídas</span>
+          </button>
+        </nav>
+
+        <div class="sb-divider"></div>
+
+        <div class="sb-scroll">
+          <button class="sb-section-head is-open" type="button" id="toggle-projects" aria-expanded="true">
+            <span class="sb-section-title sb-expand-only">Projetos</span>
+            <svg class="icon icon-sm sb-chevron sb-expand-only"><use href="#i-chevron"/></svg>
+          </button>
+          <div class="sb-sub-list is-open" id="projects-list">
+            <button class="sb-sub-item" type="button" data-project="trabalho">
+              <span class="sb-project-dot" style="background:#E8E8EC"></span>
+              <span class="sb-sub-label">Trabalho</span>
+              <span class="sb-sub-count">3</span>
+            </button>
+            <button class="sb-sub-item" type="button" data-project="rodrigo">
+              <span class="sb-project-dot" style="background:#9A9AA2"></span>
+              <span class="sb-sub-label">Rodrigo</span>
+              <span class="sb-sub-count">4</span>
+            </button>
+            <button class="sb-sub-item" type="button" data-project="pessoais">
+              <span class="sb-project-dot" style="background:#65656D"></span>
+              <span class="sb-sub-label">Pessoais</span>
+              <span class="sb-sub-count">1</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sb-footer">
+          <button class="sb-user" type="button" title="Perfil">
+            <span class="sb-avatar">R</span>
+            <span class="sb-user-name sb-expand-only">Rodrigo</span>
+          </button>
+          <button class="sb-toggle" type="button" id="toggle-sidebar" title="Recolher barra lateral" aria-label="Recolher barra lateral">
+            <svg class="icon icon-sm icon-collapse"><use href="#i-panel-left"/></svg>
+            <svg class="icon icon-sm icon-expand"><use href="#i-panel-right"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <main class="canvas">
+        <div class="canvas-inner">
+        <header class="canvas-header">
+          <div class="canvas-header-row">
+            <div>
+              <h1 class="canvas-title">Hoje</h1>
+              <p class="canvas-subtitle">Domingo, 30 de junho</p>
+            </div>
+            <button class="search-trigger" id="open-palette" type="button" title="Buscar (⌘K)">
+              <svg class="icon icon-sm"><use href="#i-search"/></svg>
+              Buscar
+              <kbd class="kbd">⌘K</kbd>
+            </button>
+          </div>
+          <div class="stats-strip">
+            <span class="stat-chip overdue"><span class="stat-dot overdue"></span><strong>3</strong> atrasadas</span>
+            <span class="stat-chip"><span class="stat-dot accent"></span><strong>5</strong> para hoje</span>
+            <span class="stat-chip"><span class="stat-dot"></span><strong>2</strong> concluídas</span>
+          </div>
+        </header>
+        <div class="task-list" id="task-list" role="list"></div>
+        </div>
+      </main>
+
+      <aside class="inspector" id="inspector" aria-label="Detalhe da tarefa">
+        <div class="inspector-header">
+          <div class="inspector-breadcrumb" id="inspector-crumb"></div>
+          <button class="icon-btn" id="close-inspector" type="button" title="Fechar inspector" aria-label="Fechar">
+            <svg class="icon icon-sm"><use href="#i-x"/></svg>
+          </button>
+        </div>
+        <div class="inspector-body" id="inspector-body"></div>
+        <div class="inspector-footer">
+          <input class="comment-input" type="text" placeholder="Adicionar comentário…" aria-label="Comentário" />
+          <button class="send-btn" type="button" title="Enviar comentário" aria-label="Enviar">
+            <svg class="icon icon-sm"><use href="#i-arrow-up"/></svg>
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="palette-backdrop hidden" id="palette-backdrop"></div>
+  <div class="palette hidden" id="palette" role="dialog" aria-label="Busca rápida">
+    <div class="palette-search">
+      <svg class="icon"><use href="#i-search"/></svg>
+      <input id="palette-input" type="search" placeholder="Buscar tarefas, projetos, ações…" autocomplete="off" />
+    </div>
+    <div class="palette-hint">
+      <span>↑↓ navegar</span>
+      <span>↵ selecionar</span>
+      <span>esc fechar</span>
+    </div>
+    <div class="palette-results" id="palette-results"></div>
+  </div>
+
+  <script>
+    /* Slate: projetos sem cor customizada usam accent (AppColors.accent) */
+    const PROJECT_COLORS = {
+      Trabalho: "#E8E8EC",
+      Rodrigo: "#9A9AA2",
+      Pessoais: "#65656D",
+    };
+
+    const TASKS = [
+      { id: "1", title: "Revisar contrato", preview: "Cláusulas de rescisão e prazo de entrega", project: "Trabalho", date: "28 jun", priority: "P1", done: false, section: "overdue" },
+      { id: "2", title: "Ligar cliente", preview: "Retorno sobre proposta enviada na sexta", project: null, date: "ontem", priority: "P2", done: false, section: "overdue" },
+      { id: "3", title: "Enviar relatório", preview: "Métricas Q2 para o time", project: "Trabalho", date: "26 jun", priority: "P1", done: false, section: "overdue" },
+      {
+        id: "4", title: "Teste 3", preview: "Validar fluxo de subtarefas no inspector", project: "Rodrigo", date: "23:05", tag: "Em Andamento", done: false, section: "today",
+        subtasks: [
+          { name: "Presunto", done: false, notes: "Comprar fatias finas, sem lactose.", date: "30 jun", tag: "Em Andamento", priority: "P3", project: "Rodrigo" },
+          { name: "Item 2", done: true, notes: "Conferir estoque antes de pedir.", date: null, priority: null },
+          { name: "Teste", done: false, notes: "", date: "1 jul", priority: "P2" },
+        ],
+      },
+      {
+        id: "5", title: "Revisar hoje a noite", preview: "Preparar apresentação para segunda", project: null, date: "28 jun", tag: "Em Andamento", done: false, section: "today",
+        notes: "Slides no Keynote, revisar números do relatório Q2.",
+        subtasks: [
+          { name: "Presunto", done: false, notes: "Slide de abertura e agenda.", date: "30 jun", tag: "Em Andamento" },
+          { name: "Revisar gráficos", done: true, notes: "Gráficos Q2 no slide 4.", date: "28 jun", priority: "P1" },
+        ],
+      },
+      { id: "6", title: "Comprar presente", preview: "Aniversário da mãe, sábado", project: "Pessoais", date: null, priority: "P3", done: false, section: "today" },
+      { id: "7", title: "Presunto", project: null, date: null, done: true, section: "today" },
+      { id: "8", title: "Organizar inbox", preview: "Triagem rápida das tarefas sem data", project: null, date: null, done: true, section: "today" },
+    ];
+
+    const PALETTE_ITEMS = [
+      { group: "Ações", label: 'Criar tarefa "Revisar hoje"', icon: "i-plus" },
+      { group: "Ações", label: "Nova tarefa em Rodrigo", icon: "i-folder" },
+      { group: "Ir para", label: "Projeto › Rodrigo", icon: "i-folder" },
+      { group: "Ir para", label: "Projeto › Trabalho", icon: "i-folder" },
+      { group: "Filtrar", label: "Atrasadas (3)", icon: "i-list" },
+      { group: "Tarefas", label: "Teste 3", icon: "i-check" },
+      { group: "Tarefas", label: "Revisar hoje a noite", icon: "i-check" },
+    ];
+
+    let selectedId = "4";
+    let selectedSubtaskKey = null;
+    let paletteOpen = false;
+    let paletteFocus = 0;
+    let sidebarCollapsed = localStorage.getItem("stacked-mock-sidebar") === "collapsed";
+    const expandedSubtasks = new Set();
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function applySidebarState() {
+      const sb = $("#sidebar");
+      const toggle = $("#toggle-sidebar");
+      sb.classList.toggle("is-collapsed", sidebarCollapsed);
+      toggle.title = sidebarCollapsed ? "Expandir barra lateral" : "Recolher barra lateral";
+      toggle.setAttribute("aria-label", toggle.title);
+      localStorage.setItem("stacked-mock-sidebar", sidebarCollapsed ? "collapsed" : "expanded");
+    }
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      applySidebarState();
+    }
+
+    function icon(id, cls = "icon icon-sm") {
+      return `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+    }
+
+    function checkSvg() {
+      return `<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+    }
+
+    function isOverdueDate(date) {
+      if (!date) return false;
+      return date === "ontem" || (date.includes("jun") && !date.includes("30"));
+    }
+
+    function formatDate(date) {
+      if (!date) return "—";
+      return date;
+    }
+
+    function getSubtaskContext(key = selectedSubtaskKey) {
+      if (!key) return null;
+      const [taskId, indexStr] = key.split(":");
+      const task = TASKS.find((t) => t.id === taskId);
+      const index = Number(indexStr);
+      if (!task?.subtasks?.[index]) return null;
+      return { task, index, sub: task.subtasks[index] };
+    }
+
+    function renderInspectorMetaCard(item, parentTask) {
+      const project = item.project ?? parentTask?.project ?? null;
+      const overdue = isOverdueDate(item.date) && !item.done;
+      const hasTag = Boolean(item.tag);
+      const hasPriority = Boolean(item.priority);
+
+      return `
+        <div class="meta-card">
+          <div class="meta-row">
+            <span class="meta-icon">${icon("i-folder")}</span>
+            <span class="meta-label">Projeto</span>
+            <span class="meta-value">${project || "Sem projeto"}</span>
+            ${icon("i-chevron", "icon icon-sm meta-chevron")}
+          </div>
+          <div class="meta-row">
+            <span class="meta-icon">${icon("i-calendar")}</span>
+            <span class="meta-label">Data</span>
+            <span class="meta-value ${overdue ? "danger" : ""}">${item.date ? item.date : "Sem data"}</span>
+            ${icon("i-chevron", "icon icon-sm meta-chevron")}
+          </div>
+          ${hasTag ? `
+          <div class="meta-row">
+            <span class="meta-icon">${icon("i-tag")}</span>
+            <span class="meta-label">Etiqueta</span>
+            <span class="meta-value accent">${item.tag}</span>
+            ${icon("i-chevron", "icon icon-sm meta-chevron")}
+          </div>` : ""}
+          ${hasPriority ? `
+          <div class="meta-row">
+            <span class="meta-icon">${icon("i-clock")}</span>
+            <span class="meta-label">Prioridade</span>
+            <span class="meta-value">${item.priority}</span>
+            ${icon("i-chevron", "icon icon-sm meta-chevron")}
+          </div>` : ""}
+          ${!hasTag && !hasPriority ? `
+          <div class="field-pills">
+            <button class="field-pill" type="button">${icon("i-calendar")} Data</button>
+            <button class="field-pill" type="button">${icon("i-clock")} Prioridade</button>
+            <button class="field-pill" type="button">${icon("i-tag")} Etiquetas</button>
+          </div>` : ""}
+        </div>`;
+    }
+
+    function renderInspectorSubtasksList(task) {
+      const subs = task.subtasks || [];
+      if (!subs.length) return "";
+      const doneSubs = subs.filter((s) => s.done).length;
+      const progress = Math.round((doneSubs / subs.length) * 100);
+
+      return `
+        <div class="subtasks-card">
+          <div class="subtasks-head">
+            <span class="subtasks-head-title">Subtarefas</span>
+            <div class="subtasks-progress" aria-hidden="true">
+              <div class="subtasks-progress-fill" style="width:${progress}%"></div>
+            </div>
+            <span class="subtasks-count">${doneSubs}/${subs.length}</span>
+          </div>
+          ${subs.map((s, i) => {
+            const key = `${task.id}:${i}`;
+            const isSelected = selectedSubtaskKey === key;
+            return `
+            <div class="subtask-row ${s.done ? "done" : ""} ${isSelected ? "selected" : ""}"
+                 data-subtask-select="${key}" role="button" tabindex="0">
+              <button class="done-circle sub-sm ${s.done ? "checked" : ""}" type="button"
+                      data-subtask-toggle="${key}"
+                      aria-label="${s.done ? "Marcar pendente" : "Marcar concluída"}">
+                ${s.done ? checkSvg() : ""}
+              </button>
+              <span class="subtask-name">${s.name}</span>
+            </div>`;
+          }).join("")}
+        </div>`;
+    }
+
+    function renderInspector() {
+      const subCtx = getSubtaskContext();
+      const task = subCtx?.task ?? TASKS.find((t) => t.id === selectedId);
+
+      if (!task) {
+        $("#inspector").classList.add("hidden");
+        return;
+      }
+      $("#inspector").classList.remove("hidden");
+
+      if (subCtx) {
+        const { sub, index } = subCtx;
+        const toggleKey = `${task.id}:${index}`;
+        const crumb = `${task.project ? `<span>${task.project}</span> › ` : ""}<button type="button" class="crumb-link" data-select-task="${task.id}">${task.title}</button> › ${sub.name}`;
+
+        $("#inspector-crumb").innerHTML = crumb;
+        $("#inspector-body").innerHTML = `
+          <div class="inspector-title-row">
+            <button class="done-circle ${sub.done ? "checked" : ""}" type="button"
+                    data-subtask-toggle="${toggleKey}" style="width:22px;height:22px;margin-top:3px"
+                    aria-label="${sub.done ? "Marcar pendente" : "Marcar concluída"}">
+              ${sub.done ? checkSvg() : ""}
+            </button>
+            <textarea class="inspector-title" rows="1" aria-label="Título da subtarefa">${sub.name}</textarea>
+          </div>
+          <textarea class="inspector-notes" placeholder="Adicionar notas…" aria-label="Notas">${sub.notes || ""}</textarea>
+          ${renderInspectorMetaCard(sub, task)}
+        `;
+        return;
+      }
+
+      const crumb = task.project
+        ? `<span>${task.project}</span> › ${task.title}`
+        : task.title;
+
+      $("#inspector-crumb").innerHTML = crumb;
+      $("#inspector-body").innerHTML = `
+        <div class="inspector-title-row">
+          <button class="done-circle ${task.done ? "checked" : ""}" type="button"
+                  data-toggle="${task.id}" style="width:22px;height:22px;margin-top:3px"
+                  aria-label="${task.done ? "Marcar pendente" : "Marcar concluída"}">
+            ${task.done ? checkSvg() : ""}
+          </button>
+          <textarea class="inspector-title" rows="1" aria-label="Título da tarefa">${task.title}</textarea>
+        </div>
+        <textarea class="inspector-notes" placeholder="Adicionar notas…" aria-label="Notas">${task.notes || ""}</textarea>
+        ${renderInspectorMetaCard(task)}
+        ${renderInspectorSubtasksList(task)}
+      `;
+    }
+
+    function renderInlineSubtasks(task) {
+      const subs = task.subtasks || [];
+      if (!subs.length) return "";
+      return subs.map((s, i) => {
+        const key = `${task.id}:${i}`;
+        const isSelected = selectedSubtaskKey === key;
+        return `
+        <div class="inline-subtask-row ${s.done ? "done" : ""} ${isSelected ? "selected" : ""}"
+             data-subtask-select="${key}" role="button" tabindex="0">
+          <button class="done-circle sub-sm ${s.done ? "checked" : ""}" type="button"
+                  data-subtask-toggle="${key}"
+                  aria-label="${s.done ? "Marcar pendente" : "Marcar concluída"}: ${s.name}">
+            ${s.done ? checkSvg() : ""}
+          </button>
+          <span class="inline-subtask-name">${s.name}</span>
+        </div>`;
+      }).join("");
+    }
+
+    function renderMetaLine(task, overdue, subs, doneSubs, isSubOpen) {
+      const parts = [];
+      if (task.project) {
+        parts.push(`<span class="meta-item project">${task.project}</span>`);
+      }
+      if (task.date) {
+        parts.push(`<span class="meta-item ${overdue ? "overdue" : ""}">${formatDate(task.date)}</span>`);
+      }
+      if (task.priority) {
+        parts.push(`<span class="priority-dot ${task.priority.toLowerCase()}" title="${task.priority}"></span>`);
+      }
+      if (task.tag) {
+        parts.push(`<span class="pill pill-tag">${task.tag}</span>`);
+      }
+      if (subs.length) {
+        parts.push(`<button class="meta-subtask-toggle ${isSubOpen ? "is-open" : ""}" type="button"
+                  data-subtask-expand="${task.id}"
+                  aria-expanded="${isSubOpen}"
+                  aria-label="${isSubOpen ? "Recolher" : "Expandir"} subtarefas (${doneSubs}/${subs.length})">
+            ${icon("i-list", "icon")}${doneSubs}/${subs.length}
+            <svg class="meta-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </button>`);
+      }
+      if (!parts.length) {
+        return task.done ? `<span class="meta-item">—</span>` : "";
+      }
+      return parts.join('<span class="meta-sep" aria-hidden="true">·</span>');
+    }
+
+    function renderTaskRow(task) {
+      const overdue = isOverdueDate(task.date) && !task.done;
+      const subs = task.subtasks || [];
+      const doneSubs = subs.filter((s) => s.done).length;
+      const isSubOpen = expandedSubtasks.has(task.id);
+      const metaLine = renderMetaLine(task, overdue, subs, doneSubs, isSubOpen);
+      const subPanel = subs.length
+        ? `<div class="task-subtasks-wrap ${isSubOpen ? "is-open" : ""}">
+            <div class="task-subtasks-inner">
+              <div class="inline-subtask-list">${renderInlineSubtasks(task)}</div>
+            </div>
+          </div>`
+        : "";
+
+      return `
+        <div class="task-item" data-task-id="${task.id}">
+          <div class="task-row ${task.done ? "done" : ""} ${task.id === selectedId ? "selected" : ""}"
+               data-id="${task.id}" role="listitem" tabindex="0">
+            <button class="done-circle ${task.done ? "checked" : ""}" data-toggle="${task.id}" type="button"
+                    aria-label="${task.done ? "Marcar pendente" : "Marcar concluída"}">
+              ${task.done ? checkSvg() : ""}
+            </button>
+            <div class="task-body">
+              <div class="task-title-row">
+                <div class="task-title">${task.title}</div>
+                <div class="task-actions" aria-label="Ações rápidas">
+                  <button class="action-btn complete" type="button" title="Concluir">${icon("i-check")}</button>
+                  <button class="action-btn defer" type="button" title="Adiar">${icon("i-calendar-clock")}</button>
+                  <button class="action-btn" type="button" title="Mover">${icon("i-move")}</button>
+                  <button class="action-btn delete" type="button" title="Excluir">${icon("i-trash")}</button>
+                </div>
+              </div>
+              ${task.preview ? `<div class="task-preview">${task.preview}</div>` : ""}
+              ${metaLine ? `<div class="task-meta-line">${metaLine}</div>` : ""}
+            </div>
+          </div>
+          ${subPanel}
+        </div>`;
+    }
+
+    function renderList() {
+      const overdue = TASKS.filter((t) => t.section === "overdue");
+      const today = TASKS.filter((t) => t.section === "today" && !t.done);
+      const doneToday = TASKS.filter((t) => t.section === "today" && t.done);
+
+      let html = `
+        <section class="section-block">
+          <div class="section-head">
+            <span class="section-title overdue">Atrasadas</span>
+            <span class="section-count">${overdue.length}</span>
+          </div>
+          ${overdue.map(renderTaskRow).join("")}
+        </section>
+        <section class="section-block">
+          <div class="section-head">
+            <span class="section-title">Hoje</span>
+          </div>
+          ${today.map(renderTaskRow).join("")}
+        </section>`;
+
+      if (doneToday.length) {
+        html += `
+        <section class="section-block">
+          <div class="section-head">
+            <span class="section-title">Concluídas hoje</span>
+          </div>
+          ${doneToday.map(renderTaskRow).join("")}
+        </section>`;
+      }
+
+      $("#task-list").innerHTML = html;
+    }
+
+    function renderPalette(query = "") {
+      const q = query.toLowerCase();
+      const items = PALETTE_ITEMS.filter((i) => i.label.toLowerCase().includes(q));
+      paletteFocus = Math.min(paletteFocus, Math.max(0, items.length - 1));
+
+      $("#palette-results").innerHTML = items.map((item, idx) => `
+        <button class="palette-item ${idx === paletteFocus ? "focused" : ""}" type="button" data-idx="${idx}">
+          <span class="palette-item-icon">${icon(item.icon)}</span>
+          <span class="palette-item-body">
+            <span class="palette-group">${item.group}</span>
+            <span class="palette-label">${item.label}</span>
+          </span>
+        </button>`).join("");
+    }
+
+    function openPalette() {
+      paletteOpen = true;
+      paletteFocus = 0;
+      $("#palette-backdrop").classList.remove("hidden");
+      $("#palette").classList.remove("hidden");
+      $("#palette-input").value = "";
+      renderPalette();
+      $("#palette-input").focus();
+    }
+
+    function closePalette() {
+      paletteOpen = false;
+      $("#palette-backdrop").classList.add("hidden");
+      $("#palette").classList.add("hidden");
+    }
+
+    function selectTask(id) {
+      selectedId = id;
+      selectedSubtaskKey = null;
+      renderList();
+      renderInspector();
+    }
+
+    function selectSubtask(taskId, index) {
+      selectedId = taskId;
+      selectedSubtaskKey = `${taskId}:${index}`;
+      expandedSubtasks.add(taskId);
+      renderList();
+      renderInspector();
+    }
+
+    function toggleTask(id) {
+      const task = TASKS.find((t) => t.id === id);
+      if (!task) return;
+      task.done = !task.done;
+      selectedSubtaskKey = null;
+      renderList();
+      renderInspector();
+    }
+
+    function toggleSubtaskExpand(id) {
+      if (expandedSubtasks.has(id)) expandedSubtasks.delete(id);
+      else expandedSubtasks.add(id);
+      renderList();
+    }
+
+    function toggleSubtaskDone(key) {
+      const ctx = getSubtaskContext(key);
+      if (!ctx) return;
+      ctx.sub.done = !ctx.sub.done;
+      renderList();
+      renderInspector();
+    }
+
+    $("#task-list").addEventListener("click", (e) => {
+      const expand = e.target.closest("[data-subtask-expand]");
+      if (expand) {
+        e.stopPropagation();
+        toggleSubtaskExpand(expand.dataset.subtaskExpand);
+        return;
+      }
+      const subToggle = e.target.closest("[data-subtask-toggle]");
+      if (subToggle) {
+        e.stopPropagation();
+        toggleSubtaskDone(subToggle.dataset.subtaskToggle);
+        return;
+      }
+      const subSelect = e.target.closest("[data-subtask-select]");
+      if (subSelect) {
+        e.stopPropagation();
+        const [taskId, index] = subSelect.dataset.subtaskSelect.split(":");
+        selectSubtask(taskId, Number(index));
+        return;
+      }
+      const toggle = e.target.closest("[data-toggle]");
+      if (toggle) {
+        e.stopPropagation();
+        toggleTask(toggle.dataset.toggle);
+        return;
+      }
+      const action = e.target.closest(".action-btn");
+      if (action) {
+        e.stopPropagation();
+        const row = action.closest(".task-row");
+        if (action.classList.contains("complete") && row) toggleTask(row.dataset.id);
+        return;
+      }
+      const row = e.target.closest(".task-row");
+      if (row) selectTask(row.dataset.id);
+    });
+
+    $("#task-list").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        const subSelect = e.target.closest("[data-subtask-select]");
+        if (subSelect && !e.target.closest("[data-subtask-toggle]")) {
+          e.preventDefault();
+          const [taskId, index] = subSelect.dataset.subtaskSelect.split(":");
+          selectSubtask(taskId, Number(index));
+          return;
+        }
+        const expand = e.target.closest("[data-subtask-expand]");
+        if (expand) {
+          e.preventDefault();
+          toggleSubtaskExpand(expand.dataset.subtaskExpand);
+          return;
+        }
+        const row = e.target.closest(".task-row");
+        if (row && !e.target.closest(".action-btn") && !e.target.closest("[data-toggle]") && !e.target.closest("[data-subtask-toggle]")) {
+          e.preventDefault();
+          selectTask(row.dataset.id);
+        }
+      }
+    });
+
+    $("#close-inspector").addEventListener("click", () => {
+      selectedId = null;
+      selectedSubtaskKey = null;
+      renderList();
+      $("#inspector").classList.add("hidden");
+    });
+
+    $("#inspector").addEventListener("click", (e) => {
+      const crumbBack = e.target.closest("[data-select-task]");
+      if (crumbBack) {
+        e.preventDefault();
+        selectTask(crumbBack.dataset.selectTask);
+        return;
+      }
+      const subToggle = e.target.closest("[data-subtask-toggle]");
+      if (subToggle) {
+        e.stopPropagation();
+        toggleSubtaskDone(subToggle.dataset.subtaskToggle);
+        return;
+      }
+      const subSelect = e.target.closest("[data-subtask-select]");
+      if (subSelect) {
+        e.stopPropagation();
+        const [taskId, index] = subSelect.dataset.subtaskSelect.split(":");
+        selectSubtask(taskId, Number(index));
+        return;
+      }
+      const toggle = e.target.closest("[data-toggle]");
+      if (toggle) {
+        e.stopPropagation();
+        toggleTask(toggle.dataset.toggle);
+      }
+    });
+
+    $("#inspector").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const subSelect = e.target.closest("[data-subtask-select]");
+      if (subSelect && !e.target.closest("[data-subtask-toggle]")) {
+        e.preventDefault();
+        const [taskId, index] = subSelect.dataset.subtaskSelect.split(":");
+        selectSubtask(taskId, Number(index));
+      }
+    });
+
+    $("#open-palette").addEventListener("click", openPalette);
+    $("#palette-backdrop").addEventListener("click", closePalette);
+    $("#palette-input").addEventListener("input", (e) => {
+      paletteFocus = 0;
+      renderPalette(e.target.value);
+    });
+
+    $("#palette-results").addEventListener("click", (e) => {
+      const item = e.target.closest(".palette-item");
+      if (item) closePalette();
+    });
+
+    $("#toggle-sidebar").addEventListener("click", toggleSidebar);
+
+    $("#toggle-projects").addEventListener("click", () => {
+      const head = $("#toggle-projects");
+      const list = $("#projects-list");
+      const open = head.classList.toggle("is-open");
+      list.classList.toggle("is-open", open);
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    document.querySelectorAll(".sb-nav-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".sb-nav-item").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        paletteOpen ? closePalette() : openPalette();
+        return;
+      }
+      if (!paletteOpen) {
+        if (e.key === "Escape" && (selectedId || selectedSubtaskKey)) {
+          if (selectedSubtaskKey) {
+            selectedSubtaskKey = null;
+            renderList();
+            renderInspector();
+          } else {
+            selectedId = null;
+            renderList();
+            $("#inspector").classList.add("hidden");
+          }
+        }
+        return;
+      }
+      const q = $("#palette-input").value;
+      const count = PALETTE_ITEMS.filter((i) => i.label.toLowerCase().includes(q.toLowerCase())).length;
+      if (e.key === "Escape") closePalette();
+      if (e.key === "ArrowDown") { e.preventDefault(); paletteFocus = Math.min(paletteFocus + 1, count - 1); renderPalette(q); }
+      if (e.key === "ArrowUp") { e.preventDefault(); paletteFocus = Math.max(paletteFocus - 1, 0); renderPalette(q); }
+      if (e.key === "Enter") closePalette();
+    });
+
+    applySidebarState();
+    renderList();
+    renderInspector();
+  </script>
+</body>
+</html>

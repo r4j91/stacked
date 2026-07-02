@@ -1,0 +1,186 @@
+import SwiftUI
+
+// Paridade lib/screens/today_screen.dart
+struct TodayView: View {
+  @Environment(ThemeManager.self) private var theme
+  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @State private var store = TaskStore.shared
+  @State private var completedExpanded = false
+  @State private var detailRoute: TaskDetailRoute?
+  @State private var subtaskDetailRoute: SubtaskDetailRoute?
+
+  var body: some View {
+    let c = theme.colors
+    let overdue = store.todayOverdue
+    let todayOnly = store.todayOnly
+
+    List {
+      Section {
+        TaskListScreenHeader(title: "Hoje", subtitle: NavTab.today.subtitle)
+          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
+      if store.todayLoading {
+        Section {
+          ProgressView()
+            .tint(c.accent)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+        }
+      } else if let err = store.todayError {
+        Section {
+          LoadErrorView(message: err) {
+            _Concurrency.Task { await store.loadToday() }
+          }
+          .listRowBackground(Color.clear)
+        }
+      } else if overdue.isEmpty && todayOnly.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
+        Section {
+          EmptyStateView(icon: .sun, title: "Tudo em dia", subtitle: "Nenhuma tarefa para hoje")
+          .listRowBackground(Color.clear)
+        }
+      } else {
+        if !overdue.isEmpty {
+          Section {
+            ForEach(overdue) { task in
+              taskRow(task)
+            }
+          } header: {
+            sectionHeader("ATRASADAS")
+          }
+        }
+
+        if !todayOnly.isEmpty {
+          Section {
+            ForEach(todayOnly) { task in
+              taskRow(task)
+            }
+          } header: {
+            if !overdue.isEmpty { sectionHeader("HOJE") }
+          }
+        }
+
+        if showCompleted && !store.todayCompleted.isEmpty {
+          Section {
+            Button {
+              withAnimation { completedExpanded.toggle() }
+            } label: {
+              HStack {
+                Text("Concluídas (\(store.todayCompleted.count))")
+                  .font(.system(size: 13, weight: .semibold))
+                  .foregroundStyle(c.textSecondary)
+                Spacer()
+                Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
+                  .font(.system(size: 12, weight: .semibold))
+                  .foregroundStyle(c.textTertiary)
+              }
+            }
+            .listRowBackground(Color.clear)
+
+            if completedExpanded {
+              ForEach(store.todayCompleted) { task in
+                TaskRow(task: task) { }
+                  .opacity(0.7)
+                  .listRowInsets(rowInsets)
+                  .listRowSeparator(.hidden)
+                  .listRowBackground(Color.clear)
+              }
+            }
+          }
+        }
+      }
+
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .stackedListTailInset()
+    .background(c.background)
+    .refreshable { await store.loadToday() }
+    .task { await store.loadToday() }
+    .fullScreenCover(item: $detailRoute) { route in
+      TaskDetailView(taskId: route.taskId) {
+        _Concurrency.Task {
+          await store.loadToday()
+          await store.loadInbox()
+        }
+      }
+      .environment(ThemeManager.shared)
+    }
+    .sheet(item: $subtaskDetailRoute) { route in
+      SubtaskDetailView(subtask: route.subtask) {
+        _Concurrency.Task { await store.loadToday() }
+      }
+      .environment(ThemeManager.shared)
+    }
+  }
+
+  private var rowInsets: EdgeInsets {
+    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  private func sectionHeader(_ text: String) -> some View {
+    Text(text)
+      .font(.system(size: 11, weight: .bold))
+      .foregroundStyle(theme.colors.textTertiary)
+      .tracking(0.6)
+      .textCase(nil)
+  }
+
+  @ViewBuilder
+  private func taskRow(_ task: Task) -> some View {
+    TaskRow(task: task, onToggle: {
+      HapticService.light()
+      store.completeToday(task)
+    }, onTap: {
+      detailRoute = TaskDetailRoute(taskId: task.id)
+    }, onSubtaskTap: { sub in
+      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+    }, onSubtaskChanged: {
+      _Concurrency.Task { await store.loadToday() }
+    })
+    .listRowInsets(rowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { store.completeToday(task) },
+      onDuplicate: { store.duplicateToday(task) },
+      onDelete: { store.deleteToday(task) },
+      onRefresh: { _Concurrency.Task { await store.loadToday() } }
+    )
+    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+      Button {
+        HapticService.success()
+        store.completeToday(task)
+      } label: {
+        Label("Concluir", systemImage: "checkmark")
+      }
+      .tint(AppColors.dateDueToday)
+    }
+    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+      Button {
+        HapticService.light()
+        _Concurrency.Task { try? await store.postponeToday(task) }
+      } label: {
+        Label("Adiar", systemImage: "clock")
+      }
+      .tint(AppColors.priorityMedium)
+
+      Button(role: .destructive) {
+        HapticService.warning()
+        store.deleteToday(task)
+      } label: {
+        Label("Excluir", systemImage: "trash")
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# Netlify — configure "Base directory" = stacked-web no painel do site.
+[build]
+  command = "npm run build"
+  # Só rebuilda quando arquivos desta pasta mudam (monorepo Flutter + web).
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

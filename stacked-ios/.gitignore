@@ -1,0 +1,14 @@
+# Xcode
+*.xcodeproj/
+!project.yml
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+build/DerivedData/
+
+# Secrets
+Config/Secrets.xcconfig
+
+# macOS
+.DS_Store
