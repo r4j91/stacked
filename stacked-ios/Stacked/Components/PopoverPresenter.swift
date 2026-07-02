@@ -132,12 +132,12 @@ struct PopoverOverlayHost: View {
     if hostBounds.width > 1, hostBounds.height > 1 {
       return hostBounds
     }
-    return UIScreen.main.bounds
+    return ScreenMetrics.bounds
   }
 
   private func updateKeyboardHeight(from note: Notification) {
     guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-    let screenH = UIScreen.main.bounds.height
+    let screenH = ScreenMetrics.bounds.height
     keyboardHeight = max(0, screenH - frame.origin.y)
   }
 }

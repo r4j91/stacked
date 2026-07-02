@@ -25,11 +25,10 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var sheetHeight: CGFloat = 200
+  @State private var sheetHeight: CGFloat = 120
 
-  private let pillRadius: CGFloat = 22
-  private let pillHeight: CGFloat = 44
-  private let sendWidth: CGFloat = 64
+  private let iconCircleSize: CGFloat = 38
+  private let sendCircleSize: CGFloat = 40
 
   init(
     initialProjectId: String? = nil,
@@ -46,10 +45,11 @@ struct QuickAddTaskView: View {
   var body: some View {
     sheetContent
       .frame(maxWidth: .infinity, alignment: .top)
-      .ignoresSafeArea(.keyboard, edges: .bottom)
+      .background(panelSurface)
       .reportSheetHeight($sheetHeight)
       .presentationDetents([.height(sheetHeight)])
       .presentationDragIndicator(.visible)
+      .presentationBackground(panelSurface)
       // SUBSTITUIDO_FASE8A: presenter escopado; overlay na janela (placement .window).
       .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .window)
       .onAppear {
@@ -78,216 +78,140 @@ struct QuickAddTaskView: View {
   //   .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { titleFocused = true } }
   // }
 
+  // SUBSTITUIDO_FASE8B: painel compacto Todoist — título sem caixa, descrição oculta, ActionRow única.
   private var sheetContent: some View {
     let c = theme.colors
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
     return VStack(spacing: 0) {
-        // SUBSTITUIDO_FASE7C: grabber Capsule custom — o sheet usa presentationDragIndicator nativo.
-        fieldBox(verticalPadding: 13) {
-          TextField("Nome da tarefa", text: $title)
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(c.textPrimary)
-            .tint(c.accent)
-            .focused($titleFocused)
-            .submitLabel(.done)
-            .onSubmit {
-              if hasTitle { _Concurrency.Task { await save() } }
-            }
-        }
+      TextField("Nome da tarefa", text: $title)
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(c.textPrimary)
+        .tint(c.accent)
+        .focused($titleFocused)
+        .submitLabel(.done)
         .padding(.horizontal, 16)
-
-        fieldBox(verticalPadding: 11) {
-          TextField("Descrição", text: $descriptionText, axis: .vertical)
-            .font(.system(size: 14))
-            .foregroundStyle(c.textSecondary)
-            .tint(c.accent)
-            .lineLimit(1...3)
+        .padding(.vertical, 14)
+        .onSubmit {
+          if hasTitle { _Concurrency.Task { await save() } }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
 
-        Divider()
-          .frame(height: 0.5)
-          .overlay(c.textTertiary.opacity(0.15))
-          .padding(.top, 14)
+      Divider()
+        .frame(height: 1)
+        .overlay(hairlineColor)
 
-        HStack(alignment: .center, spacing: 10) {
-          ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
-              metadataPill(
-                icon: .tag,
-                active: !selectedLabelIds.isEmpty,
-                activeColor: labelPillColor,
-                activeLabel: labelPillName,
-                badge: selectedLabelIds.count > 1 ? "\(selectedLabelIds.count)" : nil
-              ) { showLabelsMenu(anchor: $0) }
+      HStack(spacing: 8) {
+        metadataIconButton(
+          icon: .tag,
+          active: !selectedLabelIds.isEmpty,
+          activeColor: labelPillColor
+        ) { showLabelsMenu(anchor: $0) }
 
-              metadataPill(
-                icon: .calendar,
-                active: dueDate != nil,
-                activeColor: datePillColor,
-                activeLabel: dueDate != nil ? dueDateLabel : nil
-              ) { _ in
-                titleFocused = false
-                showDatePicker = true
-              }
-
-              metadataPill(
-                icon: .flag,
-                active: priority != nil,
-                activeColor: priorityColor,
-                activeLabel: priority != nil ? priorityLabel : nil,
-                subtleBg: true
-              ) { showPriorityMenu(anchor: $0) }
-
-              metadataPill(
-                icon: .money,
-                active: false,
-                activeColor: c.accent,
-                subtleBg: true
-              ) { _ in }
-
-              if !projectOnSecondLine {
-                projectPillInline
-              }
-            }
-            .padding(.vertical, 2)
-          }
-
-          sendButton(hasTitle: hasTitle)
+        metadataIconButton(
+          icon: .calendar,
+          active: dueDate != nil,
+          activeColor: datePillColor
+        ) { _ in
+          titleFocused = false
+          showDatePicker = true
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 9)
-        .padding(.bottom, projectOnSecondLine ? 6 : 9)
 
-        if projectOnSecondLine {
-          HStack {
-            projectPillInline
-            Spacer()
-          }
+        metadataIconButton(
+          icon: .flag,
+          active: priority != nil,
+          activeColor: priorityColor
+        ) { showPriorityMenu(anchor: $0) }
+
+        metadataIconButton(
+          icon: .money,
+          active: false,
+          activeColor: c.accent
+        ) { _ in }
+
+        projectChip
+
+        Spacer(minLength: 0)
+
+        sendButton(hasTitle: hasTitle)
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 10)
+
+      if let error {
+        Text(error)
+          .font(.system(size: 12))
+          .foregroundStyle(AppColors.priorityHigh)
           .padding(.horizontal, 14)
-          .padding(.bottom, 9)
-        }
-
-        if let error {
-          Text(error)
-            .font(.system(size: 12))
-            .foregroundStyle(AppColors.priorityHigh)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 4)
-        }
+          .padding(.bottom, 6)
+      }
     }
   }
 
-  // SUBSTITUIDO_FASE1B: panel com LiquidGlass.sheetPanel + spacers de teclado/safe area
-  // private var panel: some View { ... LiquidGlass.sheetPanel ... Color.clear.frame(height: bottomInset) ... }
-
-  private func fieldBox<Content: View>(
-    verticalPadding: CGFloat,
-    @ViewBuilder content: () -> Content
-  ) -> some View {
-    let c = theme.colors
-    return content()
-      .padding(.horizontal, 14)
-      .padding(.vertical, verticalPadding)
-      .background(c.surfaceVariant.opacity(0.45))
-      .clipShape(RoundedRectangle(cornerRadius: PopoverStyle.radius))
-      .overlay(
-        RoundedRectangle(cornerRadius: PopoverStyle.radius)
-          .stroke(c.textPrimary.opacity(0.08), lineWidth: 0.8)
-      )
+  private var panelSurface: Color {
+    theme.colors.isDark
+      ? Color(hex: 0x1B1D23)
+      : Color(uiColor: .secondarySystemGroupedBackground)
   }
 
-  private func metadataPill(
+  private var hairlineColor: Color {
+    theme.colors.textTertiary.opacity(0.15)
+  }
+
+  private func metadataIconButton(
     icon: StackedIconKey,
     active: Bool,
     activeColor: Color,
-    activeLabel: String? = nil,
-    badge: String? = nil,
-    subtleBg: Bool = false,
     action: @escaping (CGRect) -> Void
   ) -> some View {
-    AnchoredTapButton(action: action) {
-      pillContent(
-        icon: icon,
-        active: active,
-        activeColor: activeColor,
-        activeLabel: activeLabel,
-        badge: badge,
-        subtleBg: subtleBg
-      )
-    }
-  }
-
-  private func pillContent(
-    icon: StackedIconKey,
-    active: Bool,
-    activeColor: Color,
-    activeLabel: String? = nil,
-    badge: String? = nil,
-    subtleBg: Bool = false
-  ) -> some View {
     let c = theme.colors
-    let hasText = activeLabel != nil || badge != nil
-    let bg = (active && !subtleBg) ? activeColor.opacity(0.12) : c.surfaceVariant.opacity(0.4)
+    let bg = active ? activeColor.opacity(0.15) : Color.clear
     let iconColor = active ? activeColor : c.textSecondary
 
-    return HStack(spacing: hasText ? 5 : 0) {
-      StackedIcons.icon(icon, size: 16, color: iconColor)
-      if let activeLabel {
-        Text(activeLabel)
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(activeColor)
-          .lineLimit(1)
-      }
-      if let badge {
-        Text(badge)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(activeColor)
-      }
+    return AnchoredTapButton(action: action) {
+      StackedIcons.icon(icon, size: 18, color: iconColor)
+        .frame(width: iconCircleSize, height: iconCircleSize)
+        .background(bg)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(hairlineColor, lineWidth: 1))
     }
-    .padding(14)
-    .frame(width: hasText ? nil : pillHeight, height: pillHeight)
-    .background(bg)
-    .clipShape(RoundedRectangle(cornerRadius: pillRadius))
-    .overlay(
-      RoundedRectangle(cornerRadius: pillRadius)
-        .stroke(c.textTertiary.opacity(0.12), lineWidth: 1)
-    )
+    .accessibilityLabel(accessibilityLabel(for: icon))
   }
 
-  private var projectPillInline: some View {
+  private func accessibilityLabel(for icon: StackedIconKey) -> String {
+    switch icon {
+    case .tag: "Etiquetas"
+    case .calendar: "Data"
+    case .flag: "Prioridade"
+    case .money: "Parcelas"
+    default: "Metadado"
+    }
+  }
+
+  private var projectChip: some View {
     let c = theme.colors
     let active = selectedProjectId != nil
     let dot = projects.first(where: { $0.id == selectedProjectId })?.color ?? c.textPrimary.opacity(0.28)
-    let bg = active ? dot.opacity(0.12) : c.surfaceVariant.opacity(0.4)
+    let label = active ? "• \(projectPillLabel)" : "• \(projectPillLabel)"
 
     return AnchoredTapButton { rect in
       showProjectMenu(anchor: rect)
     } label: {
-      HStack(spacing: 6) {
-        Circle().fill(dot).frame(width: 7, height: 7)
-        Text(projectPillLabel)
-          .font(.system(size: 12, weight: .medium))
+      HStack(spacing: 5) {
+        if active {
+          Circle().fill(dot).frame(width: 6, height: 6)
+        }
+        Text(label)
+          .font(.system(size: 13, weight: .medium))
           .foregroundStyle(active ? dot : c.textSecondary)
           .lineLimit(1)
       }
-      .padding(.horizontal, 14)
-      .padding(.vertical, 14)
-      .frame(minHeight: pillHeight)
-      .background(bg)
-      .clipShape(RoundedRectangle(cornerRadius: pillRadius))
-      .overlay(
-        RoundedRectangle(cornerRadius: pillRadius)
-          .stroke(c.textTertiary.opacity(0.12), lineWidth: 1)
-      )
+      .padding(.horizontal, 12)
+      .frame(height: iconCircleSize)
+      .background(active ? dot.opacity(0.12) : Color.clear)
+      .clipShape(Capsule())
+      .overlay(Capsule().stroke(hairlineColor, lineWidth: 1))
     }
-  }
-
-  private var projectOnSecondLine: Bool {
-    guard selectedProjectId != nil, selectedSectionId != nil else { return false }
-    return projectPillLabel.count > 18
+    .accessibilityLabel("Projeto")
   }
 
   private func sendButton(hasTitle: Bool) -> some View {
@@ -297,19 +221,31 @@ struct QuickAddTaskView: View {
     } label: {
       Group {
         if saving {
-          ProgressView().tint(c.background)
+          ProgressView().tint(hasTitle ? c.background : c.textSecondary)
         } else {
-          StackedIcons.icon(.arrowUp, size: 18, color: hasTitle ? c.background : c.background.opacity(0.45))
+          StackedIcons.icon(
+            .arrowUp,
+            size: 18,
+            color: hasTitle ? c.background : c.textSecondary
+          )
         }
       }
-      .frame(width: sendWidth, height: pillHeight)
-      .background(hasTitle ? c.accent : c.accent.opacity(0.28))
-      .clipShape(RoundedRectangle(cornerRadius: pillRadius))
+      .frame(width: sendCircleSize, height: sendCircleSize)
+      .background(hasTitle ? c.accent : c.surfaceVariant)
+      .clipShape(Circle())
     }
-    .buttonStyle(PressableStyle(cornerRadius: pillRadius))
+    .buttonStyle(PressableStyle(cornerRadius: sendCircleSize / 2))
+    .animation(AppMotion.snappy, value: hasTitle)
     .disabled(!hasTitle || saving)
     .accessibilityLabel("Salvar tarefa")
   }
+
+  // SUBSTITUIDO_FASE8B: fieldBox / metadataPill / projectPillInline / segunda linha de projeto removidos.
+  // private func fieldBox<Content: View>(...) { ... }
+  // private func metadataPill(...) { ... }
+  // private func pillContent(...) { ... }
+  // private var projectPillInline: some View { ... }
+  // private var projectOnSecondLine: Bool { ... }
 
   private var projectPillLabel: String {
     guard let id = selectedProjectId,
@@ -356,6 +292,7 @@ struct QuickAddTaskView: View {
   }
 
   private func showPriorityMenu(anchor: CGRect) {
+    titleFocused = false
     presentAnchoredPopover(anchorRect: anchor, items: [
       PopoverMenuItem(id: "high", icon: Hugeicons.flag01, label: "Prioridade 1",
                       selected: priority == .high, iconColor: AppColors.priorityHigh),
@@ -378,6 +315,7 @@ struct QuickAddTaskView: View {
   }
 
   private func showLabelsMenu(anchor: CGRect) {
+    titleFocused = false
     let items = labels.map { label in
       PopoverMenuItem(
         id: label.id,
@@ -398,6 +336,7 @@ struct QuickAddTaskView: View {
   }
 
   private func showProjectMenu(anchor: CGRect) {
+    titleFocused = false
     var items: [PopoverMenuItem] = [
       PopoverMenuItem(id: "inbox", icon: Hugeicons.inbox, label: "Inbox",
                       selected: selectedProjectId == nil),

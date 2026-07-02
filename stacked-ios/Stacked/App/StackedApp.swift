@@ -38,7 +38,7 @@ private struct WindowSheetPopoverLayer: View {
     if presenter.isPresented {
       PopoverOverlayHost(
         presenter: presenter,
-        hostBounds: UIScreen.main.bounds,
+        hostBounds: ScreenMetrics.bounds,
         forcePreferAbove: true
       )
     }

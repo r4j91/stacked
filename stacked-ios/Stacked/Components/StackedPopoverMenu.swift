@@ -107,7 +107,13 @@ struct StackedPopoverOverlay: View {
 
     let top: CGFloat
     if showsAbove {
-      top = max(anchor.minY - h - 8, topInset)
+      var proposed = anchor.minY - h - 8
+      proposed = max(proposed, topInset)
+      if keyboardHeight > 0 {
+        proposed = min(proposed, keyboardTop - h - 8)
+        proposed = max(proposed, topInset)
+      }
+      top = proposed
     } else {
       top = min(anchor.maxY + 4, keyboardTop - h - 10)
     }
@@ -270,27 +276,45 @@ struct AnchoredTapButton<Label: View>: View {
   @ViewBuilder let label: () -> Label
 
   @Environment(\.popoverAnchorSpaceName) private var anchorSpaceName
+  @State private var screenRect: CGRect = .zero
 
   var body: some View {
+    Group {
+      if anchorSpaceName != nil {
+        localAnchorButton
+      } else {
+        screenAnchorButton
+      }
+    }
+    .buttonStyle(PressableStyle(cornerRadius: 22))
+  }
+
+  private var localAnchorButton: some View {
     label()
       .overlay {
         GeometryReader { geo in
           Button {
-            action(anchorFrame(in: geo))
+            action(geo.frame(in: .named(anchorSpaceName!)))
           } label: {
             Color.clear.contentShape(Rectangle())
           }
           .buttonStyle(.plain)
         }
       }
-      .buttonStyle(PressableStyle(cornerRadius: 22))
   }
 
-  private func anchorFrame(in geo: GeometryProxy) -> CGRect {
-    if let anchorSpaceName {
-      return geo.frame(in: .named(anchorSpaceName))
-    }
-    return geo.frame(in: .global)
+  // SUBSTITUIDO_FASE8A: .global dentro de .sheet não é tela — usar ScreenBoundsReader.
+  private var screenAnchorButton: some View {
+    label()
+      .background(ScreenBoundsReader(rect: $screenRect))
+      .overlay {
+        Button {
+          action(screenRect)
+        } label: {
+          Color.clear.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+      }
   }
 }
 
