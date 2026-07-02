@@ -98,7 +98,7 @@ struct PopoverOverlayHost: View {
       if boundPresenter.isPresented {
         StackedPopoverOverlay(
           anchorRect: boundPresenter.anchorRect,
-          keyboardHeight: forcePreferAbove ? 0 : keyboardHeight,
+          keyboardHeight: keyboardHeight,
           hostBounds: resolvedHostBounds,
           anchorYOffset: anchorYOffset,
           forcePreferAbove: forcePreferAbove,

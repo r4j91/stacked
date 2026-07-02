@@ -48,8 +48,8 @@ struct QuickAddTaskView: View {
       .reportSheetHeight($sheetHeight)
       .presentationDetents([.height(sheetHeight)])
       .presentationDragIndicator(.visible)
-      // SUBSTITUIDO_FASE8A: host local de popover no coordinateSpace "quickAddSheet"
-      .popoverHostScope(coordinateSpaceName: "quickAddSheet")
+      // SUBSTITUIDO_FASE8A: presenter escopado; overlay na janela (placement .window).
+      .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .window)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
       }

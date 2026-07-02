@@ -1,6 +1,6 @@
 import SwiftUI
 
-// SUBSTITUIDO_FASE8A: âncoras no coordinateSpace nomeado do sheet (não .global).
+// SUBSTITUIDO_FASE8A: Quick Add usa overlay na janela (acima do sheet); demais sheets usam host local.
 private struct PopoverAnchorSpaceNameKey: EnvironmentKey {
   static let defaultValue: String? = nil
 }
@@ -12,79 +12,112 @@ extension EnvironmentValues {
   }
 }
 
-// Fase 7B — popovers dentro de sheets/fullScreenCover usam host local (não o overlay global).
+enum PopoverOverlayPlacement {
+  /// Overlay dentro do conteúdo (TaskDetail, SubtaskDetail).
+  case local
+  /// Overlay na janela, acima do sheet nativo (Quick Add).
+  case window
+}
+
+private struct ScopedPopoverHost: Identifiable {
+  let id = UUID()
+  let presenter: PopoverPresenter
+  let placement: PopoverOverlayPlacement
+}
+
+// Fase 7B / 8A — popovers dentro de sheets usam host escopado (não o overlay global).
 @MainActor
 enum PopoverHostRegistry {
-  private static var scopeStack: [PopoverPresenter] = []
+  private static var scopeStack: [ScopedPopoverHost] = []
 
   static var active: PopoverPresenter {
-    scopeStack.last ?? .shared
+    scopeStack.last?.presenter ?? .shared
   }
 
-  static func push(_ presenter: PopoverPresenter) {
-    scopeStack.append(presenter)
+  static var windowPresenter: PopoverPresenter? {
+    scopeStack.last(where: { $0.placement == .window })?.presenter
+  }
+
+  static func push(_ presenter: PopoverPresenter, placement: PopoverOverlayPlacement) {
+    scopeStack.append(ScopedPopoverHost(presenter: presenter, placement: placement))
   }
 
   static func pop(_ presenter: PopoverPresenter) {
-    scopeStack.removeAll { $0 === presenter }
+    scopeStack.removeAll { $0.presenter === presenter }
   }
 }
 
-/// Monta overlay de popover no contexto local (sheet / fullScreenCover) com âncoras no espaço do host.
+/// Monta overlay de popover escopado ao sheet / fullScreenCover.
 struct PopoverHostScope: ViewModifier {
   let coordinateSpaceName: String
-
-  /// Espaço acima do sheet para o menu nascer acima da âncora (fora do clip do painel).
-  private var expansionTop: CGFloat {
-    coordinateSpaceName == "quickAddSheet" ? 340 : 0
-  }
-
-  private var forcePreferAbove: Bool {
-    coordinateSpaceName == "quickAddSheet"
-  }
+  let placement: PopoverOverlayPlacement
 
   @State private var presenter = PopoverPresenter()
-  @State private var hostBounds: CGRect = .zero
 
   func body(content: Content) -> some View {
-    content
-      .coordinateSpace(name: coordinateSpaceName)
-      .environment(\.popoverAnchorSpaceName, coordinateSpaceName)
-      .background {
-        GeometryReader { geo in
-          Color.clear
-            .onAppear { hostBounds = geo.frame(in: .named(coordinateSpaceName)) }
-            .onChange(of: geo.frame(in: .named(coordinateSpaceName))) { _, frame in
-              hostBounds = frame
+    Group {
+      if placement == .local {
+        content
+          .coordinateSpace(name: coordinateSpaceName)
+          .environment(\.popoverAnchorSpaceName, coordinateSpaceName)
+          .overlay {
+            GeometryReader { geo in
+              PopoverOverlayHost(
+                presenter: presenter,
+                hostBounds: geo.frame(in: .named(coordinateSpaceName))
+              )
             }
-        }
+          }
+      } else {
+        // Window: âncoras globais; overlay renderizado por WindowPopoverBridge na janela.
+        content
+          .environment(\.popoverAnchorSpaceName, nil)
       }
-      // SUBSTITUIDO_FASE8A: overlay expande para cima — host local não cabe menu acima da âncora.
-      .overlay {
-        GeometryReader { geo in
-          let w = geo.size.width
-          let h = geo.size.height
-          let expand = expansionTop
-          PopoverOverlayHost(
-            presenter: presenter,
-            hostBounds: CGRect(x: 0, y: 0, width: w, height: h + expand),
-            anchorYOffset: expand,
-            forcePreferAbove: forcePreferAbove
-          )
-          .frame(width: w, height: h + expand, alignment: .bottom)
-          .offset(y: -expand)
-        }
-      }
-      .onAppear { PopoverHostRegistry.push(presenter) }
-      .onDisappear {
-        presenter.dismiss()
-        PopoverHostRegistry.pop(presenter)
-      }
+    }
+    .onAppear { PopoverHostRegistry.push(presenter, placement: placement) }
+    .onDisappear {
+      presenter.dismiss()
+      PopoverHostRegistry.pop(presenter)
+    }
+  }
+}
+
+/// Popover acima do sheet nativo — evita clip do container e faixa extra no painel.
+struct WindowPopoverBridge: View {
+  let isSheetOpen: Bool
+
+  var body: some View {
+    if isSheetOpen, let presenter = PopoverHostRegistry.windowPresenter {
+      WindowPopoverBridgeContent(presenter: presenter)
+    }
+  }
+}
+
+private struct WindowPopoverBridgeContent: View {
+  @Bindable var presenter: PopoverPresenter
+
+  var body: some View {
+    if presenter.isPresented {
+      PopoverOverlayHost(
+        presenter: presenter,
+        hostBounds: UIScreen.main.bounds,
+        forcePreferAbove: true
+      )
+    }
   }
 }
 
 extension View {
-  func popoverHostScope(coordinateSpaceName: String = "popoverHostLocal") -> some View {
-    modifier(PopoverHostScope(coordinateSpaceName: coordinateSpaceName))
+  func popoverHostScope(
+    coordinateSpaceName: String = "popoverHostLocal",
+    placement: PopoverOverlayPlacement = .local
+  ) -> some View {
+    modifier(PopoverHostScope(coordinateSpaceName: coordinateSpaceName, placement: placement))
+  }
+
+  func windowPopoverBridge(isSheetOpen: Bool) -> some View {
+    overlay {
+      WindowPopoverBridge(isSheetOpen: isSheetOpen)
+    }
   }
 }
