@@ -34,7 +34,8 @@ extension View {
       }
     )
     .onPreferenceChange(SheetHeightKey.self) { h in
-      height.wrappedValue = max(h, 220)
+      guard h > 1 else { return }
+      height.wrappedValue = h
     }
   }
 }

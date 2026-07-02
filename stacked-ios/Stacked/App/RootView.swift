@@ -34,7 +34,7 @@ struct RootView: View {
     }
     .sheet(isPresented: $showQuickAdd, onDismiss: {
       PopoverPresenter.shared.dismiss()
-      PopoverHostRegistry.windowPresenter?.dismiss()
+      WindowPopoverCoordinator.shared.presenter?.dismiss()
     }) {
       QuickAddTaskView(
         onSaved: { reloadAll() },
@@ -42,7 +42,6 @@ struct RootView: View {
       )
       .environment(ThemeManager.shared)
     }
-    .windowPopoverBridge(isSheetOpen: showQuickAdd)
     .sheet(isPresented: $showNewProject) {
       NewProjectSheetView(onCreated: {
         _Concurrency.Task {

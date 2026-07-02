@@ -25,7 +25,7 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var sheetHeight: CGFloat = 300
+  @State private var sheetHeight: CGFloat = 200
 
   private let pillRadius: CGFloat = 22
   private let pillHeight: CGFloat = 44
@@ -45,6 +45,8 @@ struct QuickAddTaskView: View {
 
   var body: some View {
     sheetContent
+      .frame(maxWidth: .infinity, alignment: .top)
+      .ignoresSafeArea(.keyboard, edges: .bottom)
       .reportSheetHeight($sheetHeight)
       .presentationDetents([.height(sheetHeight)])
       .presentationDragIndicator(.visible)

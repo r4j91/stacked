@@ -25,6 +25,26 @@ private struct ScopedPopoverHost: Identifiable {
   let placement: PopoverOverlayPlacement
 }
 
+/// Publica presenter de sheet para overlay na janela (StackedApp — acima do .sheet nativo).
+@MainActor
+@Observable
+final class WindowPopoverCoordinator {
+  static let shared = WindowPopoverCoordinator()
+  private(set) var presenter: PopoverPresenter?
+
+  private init() {}
+
+  func register(_ presenter: PopoverPresenter) {
+    self.presenter = presenter
+  }
+
+  func unregister(_ presenter: PopoverPresenter) {
+    if self.presenter === presenter {
+      self.presenter = nil
+    }
+  }
+}
+
 // Fase 7B / 8A — popovers dentro de sheets usam host escopado (não o overlay global).
 @MainActor
 enum PopoverHostRegistry {
@@ -34,16 +54,16 @@ enum PopoverHostRegistry {
     scopeStack.last?.presenter ?? .shared
   }
 
-  static var windowPresenter: PopoverPresenter? {
-    scopeStack.last(where: { $0.placement == .window })?.presenter
-  }
-
   static func push(_ presenter: PopoverPresenter, placement: PopoverOverlayPlacement) {
     scopeStack.append(ScopedPopoverHost(presenter: presenter, placement: placement))
+    if placement == .window {
+      WindowPopoverCoordinator.shared.register(presenter)
+    }
   }
 
   static func pop(_ presenter: PopoverPresenter) {
     scopeStack.removeAll { $0.presenter === presenter }
+    WindowPopoverCoordinator.shared.unregister(presenter)
   }
 }
 
@@ -69,7 +89,7 @@ struct PopoverHostScope: ViewModifier {
             }
           }
       } else {
-        // Window: âncoras globais; overlay renderizado por WindowPopoverBridge na janela.
+        // Window: âncoras globais; overlay em AppRootView via WindowPopoverCoordinator.
         content
           .environment(\.popoverAnchorSpaceName, nil)
       }
@@ -82,42 +102,11 @@ struct PopoverHostScope: ViewModifier {
   }
 }
 
-/// Popover acima do sheet nativo — evita clip do container e faixa extra no painel.
-struct WindowPopoverBridge: View {
-  let isSheetOpen: Bool
-
-  var body: some View {
-    if isSheetOpen, let presenter = PopoverHostRegistry.windowPresenter {
-      WindowPopoverBridgeContent(presenter: presenter)
-    }
-  }
-}
-
-private struct WindowPopoverBridgeContent: View {
-  @Bindable var presenter: PopoverPresenter
-
-  var body: some View {
-    if presenter.isPresented {
-      PopoverOverlayHost(
-        presenter: presenter,
-        hostBounds: UIScreen.main.bounds,
-        forcePreferAbove: true
-      )
-    }
-  }
-}
-
 extension View {
   func popoverHostScope(
     coordinateSpaceName: String = "popoverHostLocal",
     placement: PopoverOverlayPlacement = .local
   ) -> some View {
     modifier(PopoverHostScope(coordinateSpaceName: coordinateSpaceName, placement: placement))
-  }
-
-  func windowPopoverBridge(isSheetOpen: Bool) -> some View {
-    overlay {
-      WindowPopoverBridge(isSheetOpen: isSheetOpen)
-    }
   }
 }

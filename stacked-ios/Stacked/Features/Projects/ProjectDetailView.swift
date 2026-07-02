@@ -171,7 +171,7 @@ struct ProjectDetailView: View {
     .task { await store.load() }
     .sheet(isPresented: $showQuickAdd, onDismiss: {
       PopoverPresenter.shared.dismiss()
-      PopoverHostRegistry.windowPresenter?.dismiss()
+      WindowPopoverCoordinator.shared.presenter?.dismiss()
     }) {
       QuickAddTaskView(
         initialProjectId: store.projectId,
@@ -180,7 +180,6 @@ struct ProjectDetailView: View {
       )
       .environment(ThemeManager.shared)
     }
-    .windowPopoverBridge(isSheetOpen: showQuickAdd)
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask) {
         _Concurrency.Task { await store.load() }
