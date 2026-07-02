@@ -157,7 +157,7 @@ struct StackedPopoverOverlay: View {
       }
       .frame(width: PopoverStyle.menuWidth)
     }
-    .shadow(color: .black.opacity(0.22), radius: 20, y: 8)
+    // SUBSTITUIDO_FASE1: .shadow(color: .black.opacity(0.22), radius: 20, y: 8)
     .id(pageStack.count)
     .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
   }

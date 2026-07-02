@@ -1,37 +1,21 @@
 import SwiftUI
 
 // Paridade lib/widgets/responsive_layout.dart _LiquidGlassPill + header_liquid_pill.dart
+// FASE1: glass puro iOS 26 — uma camada `.glassEffect(.regular.tint(...))`, sem Material+fill empilhados.
 enum LiquidGlass {
-  private static let navFillOpacity: CGFloat = 0.52
-  private static let popoverFillOpacity: CGFloat = 0.78
+  /// Tint leve (~12%) preserva identidade do tema sem matar translucidez.
+  fileprivate static let glassTintOpacity: CGFloat = 0.12
 
   @ViewBuilder
   static func navBarPill<Content: View>(
     navBarColor: Color,
     @ViewBuilder content: () -> Content
   ) -> some View {
-    let shape = RoundedRectangle(cornerRadius: 32)
-    if #available(iOS 26.0, *) {
-      content()
-        .background {
-          shape
-            .fill(navBarColor.opacity(navFillOpacity))
-            .glassEffect(.regular, in: shape)
-        }
-        .clipShape(shape)
-        .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
-    } else {
-      content()
-        .background {
-          ZStack {
-            shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(navFillOpacity))
-          }
-          .overlay(shape.stroke(Color.white.opacity(0.08), lineWidth: 0.8))
-        }
-        .clipShape(shape)
-        .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
-    }
+    GlassSurface(
+      navBarColor: navBarColor,
+      shape: RoundedRectangle(cornerRadius: 32),
+      content: content
+    )
   }
 
   @ViewBuilder
@@ -40,27 +24,11 @@ enum LiquidGlass {
     cornerRadius: CGFloat = PopoverStyle.radius,
     @ViewBuilder content: () -> Content
   ) -> some View {
-    let shape = RoundedRectangle(cornerRadius: cornerRadius)
-    if #available(iOS 26.0, *) {
-      content()
-        .background {
-          shape
-            .fill(navBarColor.opacity(popoverFillOpacity))
-            .glassEffect(.regular, in: shape)
-        }
-        .clipShape(shape)
-        .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
-    } else {
-      content()
-        .background {
-          ZStack {
-            shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(popoverFillOpacity))
-          }
-          .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
-        }
-        .clipShape(shape)
-    }
+    GlassSurface(
+      navBarColor: navBarColor,
+      shape: RoundedRectangle(cornerRadius: cornerRadius),
+      content: content
+    )
   }
 
   @ViewBuilder
@@ -69,26 +37,11 @@ enum LiquidGlass {
     textPrimary: Color,
     @ViewBuilder content: () -> Content
   ) -> some View {
-    let shape = Capsule()
-    if #available(iOS 26.0, *) {
-      content()
-        .background {
-          shape
-            .fill(navBarColor.opacity(0.55))
-            .glassEffect(.regular, in: shape)
-        }
-        .clipShape(shape)
-    } else {
-      content()
-        .background {
-          ZStack {
-            shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(0.55))
-          }
-          .overlay(shape.stroke(textPrimary.opacity(0.06), lineWidth: 0.8))
-        }
-        .clipShape(shape)
-    }
+    GlassSurface(
+      navBarColor: navBarColor,
+      shape: Capsule(),
+      content: content
+    )
   }
 
   @ViewBuilder
@@ -97,29 +50,10 @@ enum LiquidGlass {
     textPrimary: Color,
     @ViewBuilder content: () -> some View
   ) -> some View {
-    if #available(iOS 26.0, *) {
-      content()
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background {
-          Capsule()
-            .fill(navBarColor.opacity(0.55))
-            .glassEffect(.regular, in: .capsule)
-        }
-    } else {
-      content()
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background {
-          ZStack {
-            Capsule().fill(.ultraThinMaterial)
-            Capsule().fill(navBarColor.opacity(0.55))
-          }
-          .overlay(Capsule().stroke(textPrimary.opacity(0.08), lineWidth: 0.8))
-        }
-    }
+    ToolbarGlassPill(navBarColor: navBarColor, content: content)
   }
 
+  /// FASE1: intacto até Etapa 1B (Quick Add overlay) — ainda fill+glass legado.
   @ViewBuilder
   static func sheetPanel<Content: View>(
     navBarColor: Color,
@@ -131,26 +65,93 @@ enum LiquidGlass {
       bottomTrailingRadius: 0,
       topTrailingRadius: 20
     )
-    if #available(iOS 26.0, *) {
-      content()
-        .background {
-          shape
-            .fill(navBarColor.opacity(0.82))
-            .glassEffect(.regular, in: shape)
-        }
+    content()
+      .background {
+        shape
+          .fill(navBarColor.opacity(0.82))
+          .glassEffect(.regular, in: shape)
+      }
+      .clipShape(shape)
+  }
+}
+
+// MARK: - Superfície glass centralizada (reduce-transparency fallback único)
+
+private struct GlassSurface<S: InsettableShape, Content: View>: View {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  let navBarColor: Color
+  let shape: S
+  let content: Content
+
+  init(
+    navBarColor: Color,
+    shape: S,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.navBarColor = navBarColor
+    self.shape = shape
+    self.content = content()
+  }
+
+  var body: some View {
+    if reduceTransparency {
+      content
+        .background(shape.fill(navBarColor))
         .clipShape(shape)
     } else {
-      content()
-        .background {
-          ZStack {
-            shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(0.82))
-          }
-        }
-        .clipShape(shape)
+      content
+        .glassEffect(
+          .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),
+          in: shape
+        )
     }
   }
 }
+
+private struct ToolbarGlassPill<Content: View>: View {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  let navBarColor: Color
+  let content: Content
+
+  init(navBarColor: Color, @ViewBuilder content: () -> Content) {
+    self.navBarColor = navBarColor
+    self.content = content()
+  }
+
+  var body: some View {
+    let padded = content
+      .padding(.horizontal, 14)
+      .padding(.vertical, 7)
+
+    if reduceTransparency {
+      padded.background(Capsule().fill(navBarColor))
+    } else {
+      padded.glassEffect(
+        .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),
+        in: .capsule
+      )
+    }
+  }
+}
+
+// MARK: - SUBSTITUIDO_FASE1 (referência — fallback iOS 17–25 e empilhamento Material+fill)
+//
+// private static let navFillOpacity: CGFloat = 0.52
+// private static let popoverFillOpacity: CGFloat = 0.78
+//
+// navBarPill (legado):
+//   ZStack { shape.fill(.ultraThinMaterial); shape.fill(navBarColor.opacity(navFillOpacity)) }
+//   .overlay(shape.stroke(Color.white.opacity(0.08), lineWidth: 0.8))
+//   .clipShape(shape)
+//   .shadow(color: .black.opacity(0.28), radius: 24, y: 10)  // SUBSTITUIDO_FASE1
+//
+// popoverCard (legado):
+//   idem + .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))  // SUBSTITUIDO_FASE1
+//
+// headerPill / toolbarPill (legado):
+//   Material + fill(0.55) + stroke textPrimary.opacity(0.06–0.08)
 
 struct GlassPillButton<Content: View>: View {
   @Environment(ThemeManager.self) private var theme

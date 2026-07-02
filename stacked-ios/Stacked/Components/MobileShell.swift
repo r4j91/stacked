@@ -43,15 +43,19 @@ struct MobileShell<Content: View>: View {
           .frame(width: geo.size.width, height: geo.size.height)
 
         if !hideBottomChrome {
-          BottomNavPill(selectedTab: selectedTab) { tab in
-            HapticService.tabChanged()
-            PopoverPresenter.shared.dismiss()
-            fabOpen = false
-            selectedTab = tab
+          // FASE1: GlassEffectContainer só na navbar — FAB fica fora para preservar z-order
+          // (scrim z30 cobre nav; FAB z50 fica acima). Fusão nav↔FAB sólido não é perceptível.
+          GlassEffectContainer(spacing: 36) {
+            BottomNavPill(selectedTab: selectedTab) { tab in
+              HapticService.tabChanged()
+              PopoverPresenter.shared.dismiss()
+              fabOpen = false
+              selectedTab = tab
+            }
+            .padding(.horizontal, AppLayout.fabSideMargin)
+            .padding(.bottom, pillBottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           }
-          .padding(.horizontal, AppLayout.fabSideMargin)
-          .padding(.bottom, pillBottom)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           .zIndex(20)
         }
 

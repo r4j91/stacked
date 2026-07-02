@@ -2,7 +2,7 @@ name: Stacked
 options:
   bundleIdPrefix: com.stacked
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
   groupSortPosition: top
   generateEmptyDirectories: true
 
