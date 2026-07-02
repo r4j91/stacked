@@ -34,8 +34,9 @@ struct MobileShell<Content: View>: View {
     let c = theme.colors
 
     GeometryReader { geo in
-      // Com ignoresSafeArea(.bottom), safeAreaInsets reflete o home indicator uma vez só.
-      let safeBottom = geo.safeAreaInsets.bottom
+      // FASE7AFIX: geo.safeAreaInsets.bottom zera com ignoresSafeArea em device;
+      // windowSafeBottomInset = viewPadding.bottom (paridade Flutter responsive_layout).
+      let safeBottom = max(geo.safeAreaInsets.bottom, AppLayout.windowSafeBottomInset)
       let pillBottom = AppLayout.navPillBottomInset(safeBottom: safeBottom)
       let fabBottom = AppLayout.fabBottomInset(safeBottom: safeBottom)
 
@@ -44,18 +45,20 @@ struct MobileShell<Content: View>: View {
           .frame(width: geo.size.width, height: geo.size.height)
 
         if !hideBottomChrome {
-          // SUBSTITUIDO_FASE7A: GlassEffectContainer(spacing: 36) — filho com
-          // .frame(maxHeight: .infinity) expandia o host e deslocava navbar/FAB.
-          BottomNavPill(selectedTab: selectedTab) { tab in
-            HapticService.prepareTabChange()
-            HapticService.tabChanged()
-            PopoverPresenter.shared.dismiss()
-            fabOpen = false
-            selectedTab = tab
+          // REMOVIDO_FASE7AFIX: 7A removeu GlassEffectContainer — pill/FAB perderam folga inferior.
+          // SUBSTITUIDO_FASE7A: BottomNavPill direto no ZStack sem container.
+          GlassEffectContainer(spacing: 36) {
+            BottomNavPill(selectedTab: selectedTab) { tab in
+              HapticService.prepareTabChange()
+              HapticService.tabChanged()
+              PopoverPresenter.shared.dismiss()
+              fabOpen = false
+              selectedTab = tab
+            }
+            .padding(.horizontal, AppLayout.fabSideMargin)
+            .padding(.bottom, pillBottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           }
-          .padding(.horizontal, AppLayout.fabSideMargin)
-          .padding(.bottom, pillBottom)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           .zIndex(20)
         }
 
