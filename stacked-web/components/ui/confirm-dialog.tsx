@@ -1,5 +1,8 @@
 "use client"
 
+import { useRef } from "react"
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap"
+
 type ConfirmDialogProps = {
   title: string
   message: string
@@ -19,13 +22,17 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(true, dialogRef)
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[var(--z-panel)] flex items-center justify-center bg-black/40 p-4"
       onClick={onCancel}
       role="presentation"
     >
       <div
+        ref={dialogRef}
         className="w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--color-surface)] p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -47,10 +54,10 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-semibold hover:brightness-105 ${
+            className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-semibold ${
               destructive
-                ? "bg-[var(--color-overdue)] text-white"
-                : "bg-[var(--color-accent)] text-[var(--color-accent-text)]"
+                ? "bg-[var(--color-overdue)] text-white hover:brightness-105"
+                : "btn-primary"
             }`}
           >
             {confirmLabel}

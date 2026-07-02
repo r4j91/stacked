@@ -44,11 +44,29 @@ function matchesQuery(task: Task, q: string): boolean {
   return hay.includes(q);
 }
 
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="rounded bg-[var(--color-selected-bg)] px-0.5 text-[var(--color-selected-fg)]">
+        {text.slice(idx, idx + q.length)}
+      </mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 export function CommandPalette() {
   const router = useRouter();
   const {
     paletteOpen,
     closePalette,
+    closeInspector,
     searchTasks,
     filterCounts,
     projects,
@@ -63,9 +81,10 @@ export function CommandPalette() {
   const go = useCallback(
     (path: string) => {
       closePalette();
+      closeInspector();
       router.push(path);
     },
-    [closePalette, router],
+    [closePalette, closeInspector, router],
   );
 
   const items = useMemo(() => {
@@ -192,12 +211,12 @@ export function CommandPalette() {
   return (
     <>
       <div
-        className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[var(--z-command)] bg-black/50"
         onClick={closePalette}
         aria-hidden
       />
       <div
-        className="fixed left-1/2 top-[12%] z-[101] w-[calc(100%-2rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]"
+        className="fixed left-1/2 top-[12%] z-[calc(var(--z-command)+1)] w-[calc(100%-2rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]"
         role="dialog"
         aria-label="Busca rápida"
       >
@@ -241,7 +260,9 @@ export function CommandPalette() {
                   <span className="block text-[11px] font-medium text-[var(--color-text-secondary)]">
                     {item.group}
                   </span>
-                  <span className="block truncate text-sm font-medium">{item.label}</span>
+                  <span className="block truncate text-sm font-medium">
+                    <HighlightMatch text={item.label} query={query} />
+                  </span>
                 </span>
               </button>
             ))

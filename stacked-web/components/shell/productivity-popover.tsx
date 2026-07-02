@@ -132,7 +132,7 @@ export function ProductivityPopover() {
         </div>
 
         {loading ? (
-          <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">Carregando…</p>
+          <ProductivitySkeleton />
         ) : tab === 0 ? (
           <>
             <p className="mb-1 text-3xl font-extrabold tabular-nums">{stats.todayCount}</p>
@@ -157,6 +157,23 @@ export function ProductivityPopover() {
         )}
       </div>
     </AnchoredPopover>
+  );
+}
+
+function ProductivitySkeleton() {
+  return (
+    <div className="animate-pulse space-y-4 py-2">
+      <div className="h-9 w-16 rounded bg-[var(--color-surface-variant)]" />
+      <div className="h-3 w-28 rounded bg-[var(--color-surface-variant)]" />
+      <div className="flex items-end justify-between gap-1.5 pt-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="h-24 w-full max-w-[28px] rounded-t bg-[var(--color-surface-variant)]" />
+            <div className="h-2 w-3 rounded bg-[var(--color-surface-variant)]" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

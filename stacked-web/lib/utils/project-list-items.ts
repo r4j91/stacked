@@ -33,7 +33,10 @@ export function computeProjectListItems({
     grouped.set(key, list);
   }
 
-  const unsectioned = grouped.get(null) ?? [];
+  const sortByOrder = (tasks: Task[]) =>
+    [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+
+  const unsectioned = sortByOrder(grouped.get(null) ?? []);
   for (let i = 0; i < unsectioned.length; i++) {
     items.push({ kind: "task", task: unsectioned[i] });
     if (i < unsectioned.length - 1) items.push({ kind: "separator" });
@@ -41,7 +44,7 @@ export function computeProjectListItems({
 
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
   for (const section of sortedSections) {
-    const sectionTasks = grouped.get(section.id) ?? [];
+    const sectionTasks = sortByOrder(grouped.get(section.id) ?? []);
     items.push({ kind: "sectionHeader", section, count: sectionTasks.length });
     if (!collapsedSectionIds.has(section.id)) {
       for (let i = 0; i < sectionTasks.length; i++) {

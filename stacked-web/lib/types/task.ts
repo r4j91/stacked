@@ -32,6 +32,7 @@ export type Task = {
   labelIds?: string[];
   labels?: { id: string; name: string; color: string }[];
   recurrence?: string;
+  order?: number;
 };
 
 export type ViewMode = "today" | "inbox" | "upcoming" | "done" | "project" | "filters";

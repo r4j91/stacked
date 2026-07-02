@@ -29,4 +29,5 @@ export {
   RepeatIcon,
   UserIcon,
   ArrowUp01Icon,
+  KeyboardIcon,
 } from "@hugeicons/core-free-icons"

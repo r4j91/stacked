@@ -122,7 +122,6 @@ struct TaskRow: View {
 
       if task.hasSubtasks {
         subtaskList
-          .padding(.leading, 46)
           .frame(maxHeight: expanded ? nil : 0, alignment: .top)
           .clipped()
           .opacity(expanded ? 1 : 0)

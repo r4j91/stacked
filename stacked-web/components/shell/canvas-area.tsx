@@ -33,7 +33,11 @@ export function CanvasArea() {
   const title = view === "project" ? (currentProject?.name ?? "Projeto") : meta.title;
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)]">
+    <main
+      data-workbench-main
+      tabIndex={-1}
+      className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)] outline-none"
+    >
       <div className="mx-auto flex h-full w-full max-w-[920px] flex-col px-6">
         <header className="shrink-0 border-b border-[var(--color-border)] pb-4 pt-5">
           <div className="flex items-start justify-between gap-4">
@@ -90,7 +94,10 @@ export function CanvasArea() {
             </div>
           )}
         </header>
-        <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-8 pt-1">
+        <div
+          data-workbench-scroll
+          className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-8 pt-1"
+        >
           {view === "project" && !loading && !currentProject ? (
             <p className="px-4 py-12 text-center text-sm text-[var(--color-text-tertiary)]">
               {error ? "Não foi possível carregar este projeto." : "Projeto não encontrado."}

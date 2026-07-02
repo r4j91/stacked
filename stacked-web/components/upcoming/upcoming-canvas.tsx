@@ -94,7 +94,7 @@ function MonthGrid({
               onClick={() => onSelectDay(isSelected ? null : key)}
               className={`relative flex h-9 flex-col items-center justify-center rounded-[var(--radius-sm)] text-xs tabular-nums transition-colors ${
                 isSelected
-                  ? "bg-[var(--color-accent)] font-semibold text-[var(--color-accent-text)]"
+                  ? "chip-selected"
                   : isToday
                     ? "bg-[var(--color-surface-variant)] font-semibold text-[var(--color-text)]"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]"
@@ -104,7 +104,7 @@ function MonthGrid({
               {hasTasks && (
                 <span
                   className={`absolute bottom-1 h-1 w-1 rounded-full ${
-                    isSelected ? "bg-[var(--color-accent-text)]" : "bg-[var(--color-text-tertiary)]"
+                    isSelected ? "bg-[var(--color-selected-fg)]" : "bg-[var(--color-text-tertiary)]"
                   }`}
                 />
               )}
@@ -151,7 +151,7 @@ function WeekStrip({
             onClick={() => onSelectDay(isSelected ? null : key)}
             className={`flex flex-col items-center gap-0.5 rounded-[var(--radius-sm)] py-2 text-center transition-colors ${
               isSelected
-                ? "bg-[var(--color-accent)] text-[var(--color-accent-text)]"
+                ? "chip-selected"
                 : isToday
                   ? "bg-[var(--color-surface-variant)]"
                   : "hover:bg-[var(--color-surface-variant)]"

@@ -9,7 +9,7 @@ import { ViewIcon, ViewOffIcon } from "@/lib/icons/nav-icons";
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/home";
+  const next = params.get("next") || "/today";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +46,7 @@ export function LoginForm() {
     <div className="flex min-h-dvh items-center justify-center bg-[var(--color-bg)] p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-sm font-extrabold text-[var(--color-accent-text)]">
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-sm font-extrabold text-[var(--color-btn-primary-fg)]">
             S
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">Stacked</h1>
@@ -99,7 +99,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-[var(--radius-md)] bg-[var(--color-accent)] py-2.5 text-sm font-semibold text-[var(--color-accent-text)] hover:brightness-105 disabled:opacity-60"
+            className="btn-primary w-full rounded-[var(--radius-md)] py-2.5 text-sm disabled:opacity-60"
           >
             {loading ? "Aguarde…" : isLogin ? "Entrar" : "Cadastrar"}
           </button>

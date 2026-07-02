@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef } from "react";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 
 type SectionNameDialogProps = {
   title: string;
@@ -18,6 +19,8 @@ export function SectionNameDialog({
   onSubmit,
 }: SectionNameDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useFocusTrap(true, dialogRef);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -33,11 +36,12 @@ export function SectionNameDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[var(--z-panel)] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
       role="presentation"
     >
       <form
+        ref={dialogRef}
         className="w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--color-surface)] p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}

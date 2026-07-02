@@ -86,6 +86,7 @@ export function mapTaskRow(row: DbRow): Task {
       row.recorrencia != null && String(row.recorrencia).trim()
         ? String(row.recorrencia)
         : undefined,
+    order: row.ordem != null ? Number(row.ordem) : undefined,
   };
 }
 

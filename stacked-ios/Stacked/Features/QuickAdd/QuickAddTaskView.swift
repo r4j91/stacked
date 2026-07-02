@@ -132,7 +132,10 @@ struct QuickAddTaskView: View {
                 active: dueDate != nil,
                 activeColor: datePillColor,
                 activeLabel: dueDate != nil ? dueDateLabel : nil
-              ) { _ in showDatePicker = true }
+              ) { _ in
+                titleFocused = false
+                showDatePicker = true
+              }
 
               metadataPill(
                 icon: .flag,
@@ -370,7 +373,7 @@ struct QuickAddTaskView: View {
                       selected: priority == .low, iconColor: AppColors.priorityLow),
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
                       selected: priority == nil, iconColor: Color(hex: 0x6B6E76)),
-    ]) { result in
+    ], preferAbove: true) { result in
       guard let result else { return }
       switch result {
       case "high": priority = .high
@@ -392,7 +395,7 @@ struct QuickAddTaskView: View {
         iconColor: label.color
       )
     }
-    presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
+    presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true, preferAbove: true) { result in
       guard let result else { return }
       if selectedLabelIds.contains(result) {
         selectedLabelIds.remove(result)
@@ -428,7 +431,7 @@ struct QuickAddTaskView: View {
         }
       ))
     }
-    presentAnchoredPopover(anchorRect: anchor, items: items) { result in
+    presentAnchoredPopover(anchorRect: anchor, items: items, preferAbove: true) { result in
       guard let result else { return }
       if result == "inbox" {
         selectedProjectId = nil

@@ -10,6 +10,7 @@ final class PopoverPresenter {
   var anchorRect: CGRect = .zero
   var items: [PopoverMenuItem] = []
   var allowsToggle = false
+  var preferAbove = false
 
   private var onSelectHandler: ((String?) -> Void)?
 
@@ -17,12 +18,14 @@ final class PopoverPresenter {
     anchorRect: CGRect,
     items: [PopoverMenuItem],
     allowsToggle: Bool = false,
+    preferAbove: Bool = false,
     onSelect: @escaping (String?) -> Void
   ) {
     let rect = anchorRect.isValidAnchor ? anchorRect : Self.fallbackAnchor(near: anchorRect)
     self.anchorRect = rect
     self.items = items
     self.allowsToggle = allowsToggle
+    self.preferAbove = preferAbove
     onSelectHandler = onSelect
     isPresented = true
   }
@@ -31,12 +34,14 @@ final class PopoverPresenter {
     anchor: CGPoint,
     items: [PopoverMenuItem],
     allowsToggle: Bool = false,
+    preferAbove: Bool = false,
     onSelect: @escaping (String?) -> Void
   ) {
     present(
       anchorRect: CGRect(x: anchor.x - 22, y: anchor.y - 22, width: 44, height: 44),
       items: items,
       allowsToggle: allowsToggle,
+      preferAbove: preferAbove,
       onSelect: onSelect
     )
   }
@@ -46,6 +51,7 @@ final class PopoverPresenter {
     isPresented = false
     items = []
     allowsToggle = false
+    preferAbove = false
     onSelectHandler = nil
     handler?(value)
   }
@@ -71,6 +77,7 @@ struct PopoverOverlayHost: View {
         StackedPopoverOverlay(
           anchorRect: presenter.anchorRect,
           keyboardHeight: keyboardHeight,
+          preferAbove: presenter.preferAbove,
           rootItems: presenter.items,
           allowsToggle: presenter.allowsToggle
         ) { value in
@@ -86,10 +93,20 @@ struct PopoverOverlayHost: View {
     }
     .allowsHitTesting(presenter.isPresented)
     .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
-      guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-      let screenH = UIScreen.main.bounds.height
-      keyboardHeight = max(0, screenH - frame.origin.y)
+      updateKeyboardHeight(from: note)
     }
+    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+      updateKeyboardHeight(from: note)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+      keyboardHeight = 0
+    }
+  }
+
+  private func updateKeyboardHeight(from note: Notification) {
+    guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+    let screenH = UIScreen.main.bounds.height
+    keyboardHeight = max(0, screenH - frame.origin.y)
   }
 }
 

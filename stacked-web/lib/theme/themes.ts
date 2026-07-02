@@ -83,7 +83,7 @@ export const themes: Record<AppThemeId, AppTheme> = {
       surfaceVariant: "#222222",
       textPrimary: "#F0F0F0",
       textSecondary: "#888888",
-      textTertiary: "#555555",
+      textTertiary: "#6E6E6E",
       accent: "#00D4D4",
       accentText: "#0A0A0A",
       navBar: "#111111",
@@ -185,4 +185,19 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     "--color-scrollbar-thumb",
     isLight ? "rgba(0, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.14)",
   )
+
+  if (isSlate) {
+    root.style.setProperty("--color-selected-bg", colors.surfaceVariant)
+    root.style.setProperty("--color-selected-fg", colors.textPrimary)
+  } else {
+    root.style.setProperty("--color-selected-bg", colors.accent)
+    root.style.setProperty("--color-selected-fg", colors.accentText)
+  }
+
+  if (themeId === "moonstone") {
+    root.style.setProperty("--color-inspector-bg", "#FFFFFF")
+    root.style.setProperty("--color-bg", "#EEF1F6")
+  } else {
+    root.style.setProperty("--color-inspector-bg", colors.surface)
+  }
 }

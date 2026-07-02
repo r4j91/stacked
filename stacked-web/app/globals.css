@@ -31,8 +31,18 @@
   --color-btn-secondary-border: rgba(255, 255, 255, 0.08);
   --color-btn-secondary-hover-bg: #35353d;
   --color-nav-badge: #9a9aa2;
+  --color-selected-bg: #2c2c32;
+  --color-selected-fg: #f2f2f4;
+  --color-inspector-bg: #1c1c20;
   --color-selection-bg: rgba(232, 232, 236, 0.2);
   --color-scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --z-backdrop: 40;
+  --z-panel: 50;
+  --z-menu: 60;
+  --z-popover: 70;
+  --z-command: 80;
+  --z-toast: 90;
+  --inspector-width: 400px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -193,4 +203,104 @@ textarea:focus:not(:focus-visible) {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+.chip-selected {
+  background-color: var(--color-selected-bg);
+  color: var(--color-selected-fg);
+  font-weight: 600;
+}
+
+.kbd-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  border-radius: 4px;
+  background-color: var(--color-surface-variant);
+  padding: 0.125rem 0.375rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+.kbd-inline {
+  display: inline-flex;
+  border-radius: 4px;
+  background-color: var(--color-surface-variant);
+  padding: 0 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Reorder drag — relax scroll clipping so lift/shadow aren't squeezed */
+html[data-reorder-active] [data-workbench-main],
+html[data-reorder-active] [data-workbench-scroll] {
+  overflow: visible !important;
+}
+
+html[data-reorder-active] [data-workbench-scroll] {
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+/* Reorder drag — hold → lift → drop target */
+.reorder-holding {
+  transform: scale(0.985);
+  background-color: var(--color-hover-overlay);
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.18s ease-out;
+}
+
+.reorder-dragging {
+  position: relative;
+  z-index: 30;
+  transform: scale(1.022);
+  pointer-events: none;
+  opacity: 1 !important;
+  border-color: var(--color-border-strong) !important;
+  background-color: var(--color-surface) !important;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.12),
+    0 14px 28px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.16s ease-out,
+    background-color 0.16s ease-out;
+  cursor: grabbing !important;
+}
+
+.reorder-drop-target {
+  position: relative;
+}
+
+.reorder-drop-target::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-text-tertiary);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reorder-holding,
+  .reorder-dragging,
+  .reorder-drop-target {
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+
+  .reorder-drop-target::before {
+    animation: none;
+  }
 }

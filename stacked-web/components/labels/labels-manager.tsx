@@ -6,21 +6,21 @@ import { AnchoredPopover } from "@/components/ui/anchored-popover";
 import { AppIcon } from "@/components/ui/app-icon";
 import { Cancel01Icon, Delete01Icon, Edit01Icon } from "@/lib/icons/nav-icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ColorPalettePicker } from "@/components/ui/color-palette-picker";
+import { DEFAULT_PALETTE_HEX } from "@/lib/theme/palette-colors";
 import type { Label } from "@/lib/types/label";
-
-const PRESET_COLORS = ["#EF5A5F", "#F5A623", "#4D9FEC", "#8FD46B", "#B18CF5", "#9296A0"];
 
 export function LabelsManager() {
   const { labelsOpen, labelsAnchor, closeLabels, labels, createLabel, updateLabel, deleteLabel } = useWorkbench();
   const [editing, setEditing] = useState<Label | null>(null);
   const [deleting, setDeleting] = useState<Label | null>(null);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [color, setColor] = useState<string>(DEFAULT_PALETTE_HEX);
 
   function resetForm() {
     setEditing(null);
     setName("");
-    setColor(PRESET_COLORS[0]);
+    setColor(DEFAULT_PALETTE_HEX);
   }
 
   function handleClose() {
@@ -77,19 +77,8 @@ export function LabelsManager() {
             placeholder="Nome da etiqueta"
             className="input-focus mb-3 w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-3 py-2 text-sm outline-none"
           />
-          <div className="mb-3 flex flex-wrap gap-2">
-            {PRESET_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                className={`h-7 w-7 rounded-full border-2 ${
-                  color === c ? "border-[var(--color-text)]" : "border-transparent"
-                }`}
-                style={{ background: c }}
-                aria-label={`Cor ${c}`}
-              />
-            ))}
+          <div className="mb-3">
+            <ColorPalettePicker value={color} onChange={setColor} swatchSize="sm" />
           </div>
           <button type="submit" className="btn-primary w-full rounded-[var(--radius-sm)] py-2 text-sm">
             {editing ? "Salvar" : "Criar etiqueta"}

@@ -7,7 +7,8 @@ enum AppLayout {
   static let breakpointDesktop: CGFloat = 1024
 
   static let bottomNavPillHeight: CGFloat = 62
-  static let bottomNavPillMargin: CGFloat = 12
+  /// Gap entre pill e home indicator — Todoist usa ~6pt (Flutter legacy: 12).
+  static let bottomNavPillMargin: CGFloat = 6
   static let fabSize: CGFloat = 56
   static let fabGap: CGFloat = 10
   static let fabSideMargin: CGFloat = 14
@@ -21,5 +22,15 @@ enum AppLayout {
 
   static func tabletContentMaxWidth(screenWidth: CGFloat) -> CGFloat {
     screenWidth >= breakpointTabletWide ? 720 : 640
+  }
+
+  /// Distância do fundo físico da tela até a base do pill (home indicator + margem).
+  static func navPillBottomInset(safeBottom: CGFloat) -> CGFloat {
+    safeBottom + bottomNavPillMargin
+  }
+
+  /// Distância do fundo físico até a base do FAB.
+  static func fabBottomInset(safeBottom: CGFloat) -> CGFloat {
+    navPillBottomInset(safeBottom: safeBottom) + bottomNavPillHeight + fabGap
   }
 }

@@ -13,6 +13,10 @@ type SwipeableTaskRowProps = {
   onDefer: () => void;
   onDelete: () => void;
   disabled?: boolean;
+  /** Libera scale/sombra do reorder sem clipar nas laterais */
+  allowOverflow?: boolean;
+  /** Desativa hit-test enquanto arrasta (pointer passa para alvos abaixo) */
+  dragGhost?: boolean;
   /** Espaço reservado à direita (ex.: botão expandir subtarefas) */
   reserveRight?: number;
 };
@@ -23,6 +27,8 @@ export function SwipeableTaskRow({
   onDefer,
   onDelete,
   disabled,
+  allowOverflow = false,
+  dragGhost = false,
   reserveRight = 0,
 }: SwipeableTaskRowProps) {
   const [offsetX, setOffsetX] = useState(0);
@@ -86,7 +92,12 @@ export function SwipeableTaskRow({
   const revealLeft = Math.min(ACTION_WIDTH * 2, Math.max(0, -offsetX));
 
   return (
-    <div className="group relative mb-0.5 overflow-hidden rounded-[var(--radius-md)]">
+    <div
+      className={`group relative mb-0.5 rounded-[var(--radius-md)] ${
+        allowOverflow ? "overflow-visible" : "overflow-hidden lg:overflow-visible"
+      } ${dragGhost ? "pointer-events-none" : ""}`}
+      data-reorder-dragging={dragGhost ? "" : undefined}
+    >
       <div
         className="absolute top-0 z-10 hidden h-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover:opacity-100 lg:flex"
         style={{ right: reserveRight }}

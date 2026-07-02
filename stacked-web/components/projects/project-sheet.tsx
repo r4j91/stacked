@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { Cancel01Icon, Delete01Icon } from "@/lib/icons/nav-icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 import {
   DEFAULT_PROJECT_ICON,
   PROJECT_ICON_KEYS,
@@ -13,16 +14,8 @@ import {
 } from "@/lib/icons/project-icons";
 import type { Project } from "@/lib/types/project";
 
-const PRESET_COLORS = [
-  "#5FD3DC",
-  "#4D9FEC",
-  "#8FD46B",
-  "#B18CF5",
-  "#F5A623",
-  "#EF5A5F",
-  "#E8E8EC",
-  "#9296A0",
-];
+import { ColorPalettePicker } from "@/components/ui/color-palette-picker";
+import { DEFAULT_PALETTE_HEX } from "@/lib/theme/palette-colors";
 
 type ProjectSheetProps = {
   open: boolean;
@@ -34,19 +27,22 @@ type ProjectSheetProps = {
 export function ProjectSheet({ open, mode, project, onClose }: ProjectSheetProps) {
   const { createProject, updateProject, deleteProject } = useWorkbench();
   const [name, setName] = useState("");
-  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [color, setColor] = useState<string>(DEFAULT_PALETTE_HEX);
   const [icon, setIcon] = useState<ProjectIconKey>(DEFAULT_PROJECT_ICON);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const sheetRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (open) {
       setName(project?.name ?? "");
-      setColor(project?.color ?? PRESET_COLORS[0]);
+      setColor(project?.color ?? DEFAULT_PALETTE_HEX);
       setIcon((project?.icon as ProjectIconKey) ?? DEFAULT_PROJECT_ICON);
       setConfirmDelete(false);
     }
   }, [open, project]);
+
+  useFocusTrap(open && !confirmDelete, sheetRef);
 
   if (!open) return null;
 
@@ -86,17 +82,21 @@ export function ProjectSheet({ open, mode, project, onClose }: ProjectSheetProps
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[var(--z-panel)] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
       <form
+        ref={sheetRef}
         className="w-full max-w-md rounded-t-[var(--radius-lg)] bg-[var(--color-surface)] p-4 shadow-xl sm:rounded-[var(--radius-lg)]"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => void handleSubmit(e)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="project-sheet-title"
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold">
+          <h2 id="project-sheet-title" className="text-base font-bold">
             {mode === "create" ? "Novo projeto" : "Editar projeto"}
           </h2>
           <button
@@ -136,25 +136,14 @@ export function ProjectSheet({ open, mode, project, onClose }: ProjectSheetProps
               aria-label={`Ícone ${key}`}
               title={key}
             >
-              <ProjectIcon iconKey={key} color={color} size={18} />
+              <ProjectIcon iconKey={key} color="var(--color-text-secondary)" size={18} />
             </button>
           ))}
         </div>
 
         <p className="mb-2 text-xs font-medium text-[var(--color-text-tertiary)]">Cor</p>
-        <div className="mb-4 flex flex-wrap gap-2">
-          {PRESET_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setColor(c)}
-              className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-105 ${
-                color === c ? "border-white" : "border-transparent"
-              }`}
-              style={{ background: c }}
-              aria-label={`Cor ${c}`}
-            />
-          ))}
+        <div className="mb-4">
+          <ColorPalettePicker value={color} onChange={setColor} />
         </div>
 
         <div className="flex items-center justify-between gap-2">

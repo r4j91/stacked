@@ -13,6 +13,7 @@ struct RootView: View {
     MobileShell(
       selectedTab: $selectedTab,
       fabOpen: $fabOpen,
+      hideBottomChrome: showQuickAdd,
       onNewTask: { openQuickAdd() },
       onSearch: { showSearch = true },
       onNewProject: { showNewProject = true }

@@ -2,6 +2,9 @@ import SwiftUI
 
 // Paridade lib/widgets/responsive_layout.dart _LiquidGlassPill + header_liquid_pill.dart
 enum LiquidGlass {
+  private static let navFillOpacity: CGFloat = 0.52
+  private static let popoverFillOpacity: CGFloat = 0.78
+
   @ViewBuilder
   static func navBarPill<Content: View>(
     navBarColor: Color,
@@ -12,18 +15,49 @@ enum LiquidGlass {
       content()
         .background {
           shape
-            .fill(navBarColor.opacity(0.88))
+            .fill(navBarColor.opacity(navFillOpacity))
             .glassEffect(.regular, in: shape)
         }
         .clipShape(shape)
+        .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
     } else {
       content()
         .background {
           ZStack {
             shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(0.88))
+            shape.fill(navBarColor.opacity(navFillOpacity))
           }
-          .overlay(shape.stroke(Color.white.opacity(0.06), lineWidth: 0.8))
+          .overlay(shape.stroke(Color.white.opacity(0.08), lineWidth: 0.8))
+        }
+        .clipShape(shape)
+        .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
+    }
+  }
+
+  @ViewBuilder
+  static func popoverCard<Content: View>(
+    navBarColor: Color,
+    cornerRadius: CGFloat = PopoverStyle.radius,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    let shape = RoundedRectangle(cornerRadius: cornerRadius)
+    if #available(iOS 26.0, *) {
+      content()
+        .background {
+          shape
+            .fill(navBarColor.opacity(popoverFillOpacity))
+            .glassEffect(.regular, in: shape)
+        }
+        .clipShape(shape)
+        .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+    } else {
+      content()
+        .background {
+          ZStack {
+            shape.fill(.ultraThinMaterial)
+            shape.fill(navBarColor.opacity(popoverFillOpacity))
+          }
+          .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
         }
         .clipShape(shape)
     }
@@ -40,7 +74,7 @@ enum LiquidGlass {
       content()
         .background {
           shape
-            .fill(navBarColor.opacity(0.88))
+            .fill(navBarColor.opacity(0.55))
             .glassEffect(.regular, in: shape)
         }
         .clipShape(shape)
@@ -49,7 +83,7 @@ enum LiquidGlass {
         .background {
           ZStack {
             shape.fill(.ultraThinMaterial)
-            shape.fill(navBarColor.opacity(0.88))
+            shape.fill(navBarColor.opacity(0.55))
           }
           .overlay(shape.stroke(textPrimary.opacity(0.06), lineWidth: 0.8))
         }

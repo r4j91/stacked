@@ -5,6 +5,7 @@ struct MobileShell<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
   @Binding var selectedTab: NavTab
   @Binding var fabOpen: Bool
+  var hideBottomChrome: Bool = false
   var onNewTask: () -> Void = {}
   var onSearch: () -> Void = {}
   var onNewProject: () -> Void = {}
@@ -13,6 +14,7 @@ struct MobileShell<Content: View>: View {
   init(
     selectedTab: Binding<NavTab>,
     fabOpen: Binding<Bool>,
+    hideBottomChrome: Bool = false,
     onNewTask: @escaping () -> Void = {},
     onSearch: @escaping () -> Void = {},
     onNewProject: @escaping () -> Void = {},
@@ -20,6 +22,7 @@ struct MobileShell<Content: View>: View {
   ) {
     _selectedTab = selectedTab
     _fabOpen = fabOpen
+    self.hideBottomChrome = hideBottomChrome
     self.onNewTask = onNewTask
     self.onSearch = onSearch
     self.onNewProject = onNewProject
@@ -30,28 +33,40 @@ struct MobileShell<Content: View>: View {
     let c = theme.colors
 
     GeometryReader { geo in
+      // Com ignoresSafeArea(.bottom), safeAreaInsets reflete o home indicator uma vez só.
       let safeBottom = geo.safeAreaInsets.bottom
-      let fabBottomInset = safeBottom
-        + AppLayout.bottomNavPillMargin
-        + AppLayout.bottomNavPillHeight
-        + AppLayout.fabGap
+      let pillBottom = AppLayout.navPillBottomInset(safeBottom: safeBottom)
+      let fabBottom = AppLayout.fabBottomInset(safeBottom: safeBottom)
 
-      ZStack(alignment: .bottom) {
+      ZStack(alignment: .bottomTrailing) {
         content()
           .frame(width: geo.size.width, height: geo.size.height)
 
-        BottomNavPill(selectedTab: selectedTab) { tab in
-          HapticService.tabChanged()
-          PopoverPresenter.shared.dismiss()
-          fabOpen = false
-          selectedTab = tab
+        if !hideBottomChrome {
+          BottomNavPill(selectedTab: selectedTab) { tab in
+            HapticService.tabChanged()
+            PopoverPresenter.shared.dismiss()
+            fabOpen = false
+            selectedTab = tab
+          }
+          .padding(.horizontal, AppLayout.fabSideMargin)
+          .padding(.bottom, pillBottom)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+          .zIndex(20)
         }
-        .padding(.horizontal, AppLayout.fabSideMargin)
-        .padding(.bottom, safeBottom + AppLayout.bottomNavPillMargin)
-        .frame(maxWidth: .infinity, alignment: .bottom)
-        .zIndex(10)
 
-        if fabOpen {
+        if !hideBottomChrome, fabOpen {
+          Color.black.opacity(0.55)
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture { fabOpen = false }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .transition(.opacity)
+            .zIndex(30)
+        }
+
+        if !hideBottomChrome, fabOpen {
           FabActionMenuOverlay(
             safeBottom: safeBottom,
             isOpen: $fabOpen,
@@ -59,18 +74,20 @@ struct MobileShell<Content: View>: View {
             onNewProject: onNewProject,
             onSearch: onSearch
           )
-          .frame(width: geo.size.width, height: geo.size.height)
+          .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomTrailing)
+          .transition(.opacity)
           .zIndex(40)
         }
 
-        ExpandableFAB(isOpen: $fabOpen)
-          .padding(.trailing, AppLayout.fabSideMargin)
-          .padding(.bottom, fabBottomInset)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-          .zIndex(50)
+        if !hideBottomChrome {
+          ExpandableFAB(isOpen: $fabOpen)
+            .padding(.trailing, AppLayout.fabSideMargin)
+            .padding(.bottom, fabBottom)
+            .zIndex(50)
+        }
       }
     }
+    .ignoresSafeArea(edges: .bottom)
     .background(c.background.ignoresSafeArea())
-    .animation(.spring(response: 0.32, dampingFraction: 0.86), value: fabOpen)
   }
 }

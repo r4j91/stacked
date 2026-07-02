@@ -326,7 +326,7 @@ function SubtasksCard({ task }: { task: Task }) {
             placeholder="Nova subtarefa…"
             className="flex-1 rounded-[var(--radius-sm)] bg-[var(--color-bg)] px-3 py-2 text-sm outline-none placeholder:text-[var(--color-placeholder)] focus:ring-1 focus:ring-[var(--color-focus-ring)]"
           />
-          <button type="submit" className="rounded-[var(--radius-sm)] bg-[var(--color-accent)] px-3 py-2 text-[var(--color-accent-text)]">
+          <button type="submit" className="btn-primary rounded-[var(--radius-sm)] px-3 py-2">
             <AppIcon icon={Add01Icon} size={16} />
           </button>
         </form>
@@ -526,12 +526,12 @@ export function InspectorPanel() {
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/30"
+        className="fixed inset-0 z-[var(--z-backdrop)] bg-black/30 lg:hidden"
         onClick={handleClose}
         aria-hidden
       />
       <aside
-        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[400px] flex-col overflow-hidden border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
+        className="fixed inset-y-0 right-0 z-[var(--z-panel)] flex w-full max-w-[var(--inspector-width)] flex-col overflow-hidden border-l border-[var(--color-border)] bg-[var(--color-inspector-bg)] shadow-xl lg:relative lg:inset-auto lg:z-auto lg:w-[var(--inspector-width)] lg:max-w-none lg:shrink-0 lg:shadow-none"
         aria-label="Detalhe da tarefa"
       >
         <header className="flex shrink-0 items-center gap-2 border-b border-[var(--color-border)] px-4 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))] lg:pt-3.5">

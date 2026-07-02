@@ -5,6 +5,7 @@ import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { TagChip } from "@/components/ui/tag-chip";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 import {
   Cancel01Icon,
   Calendar03Icon,
@@ -38,6 +39,7 @@ export function QuickAddSheet({
 }: QuickAddSheetProps) {
   const { createTask, projects, labels } = useWorkbench();
   const titleRef = useRef<HTMLInputElement>(null);
+  const sheetRef = useRef<HTMLFormElement>(null);
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority | null>(null);
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -59,6 +61,8 @@ export function QuickAddSheet({
       setTimeout(() => titleRef.current?.focus(), 50);
     }
   }, [open, initialProjectId]);
+
+  useFocusTrap(open, sheetRef);
 
   if (!open) return null;
 
@@ -90,17 +94,21 @@ export function QuickAddSheet({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+        className="fixed inset-0 z-[var(--z-panel)] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
         onClick={onClose}
         role="presentation"
       >
         <form
+          ref={sheetRef}
           className="w-full max-w-md rounded-t-[var(--radius-lg)] bg-[var(--color-surface)] p-4 shadow-lg sm:rounded-[var(--radius-lg)]"
           onClick={(e) => e.stopPropagation()}
           onSubmit={(e) => void handleSubmit(e)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-add-title"
         >
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-bold">Nova tarefa</h2>
+            <h2 id="quick-add-title" className="text-base font-bold">Nova tarefa</h2>
             <button
               type="button"
               onClick={onClose}

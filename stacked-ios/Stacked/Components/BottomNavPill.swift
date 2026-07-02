@@ -29,8 +29,12 @@ struct BottomNavPill: View {
 
           HStack(spacing: 0) {
             ForEach(tabs) { tab in
-              navItem(tab, selected: tab == selectedTab)
-                .frame(width: width)
+              NavPillItem(
+                tab: tab,
+                selected: tab == selectedTab,
+                onSelect: { onSelect(tab) }
+              )
+              .frame(width: width)
             }
           }
         }
@@ -45,7 +49,7 @@ struct BottomNavPill: View {
         }
         .onChange(of: selectedTab) { _, tab in
           guard let idx = tabs.firstIndex(of: tab) else { return }
-          withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+          withAnimation(AppMotion.navIndicatorSpring) {
             indicatorX = CGFloat(idx) * itemWidth
           }
         }
@@ -55,17 +59,26 @@ struct BottomNavPill: View {
       .padding(.vertical, 4)
     }
   }
+}
 
-  private func navItem(_ tab: NavTab, selected: Bool) -> some View {
+private struct NavPillItem: View {
+  @Environment(ThemeManager.self) private var theme
+  let tab: NavTab
+  let selected: Bool
+  let onSelect: () -> Void
+
+  @State private var bounceScale: CGFloat = 1
+
+  var body: some View {
     let c = theme.colors
-    return Button {
-      onSelect(tab)
+    Button {
+      onSelect()
     } label: {
       VStack(spacing: 2) {
         StackedIcons.image(tab.stackedIcon)
           .font(.system(size: tab == .today ? 20 : 18, weight: .medium))
           .foregroundStyle(selected ? c.accent : c.textTertiary)
-          .scaleEffect(selected ? 1.05 : 1)
+          .scaleEffect(bounceScale)
         Text(tab.label)
           .font(.system(size: 10.5, weight: selected ? .semibold : .regular))
           .foregroundStyle(selected ? c.accent : c.textTertiary)
@@ -79,5 +92,12 @@ struct BottomNavPill: View {
     .buttonStyle(.plain)
     .accessibilityLabel(tab.label)
     .accessibilityAddTraits(selected ? .isSelected : [])
+    .onChange(of: selected) { wasSelected, isSelected in
+      guard !wasSelected, isSelected else { return }
+      bounceScale = 1.12
+      withAnimation(AppMotion.iconBounceSpring) {
+        bounceScale = 1
+      }
+    }
   }
 }

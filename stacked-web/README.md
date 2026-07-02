@@ -13,6 +13,9 @@ App web do Stacked — Next.js + Supabase.
 | 4 | ✅ | Projetos + seções (sidebar, `/projects/[id]`, CRUD seções) |
 | 5 | ✅ | Em breve calendário, filtros, command palette ⌘K |
 | 6 | ✅ | Deploy Netlify (`netlify.toml`, Node 20, docs) |
+| 7 | ✅ | Polish desktop (P0–P2 Impeccable): inspector coluna, tokens, teclado, a11y |
+| 8 | ✅ | Paridade restante: empty states, produtividade skeleton, menu seção ancorado |
+| 9 | ✅ | Drag reorder tarefas/seções (projetos, desktop) |
 
 ## Rodar localmente
 

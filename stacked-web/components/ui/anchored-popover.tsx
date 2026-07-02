@@ -107,10 +107,10 @@ export function AnchoredPopover({
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-[70]" onClick={onClose} aria-hidden />
+      <div className="fixed inset-0 z-[var(--z-popover)]" onClick={onClose} aria-hidden />
       <div
         ref={popoverRef}
-        className={`fixed z-[71] max-h-[min(70vh,420px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${className}`}
+        className={`fixed z-[calc(var(--z-popover)+1)] max-h-[min(70vh,420px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${className}`}
         style={{
           width,
           top: pos?.top ?? Math.max(12, anchorRect?.top ?? 80),

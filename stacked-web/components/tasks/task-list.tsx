@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench, type SubtaskKey } from "@/components/shell/workbench-context";
 import { SwipeableTaskRow } from "@/components/tasks/swipeable-task-row";
@@ -10,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TagChip } from "@/components/ui/tag-chip";
+import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import {
   Sun01Icon,
   InboxIcon,
@@ -206,7 +209,23 @@ function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   );
 }
 
-export function TaskRow({ task }: { task: Task }) {
+export function TaskRow({
+  task,
+  keyboardFocused,
+  reorderRowProps,
+  reorderHolding,
+  reorderDragOver,
+  reorderDragging,
+  onReorderConsumeClick,
+}: {
+  task: Task;
+  keyboardFocused?: boolean;
+  reorderRowProps?: Record<string, unknown>;
+  reorderHolding?: boolean;
+  reorderDragOver?: boolean;
+  reorderDragging?: boolean;
+  onReorderConsumeClick?: () => boolean;
+}) {
   const { selectedTaskId, selectTask, toggleTaskDone, deferTask, deleteTask, expandedSubtasks, toggleSubtaskExpand } =
     useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
@@ -219,12 +238,18 @@ export function TaskRow({ task }: { task: Task }) {
         onComplete={() => toggleTaskDone(task.id)}
         onDefer={() => void deferTask(task.id)}
         onDelete={() => void deleteTask(task.id)}
+        allowOverflow={Boolean(reorderDragging || reorderHolding)}
+        dragGhost={Boolean(reorderDragging)}
         reserveRight={subs.length > 0 ? 40 : 0}
       >
         <div
           role="button"
           tabIndex={0}
-          onClick={() => selectTask(task.id)}
+          {...(reorderRowProps ?? {})}
+          onClick={() => {
+            if (onReorderConsumeClick?.()) return;
+            selectTask(task.id);
+          }}
           onContextMenu={(e) => onContextMenu(task, e)}
           onTouchStart={(e) => onTouchStart(task, e)}
           onTouchMove={onTouchMove}
@@ -236,11 +261,20 @@ export function TaskRow({ task }: { task: Task }) {
               selectTask(task.id);
             }
           }}
-          className={`mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-transparent py-2 pl-1 pr-0.5 transition-colors ${
-            selectedTaskId === task.id
-              ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
-              : "hover:bg-[var(--color-hover-overlay)]"
-          } ${task.done ? "opacity-65" : ""}`}
+          className={`mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 transition-colors ${
+            reorderDragging
+              ? "reorder-dragging"
+              : reorderHolding
+                ? "reorder-holding"
+                : reorderDragOver
+                  ? "reorder-drop-target border-[var(--color-border-strong)]"
+                  : selectedTaskId === task.id
+                    ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
+                    : keyboardFocused
+                      ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
+                      : "border-transparent hover:bg-[var(--color-hover-overlay)]"
+          } ${task.done && !reorderDragging && !reorderHolding ? "opacity-65" : ""}`}
+          data-task-id={task.id}
         >
           <DoneCircle
             done={task.done}
@@ -297,7 +331,19 @@ export function TaskRow({ task }: { task: Task }) {
   );
 }
 
-function Section({ title, count, overdue, tasks }: { title: string; count?: number; overdue?: boolean; tasks: Task[] }) {
+function Section({
+  title,
+  count,
+  overdue,
+  tasks,
+  focusedTaskId,
+}: {
+  title: string;
+  count?: number;
+  overdue?: boolean;
+  tasks: Task[];
+  focusedTaskId?: string | null;
+}) {
   if (!tasks.length) return null;
   return (
     <section className="mt-2">
@@ -312,7 +358,7 @@ function Section({ title, count, overdue, tasks }: { title: string; count?: numb
         )}
       </div>
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} />
+        <TaskRow key={t.id} task={t} keyboardFocused={focusedTaskId === t.id} />
       ))}
     </section>
   );
@@ -335,6 +381,7 @@ export function TaskListSkeleton() {
 }
 
 export function TaskList() {
+  const router = useRouter();
   const {
     view,
     viewTasks,
@@ -346,10 +393,29 @@ export function TaskList() {
     openQuickAdd,
   } = useWorkbench();
 
-  if (loading) return <TaskListSkeleton />;
-
   const showCompleted = isShowCompleted();
   const completedTasks = showCompleted ? viewTasks.completed : [];
+
+  const visibleTaskIds = useMemo(() => {
+    if (view === "today") {
+      return [
+        ...(viewTasks.overdue ?? []),
+        ...(viewTasks.today ?? viewTasks.pending),
+        ...(showCompleted ? completedTasks : []),
+      ].map((t) => t.id);
+    }
+    if (view === "inbox") {
+      return [...viewTasks.pending, ...(showCompleted ? completedTasks : [])].map((t) => t.id);
+    }
+    if (view === "done") {
+      return viewTasks.completed.map((t) => t.id);
+    }
+    return [];
+  }, [view, viewTasks, showCompleted, completedTasks]);
+
+  const { focusedTaskId } = useTaskListKeyboard(visibleTaskIds, view);
+
+  if (loading) return <TaskListSkeleton />;
 
   function logbookGroups(tasks: Task[]) {
     const today = dateKey(startOfDay(new Date()));
@@ -390,19 +456,19 @@ export function TaskList() {
 
       {view === "today" && (
         <>
-          <Section title="Atrasadas" count={viewTasks.overdue?.length} overdue tasks={viewTasks.overdue ?? []} />
-          <Section title="Hoje" tasks={viewTasks.today ?? viewTasks.pending} />
+          <Section title="Atrasadas" count={viewTasks.overdue?.length} overdue tasks={viewTasks.overdue ?? []} focusedTaskId={focusedTaskId} />
+          <Section title="Hoje" tasks={viewTasks.today ?? viewTasks.pending} focusedTaskId={focusedTaskId} />
           {showCompleted && completedTasks.length > 0 && (
-            <Section title="Concluídas hoje" tasks={completedTasks} />
+            <Section title="Concluídas hoje" tasks={completedTasks} focusedTaskId={focusedTaskId} />
           )}
         </>
       )}
 
       {view === "inbox" && (
         <>
-          <Section title="Inbox" tasks={viewTasks.pending} />
+          <Section title="Inbox" tasks={viewTasks.pending} focusedTaskId={focusedTaskId} />
           {showCompleted && completedTasks.length > 0 && (
-            <Section title="Concluídas" tasks={completedTasks} />
+            <Section title="Concluídas" tasks={completedTasks} focusedTaskId={focusedTaskId} />
           )}
         </>
       )}
@@ -412,13 +478,14 @@ export function TaskList() {
       {view === "done" &&
         (viewTasks.completed.length ? (
           logbookGroups(viewTasks.completed).map((g) => (
-            <Section key={g.title} title={g.title} tasks={g.tasks} />
+            <Section key={g.title} title={g.title} tasks={g.tasks} focusedTaskId={focusedTaskId} />
           ))
         ) : (
           <EmptyState
             icon={TaskDone01Icon}
             title="Nenhuma tarefa concluída"
-            subtitle="As tarefas concluídas aparecerão aqui."
+            subtitle="Conclua tarefas em Hoje ou Inbox para vê-las aqui."
+            action={{ label: "Ir para Hoje", onClick: () => router.push("/today") }}
           />
         ))}
 

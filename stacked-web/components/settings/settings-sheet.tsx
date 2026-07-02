@@ -10,6 +10,7 @@ import {
   Logout01Icon,
   UserIcon,
   ArrowRight01Icon,
+  KeyboardIcon,
 } from "@/lib/icons/nav-icons";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -22,6 +23,7 @@ export function SettingsSheet() {
     openAppearance,
     openProfile,
     openLabels,
+    openShortcuts,
   } = useWorkbench();
   const router = useRouter();
 
@@ -72,6 +74,15 @@ export function SettingsSheet() {
           const anchor = settingsAnchor;
           closeSettings();
           openLabels(anchor ?? undefined);
+        }}
+      />
+      <SettingsLink
+        icon={KeyboardIcon}
+        label="Atalhos"
+        onClick={() => {
+          const anchor = settingsAnchor;
+          closeSettings();
+          openShortcuts(anchor ?? undefined);
         }}
       />
       <div className="my-1 h-px bg-[var(--color-border)]" />

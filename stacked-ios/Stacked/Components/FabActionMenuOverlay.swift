@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Paridade responsive_layout.dart _FabOverlay — posição compartilhada com MobileShell.
+// Paridade responsive_layout.dart _FabOverlay — itens acima do FAB (sem scrim; scrim fica no shell).
 struct FabActionMenuOverlay: View {
   @Environment(ThemeManager.self) private var theme
   let safeBottom: CGFloat
@@ -13,7 +13,6 @@ struct FabActionMenuOverlay: View {
   private let rowGap: CGFloat = 12
   private let fabMenuGap: CGFloat = 14
 
-  /// Distância do fundo da tela até a base do FAB (fabBottom no Flutter).
   private var fabBottom: CGFloat {
     safeBottom
       + AppLayout.bottomNavPillMargin
@@ -26,32 +25,24 @@ struct FabActionMenuOverlay: View {
   }
 
   var body: some View {
-    ZStack(alignment: .bottomTrailing) {
-      Color.black.opacity(0.55)
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture { isOpen = false }
-
-      VStack(alignment: .trailing, spacing: rowGap) {
-        fabMenuItem("Buscar", icon: .search) {
-          isOpen = false
-          onSearch()
-        }
-        fabMenuItem("Novo projeto", icon: .newProject) {
-          isOpen = false
-          onNewProject()
-        }
-        fabMenuItem("Nova tarefa", icon: .newTask) {
-          isOpen = false
-          onNewTask()
-        }
+    VStack(alignment: .trailing, spacing: rowGap) {
+      fabMenuItem("Buscar", icon: .search) {
+        isOpen = false
+        onSearch()
       }
-      .padding(.trailing, AppLayout.fabSideMargin)
-      .padding(.bottom, menuBottomInset)
+      fabMenuItem("Novo projeto", icon: .newProject) {
+        isOpen = false
+        onNewProject()
+      }
+      fabMenuItem("Nova tarefa", icon: .newTask) {
+        isOpen = false
+        onNewTask()
+      }
     }
-    .ignoresSafeArea()
+    .padding(.trailing, AppLayout.fabSideMargin)
+    .padding(.bottom, menuBottomInset)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     .allowsHitTesting(isOpen)
-    .transition(.opacity)
   }
 
   private func fabMenuItem(_ label: String, icon: StackedIconKey, action: @escaping () -> Void) -> some View {

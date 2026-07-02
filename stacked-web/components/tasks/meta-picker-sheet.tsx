@@ -62,7 +62,7 @@ function SheetShell({ open, onClose, title, icon, children, anchorRect }: SheetS
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[var(--z-panel)] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >

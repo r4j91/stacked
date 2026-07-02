@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import type { Section } from "@/lib/types/project";
 import type { Task, Priority } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -28,6 +29,13 @@ type TaskContextMenuProps = {
 
 type Submenu = "priority" | "project" | "labels";
 
+type SectionFlyout = {
+  projectId: string;
+  projectName: string;
+  top: number;
+  sections: Section[];
+};
+
 export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
   const {
     projects,
@@ -37,33 +45,38 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
     duplicateTask,
     deleteTask,
     updateTaskPriority,
-    updateTaskProject,
+    updateTaskProjectAndSection,
     updateTaskLabels,
+    getProjectSections,
     labels,
   } = useWorkbench();
   const menuRef = useRef<HTMLDivElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
+  const sectionFlyoutRef = useRef<HTMLDivElement>(null);
   const [submenu, setSubmenu] = useState<Submenu | null>(null);
+  const [sectionFlyout, setSectionFlyout] = useState<SectionFlyout | null>(null);
   const [flyoutTop, setFlyoutTop] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [position, setPosition] = useState({ top: y, left: x });
+  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     const el = menuRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const flyoutW = submenu ? flyoutRef.current?.getBoundingClientRect().width ?? 200 : 0;
+    const sectionW = sectionFlyout ? sectionFlyoutRef.current?.getBoundingClientRect().width ?? 200 : 0;
     const pad = 12;
     let top = y;
     let left = x;
     if (top + rect.height > window.innerHeight - pad) {
       top = Math.max(pad, window.innerHeight - rect.height - pad);
     }
-    if (left + rect.width + flyoutW + 8 > window.innerWidth - pad) {
-      left = Math.max(pad, window.innerWidth - rect.width - flyoutW - 8);
+    if (left + rect.width + flyoutW + sectionW + 16 > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - rect.width - flyoutW - sectionW - 16);
     }
     setPosition({ top, left });
-  }, [x, y, submenu, confirmDelete]);
+  }, [x, y, submenu, sectionFlyout, confirmDelete]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -73,6 +86,7 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
       const target = e.target as Node;
       if (menuRef.current?.contains(target)) return;
       if (flyoutRef.current?.contains(target)) return;
+      if (sectionFlyoutRef.current?.contains(target)) return;
       onClose();
     }
     window.addEventListener("keydown", onKey);
@@ -95,8 +109,41 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
     const menuRect = menuRef.current?.getBoundingClientRect();
     const itemRect = anchor.getBoundingClientRect();
     if (!menuRect) return;
+    setSectionFlyout(null);
     setFlyoutTop(itemRect.top - menuRect.top);
     setSubmenu((current) => (current === next ? null : next));
+  }
+
+  async function handleProjectSelect(
+    projectId: string | null,
+    anchor: HTMLElement,
+    projectName?: string,
+    projectIcon?: string | null,
+  ) {
+    if (!projectId) {
+      run(() => updateTaskProjectAndSection(task.id, null, null));
+      return;
+    }
+
+    setLoadingProjectId(projectId);
+    try {
+      const list = await getProjectSections(projectId);
+      if (list.length === 0) {
+        run(() => updateTaskProjectAndSection(task.id, projectId, null));
+        return;
+      }
+
+      const flyoutRect = flyoutRef.current?.getBoundingClientRect();
+      const itemRect = anchor.getBoundingClientRect();
+      setSectionFlyout({
+        projectId,
+        projectName: projectName ?? projects.find((p) => p.id === projectId)?.name ?? "Projeto",
+        top: itemRect.top - (flyoutRect?.top ?? itemRect.top),
+        sections: list,
+      });
+    } finally {
+      setLoadingProjectId(null);
+    }
   }
 
   if (confirmDelete) {
@@ -122,7 +169,7 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
   return (
     <div
       ref={menuRef}
-      className="fixed z-[60] flex items-start"
+      className="fixed z-[var(--z-menu)] flex items-start"
       style={{ top: position.top, left: position.left }}
       onContextMenu={(e: MouseEvent) => e.preventDefault()}
     >
@@ -198,16 +245,20 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
                 label="Inbox"
                 icon={InboxIcon}
                 active={!task.projectId}
-                onClick={() => run(() => updateTaskProject(task.id, null))}
+                onClick={(e) => void handleProjectSelect(null, e.currentTarget)}
               />
               {projects.map((p) => (
                 <FlyoutItem
                   key={p.id}
                   label={p.name}
                   projectIcon={p.icon}
-                  projectColor={p.color}
-                  active={task.projectId === p.id}
-                  onClick={() => run(() => updateTaskProject(task.id, p.id))}
+                  chevron
+                  active={
+                    sectionFlyout?.projectId === p.id ||
+                    (task.projectId === p.id && !sectionFlyout)
+                  }
+                  loading={loadingProjectId === p.id}
+                  onClick={(e) => void handleProjectSelect(p.id, e.currentTarget, p.name, p.icon)}
                 />
               ))}
             </>
@@ -240,6 +291,36 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
               ) : null}
             </>
           )}
+        </div>
+      )}
+
+      {sectionFlyout && (
+        <div
+          ref={sectionFlyoutRef}
+          className="ml-1.5 min-w-[200px] max-h-[min(60vh,320px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+          style={{ marginTop: sectionFlyout.top }}
+          role="menu"
+        >
+          <p className="truncate px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            {sectionFlyout.projectName}
+          </p>
+          <FlyoutItem
+            label="Sem seção"
+            active={task.projectId === sectionFlyout.projectId && !task.sectionId}
+            onClick={() =>
+              run(() => updateTaskProjectAndSection(task.id, sectionFlyout.projectId, null))
+            }
+          />
+          {sectionFlyout.sections.map((s) => (
+            <FlyoutItem
+              key={s.id}
+              label={s.name}
+              active={task.sectionId === s.id}
+              onClick={() =>
+                run(() => updateTaskProjectAndSection(task.id, sectionFlyout.projectId, s.id))
+              }
+            />
+          ))}
         </div>
       )}
     </div>
@@ -289,10 +370,11 @@ function FlyoutItem({
   icon,
   iconColor,
   projectIcon,
-  projectColor,
+  chevron,
+  loading,
 }: {
   label: string;
-  onClick: () => void;
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
   muted?: boolean;
   dot?: string;
@@ -300,19 +382,21 @@ function FlyoutItem({
   icon?: typeof Flag01Icon;
   iconColor?: string;
   projectIcon?: string | null;
-  projectColor?: string;
+  chevron?: boolean;
+  loading?: boolean;
 }) {
   return (
     <button
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={`flex w-full min-h-9 items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--color-hover-overlay)] ${
+      disabled={loading}
+      className={`flex w-full min-h-9 items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--color-hover-overlay)] disabled:opacity-60 ${
         active ? "bg-[var(--color-hover-overlay)] font-medium" : ""
       } ${muted ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-text)]"}`}
     >
-      {projectIcon && projectColor ? (
-        <ProjectIcon iconKey={projectIcon} color={projectColor} size={16} />
+      {projectIcon ? (
+        <ProjectIcon iconKey={projectIcon} color="var(--color-text-secondary)" size={16} />
       ) : labelColor ? (
         <span style={{ color: labelColor }}>
           <AppIcon icon={Tag01Icon} size={14} strokeWidth={1.75} />
@@ -326,9 +410,14 @@ function FlyoutItem({
           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} />
         )
       )}
-      <span className="truncate" style={labelColor && active ? { color: labelColor } : undefined}>
+      <span className="flex-1 truncate" style={labelColor && active ? { color: labelColor } : undefined}>
         {label}
       </span>
+      {loading ? (
+        <span className="text-[11px] text-[var(--color-text-tertiary)]">…</span>
+      ) : chevron ? (
+        <AppIcon icon={ArrowRight01Icon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+      ) : null}
     </button>
   );
 }

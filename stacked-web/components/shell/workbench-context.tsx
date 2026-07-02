@@ -50,6 +50,7 @@ export type SubtaskKey = `${string}:${number}`;
 import type { UserProfile } from "@/lib/types/user-profile";
 import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { profileFromUser } from "@/lib/services/profile-service";
+import type { ReorderDropKind } from "@/lib/hooks/use-hold-to-reorder";
 export type QuickAddOptions = { projectId?: string | null; sectionId?: string | null };
 
 const MOCK_LABELS: Label[] = [
@@ -58,7 +59,7 @@ const MOCK_LABELS: Label[] = [
 ];
 
 const SHOW_COMPLETED_KEY = "stacked-show-completed";
-const NAV_ROUTES = ["/home", "/inbox", "/today", "/upcoming", "/filters"] as const;
+const NAV_ROUTES = ["/home", "/inbox", "/today", "/upcoming", "/filters", "/done"] as const;
 
 function resolveRoute(pathname: string): { view: ViewMode; projectId: string | null } {
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
@@ -143,6 +144,7 @@ type WorkbenchContextValue = {
   labelsAnchor: AnchorRect | null;
   labelsOpen: boolean;
   shortcutsOpen: boolean;
+  shortcutsAnchor: AnchorRect | null;
   showCompleted: Partial<Record<ViewMode, boolean>>;
   openQuickAdd: (opts?: QuickAddOptions) => void;
   closeQuickAdd: () => void;
@@ -157,7 +159,7 @@ type WorkbenchContextValue = {
   refreshUserProfile: () => Promise<void>;
   openLabels: (anchor?: AnchorRect) => void;
   closeLabels: () => void;
-  openShortcuts: () => void;
+  openShortcuts: (anchor?: AnchorRect) => void;
   closeShortcuts: () => void;
   toggleShowCompleted: (mode?: ViewMode) => void;
   isShowCompleted: (mode?: ViewMode) => boolean;
@@ -173,9 +175,17 @@ type WorkbenchContextValue = {
   deleteTask: (id: string) => Promise<void>;
   deferTask: (id: string) => Promise<void>;
   duplicateTask: (id: string) => Promise<void>;
+  reorderProjectTasks: (draggedId: string, targetId: string, targetKind?: ReorderDropKind) => Promise<void>;
+  reorderSections: (draggedId: string, targetId: string) => Promise<void>;
   updateTaskPriority: (id: string, priority: Priority | null) => Promise<void>;
   updateTaskDueDate: (id: string, dueDate: string | null) => Promise<void>;
   updateTaskProject: (id: string, projectId: string | null) => Promise<void>;
+  updateTaskProjectAndSection: (
+    id: string,
+    projectId: string | null,
+    sectionId: string | null,
+  ) => Promise<void>;
+  getProjectSections: (projectId: string) => Promise<Section[]>;
   updateTaskLabels: (id: string, labelIds: string[]) => Promise<void>;
   updateTaskRecurrence: (id: string, recurrence: string | null) => Promise<void>;
   createSubtask: (taskId: string, title: string) => Promise<void>;
@@ -268,6 +278,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [labelsAnchor, setLabelsAnchor] = useState<AnchorRect | null>(null);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutsAnchor, setShortcutsAnchor] = useState<AnchorRect | null>(null);
   const [showCompleted, setShowCompleted] = useState<Partial<Record<ViewMode, boolean>>>({});
   const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [projectSheetMode, setProjectSheetMode] = useState<"create" | "edit">("create");
@@ -459,10 +470,11 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       }
       if (e.key === "?" || (e.shiftKey && e.key === "/")) {
         e.preventDefault();
+        setShortcutsAnchor(null);
         setShortcutsOpen(true);
         return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "5") {
+      if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "6") {
         e.preventDefault();
         router.push(NAV_ROUTES[Number(e.key) - 1]);
         return;
@@ -472,7 +484,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         setSidebarCollapsed((c) => !c);
       }
       if (e.key === "Escape") {
-        if (shortcutsOpen) setShortcutsOpen(false);
+        if (shortcutsOpen) {
+          setShortcutsOpen(false);
+          setShortcutsAnchor(null);
+        }
         else if (quickAddOpen) setQuickAddOpen(false);
         else if (profileOpen) {
           setProfileOpen(false);
@@ -733,6 +748,123 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           await new SectionRepository(createClient()).deleteSection(sectionId);
         } catch {
           setSections((list) => [...list, removed]);
+          await refreshTasks();
+        }
+      }
+    },
+    [sections, refreshTasks, usingMock],
+  );
+
+  const reorderProjectTasks = useCallback(
+    async (draggedId: string, targetId: string, targetKind: ReorderDropKind = "task") => {
+      if (draggedId === targetId && targetKind === "task") return;
+      const dragged = viewTasks.pending.find((t) => t.id === draggedId);
+      if (!dragged) return;
+
+      const oldSectionKey = dragged.sectionId ?? null;
+      let newSectionKey: string | null;
+      let insertBeforeTaskId: string | null;
+
+      if (targetKind === "section") {
+        newSectionKey = targetId;
+        insertBeforeTaskId = null;
+      } else {
+        const target = viewTasks.pending.find((t) => t.id === targetId);
+        if (!target) return;
+        newSectionKey = target.sectionId ?? null;
+        insertBeforeTaskId = targetId;
+      }
+
+      const sortByOrder = (tasks: typeof viewTasks.pending) =>
+        [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+
+      const destBucket = sortByOrder(
+        viewTasks.pending.filter((t) => (t.sectionId ?? null) === newSectionKey && t.id !== draggedId),
+      );
+
+      const moved = { ...dragged, sectionId: newSectionKey };
+      let nextDest: typeof viewTasks.pending;
+
+      if (insertBeforeTaskId) {
+        const to = destBucket.findIndex((t) => t.id === insertBeforeTaskId);
+        nextDest = [...destBucket];
+        nextDest.splice(to < 0 ? nextDest.length : to, 0, moved);
+      } else {
+        nextDest = [moved, ...destBucket];
+      }
+
+      const destOrderMap = new Map(nextDest.map((t, i) => [t.id, i]));
+
+      let sourceOrderMap = new Map<string, number>();
+      if (oldSectionKey !== newSectionKey) {
+        const sourceBucket = sortByOrder(
+          viewTasks.pending.filter((t) => (t.sectionId ?? null) === oldSectionKey && t.id !== draggedId),
+        );
+        sourceOrderMap = new Map(sourceBucket.map((t, i) => [t.id, i]));
+      }
+
+      setViewTasks((prev) => ({
+        ...prev,
+        pending: prev.pending.map((t) => {
+          if (t.id === draggedId) {
+            return { ...t, sectionId: newSectionKey, order: destOrderMap.get(t.id) };
+          }
+          if (destOrderMap.has(t.id)) {
+            return { ...t, order: destOrderMap.get(t.id) };
+          }
+          if (sourceOrderMap.has(t.id)) {
+            return { ...t, order: sourceOrderMap.get(t.id) };
+          }
+          return t;
+        }),
+      }));
+
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          const repo = new TaskRepository(createClient());
+          const orderUpdates = [
+            ...nextDest.map((t, i) => ({ id: t.id, order: i })),
+          ];
+          if (oldSectionKey !== newSectionKey) {
+            const sourceBucket = sortByOrder(
+              viewTasks.pending.filter(
+                (t) => (t.sectionId ?? null) === oldSectionKey && t.id !== draggedId,
+              ),
+            );
+            orderUpdates.push(...sourceBucket.map((t, i) => ({ id: t.id, order: i })));
+          }
+          await repo.updateTaskOrders(orderUpdates);
+          if (oldSectionKey !== newSectionKey) {
+            await repo.updateTaskMeta(draggedId, { sectionId: newSectionKey });
+          }
+        } catch {
+          await refreshTasks();
+        }
+      }
+    },
+    [viewTasks.pending, refreshTasks, usingMock],
+  );
+
+  const reorderSections = useCallback(
+    async (draggedId: string, targetId: string) => {
+      if (draggedId === targetId) return;
+      const sorted = [...sections].sort((a, b) => a.order - b.order);
+      const from = sorted.findIndex((s) => s.id === draggedId);
+      const to = sorted.findIndex((s) => s.id === targetId);
+      if (from < 0 || to < 0) return;
+
+      const next = [...sorted];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+
+      const withOrder = next.map((s, i) => ({ ...s, order: i }));
+      setSections(withOrder);
+
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          const repo = new SectionRepository(createClient());
+          await Promise.all(withOrder.map((s) => repo.updateSection(s.id, { order: s.order })));
+        } catch {
           await refreshTasks();
         }
       }
@@ -1012,8 +1144,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     setLabelsOpen(false);
     setLabelsAnchor(null);
   }, []);
-  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
-  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+  const openShortcuts = useCallback((anchor?: AnchorRect) => {
+    setShortcutsAnchor(anchor ?? null);
+    setShortcutsOpen(true);
+  }, []);
+  const closeShortcuts = useCallback(() => {
+    setShortcutsOpen(false);
+    setShortcutsAnchor(null);
+  }, []);
 
   const isShowCompleted = useCallback(
     (mode: ViewMode = view) => Boolean(showCompleted[mode]),
@@ -1197,10 +1335,49 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const updateTaskProject = useCallback(
     async (id: string, projectId: string | null) => {
       const project = projects.find((p) => p.id === projectId);
-      patchTaskInView(id, { projectId, project: project?.name ?? null });
+      patchTaskInView(id, { projectId, project: project?.name ?? null, sectionId: null });
       if (!usingMock && isSupabaseConfigured()) {
         try {
-          await new TaskPersistence(createClient()).updateTaskProject(id, projectId);
+          await new TaskRepository(createClient()).updateTaskMeta(id, {
+            projectId,
+            sectionId: null,
+          });
+          showToast("Projeto atualizado");
+          await refreshTasks();
+        } catch {
+          await refreshTasks();
+          showToast("Erro ao mover tarefa");
+        }
+      }
+    },
+    [patchTaskInView, projects, refreshTasks, showToast, usingMock],
+  );
+
+  const getProjectSections = useCallback(
+    async (targetProjectId: string) => {
+      if (usingMock || !isSupabaseConfigured()) {
+        return mockSectionsForProject(targetProjectId);
+      }
+      return new SectionRepository(createClient()).getSectionsForProject(targetProjectId);
+    },
+    [usingMock],
+  );
+
+  const updateTaskProjectAndSection = useCallback(
+    async (id: string, projectId: string | null, sectionId: string | null) => {
+      const project = projects.find((p) => p.id === projectId);
+      const resolvedSectionId = projectId ? sectionId : null;
+      patchTaskInView(id, {
+        projectId,
+        project: project?.name ?? null,
+        sectionId: resolvedSectionId,
+      });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new TaskRepository(createClient()).updateTaskMeta(id, {
+            projectId,
+            sectionId: resolvedSectionId,
+          });
           showToast("Projeto atualizado");
           await refreshTasks();
         } catch {
@@ -1509,6 +1686,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     createSection,
     renameSection,
     deleteSection,
+    reorderProjectTasks,
+    reorderSections,
     getSubtaskContext,
     selectedTask,
     allTasks,
@@ -1527,6 +1706,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     labelsAnchor,
     labelsOpen,
     shortcutsOpen,
+    shortcutsAnchor,
     showCompleted,
     openQuickAdd,
     closeQuickAdd,
@@ -1552,6 +1732,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     updateTaskPriority,
     updateTaskDueDate,
     updateTaskProject,
+    updateTaskProjectAndSection,
+    getProjectSections,
     updateTaskLabels,
     updateTaskRecurrence,
     createSubtask,

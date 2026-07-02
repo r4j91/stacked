@@ -356,6 +356,7 @@ export class TaskRepository {
       dueDate?: string | null;
       projectId?: string | null;
       sectionId?: string | null;
+      order?: number;
     },
   ): Promise<void> {
     const patch: Record<string, unknown> = {};
@@ -363,9 +364,21 @@ export class TaskRepository {
     if ("dueDate" in meta) patch.data_vencimento = meta.dueDate ?? null;
     if ("projectId" in meta) patch.project_id = meta.projectId ?? null;
     if ("sectionId" in meta) patch.section_id = meta.sectionId ?? null;
+    if ("order" in meta && meta.order != null) patch.ordem = meta.order;
     if (Object.keys(patch).length === 0) return;
     const { error } = await this.client.from("tasks").update(patch).eq("id", taskId);
     if (error) throw error;
+  }
+
+  async updateTaskOrders(items: { id: string; order: number }[]): Promise<void> {
+    if (!items.length) return;
+    const results = await Promise.all(
+      items.map(({ id, order }) =>
+        this.client.from("tasks").update({ ordem: order }).eq("id", id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) throw failed.error;
   }
 
   async fetchLogbook(limit = 200): Promise<Task[]> {

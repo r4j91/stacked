@@ -13,6 +13,7 @@ import { ProfileEditPanel } from "@/components/settings/profile-edit-panel";
 import { ProductivityPopover } from "@/components/shell/productivity-popover";
 import { LabelsManager } from "@/components/labels/labels-manager";
 import { ProjectSheet } from "@/components/projects/project-sheet";
+import { useMainFocusOnRoute } from "@/lib/hooks/use-main-focus-on-route";
 
 function WorkbenchOverlays() {
   const {
@@ -52,16 +53,24 @@ function WorkbenchOverlays() {
 export function WorkbenchShell({ children }: { children?: React.ReactNode }) {
   return (
     <WorkbenchProvider>
-      <div className="flex h-dvh flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] lg:pb-0">
-          <Sidebar />
-          {children}
-          <InspectorPanel />
-        </div>
-        <BottomNav />
-        <CommandPalette />
-        <WorkbenchOverlays />
-      </div>
+      <WorkbenchShellInner>{children}</WorkbenchShellInner>
     </WorkbenchProvider>
+  );
+}
+
+function WorkbenchShellInner({ children }: { children?: React.ReactNode }) {
+  useMainFocusOnRoute();
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] lg:pb-0">
+        <Sidebar />
+        {children}
+        <InspectorPanel />
+      </div>
+      <BottomNav />
+      <CommandPalette />
+      <WorkbenchOverlays />
+    </div>
   );
 }

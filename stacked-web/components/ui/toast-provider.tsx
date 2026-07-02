@@ -60,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
-        className="pointer-events-none fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-[100] flex max-w-sm flex-col gap-2 lg:bottom-4"
+        className="pointer-events-none fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-[var(--z-toast)] flex max-w-sm flex-col gap-2 lg:bottom-4"
         aria-live="polite"
       >
         {toasts.map((toast) => (
@@ -93,7 +93,7 @@ function ToastCard({
             toast.action?.onClick()
             onDismiss(toast.id)
           }}
-          className="shrink-0 font-semibold text-[var(--color-accent)] hover:brightness-110"
+          className="shrink-0 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
         >
           {toast.action.label}
         </button>

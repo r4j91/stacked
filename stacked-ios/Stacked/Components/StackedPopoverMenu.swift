@@ -16,38 +16,59 @@ struct PopoverMenuItem: Identifiable {
 
 struct StackedPopoverOverlay: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
+  var preferAbove = false
   let rootItems: [PopoverMenuItem]
   let allowsToggle: Bool
   let onDismiss: (String?) -> Void
   let onToggle: (String) -> Void
 
   @State private var pageStack: [PopoverMenuPage] = []
-  @State private var visible = false
   @State private var toggleSelections: Set<String> = []
+  @State private var isPresented = false
+  @State private var isDismissing = false
 
   var body: some View {
     ZStack {
-      if visible {
-        Color.black.opacity(0.28)
-          .ignoresSafeArea()
-          .contentShape(Rectangle())
-          .onTapGesture { dismiss(nil) }
+      Color.black.opacity(PopoverStyle.scrimOpacity * (isPresented ? 1 : 0))
+        .ignoresSafeArea()
+        .contentShape(Rectangle())
+        .onTapGesture { dismiss(nil) }
+        .animation(reduceMotion ? nil : AppMotion.popoverSpring, value: isPresented)
 
-        menuCard
-          .position(x: clampedPosition.x, y: clampedPosition.y)
-          .scaleEffect(1, anchor: .topLeading)
-      }
+      menuCard
+        .position(x: clampedPosition.x, y: clampedPosition.y)
+        .scaleEffect(isPresented ? 1 : PopoverStyle.scaleBegin, anchor: scaleAnchor)
+        .opacity(isPresented ? 1 : 0)
+        .animation(reduceMotion ? nil : AppMotion.popoverSpring, value: isPresented)
     }
     .onAppear {
       pageStack = [PopoverMenuPage(title: nil, items: rootItems)]
       toggleSelections = Set(rootItems.filter(\.selected).map(\.id))
-      withAnimation(.easeOut(duration: PopoverStyle.animDuration)) { visible = true }
+      if reduceMotion {
+        isPresented = true
+      } else {
+        withAnimation(AppMotion.popoverSpring) { isPresented = true }
+      }
     }
   }
 
   private var currentPage: PopoverMenuPage { pageStack.last ?? PopoverMenuPage(title: nil, items: []) }
+
+  private var showsAbove: Bool {
+    let screen = UIScreen.main.bounds.size
+    let h = menuHeight
+    let keyboardTop = screen.height - keyboardHeight
+    let spaceBelow = keyboardTop - anchorRect.maxY - 10
+    let spaceAbove = anchorRect.minY - 60
+    return preferAbove || keyboardHeight > 0 || spaceBelow < h + 8 || spaceBelow < spaceAbove
+  }
+
+  private var scaleAnchor: UnitPoint {
+    showsAbove ? .bottomLeading : .topLeading
+  }
 
   private var menuHeight: CGFloat {
     let header: CGFloat = pageStack.count > 1 ? 49 : 0
@@ -65,12 +86,9 @@ struct StackedPopoverOverlay: View {
     var left = anchorRect.minX
     left = min(max(8, left), screen.width - w - 8)
 
-    let spaceBelow = keyboardTop - anchorRect.maxY - 10
-    let showAbove = spaceBelow < h + 8
-
     let top: CGFloat
-    if showAbove {
-      top = max(anchorRect.minY - h - 4, 60)
+    if showsAbove {
+      top = max(anchorRect.minY - h - 8, 60)
     } else {
       top = min(anchorRect.maxY + 4, keyboardTop - h - 10)
     }
@@ -80,88 +98,92 @@ struct StackedPopoverOverlay: View {
 
   private var menuCard: some View {
     let c = theme.colors
-    return VStack(spacing: 0) {
-      if pageStack.count > 1 {
-        HStack(spacing: 8) {
-          Button { navigateBack() } label: {
-            StackedIcons.image(.arrowLeft)
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.textSecondary)
-          }
-          .buttonStyle(.plain)
-          Text(currentPage.title ?? "")
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(c.textSecondary)
-            .lineLimit(1)
-          Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        Divider().overlay(c.textTertiary.opacity(0.15))
-      }
-
-      if currentPage.loading {
-        ProgressView().tint(c.accent).frame(height: 52)
-      } else {
-        ForEach(currentPage.items) { item in
-          let isSelected = allowsToggle
-            ? toggleSelections.contains(item.id)
-            : item.selected
-          Button { _Concurrency.Task { await tap(item) } } label: {
-            HStack(spacing: 12) {
-              StackedIcons.image(item.icon)
-                .font(.system(size: 16))
-                .foregroundStyle(item.iconColor ?? (item.destructive ? AppColors.priorityHigh : c.textSecondary))
-                .frame(width: 20)
-              Text(item.label)
-                .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-                .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
-              Spacer()
-              if item.hasArrow {
-                StackedIcons.image(.chevronRight)
-                  .font(.system(size: 11, weight: .semibold))
-                  .foregroundStyle(c.textTertiary)
-              } else if isSelected {
-                StackedIcons.image(.check)
-                  .font(.system(size: 12, weight: .bold))
-                  .foregroundStyle(c.accent)
-              }
+    return LiquidGlass.popoverCard(navBarColor: c.navBar) {
+      VStack(spacing: 0) {
+        if pageStack.count > 1 {
+          HStack(spacing: 8) {
+            Button { navigateBack() } label: {
+              StackedIcons.image(.arrowLeft)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(c.textSecondary)
             }
-            .padding(.horizontal, 14)
-            .frame(height: PopoverStyle.itemHeight)
-            .background(isSelected && !allowsToggle ? c.accent.opacity(0.08) : Color.clear)
+            .buttonStyle(.plain)
+            Text(currentPage.title ?? "")
+              .font(.system(size: 13, weight: .semibold))
+              .foregroundStyle(c.textSecondary)
+              .lineLimit(1)
+            Spacer()
           }
-          .buttonStyle(.plain)
+          .padding(.horizontal, 14)
+          .padding(.vertical, 10)
+          Divider().overlay(c.textTertiary.opacity(0.15))
+        }
+
+        if currentPage.loading {
+          ProgressView().tint(c.accent).frame(height: 52)
+        } else {
+          ForEach(currentPage.items) { item in
+            let isSelected = allowsToggle
+              ? toggleSelections.contains(item.id)
+              : item.selected
+            Button { _Concurrency.Task { await tap(item) } } label: {
+              HStack(spacing: 12) {
+                StackedIcons.image(item.icon)
+                  .font(.system(size: 16))
+                  .foregroundStyle(item.iconColor ?? (item.destructive ? AppColors.priorityHigh : c.textSecondary))
+                  .frame(width: 20)
+                Text(item.label)
+                  .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                  .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
+                Spacer()
+                if item.hasArrow {
+                  StackedIcons.image(.chevronRight)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(c.textTertiary)
+                } else if isSelected {
+                  StackedIcons.image(.check)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(c.accent)
+                }
+              }
+              .padding(.horizontal, 14)
+              .frame(height: PopoverStyle.itemHeight)
+              .background(isSelected && !allowsToggle ? c.accent.opacity(0.1) : Color.clear)
+              .contentShape(Rectangle())
+            }
+            .buttonStyle(PopoverRowButtonStyle())
+          }
         }
       }
+      .frame(width: PopoverStyle.menuWidth)
     }
-    .frame(width: PopoverStyle.menuWidth)
-    .background {
-      RoundedRectangle(cornerRadius: PopoverStyle.radius)
-        .fill(c.navBar.opacity(0.92))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: PopoverStyle.radius))
-    }
-    .overlay(RoundedRectangle(cornerRadius: PopoverStyle.radius).stroke(Color.white.opacity(0.1), lineWidth: 0.8))
-    .clipShape(RoundedRectangle(cornerRadius: PopoverStyle.radius))
-    .shadow(color: .black.opacity(0.35), radius: 24, y: 8)
+    .shadow(color: .black.opacity(0.22), radius: 20, y: 8)
+    .id(pageStack.count)
+    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
   }
 
   private func tap(_ item: PopoverMenuItem) async {
     if let children = item.children {
       HapticService.selection()
-      pageStack.append(PopoverMenuPage(title: item.label, items: children))
+      withAnimation(AppMotion.popoverSpring) {
+        pageStack.append(PopoverMenuPage(title: item.label, items: children))
+      }
       return
     }
     if let loader = item.loadChildren {
       HapticService.selection()
-      pageStack.append(PopoverMenuPage(title: item.label, items: [], loading: true))
+      withAnimation(AppMotion.popoverSpring) {
+        pageStack.append(PopoverMenuPage(title: item.label, items: [], loading: true))
+      }
       let loaded = await loader()
       guard !_Concurrency.Task.isCancelled else { return }
-      if let loaded, !loaded.isEmpty {
-        pageStack[pageStack.count - 1] = PopoverMenuPage(title: item.label, items: loaded)
-      } else {
-        pageStack.removeLast()
-        dismiss(item.id)
+      withAnimation(AppMotion.popoverSpring) {
+        if let loaded, !loaded.isEmpty {
+          pageStack[pageStack.count - 1] = PopoverMenuPage(title: item.label, items: loaded)
+        } else {
+          pageStack.removeLast()
+          dismiss(item.id)
+        }
       }
       return
     }
@@ -182,11 +204,30 @@ struct StackedPopoverOverlay: View {
   private func navigateBack() {
     guard pageStack.count > 1 else { return }
     HapticService.selection()
-    pageStack.removeLast()
+    withAnimation(AppMotion.popoverSpring) {
+      pageStack.removeLast()
+    }
   }
 
   private func dismiss(_ value: String?) {
-    onDismiss(value)
+    guard !isDismissing else { return }
+    isDismissing = true
+    if reduceMotion {
+      onDismiss(value)
+      return
+    }
+    withAnimation(AppMotion.popoverSpring) { isPresented = false }
+    DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
+      onDismiss(value)
+    }
+  }
+}
+
+private struct PopoverRowButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .background(configuration.isPressed ? Color.white.opacity(0.06) : Color.clear)
+      .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
   }
 }
 
@@ -274,6 +315,7 @@ func presentAnchoredPopover(
   anchorRect: @autoclosure @escaping () -> CGRect,
   items: [PopoverMenuItem],
   allowsToggle: Bool = false,
+  preferAbove: Bool = false,
   onSelect: @escaping (String?) -> Void
 ) {
   func fire(with rect: CGRect) {
@@ -281,22 +323,19 @@ func presentAnchoredPopover(
       anchorRect: rect,
       items: items,
       allowsToggle: allowsToggle,
+      preferAbove: preferAbove,
       onSelect: onSelect
     )
   }
 
-  func attempt(retries: Int = 4) {
+  DispatchQueue.main.async {
     let rect = anchorRect()
     if rect.isValidAnchor {
       fire(with: rect)
-    } else if retries > 0 {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
-        attempt(retries: retries - 1)
-      }
     } else {
-      fire(with: rect)
+      DispatchQueue.main.async {
+        fire(with: anchorRect())
+      }
     }
   }
-
-  DispatchQueue.main.async { attempt() }
 }
