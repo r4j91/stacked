@@ -165,19 +165,16 @@ struct ProjectDetailView: View {
     }
     .refreshable { await store.load() }
     .task { await store.load() }
-    .overlay {
-      if showQuickAdd {
-        QuickAddTaskView(
-          initialProjectId: store.projectId,
-          onSaved: { _Concurrency.Task { await store.load() } },
-          onDismiss: { showQuickAdd = false }
-        )
-        .environment(ThemeManager.shared)
-        .transition(.opacity)
-        .zIndex(200)
-      }
+    .sheet(isPresented: $showQuickAdd, onDismiss: {
+      PopoverPresenter.shared.dismiss()
+    }) {
+      QuickAddTaskView(
+        initialProjectId: store.projectId,
+        onSaved: { _Concurrency.Task { await store.load() } },
+        onDismiss: { showQuickAdd = false }
+      )
+      .environment(ThemeManager.shared)
     }
-    .animation(.easeOut(duration: 0.22), value: showQuickAdd)
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask) {
         _Concurrency.Task { await store.load() }

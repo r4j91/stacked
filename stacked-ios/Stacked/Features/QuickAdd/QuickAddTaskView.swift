@@ -25,7 +25,7 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var keyboardHeight: CGFloat = 0
+  @State private var sheetHeight: CGFloat = 300
 
   private let pillRadius: CGFloat = 22
   private let pillHeight: CGFloat = 44
@@ -44,44 +44,41 @@ struct QuickAddTaskView: View {
   }
 
   var body: some View {
-    ZStack(alignment: .bottom) {
-      Color.black.opacity(0.32)
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture { onDismiss() }
-
-      panel
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-    .ignoresSafeArea(.keyboard)
-    .observeKeyboardHeight($keyboardHeight)
-    .onAppear {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { titleFocused = true }
-    }
-    .task { await loadPickers() }
-    .stackedTaskDatePickerSheet(
-      isPresented: $showDatePicker,
-      initialDate: dueDate,
-      initialTime: dueTime,
-      showRecurrence: false
-    ) { date, time in
-      dueDate = date
-      dueTime = time
-    }
+    sheetContent
+      .reportSheetHeight($sheetHeight)
+      .presentationDetents([.height(sheetHeight)])
+      .presentationDragIndicator(.visible)
+      .onAppear {
+        DispatchQueue.main.async { titleFocused = true }
+      }
+      .task { await loadPickers() }
+      .stackedTaskDatePickerSheet(
+        isPresented: $showDatePicker,
+        initialDate: dueDate,
+        initialTime: dueTime,
+        showRecurrence: false
+      ) { date, time in
+        dueDate = date
+        dueTime = time
+      }
   }
 
-  private var panel: some View {
+  // SUBSTITUIDO_FASE1B: overlay custom com scrim + LiquidGlass.sheetPanel + keyboard manual
+  // var body: some View {
+  //   ZStack(alignment: .bottom) {
+  //     Color.black.opacity(0.32).ignoresSafeArea().onTapGesture { onDismiss() }
+  //     panel.transition(.move(edge: .bottom).combined(with: .opacity))
+  //   }
+  //   .ignoresSafeArea(.keyboard)
+  //   .observeKeyboardHeight($keyboardHeight)
+  //   .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { titleFocused = true } }
+  // }
+
+  private var sheetContent: some View {
     let c = theme.colors
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    let homeInset = UIApplication.shared.connectedScenes
-      .compactMap { $0 as? UIWindowScene }
-      .flatMap(\.windows)
-      .first(where: \.isKeyWindow)?
-      .safeAreaInsets.bottom ?? 0
-    let bottomInset = keyboardHeight > 0 ? 12.0 : max(homeInset, 0)
 
-    return LiquidGlass.sheetPanel(navBarColor: c.navBar) {
-      VStack(spacing: 0) {
+    return VStack(spacing: 0) {
         Capsule()
           .fill(c.textPrimary.opacity(0.2))
           .frame(width: 36, height: 4)
@@ -181,15 +178,11 @@ struct QuickAddTaskView: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 4)
         }
-
-        Color.clear.frame(height: bottomInset)
-
-        if keyboardHeight > 0 {
-          Color.clear.frame(height: keyboardHeight)
-        }
-      }
     }
   }
+
+  // SUBSTITUIDO_FASE1B: panel com LiquidGlass.sheetPanel + spacers de teclado/safe area
+  // private var panel: some View { ... LiquidGlass.sheetPanel ... Color.clear.frame(height: bottomInset) ... }
 
   private func fieldBox<Content: View>(
     verticalPadding: CGFloat,

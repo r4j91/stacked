@@ -53,26 +53,26 @@ enum LiquidGlass {
     ToolbarGlassPill(navBarColor: navBarColor, content: content)
   }
 
-  /// FASE1: intacto até Etapa 1B (Quick Add overlay) — ainda fill+glass legado.
-  @ViewBuilder
-  static func sheetPanel<Content: View>(
-    navBarColor: Color,
-    @ViewBuilder content: () -> Content
-  ) -> some View {
-    let shape = UnevenRoundedRectangle(
-      topLeadingRadius: 20,
-      bottomLeadingRadius: 0,
-      bottomTrailingRadius: 0,
-      topTrailingRadius: 20
-    )
-    content()
-      .background {
-        shape
-          .fill(navBarColor.opacity(0.82))
-          .glassEffect(.regular, in: shape)
-      }
-      .clipShape(shape)
-  }
+  /// SUBSTITUIDO_FASE1B: usado pelo Quick Add overlay — substituído por sheet nativo iOS 26.
+  // @ViewBuilder
+  // static func sheetPanel<Content: View>(
+  //   navBarColor: Color,
+  //   @ViewBuilder content: () -> Content
+  // ) -> some View {
+  //   let shape = UnevenRoundedRectangle(
+  //     topLeadingRadius: 20,
+  //     bottomLeadingRadius: 0,
+  //     bottomTrailingRadius: 0,
+  //     topTrailingRadius: 20
+  //   )
+  //   content()
+  //     .background {
+  //       shape
+  //         .fill(navBarColor.opacity(0.82))
+  //         .glassEffect(.regular, in: shape)
+  //     }
+  //     .clipShape(shape)
+  // }
 }
 
 // MARK: - Superfície glass centralizada (reduce-transparency fallback único)

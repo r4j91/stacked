@@ -13,7 +13,6 @@ struct RootView: View {
     MobileShell(
       selectedTab: $selectedTab,
       fabOpen: $fabOpen,
-      hideBottomChrome: showQuickAdd,
       onNewTask: { openQuickAdd() },
       onSearch: { showSearch = true },
       onNewProject: { showNewProject = true }
@@ -34,18 +33,15 @@ struct RootView: View {
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
-    .overlay {
-      if showQuickAdd {
-        QuickAddTaskView(
-          onSaved: { reloadAll() },
-          onDismiss: { closeQuickAdd() }
-        )
-        .environment(ThemeManager.shared)
-        .transition(.opacity)
-        .zIndex(200)
-      }
+    .sheet(isPresented: $showQuickAdd, onDismiss: {
+      PopoverPresenter.shared.dismiss()
+    }) {
+      QuickAddTaskView(
+        onSaved: { reloadAll() },
+        onDismiss: { showQuickAdd = false }
+      )
+      .environment(ThemeManager.shared)
     }
-    .animation(.easeOut(duration: 0.22), value: showQuickAdd)
     .sheet(isPresented: $showNewProject) {
       NewProjectSheetView(onCreated: {
         _Concurrency.Task {
@@ -63,11 +59,6 @@ struct RootView: View {
     fabOpen = false
     PopoverPresenter.shared.dismiss()
     showQuickAdd = true
-  }
-
-  private func closeQuickAdd() {
-    PopoverPresenter.shared.dismiss()
-    showQuickAdd = false
   }
 
   private func dismissOverlays() {
