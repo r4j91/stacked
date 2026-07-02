@@ -92,14 +92,17 @@ enum HapticService {
   }
 
   static func fabOpened() {
-    _Concurrency.Task { @MainActor in
-      lightGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(60))
-      lightGen.impactOccurred()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(60))
-      mediumGen.impactOccurred()
-    }
+    lightGen.impactOccurred()
   }
+
+  // SUBSTITUIDO_FASE4B: 3 impacts assíncronos com sleeps
+  // _Concurrency.Task { @MainActor in
+  //   lightGen.impactOccurred()
+  //   try? await _Concurrency.Task.sleep(for: .milliseconds(60))
+  //   lightGen.impactOccurred()
+  //   try? await _Concurrency.Task.sleep(for: .milliseconds(60))
+  //   mediumGen.impactOccurred()
+  // }
 
   static func dateSelected() {
     lightGen.impactOccurred()

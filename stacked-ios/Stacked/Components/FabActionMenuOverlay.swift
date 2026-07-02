@@ -3,15 +3,21 @@ import SwiftUI
 // Paridade responsive_layout.dart _FabOverlay — itens acima do FAB (sem scrim; scrim fica no shell).
 struct FabActionMenuOverlay: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   let safeBottom: CGFloat
   @Binding var isOpen: Bool
   var onNewTask: () -> Void
   var onNewProject: () -> Void
   var onSearch: () -> Void
 
+  @State private var revealedStagger = -1
+
   private let rowHeight: CGFloat = 44
   private let rowGap: CGFloat = 12
   private let fabMenuGap: CGFloat = 14
+  private let staggerStep: TimeInterval = 0.035
+  private let dismissStaggerStep: TimeInterval = 0.022
 
   private var fabBottom: CGFloat {
     safeBottom
@@ -24,25 +30,83 @@ struct FabActionMenuOverlay: View {
     fabBottom + AppLayout.fabSize + fabMenuGap
   }
 
+  private var menuEntries: [(String, StackedIconKey, () -> Void)] {
+    [
+      ("Buscar", .search, { isOpen = false; onSearch() }),
+      ("Novo projeto", .newProject, { isOpen = false; onNewProject() }),
+      ("Nova tarefa", .newTask, { isOpen = false; onNewTask() }),
+    ]
+  }
+
   var body: some View {
     VStack(alignment: .trailing, spacing: rowGap) {
-      fabMenuItem("Buscar", icon: .search) {
-        isOpen = false
-        onSearch()
-      }
-      fabMenuItem("Novo projeto", icon: .newProject) {
-        isOpen = false
-        onNewProject()
-      }
-      fabMenuItem("Nova tarefa", icon: .newTask) {
-        isOpen = false
-        onNewTask()
+      ForEach(Array(menuEntries.enumerated()), id: \.offset) { index, entry in
+        fabMenuItem(entry.0, icon: entry.1, action: entry.2)
+          .opacity(itemRevealed(displayIndex: index) ? 1 : 0)
+          .scaleEffect(itemRevealed(displayIndex: index) ? 1 : 0.8)
+          .animation(
+            itemAnimation(displayIndex: index),
+            value: revealedStagger
+          )
       }
     }
     .padding(.trailing, AppLayout.fabSideMargin)
     .padding(.bottom, menuBottomInset)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-    .allowsHitTesting(isOpen)
+    .allowsHitTesting(isOpen && revealedStagger >= 0)
+    .onAppear { syncVisibility(isOpen) }
+    .onChange(of: isOpen) { _, open in
+      syncVisibility(open)
+    }
+  }
+
+  /// VStack top→bottom; stagger de baixo para cima (índice 2 = mais perto do FAB).
+  private func itemStaggerOrder(displayIndex: Int) -> Int {
+    (menuEntries.count - 1) - displayIndex
+  }
+
+  private func itemRevealed(displayIndex: Int) -> Bool {
+    guard !reduceMotion else { return isOpen }
+    return itemStaggerOrder(displayIndex: displayIndex) <= revealedStagger
+  }
+
+  private func itemAnimation(displayIndex: Int) -> Animation? {
+    guard !reduceMotion else { return nil }
+    if revealedStagger < 0 {
+      return AppMotion.snappy
+    }
+    return AppMotion.bouncy
+  }
+
+  private func syncVisibility(_ open: Bool) {
+    if reduceMotion {
+      revealedStagger = open ? menuEntries.count - 1 : -1
+      return
+    }
+    if open {
+      revealedStagger = -1
+      for step in 0..<menuEntries.count {
+        let delay = Double(step) * staggerStep
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+          guard isOpen else { return }
+          withAnimation(AppMotion.bouncy) {
+            revealedStagger = step
+          }
+        }
+      }
+    } else {
+      let count = menuEntries.count
+      for step in 0..<count {
+        let delay = Double(step) * dismissStaggerStep
+        let target = count - 2 - step
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+          guard !isOpen else { return }
+          withAnimation(AppMotion.snappy) {
+            revealedStagger = target
+          }
+        }
+      }
+    }
   }
 
   private func fabMenuItem(_ label: String, icon: StackedIconKey, action: @escaping () -> Void) -> some View {
@@ -70,3 +134,6 @@ struct FabActionMenuOverlay: View {
     .buttonStyle(.plain)
   }
 }
+
+// SUBSTITUIDO_FASE4B: itens estáticos sem stagger/spring na entrada
+// VStack { fabMenuItem("Buscar"...); fabMenuItem("Novo projeto"...); fabMenuItem("Nova tarefa"...) }
