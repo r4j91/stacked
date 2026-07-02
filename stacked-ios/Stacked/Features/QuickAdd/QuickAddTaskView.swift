@@ -48,6 +48,7 @@ struct QuickAddTaskView: View {
       .reportSheetHeight($sheetHeight)
       .presentationDetents([.height(sheetHeight)])
       .presentationDragIndicator(.visible)
+      .popoverHostScope()
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
       }
@@ -79,12 +80,7 @@ struct QuickAddTaskView: View {
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
     return VStack(spacing: 0) {
-        Capsule()
-          .fill(c.textPrimary.opacity(0.2))
-          .frame(width: 36, height: 4)
-          .padding(.top, 10)
-          .padding(.bottom, 16)
-
+        // SUBSTITUIDO_FASE7C: grabber Capsule custom — o sheet usa presentationDragIndicator nativo.
         fieldBox(verticalPadding: 13) {
           TextField("Nome da tarefa", text: $title)
             .font(.system(size: 16, weight: .semibold))

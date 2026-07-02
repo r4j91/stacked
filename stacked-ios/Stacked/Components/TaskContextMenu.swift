@@ -43,23 +43,10 @@ struct TaskContextMenu: ViewModifier {
       )
       .zIndex(isLifted ? 1 : 0)
       .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: liftPhase)
-      .onLongPressGesture(
-        minimumDuration: TaskContextLift.minimumDuration,
-        pressing: { pressing in
-          if pressing {
-            HapticService.prepareContextMenu()
-            guard liftPhase == .normal else { return }
-            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-              liftPhase = .pressing
-            }
-          } else if liftPhase == .pressing {
-            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-              liftPhase = .normal
-            }
-          }
-        },
-        perform: openContextMenu
-      )
+      // SUBSTITUIDO_FASE7E: pressing: bloqueava o pan horizontal do swipe nativo na List.
+      .onLongPressGesture(minimumDuration: TaskContextLift.minimumDuration) {
+        openContextMenu()
+      }
   }
 
   private var isLifted: Bool {
@@ -77,9 +64,12 @@ struct TaskContextMenu: ViewModifier {
   }
 
   private func openContextMenu() {
+    HapticService.prepareContextMenu()
     HapticService.medium()
-    liftPhase = .menuOpen
-    PopoverPresenter.shared.present(
+    AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+      liftPhase = .menuOpen
+    }
+    PopoverHostRegistry.active.present(
       anchor: CGPoint(x: anchorFrame.midX, y: anchorFrame.midY),
       items: menuItems
     ) { result in

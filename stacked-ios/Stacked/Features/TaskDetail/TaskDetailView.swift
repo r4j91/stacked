@@ -93,7 +93,7 @@ struct TaskDetailView: View {
         .environment(ThemeManager.shared)
       }
       .task { await vm.load() }
-      .overlay { PopoverOverlayHost() }
+      .popoverHostScope()
     }
   }
 

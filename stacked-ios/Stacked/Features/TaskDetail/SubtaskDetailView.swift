@@ -114,7 +114,7 @@ struct SubtaskDetailView: View {
           .foregroundStyle(c.accent)
         }
       }
-      .overlay { PopoverOverlayHost() }
+      .popoverHostScope()
       .task { labels = (try? await LabelRepository.shared.fetchLabels()) ?? [] }
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,

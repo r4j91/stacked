@@ -14,6 +14,8 @@ final class PopoverPresenter {
 
   private var onSelectHandler: ((String?) -> Void)?
 
+  init() {}
+
   func present(
     anchorRect: CGRect,
     items: [PopoverMenuItem],
@@ -68,22 +70,32 @@ final class PopoverPresenter {
 }
 
 struct PopoverOverlayHost: View {
-  @Bindable private var presenter = PopoverPresenter.shared
+  var presenter: PopoverPresenter = .shared
+  var hostBounds: CGRect = .zero
+
+  @Bindable private var boundPresenter: PopoverPresenter
   @State private var keyboardHeight: CGFloat = 0
+
+  init(presenter: PopoverPresenter = .shared, hostBounds: CGRect = .zero) {
+    self.presenter = presenter
+    self.hostBounds = hostBounds
+    _boundPresenter = Bindable(presenter)
+  }
 
   var body: some View {
     ZStack {
-      if presenter.isPresented {
+      if boundPresenter.isPresented {
         StackedPopoverOverlay(
-          anchorRect: presenter.anchorRect,
+          anchorRect: boundPresenter.anchorRect,
           keyboardHeight: keyboardHeight,
-          preferAbove: presenter.preferAbove,
-          rootItems: presenter.items,
-          allowsToggle: presenter.allowsToggle
+          hostBounds: resolvedHostBounds,
+          preferAbove: boundPresenter.preferAbove,
+          rootItems: boundPresenter.items,
+          allowsToggle: boundPresenter.allowsToggle
         ) { value in
-          presenter.dismiss(value)
+          boundPresenter.dismiss(value)
         } onToggle: { value in
-          presenter.toggleWithoutDismiss(value)
+          boundPresenter.toggleWithoutDismiss(value)
         }
         .environment(ThemeManager.shared)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,7 +103,7 @@ struct PopoverOverlayHost: View {
         .zIndex(9999)
       }
     }
-    .allowsHitTesting(presenter.isPresented)
+    .allowsHitTesting(boundPresenter.isPresented)
     .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
       updateKeyboardHeight(from: note)
     }
@@ -101,6 +113,13 @@ struct PopoverOverlayHost: View {
     .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
       keyboardHeight = 0
     }
+  }
+
+  private var resolvedHostBounds: CGRect {
+    if hostBounds.width > 1, hostBounds.height > 1 {
+      return hostBounds
+    }
+    return UIScreen.main.bounds
   }
 
   private func updateKeyboardHeight(from note: Notification) {

@@ -19,6 +19,7 @@ struct StackedPopoverOverlay: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
+  var hostBounds: CGRect = UIScreen.main.bounds
   var preferAbove = false
   let rootItems: [PopoverMenuItem]
   let allowsToggle: Bool
@@ -36,29 +37,39 @@ struct StackedPopoverOverlay: View {
         .ignoresSafeArea()
         .contentShape(Rectangle())
         .onTapGesture { dismiss(nil) }
-        .animation(AppMotion.popover(reduceMotion: reduceMotion), value: isPresented)
+        .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: isPresented)
 
       menuCard
         .position(x: clampedPosition.x, y: clampedPosition.y)
         .scaleEffect(isPresented ? 1 : PopoverStyle.scaleBegin, anchor: scaleAnchor)
         .opacity(isPresented ? 1 : 0)
-        .animation(AppMotion.popover(reduceMotion: reduceMotion), value: isPresented)
+        .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: isPresented)
     }
     .onAppear {
       pageStack = [PopoverMenuPage(title: nil, items: rootItems)]
       toggleSelections = Set(rootItems.filter(\.selected).map(\.id))
-      AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) { isPresented = true }
+      AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = true }
     }
   }
 
   private var currentPage: PopoverMenuPage { pageStack.last ?? PopoverMenuPage(title: nil, items: []) }
 
+  private var localAnchorRect: CGRect {
+    guard hostBounds.width > 1, hostBounds.height > 1 else { return anchorRect }
+    return anchorRect.offsetBy(dx: -hostBounds.minX, dy: -hostBounds.minY)
+  }
+
+  private var layoutSize: CGSize {
+    hostBounds.width > 1 ? hostBounds.size : UIScreen.main.bounds.size
+  }
+
   private var showsAbove: Bool {
-    let screen = UIScreen.main.bounds.size
+    let anchor = localAnchorRect
+    let screen = layoutSize
     let h = menuHeight
     let keyboardTop = screen.height - keyboardHeight
-    let spaceBelow = keyboardTop - anchorRect.maxY - 10
-    let spaceAbove = anchorRect.minY - 60
+    let spaceBelow = keyboardTop - anchor.maxY - 10
+    let spaceAbove = anchor.minY - 60
     return preferAbove || keyboardHeight > 0 || spaceBelow < h + 8 || spaceBelow < spaceAbove
   }
 
@@ -74,19 +85,20 @@ struct StackedPopoverOverlay: View {
   }
 
   private var clampedPosition: CGPoint {
-    let screen = UIScreen.main.bounds.size
+    let anchor = localAnchorRect
+    let screen = layoutSize
     let w = PopoverStyle.menuWidth
     let h = menuHeight
     let keyboardTop = screen.height - keyboardHeight
 
-    var left = anchorRect.minX
+    var left = anchor.minX
     left = min(max(8, left), screen.width - w - 8)
 
     let top: CGFloat
     if showsAbove {
-      top = max(anchorRect.minY - h - 8, 60)
+      top = max(anchor.minY - h - 8, 60)
     } else {
-      top = min(anchorRect.maxY + 4, keyboardTop - h - 10)
+      top = min(anchor.maxY + 4, keyboardTop - h - 10)
     }
 
     return CGPoint(x: left + w / 2, y: top + h / 2)
@@ -212,7 +224,7 @@ struct StackedPopoverOverlay: View {
       onDismiss(value)
       return
     }
-    AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) { isPresented = false }
+    AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = false }
     DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
       onDismiss(value)
     }
@@ -331,7 +343,7 @@ func presentAnchoredPopover(
   onSelect: @escaping (String?) -> Void
 ) {
   func fire(with rect: CGRect) {
-    PopoverPresenter.shared.present(
+    PopoverHostRegistry.active.present(
       anchorRect: rect,
       items: items,
       allowsToggle: allowsToggle,
