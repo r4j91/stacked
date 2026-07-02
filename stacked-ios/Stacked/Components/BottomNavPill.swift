@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/widgets/responsive_layout.dart _LiquidGlassPill
 struct BottomNavPill: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let selectedTab: NavTab
   let onSelect: (NavTab) -> Void
 
@@ -49,7 +50,8 @@ struct BottomNavPill: View {
         }
         .onChange(of: selectedTab) { _, tab in
           guard let idx = tabs.firstIndex(of: tab) else { return }
-          withAnimation(AppMotion.navIndicatorSpring) {
+          // SUBSTITUIDO_FASE2: withAnimation(AppMotion.navIndicatorSpring) { indicatorX = ... }
+          AppMotion.animate(AppMotion.navIndicatorSpring, reduceMotion: reduceMotion) {
             indicatorX = CGFloat(idx) * itemWidth
           }
         }
@@ -63,6 +65,7 @@ struct BottomNavPill: View {
 
 private struct NavPillItem: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let tab: NavTab
   let selected: Bool
   let onSelect: () -> Void
@@ -95,7 +98,8 @@ private struct NavPillItem: View {
     .onChange(of: selected) { wasSelected, isSelected in
       guard !wasSelected, isSelected else { return }
       bounceScale = 1.12
-      withAnimation(AppMotion.iconBounceSpring) {
+      // SUBSTITUIDO_FASE2: withAnimation(AppMotion.iconBounceSpring) { bounceScale = 1 }
+      AppMotion.animate(AppMotion.iconBounceSpring, reduceMotion: reduceMotion) {
         bounceScale = 1
       }
     }

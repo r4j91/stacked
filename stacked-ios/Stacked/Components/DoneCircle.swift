@@ -2,6 +2,7 @@ import SwiftUI
 
 // Paridade lib/widgets/done_circle.dart — check verde padrão global
 struct DoneCircle: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let done: Bool
   var size: CGFloat = 22
   var borderWidth: CGFloat = 2
@@ -32,6 +33,7 @@ struct DoneCircle: View {
           .frame(width: size, height: size)
       }
     }
-    .animation(.easeOut(duration: 0.15), value: done)
+    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.15), value: done)
+    .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: done)
   }
 }

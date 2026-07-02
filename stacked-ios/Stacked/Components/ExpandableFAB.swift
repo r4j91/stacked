@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/widgets/responsive_layout.dart _ExpandableFAB
 struct ExpandableFAB: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Binding var isOpen: Bool
 
   var body: some View {
@@ -20,7 +21,8 @@ struct ExpandableFAB: View {
         .font(.system(size: 22, weight: .medium))
         .foregroundStyle(c.isDark ? c.background : Color(hex: 0x1A1B1E))
         .rotationEffect(.degrees(isOpen ? 45 : 0))
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOpen)
+        // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOpen)
+        .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: isOpen)
         .frame(width: AppLayout.fabSize, height: AppLayout.fabSize)
         .background(c.accent)
         .clipShape(Circle())

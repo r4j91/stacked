@@ -5,6 +5,7 @@ import Supabase
 struct ProductivityView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @State private var tab = 0
   @State private var loading = true
@@ -109,7 +110,8 @@ struct ProductivityView: View {
         let active = tab == i
         Button {
           HapticService.tabChanged()
-          withAnimation(.easeOut(duration: 0.2)) { tab = i }
+          // SUBSTITUIDO_FASE2: withAnimation(.easeOut(duration: 0.2)) { tab = i }
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { tab = i }
         } label: {
           Text(tabs[i])
             .font(.system(size: 13, weight: active ? .semibold : .regular))

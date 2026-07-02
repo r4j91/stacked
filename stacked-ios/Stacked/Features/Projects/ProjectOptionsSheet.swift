@@ -4,6 +4,7 @@ import SwiftUI
 struct ProjectOptionsSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let project: Project
   var onEdited: () -> Void
@@ -72,7 +73,8 @@ struct ProjectOptionsSheet: View {
     let c = theme.colors
     return HStack(spacing: 8) {
       if page != .menu {
-        Button { withAnimation { page = .menu } } label: {
+        // SUBSTITUIDO_FASE2: Button { withAnimation { page = .menu } }
+        Button { AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { page = .menu } } label: {
           StackedIcons.image(.arrowLeft).foregroundStyle(c.textSecondary)
         }
         .buttonStyle(.plain)
@@ -278,7 +280,8 @@ struct ProjectOptionsSheet: View {
       )
       HapticService.saved()
       onEdited()
-      if dismissToMenu { withAnimation { page = .menu } }
+      // SUBSTITUIDO_FASE2: if dismissToMenu { withAnimation { page = .menu } }
+      if dismissToMenu { AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { page = .menu } }
     } catch {
       self.error = error.localizedDescription
     }

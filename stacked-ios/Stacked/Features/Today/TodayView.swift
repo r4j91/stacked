@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/screens/today_screen.dart
 struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage("show_completed_tasks") private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
@@ -65,7 +66,8 @@ struct TodayView: View {
         if showCompleted && !store.todayCompleted.isEmpty {
           Section {
             Button {
-              withAnimation { completedExpanded.toggle() }
+              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
+              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
             } label: {
               HStack {
                 Text("Concluídas (\(store.todayCompleted.count))")

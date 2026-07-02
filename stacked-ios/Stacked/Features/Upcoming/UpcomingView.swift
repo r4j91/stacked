@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/screens/upcoming_screen.dart
 struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var store = UpcomingStore.shared
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
@@ -115,7 +116,8 @@ struct UpcomingView: View {
         let selected = store.mode == mode
         Button {
           HapticService.selection()
-          withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+          // SUBSTITUIDO_FASE2: withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) { store.mode = mode }
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
             store.mode = mode
           }
         } label: {

@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/screens/filters_screen.dart
 struct FiltersView: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var store = FiltersStore.shared
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
@@ -20,7 +21,8 @@ struct FiltersView: View {
             .transition(.opacity.combined(with: .move(edge: .trailing)))
         }
       }
-      .animation(.spring(response: 0.32, dampingFraction: 0.86), value: store.mode)
+      // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.32, dampingFraction: 0.86), value: store.mode)
+      .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: store.mode)
       .task { await store.loadDashboard() }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
@@ -235,7 +237,8 @@ struct FiltersView: View {
         HStack(spacing: 12) {
           Button {
             HapticService.selection()
-            withAnimation { store.backToDashboard() }
+            // SUBSTITUIDO_FASE2: withAnimation { store.backToDashboard() }
+            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { store.backToDashboard() }
           } label: {
             Image(systemName: "chevron.left")
               .font(.system(size: 14, weight: .semibold))

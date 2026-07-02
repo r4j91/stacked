@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade task_tile.dart — card + expansão inline de subtarefas
 struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -73,7 +74,8 @@ struct TaskRow: View {
           .allowsHitTesting(expanded)
       }
     }
-    .animation(.easeOut(duration: 0.22), value: expanded)
+    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.22), value: expanded)
+    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
     .frame(minHeight: AppLayout.taskRowHeight)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -130,7 +132,8 @@ struct TaskRow: View {
 
       Divider().overlay(c.textTertiary.opacity(0.12))
     }
-    .animation(.easeOut(duration: 0.22), value: expanded)
+    // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.22), value: expanded)
+    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {

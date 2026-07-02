@@ -36,22 +36,18 @@ struct StackedPopoverOverlay: View {
         .ignoresSafeArea()
         .contentShape(Rectangle())
         .onTapGesture { dismiss(nil) }
-        .animation(reduceMotion ? nil : AppMotion.popoverSpring, value: isPresented)
+        .animation(AppMotion.popover(reduceMotion: reduceMotion), value: isPresented)
 
       menuCard
         .position(x: clampedPosition.x, y: clampedPosition.y)
         .scaleEffect(isPresented ? 1 : PopoverStyle.scaleBegin, anchor: scaleAnchor)
         .opacity(isPresented ? 1 : 0)
-        .animation(reduceMotion ? nil : AppMotion.popoverSpring, value: isPresented)
+        .animation(AppMotion.popover(reduceMotion: reduceMotion), value: isPresented)
     }
     .onAppear {
       pageStack = [PopoverMenuPage(title: nil, items: rootItems)]
       toggleSelections = Set(rootItems.filter(\.selected).map(\.id))
-      if reduceMotion {
-        isPresented = true
-      } else {
-        withAnimation(AppMotion.popoverSpring) { isPresented = true }
-      }
+      AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) { isPresented = true }
     }
   }
 
@@ -165,19 +161,19 @@ struct StackedPopoverOverlay: View {
   private func tap(_ item: PopoverMenuItem) async {
     if let children = item.children {
       HapticService.selection()
-      withAnimation(AppMotion.popoverSpring) {
+      AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
         pageStack.append(PopoverMenuPage(title: item.label, items: children))
       }
       return
     }
     if let loader = item.loadChildren {
       HapticService.selection()
-      withAnimation(AppMotion.popoverSpring) {
+      AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
         pageStack.append(PopoverMenuPage(title: item.label, items: [], loading: true))
       }
       let loaded = await loader()
       guard !_Concurrency.Task.isCancelled else { return }
-      withAnimation(AppMotion.popoverSpring) {
+      AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
         if let loaded, !loaded.isEmpty {
           pageStack[pageStack.count - 1] = PopoverMenuPage(title: item.label, items: loaded)
         } else {
@@ -204,7 +200,7 @@ struct StackedPopoverOverlay: View {
   private func navigateBack() {
     guard pageStack.count > 1 else { return }
     HapticService.selection()
-    withAnimation(AppMotion.popoverSpring) {
+    AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
       pageStack.removeLast()
     }
   }
@@ -216,7 +212,7 @@ struct StackedPopoverOverlay: View {
       onDismiss(value)
       return
     }
-    withAnimation(AppMotion.popoverSpring) { isPresented = false }
+    AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) { isPresented = false }
     DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
       onDismiss(value)
     }
@@ -224,10 +220,13 @@ struct StackedPopoverOverlay: View {
 }
 
 private struct PopoverRowButtonStyle: ButtonStyle {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .background(configuration.isPressed ? Color.white.opacity(0.06) : Color.clear)
-      .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+      // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+      .animation(AppMotion.press(reduceMotion: reduceMotion), value: configuration.isPressed)
   }
 }
 

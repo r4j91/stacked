@@ -24,7 +24,7 @@ struct ContentView: View {
       .background(c.background.ignoresSafeArea())
       .navigationBarHidden(true)
     }
-    .animation(AppMotion.animation(reduceMotion: reduceMotion), value: theme.currentId)
+    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: theme.currentId)
   }
 
   private func header(colors: AppThemeColors) -> some View {

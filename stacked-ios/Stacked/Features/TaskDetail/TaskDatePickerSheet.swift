@@ -5,6 +5,7 @@ import Hugeicons
 struct TaskDatePickerSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var initialDate: Date?
   var initialTime: Date?
@@ -114,7 +115,8 @@ struct TaskDatePickerSheet: View {
       Divider().overlay(c.surfaceVariant)
 
       Button {
-        withAnimation(.easeOut(duration: 0.2)) {
+        // SUBSTITUIDO_FASE2: withAnimation(.easeOut(duration: 0.2)) { timeExpanded.toggle() ... }
+        AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
           timeExpanded.toggle()
           if timeExpanded { hasTime = true }
         }

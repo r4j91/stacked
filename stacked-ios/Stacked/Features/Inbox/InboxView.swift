@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/screens/inbox_screen.dart
 struct InboxView: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage("show_completed_tasks") private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
@@ -51,7 +52,8 @@ struct InboxView: View {
         if showCompleted && !store.inboxCompleted.isEmpty {
           Section {
             Button {
-              withAnimation { completedExpanded.toggle() }
+              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
+              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
             } label: {
               HStack {
                 Text("Concluídas (\(store.inboxCompleted.count))")

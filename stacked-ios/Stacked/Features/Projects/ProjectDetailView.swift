@@ -5,6 +5,7 @@ import Hugeicons
 struct ProjectDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @AppStorage("display_mode") private var displayMode = "cards"
   @AppStorage("show_completed_tasks") private var showCompleted = false
@@ -86,7 +87,8 @@ struct ProjectDetailView: View {
         if showCompleted && !store.completed.isEmpty {
           Section {
             Button {
-              withAnimation { completedExpanded.toggle() }
+              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
+              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
             } label: {
               HStack {
                 Text("Concluídas (\(store.completed.count))")
