@@ -44,31 +44,18 @@ struct MobileShell<Content: View>: View {
           .frame(width: geo.size.width, height: geo.size.height)
 
         if !hideBottomChrome {
-<<<<<<< HEAD
-          // SUBSTITUIDO_FASE7A: GlassEffectContainer(spacing: 36) da Fase 1A expandia o host
-          // para maxHeight infinito e deslocava navbar/FAB — fusão nav↔FAB removida (opcional).
+          // SUBSTITUIDO_FASE7A: GlassEffectContainer(spacing: 36) — filho com
+          // .frame(maxHeight: .infinity) expandia o host e deslocava navbar/FAB.
           BottomNavPill(selectedTab: selectedTab) { tab in
             HapticService.prepareTabChange()
             HapticService.tabChanged()
             PopoverPresenter.shared.dismiss()
             fabOpen = false
             selectedTab = tab
-=======
-          // FASE1: GlassEffectContainer só na navbar — FAB fica fora para preservar z-order
-          // (scrim z30 cobre nav; FAB z50 fica acima). Fusão nav↔FAB sólido não é perceptível.
-          GlassEffectContainer(spacing: 36) {
-            BottomNavPill(selectedTab: selectedTab) { tab in
-              HapticService.prepareTabChange()
-              HapticService.tabChanged()
-              PopoverPresenter.shared.dismiss()
-              fabOpen = false
-              selectedTab = tab
-            }
-            .padding(.horizontal, AppLayout.fabSideMargin)
-            .padding(.bottom, pillBottom)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
->>>>>>> parent of b50852f (fix: morphliquid)
           }
+          .padding(.horizontal, AppLayout.fabSideMargin)
+          .padding(.bottom, pillBottom)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           .zIndex(20)
         }
 
