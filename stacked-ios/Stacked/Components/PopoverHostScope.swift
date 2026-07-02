@@ -1,6 +1,6 @@
 import SwiftUI
 
-// SUBSTITUIDO_FASE8A: Quick Add usa overlay na janela (acima do sheet); demais sheets usam host local.
+// SUBSTITUIDO_FASE8A: Quick Add usa overlay local com coords de tela; sheet nativo fica acima da AppRoot.
 private struct PopoverAnchorSpaceNameKey: EnvironmentKey {
   static let defaultValue: String? = nil
 }
@@ -15,34 +15,14 @@ extension EnvironmentValues {
 enum PopoverOverlayPlacement {
   /// Overlay dentro do conteúdo (TaskDetail, SubtaskDetail).
   case local
-  /// Overlay na janela, acima do sheet nativo (Quick Add).
-  case window
+  /// Quick Add: overlay dentro do sheet, coords de tela, acima do painel.
+  case quickAddSheet
 }
 
 private struct ScopedPopoverHost: Identifiable {
   let id = UUID()
   let presenter: PopoverPresenter
   let placement: PopoverOverlayPlacement
-}
-
-/// Publica presenter de sheet para overlay na janela (StackedApp — acima do .sheet nativo).
-@MainActor
-@Observable
-final class WindowPopoverCoordinator {
-  static let shared = WindowPopoverCoordinator()
-  private(set) var presenter: PopoverPresenter?
-
-  private init() {}
-
-  func register(_ presenter: PopoverPresenter) {
-    self.presenter = presenter
-  }
-
-  func unregister(_ presenter: PopoverPresenter) {
-    if self.presenter === presenter {
-      self.presenter = nil
-    }
-  }
 }
 
 // Fase 7B / 8A — popovers dentro de sheets usam host escopado (não o overlay global).
@@ -56,14 +36,10 @@ enum PopoverHostRegistry {
 
   static func push(_ presenter: PopoverPresenter, placement: PopoverOverlayPlacement) {
     scopeStack.append(ScopedPopoverHost(presenter: presenter, placement: placement))
-    if placement == .window {
-      WindowPopoverCoordinator.shared.register(presenter)
-    }
   }
 
   static func pop(_ presenter: PopoverPresenter) {
     scopeStack.removeAll { $0.presenter === presenter }
-    WindowPopoverCoordinator.shared.unregister(presenter)
   }
 }
 
@@ -76,7 +52,8 @@ struct PopoverHostScope: ViewModifier {
 
   func body(content: Content) -> some View {
     Group {
-      if placement == .local {
+      switch placement {
+      case .local:
         content
           .coordinateSpace(name: coordinateSpaceName)
           .environment(\.popoverAnchorSpaceName, coordinateSpaceName)
@@ -88,10 +65,17 @@ struct PopoverHostScope: ViewModifier {
               )
             }
           }
-      } else {
-        // Window: âncoras globais; overlay em AppRootView via WindowPopoverCoordinator.
+      case .quickAddSheet:
         content
           .environment(\.popoverAnchorSpaceName, nil)
+          .overlay {
+            PopoverOverlayHost(
+              presenter: presenter,
+              hostBounds: ScreenMetrics.bounds,
+              forcePreferAbove: true
+            )
+            .ignoresSafeArea()
+          }
       }
     }
     .onAppear { PopoverHostRegistry.push(presenter, placement: placement) }

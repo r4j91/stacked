@@ -171,7 +171,6 @@ struct ProjectDetailView: View {
     .task { await store.load() }
     .sheet(isPresented: $showQuickAdd, onDismiss: {
       PopoverPresenter.shared.dismiss()
-      WindowPopoverCoordinator.shared.presenter?.dismiss()
     }) {
       QuickAddTaskView(
         initialProjectId: store.projectId,

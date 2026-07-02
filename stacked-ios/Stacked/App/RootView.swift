@@ -34,7 +34,6 @@ struct RootView: View {
     }
     .sheet(isPresented: $showQuickAdd, onDismiss: {
       PopoverPresenter.shared.dismiss()
-      WindowPopoverCoordinator.shared.presenter?.dismiss()
     }) {
       QuickAddTaskView(
         onSaved: { reloadAll() },

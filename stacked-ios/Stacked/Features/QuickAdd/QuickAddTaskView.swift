@@ -49,9 +49,12 @@ struct QuickAddTaskView: View {
       .reportSheetHeight($sheetHeight)
       .presentationDetents([.height(sheetHeight)])
       .presentationDragIndicator(.visible)
-      .presentationBackground(panelSurface)
-      // SUBSTITUIDO_FASE8A: presenter escopado; overlay na janela (placement .window).
-      .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .window)
+      .presentationBackground {
+        panelSurface.ignoresSafeArea(edges: .bottom)
+      }
+      .presentationBackgroundInteraction(.enabled(upThrough: .height(sheetHeight)))
+      // SUBSTITUIDO_FASE8A: overlay local no sheet (coords de tela via ScreenBoundsReader).
+      .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .quickAddSheet)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
       }
@@ -78,7 +81,7 @@ struct QuickAddTaskView: View {
   //   .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { titleFocused = true } }
   // }
 
-  // SUBSTITUIDO_FASE8B: painel compacto Todoist — título sem caixa, descrição oculta, ActionRow única.
+  // SUBSTITUIDO_FASE8B: layout Todoist — projeto primeiro, ícones planos, painel colado no teclado.
   private var sheetContent: some View {
     let c = theme.colors
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -91,7 +94,8 @@ struct QuickAddTaskView: View {
         .focused($titleFocused)
         .submitLabel(.done)
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .onSubmit {
           if hasTitle { _Concurrency.Task { await save() } }
         }
@@ -100,7 +104,9 @@ struct QuickAddTaskView: View {
         .frame(height: 1)
         .overlay(hairlineColor)
 
-      HStack(spacing: 8) {
+      HStack(spacing: 6) {
+        projectChip
+
         metadataIconButton(
           icon: .tag,
           active: !selectedLabelIds.isEmpty,
@@ -112,7 +118,6 @@ struct QuickAddTaskView: View {
           active: dueDate != nil,
           activeColor: datePillColor
         ) { _ in
-          titleFocused = false
           showDatePicker = true
         }
 
@@ -128,14 +133,12 @@ struct QuickAddTaskView: View {
           activeColor: c.accent
         ) { _ in }
 
-        projectChip
-
-        Spacer(minLength: 0)
+        Spacer(minLength: 4)
 
         sendButton(hasTitle: hasTitle)
       }
       .padding(.horizontal, 12)
-      .padding(.vertical, 10)
+      .padding(.vertical, 8)
 
       if let error {
         Text(error)
@@ -164,15 +167,13 @@ struct QuickAddTaskView: View {
     action: @escaping (CGRect) -> Void
   ) -> some View {
     let c = theme.colors
-    let bg = active ? activeColor.opacity(0.15) : Color.clear
     let iconColor = active ? activeColor : c.textSecondary
 
     return AnchoredTapButton(action: action) {
-      StackedIcons.icon(icon, size: 18, color: iconColor)
+      StackedIcons.icon(icon, size: 20, color: iconColor)
         .frame(width: iconCircleSize, height: iconCircleSize)
-        .background(bg)
+        .background(active ? activeColor.opacity(0.15) : Color.clear)
         .clipShape(Circle())
-        .overlay(Circle().stroke(hairlineColor, lineWidth: 1))
     }
     .accessibilityLabel(accessibilityLabel(for: icon))
   }
@@ -190,26 +191,23 @@ struct QuickAddTaskView: View {
   private var projectChip: some View {
     let c = theme.colors
     let active = selectedProjectId != nil
-    let dot = projects.first(where: { $0.id == selectedProjectId })?.color ?? c.textPrimary.opacity(0.28)
-    let label = active ? "• \(projectPillLabel)" : "• \(projectPillLabel)"
+    let dot = projects.first(where: { $0.id == selectedProjectId })?.color ?? c.textSecondary
+    let name = projectPillLabel
 
     return AnchoredTapButton { rect in
       showProjectMenu(anchor: rect)
     } label: {
-      HStack(spacing: 5) {
-        if active {
-          Circle().fill(dot).frame(width: 6, height: 6)
-        }
-        Text(label)
-          .font(.system(size: 13, weight: .medium))
+      HStack(spacing: 6) {
+        StackedIcons.icon(.navInbox, size: 16, color: active ? dot : c.textSecondary)
+        Text(name)
+          .font(.system(size: 14, weight: .medium))
           .foregroundStyle(active ? dot : c.textSecondary)
           .lineLimit(1)
       }
       .padding(.horizontal, 12)
       .frame(height: iconCircleSize)
-      .background(active ? dot.opacity(0.12) : Color.clear)
+      .background(c.surfaceVariant.opacity(active ? 0.55 : 0.35))
       .clipShape(Capsule())
-      .overlay(Capsule().stroke(hairlineColor, lineWidth: 1))
     }
     .accessibilityLabel("Projeto")
   }
@@ -249,7 +247,7 @@ struct QuickAddTaskView: View {
 
   private var projectPillLabel: String {
     guard let id = selectedProjectId,
-          let p = projects.first(where: { $0.id == id }) else { return "Inbox" }
+          let p = projects.first(where: { $0.id == id }) else { return "Entrada" }
     if let sid = selectedSectionId,
        let s = sections.first(where: { $0.id == sid }) {
       return "\(p.name) › \(s.name)"
@@ -292,8 +290,7 @@ struct QuickAddTaskView: View {
   }
 
   private func showPriorityMenu(anchor: CGRect) {
-    titleFocused = false
-    presentAnchoredPopover(anchorRect: anchor, items: [
+    presentMetadataPopover(anchor: anchor, items: [
       PopoverMenuItem(id: "high", icon: Hugeicons.flag01, label: "Prioridade 1",
                       selected: priority == .high, iconColor: AppColors.priorityHigh),
       PopoverMenuItem(id: "medium", icon: Hugeicons.flag01, label: "Prioridade 2",
@@ -302,7 +299,7 @@ struct QuickAddTaskView: View {
                       selected: priority == .low, iconColor: AppColors.priorityLow),
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
                       selected: priority == nil, iconColor: Color(hex: 0x6B6E76)),
-    ], preferAbove: true) { result in
+    ]) { result in
       guard let result else { return }
       switch result {
       case "high": priority = .high
@@ -315,7 +312,6 @@ struct QuickAddTaskView: View {
   }
 
   private func showLabelsMenu(anchor: CGRect) {
-    titleFocused = false
     let items = labels.map { label in
       PopoverMenuItem(
         id: label.id,
@@ -325,7 +321,7 @@ struct QuickAddTaskView: View {
         iconColor: label.color
       )
     }
-    presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true, preferAbove: true) { result in
+    presentMetadataPopover(anchor: anchor, items: items, allowsToggle: true) { result in
       guard let result else { return }
       if selectedLabelIds.contains(result) {
         selectedLabelIds.remove(result)
@@ -336,7 +332,6 @@ struct QuickAddTaskView: View {
   }
 
   private func showProjectMenu(anchor: CGRect) {
-    titleFocused = false
     var items: [PopoverMenuItem] = [
       PopoverMenuItem(id: "inbox", icon: Hugeicons.inbox, label: "Inbox",
                       selected: selectedProjectId == nil),
@@ -362,7 +357,7 @@ struct QuickAddTaskView: View {
         }
       ))
     }
-    presentAnchoredPopover(anchorRect: anchor, items: items, preferAbove: true) { result in
+    presentMetadataPopover(anchor: anchor, items: items) { result in
       guard let result else { return }
       if result == "inbox" {
         selectedProjectId = nil
@@ -385,6 +380,25 @@ struct QuickAddTaskView: View {
         selectedProjectId = parts.first
         selectedSectionId = parts.count > 1 && !parts[1].isEmpty ? parts[1] : nil
       }
+    }
+  }
+
+  private func presentMetadataPopover(
+    anchor: CGRect,
+    items: [PopoverMenuItem],
+    allowsToggle: Bool = false,
+    onSelect: @escaping (String?) -> Void
+  ) {
+    titleFocused = false
+    let rect = anchor
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+      presentAnchoredPopover(
+        anchorRect: rect,
+        items: items,
+        allowsToggle: allowsToggle,
+        preferAbove: true,
+        onSelect: onSelect
+      )
     }
   }
 
