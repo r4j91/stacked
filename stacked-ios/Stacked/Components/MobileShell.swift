@@ -56,9 +56,10 @@ struct MobileShell<Content: View>: View {
               selectedTab = tab
             }
             .padding(.horizontal, AppLayout.fabSideMargin)
-            .padding(.bottom, pillBottom)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .frame(maxWidth: .infinity)
           }
+          .padding(.bottom, pillBottom)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           .zIndex(20)
         }
 

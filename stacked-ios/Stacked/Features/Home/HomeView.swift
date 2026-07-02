@@ -120,6 +120,13 @@ struct HomeView: View {
       Section {
         ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
       }
+    } else if let err = store.error {
+      Section {
+        LoadErrorView(message: err) {
+          _Concurrency.Task { await store.load() }
+        }
+        .listRowBackground(Color.clear)
+      }
     } else if store.overdueCount > 0 {
       Section {
         Button { onNavigateToTab(.today) } label: {

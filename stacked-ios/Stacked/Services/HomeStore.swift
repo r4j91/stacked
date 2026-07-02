@@ -71,6 +71,7 @@ final class HomeStore {
     isLoading = projects.isEmpty
     error = nil
     guard let userId = SupabaseService.client.auth.currentUser?.id else {
+      error = "Sessão inválida. Faça login novamente."
       isLoading = false
       return
     }

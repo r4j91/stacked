@@ -26,7 +26,9 @@ final class AuthManager {
     }
   }
 
-  var isAuthenticated: Bool { session != nil }
+  var isAuthenticated: Bool {
+    session != nil && SupabaseService.client.auth.currentUser != nil
+  }
 
   func signIn(email: String, password: String) async throws {
     lastError = nil
