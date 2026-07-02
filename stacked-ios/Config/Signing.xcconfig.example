@@ -1,0 +1,6 @@
+// Copie para Config/Signing.xcconfig (não vai pro git).
+// Sobrevive a `xcodegen generate` — evita perder o Team no Xcode.
+//
+// Team ID: developer.apple.com/account → Membership
+
+DEVELOPMENT_TEAM = J78S366J85
