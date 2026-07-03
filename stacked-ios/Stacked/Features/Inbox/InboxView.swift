@@ -145,7 +145,6 @@ struct InboxView: View {
     )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
-        HapticService.success()
         store.completeInbox(task)
       } label: {
         Label("Concluir", systemImage: "checkmark")

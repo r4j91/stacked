@@ -380,7 +380,6 @@ struct FiltersView: View {
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       if !task.done {
         Button {
-          HapticService.success()
           store.complete(task)
         } label: {
           Label("Concluir", systemImage: "checkmark")

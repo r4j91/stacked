@@ -107,7 +107,7 @@ struct TaskRow: View {
 
     if let onTap {
       // SUBSTITUIDO_FASE3C: Button bloqueava onLongPressGesture do taskContextMenu.
-      content.onTapGesture(perform: onTap)
+      content.pressableTapArea(action: onTap)
     } else {
       content
     }

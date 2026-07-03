@@ -289,7 +289,6 @@ struct ProjectDetailView: View {
     )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
-        HapticService.success()
         store.complete(task)
       } label: {
         Label("Concluir", systemImage: "checkmark")

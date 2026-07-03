@@ -56,9 +56,7 @@ struct QuickAddTaskView: View {
       }
       .onChange(of: showDatePicker) { _, isShowing in
         guard !isShowing else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-          titleFocused = true
-        }
+        DispatchQueue.main.async { titleFocused = true }
       }
       .task { await loadPickers() }
       .stackedTaskDatePickerSheet(

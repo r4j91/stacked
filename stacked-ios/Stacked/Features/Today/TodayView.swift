@@ -159,7 +159,6 @@ struct TodayView: View {
     )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
-        HapticService.success()
         store.completeToday(task)
       } label: {
         Label("Concluir", systemImage: "checkmark")
