@@ -18,10 +18,10 @@ struct AppearanceView: View {
             themeSwatch(themeId.colors)
             VStack(alignment: .leading, spacing: 3) {
               Text(themeId.displayName)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppTypography.settingsTitle)
                 .foregroundStyle(c.textPrimary)
               Text(themeId.subtitle)
-                .font(.system(size: 13))
+                .font(AppTypography.taskPreview)
                 .foregroundStyle(c.textSecondary)
             }
             Spacer()

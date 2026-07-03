@@ -12,8 +12,7 @@ struct LabelsManagementView: View {
   var body: some View {
     let c = theme.colors
 
-    NavigationStack {
-      Group {
+    Group {
         if loading {
           ProgressView().tint(c.accent)
         } else if labels.isEmpty {
@@ -26,7 +25,7 @@ struct LabelsManagementView: View {
                   .font(.system(size: 18))
                   .foregroundStyle(label.color)
                 Text(label.name)
-                  .font(.system(size: 14))
+                  .font(AppTypography.body)
                   .foregroundStyle(c.textPrimary)
                 Spacer()
                 Button {
@@ -77,7 +76,6 @@ struct LabelsManagementView: View {
           .environment(theme)
         }
       }
-    }
   }
 
   private func openEditor(_ label: TaskLabel?) {
@@ -147,7 +145,7 @@ private struct LabelEditorSheet: View {
           Image(systemName: "tag.fill")
             .foregroundStyle(AppColors.parseHex(selectedHex))
           Text(name.isEmpty ? "Nova etiqueta" : name)
-            .font(.system(size: 17, weight: .bold))
+            .font(AppTypography.profileName)
             .foregroundStyle(AppColors.parseHex(selectedHex))
         }
 
@@ -158,7 +156,7 @@ private struct LabelEditorSheet: View {
           .clipShape(RoundedRectangle(cornerRadius: 10))
 
         Text("Cor")
-          .font(.system(size: 12, weight: .semibold))
+          .font(AppTypography.sectionLabel)
           .foregroundStyle(c.textTertiary)
 
         LazyVGrid(columns: columns, spacing: 10) {

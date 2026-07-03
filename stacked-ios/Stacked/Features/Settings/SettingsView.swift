@@ -87,7 +87,7 @@ struct SettingsView: View {
       }
       VStack(alignment: .leading, spacing: 4) {
         Text(name.isEmpty ? "Conta" : name)
-          .font(.system(size: 17, weight: .semibold)).foregroundStyle(c.textPrimary)
+          .font(AppTypography.profileName).foregroundStyle(c.textPrimary)
         if !email.isEmpty {
           Text(email).font(AppTypography.taskPreview).foregroundStyle(c.textSecondary)
         }
@@ -106,8 +106,8 @@ struct SettingsView: View {
     return HStack(spacing: 12) {
       StackedIcons.image(icon).font(.system(size: 16)).foregroundStyle(c.textSecondary).frame(width: 24)
       VStack(alignment: .leading, spacing: 2) {
-        Text(label).foregroundStyle(c.textPrimary)
-        Text(subtitle).font(.caption).foregroundStyle(c.textTertiary)
+        Text(label).font(AppTypography.settingsTitle).foregroundStyle(c.textPrimary)
+        Text(subtitle).font(AppTypography.metaSmall).foregroundStyle(c.textTertiary)
       }
       Spacer()
     }

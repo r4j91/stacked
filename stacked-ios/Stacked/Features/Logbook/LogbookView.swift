@@ -20,48 +20,46 @@ struct LogbookView: View {
     let grouped = groupedTasks
     let keys = grouped.keys
 
-    NavigationStack {
-      Group {
-        if loading {
-          ProgressView().tint(c.accent)
-        } else if tasks.isEmpty {
-          EmptyStateView(icon: .logbook, title: "Nenhuma tarefa concluída", subtitle: "As tarefas concluídas aparecerão aqui")
-        } else {
-          List {
-            ForEach(keys, id: \.self) { key in
-              Section {
-                ForEach(grouped.groups[key] ?? []) { task in
-                  logbookTaskRow(task)
-                }
-              } header: {
-                SectionLabel(text: key)
+    Group {
+      if loading {
+        ProgressView().tint(c.accent)
+      } else if tasks.isEmpty {
+        EmptyStateView(icon: .logbook, title: "Nenhuma tarefa concluída", subtitle: "As tarefas concluídas aparecerão aqui")
+      } else {
+        List {
+          ForEach(keys, id: \.self) { key in
+            Section {
+              ForEach(grouped.groups[key] ?? []) { task in
+                logbookTaskRow(task)
               }
+            } header: {
+              SectionLabel(text: key)
             }
           }
-          .listStyle(.plain)
-          .scrollContentBackground(.hidden)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(c.background)
-      .navigationTitle("Registro")
-      .navigationBarTitleDisplayMode(.large)
-      .refreshable { await load() }
-      .task { await load() }
-      .fullScreenCover(item: $detailRoute) { route in
-        TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-          TaskDetailView(taskId: route.taskId) {
-            _Concurrency.Task { await load() }
-          }
-          .environment(ThemeManager.shared)
-        }
-      }
-      .sheet(item: $subtaskDetailRoute) { route in
-        SubtaskDetailView(subtask: route.subtask) {
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(c.background)
+    .navigationTitle("Registro")
+    .navigationBarTitleDisplayMode(.large)
+    .refreshable { await load() }
+    .task { await load() }
+    .fullScreenCover(item: $detailRoute) { route in
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId) {
           _Concurrency.Task { await load() }
         }
         .environment(ThemeManager.shared)
       }
+    }
+    .sheet(item: $subtaskDetailRoute) { route in
+      SubtaskDetailView(subtask: route.subtask) {
+        _Concurrency.Task { await load() }
+      }
+      .environment(ThemeManager.shared)
     }
   }
 

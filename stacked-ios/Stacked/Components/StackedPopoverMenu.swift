@@ -141,7 +141,7 @@ struct StackedPopoverOverlay: View {
             }
             .buttonStyle(.plain)
             Text(currentPage.title ?? "")
-              .font(.system(size: 13, weight: .semibold))
+              .font(AppTypography.sectionLabel)
               .foregroundStyle(c.textSecondary)
               .lineLimit(1)
             Spacer()
@@ -165,7 +165,8 @@ struct StackedPopoverOverlay: View {
                   .foregroundStyle(item.iconColor ?? (item.destructive ? AppColors.priorityHigh : c.textSecondary))
                   .frame(width: 20)
                 Text(item.label)
-                  .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                  .font(AppTypography.popoverRowLabel)
+                  .fontWeight(isSelected ? .semibold : .regular)
                   .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
                 Spacer()
                 if item.hasArrow {

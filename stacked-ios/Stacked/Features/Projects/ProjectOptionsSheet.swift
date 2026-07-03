@@ -80,7 +80,7 @@ struct ProjectOptionsSheet: View {
         .buttonStyle(.plain)
       }
       Text(pageTitle)
-        .font(.system(size: 16, weight: .bold))
+        .font(AppTypography.sheetPageTitle)
         .foregroundStyle(c.textPrimary)
         .lineLimit(1)
       Spacer()
@@ -116,8 +116,8 @@ struct ProjectOptionsSheet: View {
                 .foregroundStyle(c.textSecondary)
             }
           VStack(alignment: .leading, spacing: 4) {
-            Text(displayName).font(.system(size: 15, weight: .semibold)).foregroundStyle(c.textPrimary)
-            Text("Toque abaixo para editar").font(.system(size: 12)).foregroundStyle(c.textTertiary)
+            Text(displayName).font(AppTypography.bodySemibold).foregroundStyle(c.textPrimary)
+            Text("Toque abaixo para editar").font(AppTypography.meta).foregroundStyle(c.textTertiary)
           }
           Spacer()
         }
@@ -152,7 +152,7 @@ struct ProjectOptionsSheet: View {
             Text("Excluir projeto")
             Spacer()
           }
-          .font(.system(size: 15))
+          .font(AppTypography.popoverRowLabel)
           .padding(.horizontal, 20)
           .padding(.vertical, 14)
         }
@@ -166,13 +166,14 @@ struct ProjectOptionsSheet: View {
     return VStack(spacing: 16) {
       TextField("Nome do projeto", text: $name)
         .textFieldStyle(.plain)
+        .font(AppTypography.fieldInput)
         .padding(14)
         .background(c.surfaceVariant)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 20)
         .padding(.top, 12)
       Button("Salvar") { _Concurrency.Task { await persist(dismissToMenu: true) } }
-        .font(.system(size: 15, weight: .semibold))
+        .font(AppTypography.bodySemibold)
         .foregroundStyle(c.accent)
       Spacer()
     }
@@ -247,10 +248,10 @@ struct ProjectOptionsSheet: View {
     return Button(action: action) {
       HStack(spacing: 12) {
         StackedIcons.image(icon).font(.system(size: 18)).foregroundStyle(c.textSecondary).frame(width: 20)
-        Text(label).font(.system(size: 15)).foregroundStyle(c.textPrimary)
+        Text(label).font(AppTypography.popoverRowLabel).foregroundStyle(c.textPrimary)
         Spacer()
         if let value {
-          Text(value).font(.system(size: 14)).foregroundStyle(c.textTertiary).lineLimit(1)
+          Text(value).font(AppTypography.body).foregroundStyle(c.textTertiary).lineLimit(1)
         }
         trailing()
         StackedIcons.image(.chevronRight).font(.system(size: 11, weight: .semibold)).foregroundStyle(c.textTertiary)

@@ -35,6 +35,15 @@ enum LiquidGlass {
       shape: RoundedRectangle(cornerRadius: cornerRadius),
       content: content
     )
+    .overlay {
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
+    }
+    .shadow(
+      color: .black.opacity(PopoverStyle.cardShadowOpacity),
+      radius: PopoverStyle.cardShadowRadius,
+      y: PopoverStyle.cardShadowY
+    )
   }
 
   @ViewBuilder

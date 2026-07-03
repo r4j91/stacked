@@ -19,8 +19,7 @@ struct ProfileEditView: View {
     let c = theme.colors
     let email = client.auth.currentUser?.email ?? ""
 
-    NavigationStack {
-      Group {
+    Group {
         if loading {
           ProgressView().tint(c.accent)
         } else {
@@ -36,11 +35,11 @@ struct ProfileEditView: View {
               profileField(label: "Apelido", text: $apelido, placeholder: "Como quer ser chamado")
               HStack {
                 Text("E-mail")
-                  .font(.system(size: 13.5))
+                  .font(AppTypography.fieldLabel)
                   .foregroundStyle(c.textSecondary)
                   .frame(width: 110, alignment: .leading)
                 Text(email)
-                  .font(.system(size: 13.5))
+                  .font(AppTypography.fieldInput)
                   .foregroundStyle(c.textTertiary)
                   .lineLimit(1)
               }
@@ -70,7 +69,6 @@ struct ProfileEditView: View {
       } message: {
         Text(errorMessage)
       }
-    }
   }
 
   private func profileAvatar(email: String) -> some View {
@@ -105,11 +103,11 @@ struct ProfileEditView: View {
     let c = theme.colors
     return HStack {
       Text(label)
-        .font(.system(size: 13.5))
+        .font(AppTypography.fieldLabel)
         .foregroundStyle(c.textSecondary)
         .frame(width: 110, alignment: .leading)
       TextField(placeholder, text: text)
-        .font(.system(size: 13.5))
+        .font(AppTypography.fieldInput)
         .foregroundStyle(c.textPrimary)
     }
     .padding(.vertical, 4)

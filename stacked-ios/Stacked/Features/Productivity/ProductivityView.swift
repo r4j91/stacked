@@ -27,7 +27,7 @@ struct ProductivityView: View {
 
       HStack {
         Text("Relatório")
-          .font(.system(size: 20, weight: .heavy))
+          .font(AppTypography.sheetTitle)
           .foregroundStyle(c.textPrimary)
         Spacer()
         ModalChrome.closeTextButton(dismiss: dismiss, accent: c.accent)
@@ -76,10 +76,10 @@ struct ProductivityView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(name.isEmpty ? "Conta" : name)
-          .font(.system(size: 16, weight: .bold))
+          .font(AppTypography.bodySemibold)
           .foregroundStyle(c.textPrimary)
         Text("\(totalCompleted) tarefas concluídas")
-          .font(.system(size: 12.5))
+          .font(AppTypography.screenSubtitle)
           .foregroundStyle(c.textTertiary)
       }
       Spacer()
@@ -107,7 +107,8 @@ struct ProductivityView: View {
           AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { tab = i }
         } label: {
           Text(tabs[i])
-            .font(.system(size: 13, weight: active ? .semibold : .regular))
+            .font(AppTypography.meta)
+            .fontWeight(active ? .semibold : .regular)
             .foregroundStyle(active ? c.textPrimary : c.textTertiary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -142,21 +143,21 @@ struct ProductivityView: View {
             .font(.system(size: 18))
             .foregroundStyle(theme.colors.accent)
           Text("Concluídas hoje")
-            .font(.system(size: 13.5, weight: .semibold))
+            .font(AppTypography.cardHeading)
             .foregroundStyle(theme.colors.textPrimary)
         }
         Text("\(todayCount)")
-          .font(.system(size: 36, weight: .heavy))
+          .font(AppTypography.metricHero)
           .foregroundStyle(theme.colors.textPrimary)
           .padding(.top, 12)
         Text(todayCount == 1 ? "tarefa" : "tarefas")
-          .font(.system(size: 12.5))
+          .font(AppTypography.screenSubtitle)
           .foregroundStyle(theme.colors.textTertiary)
       }
 
       productivityCard {
         Text("Últimos 7 dias")
-          .font(.system(size: 13.5, weight: .semibold))
+          .font(AppTypography.cardHeading)
           .foregroundStyle(theme.colors.textPrimary)
         HorizontalBarChart(
           values: last7Days,
@@ -183,23 +184,23 @@ struct ProductivityView: View {
       HStack(spacing: 10) {
         productivityCard {
           Text("Esta semana")
-            .font(.system(size: 12))
+            .font(AppTypography.meta)
             .foregroundStyle(theme.colors.textTertiary)
           Text("\(thisWeekTotal)")
-            .font(.system(size: 32, weight: .heavy))
+            .font(AppTypography.metricHeroCompact)
             .foregroundStyle(theme.colors.textPrimary)
             .padding(.top, 6)
           Text("tarefas")
-            .font(.system(size: 11.5))
+            .font(AppTypography.metaSmall)
             .foregroundStyle(theme.colors.textTertiary)
         }
 
         productivityCard {
           Text("Semana anterior")
-            .font(.system(size: 12))
+            .font(AppTypography.meta)
             .foregroundStyle(theme.colors.textTertiary)
           Text("\(lastWeekTotal)")
-            .font(.system(size: 32, weight: .heavy))
+            .font(AppTypography.metricHeroCompact)
             .foregroundStyle(theme.colors.textPrimary)
             .padding(.top, 6)
           if let diff {
@@ -208,12 +209,13 @@ struct ProductivityView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(diff >= 0 ? theme.colors.textSecondary : theme.colors.textTertiary)
               Text("\(abs(diff))%")
-                .font(.system(size: 11.5, weight: .semibold))
+                .font(AppTypography.metaSmall)
+                .fontWeight(.semibold)
                 .foregroundStyle(diff >= 0 ? theme.colors.textSecondary : theme.colors.textTertiary)
             }
           } else {
             Text("—")
-              .font(.system(size: 11.5))
+              .font(AppTypography.metaSmall)
               .foregroundStyle(theme.colors.textTertiary)
           }
         }
@@ -221,7 +223,7 @@ struct ProductivityView: View {
 
       productivityCard {
         Text("Por dia da semana")
-          .font(.system(size: 13.5, weight: .semibold))
+          .font(AppTypography.cardHeading)
           .foregroundStyle(theme.colors.textPrimary)
         HorizontalBarChart(
           values: weekByDay,
@@ -364,7 +366,7 @@ private struct HorizontalBarChart: View {
         let ratio = maxValue > 0 ? CGFloat(val) / CGFloat(maxValue) : 0
         HStack(spacing: 8) {
           Text(usedLabels[i])
-            .font(.system(size: 11.5))
+            .font(AppTypography.metaSmall)
             .foregroundStyle(textTertiary)
             .frame(width: 32, alignment: .leading)
 
@@ -387,7 +389,8 @@ private struct HorizontalBarChart: View {
           .frame(height: 20)
 
           Text("\(val)")
-            .font(.system(size: 11.5, weight: .semibold))
+            .font(AppTypography.metaSmall)
+            .fontWeight(.semibold)
             .foregroundStyle(val > 0 ? textSecondary : textTertiary)
             .frame(width: 24, alignment: .trailing)
         }

@@ -68,7 +68,7 @@ struct NotificationsSettingsView: View {
 
             Section {
               Text("Você recebe um alerta na hora definida na tarefa. Tarefas só com data, sem hora, não disparam notificação.")
-                .font(.system(size: 13))
+                .font(AppTypography.taskPreview)
                 .foregroundStyle(c.textTertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -95,11 +95,11 @@ struct NotificationsSettingsView: View {
         .frame(width: 24)
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
-          .font(.system(size: 15, weight: .medium))
+          .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
         if let subtitle {
           Text(subtitle)
-            .font(.system(size: 12))
+            .font(AppTypography.meta)
             .foregroundStyle(c.textTertiary)
         }
       }
