@@ -206,6 +206,19 @@ struct UpcomingView: View {
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { store.complete(task) },
+      onDuplicate: {
+        _Concurrency.Task {
+          _ = try? await TaskRepository.shared.duplicateTask(task)
+          await store.load()
+        }
+      },
+      onDelete: { store.delete(task) },
+      onRefresh: { _Concurrency.Task { await store.load() } }
+    )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
         HapticService.success()

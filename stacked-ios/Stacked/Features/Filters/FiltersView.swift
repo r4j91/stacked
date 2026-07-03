@@ -370,6 +370,29 @@ struct FiltersView: View {
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { store.complete(task) },
+      onDuplicate: {
+        _Concurrency.Task {
+          _ = try? await TaskRepository.shared.duplicateTask(task)
+          if case .filter(let kind) = store.mode {
+            await store.openFilter(kind)
+          }
+          await store.loadDashboard()
+        }
+      },
+      onDelete: { store.delete(task) },
+      onRefresh: {
+        _Concurrency.Task {
+          if case .filter(let kind) = store.mode {
+            await store.openFilter(kind)
+          }
+          await store.loadDashboard()
+        }
+      }
+    )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       if !task.done {
         Button {

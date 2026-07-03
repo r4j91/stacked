@@ -69,21 +69,7 @@ struct TaskRow: View {
     let expandReserve: CGFloat = task.hasSubtasks ? 40 : 0
 
     return ZStack(alignment: .topLeading) {
-      Button(action: { onTap?() }) {
-        HStack(alignment: .top, spacing: 0) {
-          Color.clear.frame(width: 46)
-          rowTextContent
-            .padding(.vertical, 10)
-            .padding(.trailing, task.hasSubtasks ? 4 : 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-          if task.hasSubtasks {
-            Color.clear.frame(width: expandReserve)
-          }
-        }
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(PressableStyle(cornerRadius: style == .card ? 12 : nil))
-      .disabled(onTap == nil)
+      taskContentTapArea(expandReserve: expandReserve)
 
       HStack(alignment: .top, spacing: 0) {
         // SUBSTITUIDO_FASE3C: onTapGesture na VStack de conteúdo
@@ -103,6 +89,28 @@ struct TaskRow: View {
       }
     }
     .frame(minHeight: AppLayout.taskRowHeight)
+  }
+
+  @ViewBuilder
+  private func taskContentTapArea(expandReserve: CGFloat) -> some View {
+    let content = HStack(alignment: .top, spacing: 0) {
+      Color.clear.frame(width: 46)
+      rowTextContent
+        .padding(.vertical, 10)
+        .padding(.trailing, task.hasSubtasks ? 4 : 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      if task.hasSubtasks {
+        Color.clear.frame(width: expandReserve)
+      }
+    }
+    .contentShape(Rectangle())
+
+    if let onTap {
+      // SUBSTITUIDO_FASE3C: Button bloqueava onLongPressGesture do taskContextMenu.
+      content.onTapGesture(perform: onTap)
+    } else {
+      content
+    }
   }
 
   @ViewBuilder

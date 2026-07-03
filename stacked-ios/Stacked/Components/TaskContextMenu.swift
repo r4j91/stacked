@@ -33,7 +33,11 @@ struct TaskContextMenu: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .readAnchor($anchorFrame)
+      .overlay {
+        ScreenBoundsReader(rect: $anchorFrame)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .allowsHitTesting(false)
+      }
       .scaleEffect(liftScale)
       .offset(y: liftOffset)
       .shadow(
@@ -69,9 +73,12 @@ struct TaskContextMenu: ViewModifier {
     AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
       liftPhase = .menuOpen
     }
-    PopoverHostRegistry.active.present(
-      anchor: CGPoint(x: anchorFrame.midX, y: anchorFrame.midY),
-      items: menuItems
+    let screenH = ScreenMetrics.bounds.height
+    let preferAbove = anchorFrame.midY > screenH * 0.55
+    presentAnchoredPopover(
+      anchorRect: anchorFrame,
+      items: menuItems,
+      preferAbove: preferAbove
     ) { result in
       AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
         liftPhase = .normal
@@ -124,6 +131,7 @@ struct TaskContextMenu: ViewModifier {
         icon: Hugeicons.folder01,
         label: project.name,
         hasArrow: true,
+        iconColor: project.color,
         loadChildren: {
           let sections = (try? await SectionRepository.shared.fetchSections(projectId: project.id)) ?? []
           guard !sections.isEmpty else { return nil }
