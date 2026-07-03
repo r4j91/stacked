@@ -35,6 +35,7 @@ struct MobileShell<Content: View>: View {
       content()
         .id(tab)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
 
       GeometryReader { geo in
         let safeBottom = ChromeLayout.resolvedSafeBottom(geo)
@@ -76,7 +77,7 @@ struct MobileShell<Content: View>: View {
     }
     .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: chrome.fabOpen)
     .ignoresSafeArea(edges: .bottom)
-    .background(c.background.ignoresSafeArea())
+    .background(c.background.ignoresSafeArea(.all))
   }
 }
 

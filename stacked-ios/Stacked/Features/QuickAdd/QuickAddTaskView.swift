@@ -25,22 +25,14 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var sheetHeight: CGFloat = 105
 
   private let iconCircleSize: CGFloat = 44
   private let metadataIconSize: CGFloat = 23
   private let sendCircleSize: CGFloat = 44
-  private let actionRowTopInset: CGFloat = 6
-  private let actionRowBottomInset: CGFloat = 2
-  /// Altura fixa do bloco (evita GeometryReader inflar o detent dentro do .sheet).
-  private var quickAddBlockHeight: CGFloat {
-    let grabber: CGFloat = 6 + 4 + 18 // top 6 + capsule 4 + bottom 18 (espaço até título)
-    let titleBlock: CGFloat = 22 + 6
-    let divider: CGFloat = 1
-    let actionRow: CGFloat = actionRowTopInset + iconCircleSize + actionRowBottomInset
-    let errorBlock: CGFloat = error == nil ? 0 : 22
-    return grabber + titleBlock + divider + actionRow + errorBlock
-  }
+  private let capsuleRadius: CGFloat = 22
+  private let actionRowTopInset: CGFloat = 10
+  private let actionRowBottomInset: CGFloat = 10
+  private let actionRowHorizontalInset: CGFloat = 14
 
   init(
     initialProjectId: String? = nil,
@@ -57,21 +49,16 @@ struct QuickAddTaskView: View {
   var body: some View {
     sheetContent
       .frame(maxWidth: .infinity)
-      .background(panelSurface)
-      .onChange(of: quickAddBlockHeight) { _, h in
-        sheetHeight = h
-      }
-      .onAppear {
-        sheetHeight = quickAddBlockHeight
-      }
-      .presentationDetents([.height(sheetHeight)])
-      .presentationDragIndicator(.hidden)
-      .presentationBackground { panelSurface }
-      .presentationBackgroundInteraction(.enabled(upThrough: .height(sheetHeight)))
-      // SUBSTITUIDO_FASE8A: overlay local + coordinate space do sheet (âncora acima de cada botão).
+      .background(panelSurface, in: RoundedRectangle(cornerRadius: capsuleRadius, style: .continuous))
       .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .quickAddSheet)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
+      }
+      .onChange(of: showDatePicker) { _, isShowing in
+        guard !isShowing else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+          titleFocused = true
+        }
       }
       .task { await loadPickers() }
       .stackedTaskDatePickerSheet(
@@ -159,7 +146,7 @@ struct QuickAddTaskView: View {
 
         sendButton(hasTitle: hasTitle)
       }
-      .padding(.horizontal, 12)
+      .padding(.horizontal, actionRowHorizontalInset)
       .padding(.top, actionRowTopInset)
       .padding(.bottom, actionRowBottomInset)
 

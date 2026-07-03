@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Popover acima do `.sheet` nativo — overlay em UIWindow separada (nível alert).
+/// Popover acima do Quick Add — janela separada só enquanto um menu está aberto.
 @MainActor
 final class WindowPopoverOverlayManager {
   static let shared = WindowPopoverOverlayManager()
@@ -13,8 +13,7 @@ final class WindowPopoverOverlayManager {
 
   func attach(presenter: PopoverPresenter) {
     attachedPresenter = presenter
-    ensureWindow()
-    refreshRootView()
+    syncWindowVisibility()
   }
 
   func detach() {
@@ -23,7 +22,15 @@ final class WindowPopoverOverlayManager {
   }
 
   func refreshIfNeeded() {
-    guard attachedPresenter != nil else { return }
+    syncWindowVisibility()
+  }
+
+  private func syncWindowVisibility() {
+    guard let presenter = attachedPresenter, presenter.isPresented else {
+      hideWindow()
+      return
+    }
+    ensureWindow()
     refreshRootView()
   }
 
@@ -39,6 +46,7 @@ final class WindowPopoverOverlayManager {
     let window = PopoverPassthroughWindow(windowScene: scene)
     window.windowLevel = .alert + 1
     window.backgroundColor = .clear
+    window.isOpaque = false
     window.isHidden = false
     overlayWindow = window
   }
@@ -50,7 +58,7 @@ final class WindowPopoverOverlayManager {
   }
 
   private func refreshRootView() {
-    guard let presenter = attachedPresenter else {
+    guard let presenter = attachedPresenter, presenter.isPresented else {
       hideWindow()
       return
     }
@@ -58,6 +66,8 @@ final class WindowPopoverOverlayManager {
     ensureWindow()
     guard let window = overlayWindow else { return }
 
+    window.backgroundColor = .clear
+    window.isOpaque = false
     window.presenterIsActive = { [weak presenter] in
       presenter?.isPresented ?? false
     }
@@ -73,9 +83,11 @@ final class WindowPopoverOverlayManager {
 
     if let host = window.rootViewController as? UIHostingController<AnyView> {
       host.rootView = AnyView(root)
+      host.view.backgroundColor = .clear
     } else {
       let host = UIHostingController(rootView: AnyView(root))
       host.view.backgroundColor = .clear
+      host.view.isOpaque = false
       window.rootViewController = host
     }
   }

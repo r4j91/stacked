@@ -14,15 +14,21 @@ private struct AppRootView: View {
   @Bindable private var popover = PopoverPresenter.shared
 
   var body: some View {
-    AuthGateView()
-      .environment(themeManager)
-      .preferredColorScheme(themeManager.colors.isDark ? .dark : .light)
-      .overlay {
-        if popover.isPresented {
-          PopoverOverlayHost()
+    ZStack {
+      themeManager.colors.background
+        .ignoresSafeArea(.all)
+
+      AuthGateView()
+        .environment(themeManager)
+        .preferredColorScheme(themeManager.colors.isDark ? .dark : .light)
+        .overlay {
+          if popover.isPresented {
+            PopoverOverlayHost()
+          }
         }
-      }
-      .onAppear { HapticService.prepare() }
-      .onOpenURL { AppNavigationRouter.shared.handle(url: $0) }
+    }
+    .syncWindowBackground(themeManager.colors.background)
+    .onAppear { HapticService.prepare() }
+    .onOpenURL { AppNavigationRouter.shared.handle(url: $0) }
   }
 }

@@ -32,15 +32,7 @@ struct RootView: View {
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
-    .sheet(isPresented: $showQuickAdd, onDismiss: {
-      PopoverPresenter.shared.dismiss()
-    }) {
-      QuickAddTaskView(
-        onSaved: { reloadAll() },
-        onDismiss: { showQuickAdd = false }
-      )
-      .environment(ThemeManager.shared)
-    }
+    .quickAddFloating(isPresented: $showQuickAdd, onSaved: { reloadAll() })
     .sheet(isPresented: $showNewProject) {
       NewProjectSheetView(onCreated: {
         _Concurrency.Task {
