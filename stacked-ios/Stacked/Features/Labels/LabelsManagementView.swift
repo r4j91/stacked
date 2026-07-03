@@ -189,19 +189,13 @@ private struct LabelEditorSheet: View {
 
         Spacer()
 
-        Button {
-          _Concurrency.Task { await save() }
-        } label: {
-          Text(label.isNew ? "Criar etiqueta" : "Salvar")
-            .font(.system(size: 15, weight: .bold))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(c.accent)
-            .foregroundStyle(c.isDark ? c.background : .white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || saving)
+        PrimaryButton(
+          title: label.isNew ? "Criar etiqueta" : "Salvar",
+          action: { _Concurrency.Task { await save() } },
+          isLoading: saving,
+          isEnabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && !saving,
+          height: 48
+        )
       }
       .padding(20)
       .background(c.background)

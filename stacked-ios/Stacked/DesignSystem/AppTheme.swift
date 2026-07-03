@@ -49,6 +49,8 @@ struct AppThemeColors: Equatable {
     let textSecondary: Color
     let textTertiary: Color
     let accent: Color
+    /// Texto/ícone sobre fundo `accent` — derivado por tema, sem alterar hex da paleta.
+    let onAccent: Color
     let navBar: Color
     let isDark: Bool
 
@@ -61,6 +63,7 @@ struct AppThemeColors: Equatable {
         textSecondary: Color(hex: 0x9296A0),
         textTertiary: Color(hex: 0x6B6E76),
         accent: Color(hex: 0x5FD3DC),
+        onAccent: Color(hex: 0x1A1B1E),
         navBar: Color(hex: 0x242529),
         isDark: true
     )
@@ -73,6 +76,7 @@ struct AppThemeColors: Equatable {
         textSecondary: Color(hex: 0x52596E),
         textTertiary: Color(hex: 0x9097AB),
         accent: Color(hex: 0x3B485B),
+        onAccent: Color(hex: 0xFFFFFF),
         navBar: Color(hex: 0xFFFFFF),
         isDark: false
     )
@@ -85,6 +89,7 @@ struct AppThemeColors: Equatable {
         textSecondary: Color(hex: 0x7070A0),
         textTertiary: Color(hex: 0x4A4A6A),
         accent: Color(hex: 0x6C63FF),
+        onAccent: Color(hex: 0x0A0A0F),
         navBar: Color(hex: 0x0F0F18),
         isDark: true
     )
@@ -97,6 +102,7 @@ struct AppThemeColors: Equatable {
         textSecondary: Color(hex: 0x888888),
         textTertiary: Color(hex: 0x555555),
         accent: Color(hex: 0x00D4D4),
+        onAccent: Color(hex: 0x0D0D0D),
         navBar: Color(hex: 0x111111),
         isDark: true
     )
@@ -109,12 +115,13 @@ struct AppThemeColors: Equatable {
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
         accent: Color(hex: 0xE8E8EC),
+        onAccent: Color(hex: 0x16161A),
         navBar: Color(hex: 0x16161A),
         isDark: true
     )
 }
 
-// MARK: - Theme manager (Fase 1 expandirá persistência)
+// MARK: - Theme manager
 
 @Observable
 final class ThemeManager {
@@ -122,7 +129,8 @@ final class ThemeManager {
 
   private static let storageKey = "stacked_theme_id"
 
-  var currentId: AppThemeId = .graphite {
+  /// Primeiro launch → Slate; quem já escolheu tema mantém a preferência salva.
+  var currentId: AppThemeId = .slate {
     didSet { UserDefaults.standard.set(currentId.rawValue, forKey: Self.storageKey) }
   }
 

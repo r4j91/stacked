@@ -19,7 +19,7 @@ struct ExpandableFAB: View {
     } label: {
       StackedIcons.image(.plus)
         .font(.system(size: 22, weight: .medium))
-        .foregroundStyle(c.isDark ? c.background : Color(hex: 0x1A1B1E))
+        .foregroundStyle(c.onAccent)
         .rotationEffect(.degrees(isOpen ? 45 : 0))
         // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOpen)
         .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: isOpen)

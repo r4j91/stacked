@@ -179,7 +179,7 @@ private struct NavPillItem: View {
         .scaleEffect(bounceScale)
         .animation(AppMotion.navMorph(reduceMotion: reduceMotion), value: selected)
       Text(tab.label)
-        .font(.system(size: NavPillMetrics.labelSize, weight: selected ? .semibold : .regular))
+        .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
         .foregroundStyle(selected ? c.accent : c.textSecondary)
         .lineLimit(1)
         .minimumScaleFactor(0.8)

@@ -1,8 +1,10 @@
 import SwiftUI
+import Hugeicons
 
-// Paridade lib/screens/auth_screen.dart
+// Paridade lib/screens/auth_screen.dart — paleta Slate fixa na entrada do app
 struct AuthView: View {
-  @Environment(ThemeManager.self) private var theme
+  private let c = AppThemeId.slate.colors
+
   @State private var auth = AuthManager.shared
 
   @State private var email = ""
@@ -12,78 +14,94 @@ struct AuthView: View {
   @State private var loading = false
   @State private var error: String?
 
-  var body: some View {
-    let c = theme.colors
+  @FocusState private var focusedField: AuthField?
 
+  private enum AuthField: Hashable {
+    case email, password
+  }
+
+  var body: some View {
     ScrollView {
       VStack(spacing: 0) {
+        AuthBrandMark()
+          .padding(.bottom, 20)
+
         Text("STACKED")
-          .font(.system(size: 40, weight: .heavy))
+          .font(AppTypography.authTitle)
           .foregroundStyle(c.accent)
           .kerning(-1)
-          .padding(.top, 16)
 
         Text(isLogin ? "Bem-vindo de volta" : "Crie sua conta")
-          .font(.system(size: 14))
+          .font(AppTypography.authSubtitle)
           .foregroundStyle(c.textSecondary)
-          .padding(.top, 6)
-          .padding(.bottom, 40)
+          .padding(.top, 8)
+          .padding(.bottom, 32)
 
-        VStack(spacing: 14) {
-          authField("E-mail", text: $email, keyboard: .emailAddress)
-          authField("Senha", text: $password, secure: !obscurePassword, trailing: {
-            Button {
-              obscurePassword.toggle()
-            } label: {
-              Image(systemName: obscurePassword ? "eye" : "eye.slash")
-                .font(.system(size: 16))
-                .foregroundStyle(c.textTertiary)
+        VStack(spacing: 16) {
+          authField(
+            "E-mail",
+            text: $email,
+            field: .email,
+            keyboard: .emailAddress
+          )
+          authField(
+            "Senha",
+            text: $password,
+            field: .password,
+            secure: !obscurePassword,
+            trailing: {
+              Button {
+                obscurePassword.toggle()
+              } label: {
+                StackedIcons.image(obscurePassword ? Hugeicons.eye : Hugeicons.eyeOff)
+                  .frame(width: 20, height: 20)
+                  .foregroundStyle(c.textTertiary)
+              }
+              .buttonStyle(.plain)
             }
-          })
+          )
 
           if let error {
             Text(error)
-              .font(.system(size: 13))
+              .font(AppTypography.meta)
               .foregroundStyle(AppColors.priorityHigh)
               .multilineTextAlignment(.center)
-              .padding(.top, 4)
           }
 
-          Button(action: submit) {
-            Group {
-              if loading {
-                ProgressView()
-                  .tint(c.isDark ? c.background : .white)
-              } else {
-                Text(isLogin ? "Entrar" : "Criar conta")
-                  .font(.system(size: 15, weight: .bold))
-              }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-          }
-          .buttonStyle(.plain)
-          .background(c.accent)
-          .foregroundStyle(c.isDark ? c.background : Color(hex: 0x1A1B1E))
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .disabled(loading)
-          .padding(.top, 10)
+          PrimaryButton(
+            title: isLogin ? "Entrar" : "Criar conta",
+            action: submit,
+            colors: c,
+            isLoading: loading,
+            isEnabled: !loading
+          )
+          .padding(.top, 4)
 
           Button {
             isLogin.toggle()
             error = nil
           } label: {
             Text(isLogin ? "Não tem conta? Criar conta" : "Já tem conta? Entrar")
-              .font(.system(size: 13))
+              .font(AppTypography.authLink)
               .foregroundStyle(c.textSecondary)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 8)
           }
           .buttonStyle(.plain)
-          .padding(.top, 8)
+        }
+        .padding(20)
+        .background(c.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay {
+          RoundedRectangle(cornerRadius: 20)
+            .strokeBorder(c.surfaceVariant.opacity(0.85), lineWidth: 1)
         }
       }
-      .padding(.horizontal, 32)
-      .padding(.bottom, 24)
+      .padding(.horizontal, 24)
+      .padding(.top, 40)
+      .padding(.bottom, 32)
     }
+    .scrollDismissesKeyboard(.interactively)
     .frame(maxWidth: 420)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(c.background.ignoresSafeArea())
@@ -93,36 +111,45 @@ struct AuthView: View {
   private func authField(
     _ label: String,
     text: Binding<String>,
+    field: AuthField,
     keyboard: UIKeyboardType = .default,
     secure: Bool = false,
     @ViewBuilder trailing: () -> some View = { EmptyView() }
   ) -> some View {
-    let c = theme.colors
-  VStack(alignment: .leading, spacing: 6) {
+    let isFocused = focusedField == field
+
+    VStack(alignment: .leading, spacing: 6) {
       Text(label)
-        .font(.system(size: 13))
+        .font(AppTypography.fieldLabel)
         .foregroundStyle(c.textSecondary)
+
       HStack {
         if secure {
           SecureField("", text: text)
+            .focused($focusedField, equals: field)
         } else {
           TextField("", text: text)
+            .focused($focusedField, equals: field)
             .keyboardType(keyboard)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
         }
         trailing()
       }
-      .font(.system(size: 14))
+      .font(AppTypography.fieldInput)
       .foregroundStyle(c.textPrimary)
       .padding(.horizontal, 14)
       .padding(.vertical, 14)
-      .background(c.surface)
-      .overlay(
+      .background(c.surfaceVariant.opacity(0.55))
+      .overlay {
         RoundedRectangle(cornerRadius: 10)
-          .stroke(c.surfaceVariant, lineWidth: 1)
-      )
+          .strokeBorder(
+            isFocused ? c.accent : c.surfaceVariant,
+            lineWidth: isFocused ? 1.5 : 1
+          )
+      }
       .clipShape(RoundedRectangle(cornerRadius: 10))
+      .animation(AppMotion.snappy, value: isFocused)
     }
   }
 
@@ -158,7 +185,34 @@ struct AuthView: View {
   }
 }
 
+// Losangos empilhados — marca sutil em tons Slate
+private struct AuthBrandMark: View {
+  private let c = AppThemeId.slate.colors
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 6)
+        .fill(c.surfaceVariant.opacity(0.5))
+        .frame(width: 36, height: 36)
+        .rotationEffect(.degrees(45))
+        .offset(y: 10)
+
+      RoundedRectangle(cornerRadius: 6)
+        .fill(c.surfaceVariant.opacity(0.75))
+        .frame(width: 36, height: 36)
+        .rotationEffect(.degrees(45))
+        .offset(y: 2)
+
+      RoundedRectangle(cornerRadius: 6)
+        .fill(c.accent.opacity(0.9))
+        .frame(width: 36, height: 36)
+        .rotationEffect(.degrees(45))
+        .offset(y: -6)
+    }
+    .frame(height: 52)
+  }
+}
+
 #Preview {
   AuthView()
-    .environment(ThemeManager.shared)
 }

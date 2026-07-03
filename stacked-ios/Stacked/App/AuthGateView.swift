@@ -21,11 +21,19 @@ struct AuthGateView: View {
     .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: auth.isAuthenticated)
   }
 
+  @ViewBuilder
   private var loadingView: some View {
+    let c = AppThemeId.slate.colors
     ZStack {
-      theme.colors.background.ignoresSafeArea()
-      ProgressView()
-        .tint(theme.colors.accent)
+      c.background.ignoresSafeArea()
+      VStack(spacing: 16) {
+        Text("STACKED")
+          .font(AppTypography.authTitle)
+          .foregroundStyle(c.accent)
+          .kerning(-1)
+        ProgressView()
+          .tint(c.accent)
+      }
     }
   }
 }

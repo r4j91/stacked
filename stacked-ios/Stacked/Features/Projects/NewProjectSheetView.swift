@@ -61,25 +61,15 @@ struct NewProjectSheetView: View {
             Text(error).font(.caption).foregroundStyle(AppColors.priorityHigh)
           }
 
-          Button {
-            _Concurrency.Task { await create() }
-          } label: {
-            Group {
-              if saving {
-                ProgressView().tint(c.isDark ? c.background : .white)
-              } else {
-                Text("Criar projeto")
-                  .font(.system(size: 16, weight: .semibold))
-              }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(canCreate ? c.accent : c.accent.opacity(0.28))
-            .foregroundStyle(canCreate ? (c.isDark ? c.background : .white) : c.textTertiary)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-          }
-          .buttonStyle(.plain)
-          .disabled(!canCreate)
+          PrimaryButton(
+            title: "Criar projeto",
+            action: { _Concurrency.Task { await create() } },
+            isLoading: saving,
+            isEnabled: canCreate,
+            height: 48,
+            cornerRadius: 14,
+            font: .system(size: 16, weight: .semibold)
+          )
         }
         .padding(20)
         .padding(.bottom, 8)
