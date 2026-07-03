@@ -6,6 +6,12 @@ enum LiquidGlass {
   /// Tint leve (~12%) preserva identidade do tema sem matar translucidez.
   static let glassTintOpacity: CGFloat = 0.12
 
+  /// Navbar — shell em glass; blob de seleção é sólido (estilo Todoist, sem halo).
+  static let navTrackTintOpacity: CGFloat = 0.12
+  /// Borda do blob — paridade Flutter/Todoist (~textPrimary 6–8%).
+  static let navSelectionStrokeOpacity: CGFloat = 0.08
+  static let navSelectionStrokeWidth: CGFloat = 0.8
+
   @ViewBuilder
   static func navBarPill<Content: View>(
     navBarColor: Color,

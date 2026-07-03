@@ -30,14 +30,19 @@ enum AppMotion {
     .snappy(duration: 0.24, extraBounce: 0)
   }
 
+  /// Navbar: morph liquid — bounce um pouco maior para a bolha “esticar” na troca.
+  static var navMorphSpring: Animation {
+    .bouncy(duration: 0.42, extraBounce: 0.11)
+  }
+
   /// Popover: entrada/saída — smooth curto (~150ms perceptual).
   static var popoverSpring: Animation {
     .smooth(duration: 0.22)
   }
 
-  /// Navbar: bounce no ícone ao selecionar aba — bouncy contido.
+  /// Navbar: bounce contido no ícone ao selecionar aba.
   static var iconBounceSpring: Animation {
-    .bouncy(duration: 0.28, extraBounce: 0.08)
+    .bouncy(duration: 0.32, extraBounce: 0.06)
   }
 
   /// Feedback de press em linhas de popover.
@@ -67,6 +72,10 @@ enum AppMotion {
 
   static func navIndicator(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : navIndicatorSpring
+  }
+
+  static func navMorph(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : navMorphSpring
   }
 
   static func popover(reduceMotion: Bool) -> Animation? {

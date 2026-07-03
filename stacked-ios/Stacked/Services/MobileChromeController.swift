@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// Estado do dock mobile — UIKit e SwiftUI leem/escrevem a mesma fonte.
 @MainActor
@@ -17,7 +18,9 @@ final class MobileChromeController {
     HapticService.tabChanged()
     PopoverPresenter.shared.dismiss()
     fabOpen = false
-    selectedTab = tab
+    withAnimation(AppMotion.navMorphSpring) {
+      selectedTab = tab
+    }
   }
 
   func toggleFabMenu() {

@@ -30,6 +30,11 @@ enum NavTab: Int, CaseIterable, Identifiable {
     }
   }
 
+  /// Paridade lib/theme/app_icon_size.dart — calendário com padding interno maior no SVG.
+  var navIconSize: CGFloat {
+    self == .today ? 24 : 22
+  }
+
   var subtitle: String? {
     switch self {
     case .home: nil
