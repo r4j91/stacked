@@ -110,6 +110,83 @@ enum ModalChrome {
   }
 }
 
+// MARK: - Settings drill-down (paridade appearance_screen / labels_screen)
+
+enum SettingsChrome {
+  static let horizontalPadding: CGFloat = 16
+  static let cardCornerRadius: CGFloat = 14
+  static let rowPaddingH: CGFloat = 14
+  static let rowPaddingV: CGFloat = 12
+}
+
+struct SettingsSectionHeader: View {
+  @Environment(ThemeManager.self) private var theme
+  let text: String
+
+  var body: some View {
+    Text(text.uppercased())
+      .font(AppTypography.sectionLabel)
+      .foregroundStyle(theme.colors.textTertiary)
+      .tracking(0.6)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.leading, 4)
+  }
+}
+
+struct SettingsCardSurface<Content: View>: View {
+  @Environment(ThemeManager.self) private var theme
+  @ViewBuilder let content: () -> Content
+
+  var body: some View {
+    let c = theme.colors
+    content()
+      .background(c.surface)
+      .clipShape(RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius))
+      .overlay(
+        RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius)
+          .stroke(c.textPrimary.opacity(0.06), lineWidth: 0.5)
+      )
+  }
+}
+
+struct SettingsCardDivider: View {
+  @Environment(ThemeManager.self) private var theme
+  var leadingPadding: CGFloat = 52
+
+  var body: some View {
+    Divider()
+      .overlay(theme.colors.textTertiary.opacity(0.12))
+      .padding(.leading, leadingPadding)
+  }
+}
+
+extension View {
+  /// Lista de drill-down em Configurações — fundo escuro, sem insetGrouped do sistema.
+  func settingsDrillDownList(background: Color) -> some View {
+    self
+      .listStyle(.plain)
+      .scrollContentBackground(.hidden)
+      .background(background)
+  }
+
+  func settingsListCardRow(
+    top: CGFloat = 4,
+    bottom: CGFloat = 4
+  ) -> some View {
+    self
+      .listRowInsets(
+        EdgeInsets(
+          top: top,
+          leading: SettingsChrome.horizontalPadding,
+          bottom: bottom,
+          trailing: SettingsChrome.horizontalPadding
+        )
+      )
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+  }
+}
+
 private struct StackedTabletCenteredModifier: ViewModifier {
   func body(content: Content) -> some View {
     GeometryReader { geo in

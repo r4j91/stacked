@@ -17,53 +17,90 @@ struct SettingsView: View {
           } label: {
             profileCard
           }
-          .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-          .listRowBackground(Color.clear)
-        }
-
-        Section("Preferências") {
-          NavigationLink {
-            NotificationsSettingsView().environment(theme)
-          } label: {
-            settingsRow(icon: .notifications, label: "Notificações", subtitle: "Lembretes e resumo")
-          }
-          NavigationLink {
-            AppearanceView().environment(theme)
-          } label: {
-            settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)
-          }
-        }
-
-        Section("Organização") {
-          NavigationLink {
-            LabelsManagementView().environment(theme)
-          } label: {
-            settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
-          }
-          NavigationLink {
-            LogbookView().environment(theme)
-          } label: {
-            settingsRow(icon: .logbook, label: "Registro", subtitle: "Tarefas concluídas")
-          }
+          .buttonStyle(.plain)
+          .settingsListCardRow(top: 8, bottom: 4)
         }
 
         Section {
-          Button(role: .destructive) {
-            _Concurrency.Task {
-              await auth.signOut()
-              dismiss()
-            }
-          } label: {
-            HStack {
-              StackedIcons.image(.logout)
-              Text("Sair da conta")
+          SettingsCardSurface {
+            VStack(spacing: 0) {
+              NavigationLink {
+                NotificationsSettingsView().environment(theme)
+              } label: {
+                settingsRow(icon: .notifications, label: "Notificações", subtitle: "Lembretes e resumo")
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+              }
+              .buttonStyle(.plain)
+
+              SettingsCardDivider(leadingPadding: 52)
+
+              NavigationLink {
+                AppearanceView().environment(theme)
+              } label: {
+                settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+              }
+              .buttonStyle(.plain)
             }
           }
+          .settingsListCardRow()
+        } header: {
+          SettingsSectionHeader(text: "Preferências")
+        }
+
+        Section {
+          SettingsCardSurface {
+            VStack(spacing: 0) {
+              NavigationLink {
+                LabelsManagementView().environment(theme)
+              } label: {
+                settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+              }
+              .buttonStyle(.plain)
+
+              SettingsCardDivider(leadingPadding: 52)
+
+              NavigationLink {
+                LogbookView().environment(theme)
+              } label: {
+                settingsRow(icon: .logbook, label: "Registro", subtitle: "Tarefas concluídas")
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+              }
+              .buttonStyle(.plain)
+            }
+          }
+          .settingsListCardRow()
+        } header: {
+          SettingsSectionHeader(text: "Organização")
+        }
+
+        Section {
+          SettingsCardSurface {
+            Button(role: .destructive) {
+              _Concurrency.Task {
+                await auth.signOut()
+                dismiss()
+              }
+            } label: {
+              HStack {
+                StackedIcons.image(.logout)
+                Text("Sair da conta")
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.horizontal, SettingsChrome.rowPaddingH)
+              .padding(.vertical, SettingsChrome.rowPaddingV)
+            }
+            .buttonStyle(.plain)
+          }
+          .settingsListCardRow(top: 4, bottom: 8)
         }
       }
-      .listStyle(.insetGrouped)
-      .scrollContentBackground(.hidden)
-      .background(c.background)
+      .settingsDrillDownList(background: c.background)
       .navigationTitle("Configurações")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
@@ -96,9 +133,11 @@ struct SettingsView: View {
     }
     .padding(14)
     .background(c.surface)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.textPrimary.opacity(0.06)))
-    .padding(.horizontal, 4)
+    .clipShape(RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius))
+    .overlay(
+      RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius)
+        .stroke(c.textPrimary.opacity(0.06), lineWidth: 0.5)
+    )
   }
 
   private func settingsRow(icon: StackedIconKey, label: String, subtitle: String) -> some View {

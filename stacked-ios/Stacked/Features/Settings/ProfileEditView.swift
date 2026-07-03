@@ -28,27 +28,36 @@ struct ProfileEditView: View {
               profileAvatar(email: email)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
-            Section("Informações") {
-              profileField(label: "Nome completo", text: $nome, placeholder: "Seu nome")
-              profileField(label: "Apelido", text: $apelido, placeholder: "Como quer ser chamado")
-              HStack {
-                Text("E-mail")
-                  .font(AppTypography.fieldLabel)
-                  .foregroundStyle(c.textSecondary)
-                  .frame(width: 110, alignment: .leading)
-                Text(email)
-                  .font(AppTypography.fieldInput)
-                  .foregroundStyle(c.textTertiary)
-                  .lineLimit(1)
+            Section {
+              SettingsCardSurface {
+                VStack(spacing: 0) {
+                  profileField(label: "Nome completo", text: $nome, placeholder: "Seu nome")
+                  SettingsCardDivider(leadingPadding: 14)
+                  profileField(label: "Apelido", text: $apelido, placeholder: "Como quer ser chamado")
+                  SettingsCardDivider(leadingPadding: 14)
+                  HStack {
+                    Text("E-mail")
+                      .font(AppTypography.fieldLabel)
+                      .foregroundStyle(c.textSecondary)
+                      .frame(width: 110, alignment: .leading)
+                    Text(email)
+                      .font(AppTypography.fieldInput)
+                      .foregroundStyle(c.textTertiary)
+                      .lineLimit(1)
+                  }
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+                }
               }
-              .padding(.vertical, 6)
+              .settingsListCardRow()
+            } header: {
+              SettingsSectionHeader(text: "Informações")
             }
-            .listRowBackground(c.surface)
           }
-          .listStyle(.insetGrouped)
-          .scrollContentBackground(.hidden)
+          .settingsDrillDownList(background: c.background)
         }
       }
       .background(c.background)
@@ -110,7 +119,8 @@ struct ProfileEditView: View {
         .font(AppTypography.fieldInput)
         .foregroundStyle(c.textPrimary)
     }
-    .padding(.vertical, 4)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
   }
 
   private func load() async {

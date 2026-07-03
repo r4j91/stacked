@@ -19,37 +19,21 @@ struct LabelsManagementView: View {
           EmptyStateView(icon: .tag, title: "Nenhuma etiqueta ainda", subtitle: "Toque em + para criar sua primeira etiqueta.")
         } else {
           List {
-            ForEach(labels) { label in
-              HStack(spacing: 12) {
-                Image(systemName: "tag.fill")
-                  .font(.system(size: 18))
-                  .foregroundStyle(label.color)
-                Text(label.name)
-                  .font(AppTypography.body)
-                  .foregroundStyle(c.textPrimary)
-                Spacer()
-                Button {
-                  openEditor(label)
-                } label: {
-                  Image(systemName: "pencil")
-                    .font(.system(size: 15))
-                    .foregroundStyle(c.textSecondary)
+            Section {
+              SettingsCardSurface {
+                VStack(spacing: 0) {
+                  ForEach(Array(labels.enumerated()), id: \.element.id) { index, label in
+                    labelRow(label)
+                    if index < labels.count - 1 {
+                      SettingsCardDivider(leadingPadding: 44)
+                    }
+                  }
                 }
-                .buttonStyle(.plain)
-                Button {
-                  _Concurrency.Task { await deleteLabel(label) }
-                } label: {
-                  Image(systemName: "trash")
-                    .font(.system(size: 15))
-                    .foregroundStyle(AppColors.priorityHigh)
-                }
-                .buttonStyle(.plain)
               }
-              .listRowBackground(c.surface)
+              .settingsListCardRow(top: 8)
             }
           }
-          .listStyle(.plain)
-          .scrollContentBackground(.hidden)
+          .settingsDrillDownList(background: c.background)
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -76,6 +60,38 @@ struct LabelsManagementView: View {
           .environment(theme)
         }
       }
+  }
+
+  private func labelRow(_ label: TaskLabel) -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 12) {
+      Image(systemName: "tag.fill")
+        .font(.system(size: 18))
+        .foregroundStyle(label.color)
+      Text(label.name)
+        .font(AppTypography.body)
+        .foregroundStyle(c.textPrimary)
+      Spacer()
+      Button {
+        openEditor(label)
+      } label: {
+        Image(systemName: "pencil")
+          .font(.system(size: 15))
+          .foregroundStyle(c.textSecondary)
+      }
+      .buttonStyle(.plain)
+      Button {
+        _Concurrency.Task { await deleteLabel(label) }
+      } label: {
+        Image(systemName: "trash")
+          .font(.system(size: 15))
+          .foregroundStyle(AppColors.priorityHigh)
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
   }
 
   private func openEditor(_ label: TaskLabel?) {

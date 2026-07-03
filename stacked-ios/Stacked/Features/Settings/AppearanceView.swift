@@ -7,40 +7,56 @@ struct AppearanceView: View {
 
   var body: some View {
     let c = theme.colors
+    let themes = AppThemeId.allCases
 
     List {
-      ForEach(AppThemeId.allCases) { themeId in
-        Button {
-          HapticService.selection()
-          theme.setTheme(themeId)
-        } label: {
-          HStack(spacing: 14) {
-            themeSwatch(themeId.colors)
-            VStack(alignment: .leading, spacing: 3) {
-              Text(themeId.displayName)
-                .font(AppTypography.settingsTitle)
-                .foregroundStyle(c.textPrimary)
-              Text(themeId.subtitle)
-                .font(AppTypography.taskPreview)
-                .foregroundStyle(c.textSecondary)
-            }
-            Spacer()
-            if theme.currentId == themeId {
-              Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(c.accent)
+      Section {
+        SettingsCardSurface {
+          VStack(spacing: 0) {
+            ForEach(Array(themes.enumerated()), id: \.element) { index, themeId in
+              themeRow(themeId)
+              if index < themes.count - 1 {
+                SettingsCardDivider(leadingPadding: 56)
+              }
             }
           }
-          .padding(.vertical, 4)
         }
-        .buttonStyle(.plain)
-        .listRowBackground(c.surface)
+        .settingsListCardRow(top: 8)
       }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .background(c.background)
+    .settingsDrillDownList(background: c.background)
     .navigationTitle("Aparência")
     .navigationBarTitleDisplayMode(.inline)
+  }
+
+  private func themeRow(_ themeId: AppThemeId) -> some View {
+    let c = theme.colors
+
+    return Button {
+      HapticService.selection()
+      theme.setTheme(themeId)
+    } label: {
+      HStack(spacing: 14) {
+        themeSwatch(themeId.colors)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(themeId.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(themeId.subtitle)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+        }
+        Spacer()
+        if theme.currentId == themeId {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
   }
 
   private func themeSwatch(_ colors: AppThemeColors) -> some View {

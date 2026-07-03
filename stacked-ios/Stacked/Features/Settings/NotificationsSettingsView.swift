@@ -33,53 +33,58 @@ struct NotificationsSettingsView: View {
       } else {
         List {
           Section {
-            Toggle(isOn: Binding(
-              get: { enabled },
-              set: { newValue in _Concurrency.Task { await toggleEnabled(newValue) } }
-            )) {
-              settingsLabel(
-                icon: "bell",
-                title: "Ativar notificações"
-              )
+            SettingsCardSurface {
+              VStack(spacing: 0) {
+                Toggle(isOn: Binding(
+                  get: { enabled },
+                  set: { newValue in _Concurrency.Task { await toggleEnabled(newValue) } }
+                )) {
+                  settingsLabel(icon: "bell", title: "Ativar notificações")
+                }
+                .tint(c.accent)
+                .padding(.horizontal, SettingsChrome.rowPaddingH)
+                .padding(.vertical, SettingsChrome.rowPaddingV)
+
+                if enabled {
+                  SettingsCardDivider(leadingPadding: 14)
+                  Toggle(isOn: Binding(
+                    get: { dailySummary },
+                    set: { newValue in
+                      NotificationPreferences.dailySummary = newValue
+                      dailySummary = newValue
+                      HapticService.selection()
+                    }
+                  )) {
+                    settingsLabel(
+                      icon: "sun.max",
+                      title: "Resumo diário",
+                      subtitle: "Resumo das tarefas do dia às 8h da manhã"
+                    )
+                  }
+                  .tint(c.accent)
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
+                }
+              }
             }
-            .tint(c.accent)
+            .settingsListCardRow(top: 8)
           }
-          .listRowBackground(c.surfaceVariant)
 
           if enabled {
-            Section {
-              Toggle(isOn: Binding(
-                get: { dailySummary },
-                set: { newValue in
-                  NotificationPreferences.dailySummary = newValue
-                  dailySummary = newValue
-                  HapticService.selection()
-                }
-              )) {
-                settingsLabel(
-                  icon: "sun.max",
-                  title: "Resumo diário",
-                  subtitle: "Resumo das tarefas do dia às 8h da manhã"
-                )
-              }
-              .tint(c.accent)
-            }
-            .listRowBackground(c.surfaceVariant)
-
             Section {
               Text("Você recebe um alerta na hora definida na tarefa. Tarefas só com data, sem hora, não disparam notificação.")
                 .font(AppTypography.taskPreview)
                 .foregroundStyle(c.textTertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
+                .settingsListCardRow(top: 0, bottom: 8)
             }
           }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .settingsDrillDownList(background: c.background)
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(c.background)
     .navigationTitle("Notificações")
     .navigationBarTitleDisplayMode(.inline)
