@@ -80,11 +80,11 @@ struct SettingsView: View {
     let email = auth.session?.user.email ?? ""
 
     return HStack(spacing: 14) {
-      ZStack {
-        Circle().fill(c.surfaceVariant).frame(width: 52, height: 52)
-        Text(name.prefix(1).uppercased())
-          .font(.system(size: 20, weight: .bold)).foregroundStyle(c.accent)
-      }
+      UserAvatarView(
+        url: HomeStore.shared.avatarURL,
+        initials: HomeStore.shared.avatarInitials,
+        size: 52
+      )
       VStack(alignment: .leading, spacing: 4) {
         Text(name.isEmpty ? "Conta" : name)
           .font(AppTypography.profileName).foregroundStyle(c.textPrimary)
