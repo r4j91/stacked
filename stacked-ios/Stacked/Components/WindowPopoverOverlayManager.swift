@@ -8,6 +8,7 @@ final class WindowPopoverOverlayManager {
 
   private var overlayWindow: PopoverPassthroughWindow?
   private weak var attachedPresenter: PopoverPresenter?
+  private weak var attachedColorGridPresenter: ColorGridPopoverPresenter?
 
   private init() {}
 
@@ -18,7 +19,17 @@ final class WindowPopoverOverlayManager {
 
   func detach() {
     attachedPresenter = nil
-    hideWindow()
+    syncWindowVisibility()
+  }
+
+  func attachColorGrid(presenter: ColorGridPopoverPresenter) {
+    attachedColorGridPresenter = presenter
+    syncWindowVisibility()
+  }
+
+  func detachColorGrid() {
+    attachedColorGridPresenter = nil
+    syncWindowVisibility()
   }
 
   func refreshIfNeeded() {
@@ -26,7 +37,9 @@ final class WindowPopoverOverlayManager {
   }
 
   private func syncWindowVisibility() {
-    guard let presenter = attachedPresenter, presenter.isPresented else {
+    let popoverActive = attachedPresenter?.isPresented == true
+    let colorGridActive = attachedColorGridPresenter?.isPresented == true
+    guard popoverActive || colorGridActive else {
       hideWindow()
       return
     }
@@ -58,7 +71,9 @@ final class WindowPopoverOverlayManager {
   }
 
   private func refreshRootView() {
-    guard let presenter = attachedPresenter, presenter.isPresented else {
+    let popoverActive = attachedPresenter?.isPresented == true
+    let colorGridActive = attachedColorGridPresenter?.isPresented == true
+    guard popoverActive || colorGridActive else {
       hideWindow()
       return
     }
@@ -68,17 +83,32 @@ final class WindowPopoverOverlayManager {
 
     window.backgroundColor = .clear
     window.isOpaque = false
-    window.presenterIsActive = { [weak presenter] in
-      presenter?.isPresented ?? false
+    window.presenterIsActive = { [weak self] in
+      guard let self else { return false }
+      return attachedPresenter?.isPresented == true || attachedColorGridPresenter?.isPresented == true
     }
 
-    let root = PopoverOverlayHost(
-      presenter: presenter,
-      hostBounds: ScreenMetrics.bounds,
-      forcePreferAbove: true,
-      opaquePopoverSurface: true
-    )
-    .environment(ThemeManager.shared)
+    let root = ZStack {
+      if colorGridActive, let colorPresenter = attachedColorGridPresenter {
+        ProjectColorGridPopoverOverlay(
+          anchorRect: colorPresenter.anchorRect,
+          selectedHex: colorPresenter.selectedHex,
+          hostBounds: ScreenMetrics.bounds,
+          onSelect: { colorPresenter.dismiss(selected: $0) },
+          onDismiss: { colorPresenter.dismiss() }
+        )
+        .environment(ThemeManager.shared)
+      }
+      if popoverActive, let presenter = attachedPresenter {
+        PopoverOverlayHost(
+          presenter: presenter,
+          hostBounds: ScreenMetrics.bounds,
+          forcePreferAbove: true,
+          opaquePopoverSurface: true
+        )
+        .environment(ThemeManager.shared)
+      }
+    }
     .ignoresSafeArea()
 
     if let host = window.rootViewController as? UIHostingController<AnyView> {

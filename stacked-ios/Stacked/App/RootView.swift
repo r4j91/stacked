@@ -15,7 +15,7 @@ struct RootView: View {
     MobileShell(
       onNewTask: { openQuickAdd() },
       onSearch: { showSearch = true },
-      onNewProject: { showNewProject = true }
+      onNewProject: { openNewProject() }
     ) {
       RootTabContent()
     }
@@ -33,17 +33,18 @@ struct RootView: View {
       SearchView().environment(ThemeManager.shared)
     }
     .quickAddFloating(isPresented: $showQuickAdd, onSaved: { reloadAll() })
-    .sheet(isPresented: $showNewProject) {
-      NewProjectSheetView(onCreated: {
-        _Concurrency.Task {
-          await HomeStore.shared.load()
-          await FiltersStore.shared.loadDashboard()
-        }
-      })
-      .environment(ThemeManager.shared)
-      .presentationDetents([.large])
-      .presentationDragIndicator(.visible)
+    .newProjectFloating(isPresented: $showNewProject) {
+      _Concurrency.Task {
+        await HomeStore.shared.load()
+        await FiltersStore.shared.loadDashboard()
+      }
     }
+  }
+
+  private func openNewProject() {
+    chrome.closeFabMenu()
+    PopoverPresenter.shared.dismiss()
+    showNewProject = true
   }
 
   private func openQuickAdd() {

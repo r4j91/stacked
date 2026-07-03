@@ -37,8 +37,8 @@ struct PrimaryButton: View {
       .frame(height: height)
     }
     .buttonStyle(.plain)
-    .background(active ? palette.accent : palette.accent.opacity(0.28))
-    .foregroundStyle(active ? palette.onAccent : palette.textTertiary)
+    .background(active ? palette.accent : palette.surfaceVariant)
+    .foregroundStyle(active ? palette.onAccent : palette.textSecondary.opacity(0.5))
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .disabled(!active)
   }

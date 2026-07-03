@@ -49,7 +49,7 @@ struct QuickAddTaskView: View {
   var body: some View {
     sheetContent
       .frame(maxWidth: .infinity)
-      .background { quickAddPanelChrome }
+      .background { KeyboardFloatingPanelStyle.chrome(colors: theme.colors, cornerRadius: capsuleRadius) }
       .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .quickAddSheet)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
@@ -159,21 +159,9 @@ struct QuickAddTaskView: View {
     }
   }
 
-  private var quickAddPanelChrome: some View {
-    let c = theme.colors
-    let shape = RoundedRectangle(cornerRadius: capsuleRadius, style: .continuous)
-
-    return shape
-      .fill(c.surfaceVariant)
-      .overlay {
-        shape.strokeBorder(c.textPrimary.opacity(0.10), lineWidth: 0.8)
-      }
-      .shadow(color: .black.opacity(0.26), radius: 8, y: -2)
-  }
-
-  /// Pílulas dos botões — `surface` sobre painel `surfaceVariant` (contraste como antes).
+  /// Pílulas dos botões — contraste sutil sobre o painel escurecido.
   private func actionPillBackground(colors: AppThemeColors) -> Color {
-    colors.surface
+    KeyboardFloatingPanelStyle.chipBackground(colors)
   }
 
   private func actionPillBackground(activeColor: Color) -> Color {

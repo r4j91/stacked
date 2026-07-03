@@ -8,6 +8,8 @@ enum LiquidGlass {
 
   /// Navbar — shell em glass; blob de seleção é sólido (estilo Todoist, sem halo).
   static let navTrackTintOpacity: CGFloat = 0.12
+  /// FAB — tint um pouco mais forte para ler a cor accent através do glass.
+  static let fabTintOpacity: CGFloat = 0.48
   /// Borda do blob — paridade Flutter/Todoist (~textPrimary 6–8%).
   static let navSelectionStrokeOpacity: CGFloat = 0.07
   static let navSelectionStrokeWidth: CGFloat = 0.75
@@ -57,6 +59,20 @@ enum LiquidGlass {
     @ViewBuilder content: () -> some View
   ) -> some View {
     ToolbarGlassPill(navBarColor: navBarColor, content: content)
+  }
+
+  /// FAB — glass com tint accent (fallback sólido com reduce transparency).
+  @ViewBuilder
+  static func fab<Content: View>(
+    tintColor: Color,
+    solidFallback: Color,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    FabGlassSurface(
+      tintColor: tintColor,
+      solidFallback: solidFallback,
+      content: content
+    )
   }
 
   /// SUBSTITUIDO_FASE1B: usado pelo Quick Add overlay — substituído por sheet nativo iOS 26.
@@ -153,6 +169,49 @@ private struct PopoverCardSurface<Content: View>: View {
       radius: reduceTransparency ? 0 : PopoverStyle.cardShadowRadius,
       y: reduceTransparency ? 0 : PopoverStyle.cardShadowY
     )
+  }
+}
+
+private struct FabGlassSurface<Content: View>: View {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  let tintColor: Color
+  let solidFallback: Color
+  let content: Content
+
+  init(
+    tintColor: Color,
+    solidFallback: Color,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.tintColor = tintColor
+    self.solidFallback = solidFallback
+    self.content = content()
+  }
+
+  var body: some View {
+    if reduceTransparency {
+      content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Circle().fill(solidFallback))
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8))
+    } else {
+      content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+          Circle()
+            .fill(.clear)
+            .glassEffect(
+              .regular.tint(tintColor.opacity(LiquidGlass.fabTintOpacity)),
+              in: .circle
+            )
+            .allowsHitTesting(false)
+        }
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.75))
+        .shadow(color: tintColor.opacity(0.22), radius: 10, y: 3)
+    }
   }
 }
 

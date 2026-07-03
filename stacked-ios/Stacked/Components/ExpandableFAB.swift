@@ -17,16 +17,14 @@ struct ExpandableFAB: View {
         isOpen = true
       }
     } label: {
-      StackedIcons.image(.plus)
-        .font(.system(size: 22, weight: .medium))
-        .foregroundStyle(c.onAccent)
-        .rotationEffect(.degrees(isOpen ? 45 : 0))
-        // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOpen)
-        .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: isOpen)
-        .frame(width: AppLayout.fabSize, height: AppLayout.fabSize)
-        .background(c.accent)
-        .clipShape(Circle())
-        .overlay(Circle().stroke(c.textPrimary.opacity(0.08), lineWidth: 0.8))
+      LiquidGlass.fab(tintColor: c.accent, solidFallback: c.accent) {
+        StackedIcons.image(.plus)
+          .font(.system(size: 22, weight: .medium))
+          .foregroundStyle(c.onAccent)
+          .rotationEffect(.degrees(isOpen ? 45 : 0))
+          .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: isOpen)
+      }
+      .frame(width: AppLayout.fabSize, height: AppLayout.fabSize)
     }
     .buttonStyle(.plain)
     .accessibilityLabel(isOpen ? "Fechar menu de ações" : "Criar novo")

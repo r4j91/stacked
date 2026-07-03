@@ -56,11 +56,8 @@ struct HomeView: View {
       }
     }
     .background(c.background.ignoresSafeArea(.all))
-    .sheet(isPresented: $showNewProject) {
-      NewProjectSheetView(onCreated: { _Concurrency.Task { await store.load() } })
-        .environment(ThemeManager.shared)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+    .newProjectFloating(isPresented: $showNewProject) {
+      _Concurrency.Task { await store.load() }
     }
     .sheet(isPresented: $showSettings) {
       SettingsView().environment(ThemeManager.shared)

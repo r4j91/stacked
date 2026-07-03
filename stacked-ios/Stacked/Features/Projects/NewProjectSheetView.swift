@@ -1,19 +1,21 @@
 import SwiftUI
 import Hugeicons
 
-// Paridade lib/widgets/new_project_sheet.dart
+// Paridade lib/widgets/new_project_sheet.dart — painel compacto ancorado ao teclado (como Quick Add)
 struct NewProjectSheetView: View {
-  @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @Bindable private var colorGridPresenter = ColorGridPopoverPresenter.shared
 
   var onCreated: () -> Void
+  var onDismiss: () -> Void
 
+  @FocusState private var nameFocused: Bool
   @State private var name = ""
   @State private var selectedHex = PaletteColors.defaultHex
   @State private var saving = false
   @State private var error: String?
 
-  private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 6)
+  private let panelRadius: CGFloat = 22
 
   private var canCreate: Bool {
     !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !saving
@@ -22,67 +24,128 @@ struct NewProjectSheetView: View {
   var body: some View {
     let c = theme.colors
 
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
-          TextField("Nome do projeto", text: $name)
-            .textFieldStyle(.plain)
-            .padding(14)
-            .background(c.surfaceVariant)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+    VStack(spacing: 0) {
+      Capsule()
+        .fill(c.textTertiary.opacity(0.35))
+        .frame(width: 36, height: 4)
+        .padding(.top, 6)
+        .padding(.bottom, 12)
 
-          Text("Cor")
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(c.textSecondary)
+      header
 
-          LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(PaletteColors.projectHex, id: \.self) { hex in
-              let color = AppColors.parseHex(hex)
-              Button {
-                HapticService.selection()
-                selectedHex = hex
-              } label: {
-                Circle()
-                  .fill(color)
-                  .frame(height: 32)
-                  .overlay {
-                    if selectedHex == hex {
-                      Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                    }
-                  }
-              }
-              .buttonStyle(.plain)
-            }
-          }
+      Divider().overlay(c.textTertiary.opacity(0.12))
 
-          if let error {
-            Text(error).font(.caption).foregroundStyle(AppColors.priorityHigh)
-          }
-
-          PrimaryButton(
-            title: "Criar projeto",
-            action: { _Concurrency.Task { await create() } },
-            isLoading: saving,
-            isEnabled: canCreate,
-            height: 48,
-            cornerRadius: 14,
-            font: .system(size: 16, weight: .semibold)
-          )
+      VStack(alignment: .leading, spacing: 16) {
+        TextField(
+          "Nome do projeto",
+          text: $name,
+          prompt: Text("Ex.: Reforma da cozinha").foregroundStyle(c.textTertiary)
+        )
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(c.textPrimary)
+        .tint(c.accent)
+        .focused($nameFocused)
+        .submitLabel(.done)
+        .textInputAutocapitalization(.sentences)
+        .onSubmit {
+          if canCreate { _Concurrency.Task { await create() } }
         }
-        .padding(20)
-        .padding(.bottom, 8)
-      }
-      .background(c.background)
-      .navigationTitle("Novo projeto")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Cancelar") { dismiss() }
+
+        colorPickerRow
+
+        if let error {
+          Text(error)
+            .font(AppTypography.meta)
+            .foregroundStyle(AppColors.priorityHigh)
         }
+
+        PrimaryButton(
+          title: "Criar projeto",
+          action: { _Concurrency.Task { await create() } },
+          isLoading: saving,
+          isEnabled: canCreate,
+          height: 48,
+          cornerRadius: 14,
+          font: AppTypography.bodySemibold
+        )
       }
+      .padding(.horizontal, 16)
+      .padding(.top, 14)
+      .padding(.bottom, 14)
     }
+    .background { KeyboardFloatingPanelStyle.chrome(colors: c, cornerRadius: panelRadius) }
+    .background { ColorGridWindowOverlayHost(presenter: colorGridPresenter) }
+    .onAppear {
+      DispatchQueue.main.async { nameFocused = true }
+    }
+  }
+
+  private var header: some View {
+    let c = theme.colors
+    return HStack(spacing: 8) {
+      Button("Cancelar") { onDismiss() }
+        .font(AppTypography.body)
+        .foregroundStyle(c.textSecondary)
+        .buttonStyle(.plain)
+
+      Spacer()
+
+      Text("Novo projeto")
+        .font(AppTypography.sheetPageTitle)
+        .foregroundStyle(c.textPrimary)
+
+      Spacer()
+
+      Color.clear.frame(width: 72, height: 1)
+    }
+    .padding(.horizontal, 14)
+    .padding(.bottom, 8)
+  }
+
+  private var colorPickerRow: some View {
+    let c = theme.colors
+    let color = AppColors.parseHex(selectedHex)
+
+    return AnchoredTapButton { rect in
+      colorGridPresenter.present(
+        anchorRect: rect,
+        selectedHex: selectedHex,
+        onSelect: { selectedHex = $0 },
+        onClose: {
+          DispatchQueue.main.async { nameFocused = true }
+        }
+      )
+      DispatchQueue.main.async { nameFocused = true }
+    } label: {
+      HStack(spacing: 12) {
+        StackedIcons.image(.paintbrush)
+          .font(.system(size: 18))
+          .foregroundStyle(c.textSecondary)
+          .frame(width: 20)
+
+        Text("Cor")
+          .font(AppTypography.popoverRowLabel)
+          .foregroundStyle(c.textPrimary)
+
+        Spacer()
+
+        Circle()
+          .fill(color)
+          .frame(width: 22, height: 22)
+          .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5))
+
+        StackedIcons.image(.chevronRight)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+      }
+      .padding(.horizontal, 14)
+      .padding(.vertical, 13)
+      .background(KeyboardFloatingPanelStyle.chipBackground(c))
+      .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Cor do projeto")
+    .accessibilityValue(selectedHex)
   }
 
   private func create() async {
@@ -93,7 +156,7 @@ struct NewProjectSheetView: View {
       try await ProjectRepository.shared.createProject(name: trimmed, colorHex: selectedHex)
       HapticService.taskCreated()
       onCreated()
-      dismiss()
+      onDismiss()
     } catch {
       self.error = error.localizedDescription
       saving = false
