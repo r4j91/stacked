@@ -190,6 +190,29 @@ final class ProjectDetailStore {
     }
   }
 
+  func uncomplete(_ task: Task) {
+    guard let i = completed.firstIndex(where: { $0.id == task.id }) else { return }
+
+    let originalIndex = i
+    let snapshot = completed[i]
+    let taskId = task.id
+
+    completed.remove(at: i)
+    var restored = snapshot
+    restored.done = false
+    pending.insert(restored, at: 0)
+    HapticService.light()
+
+    _Concurrency.Task {
+      do {
+        try await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
+      } catch {
+        pending.removeAll { $0.id == taskId }
+        completed.insert(snapshot, at: min(originalIndex, completed.count))
+      }
+    }
+  }
+
   func createSection(name: String) async {
     let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return }

@@ -7,6 +7,7 @@ struct LogbookView: View {
   @State private var tasks: [Task] = []
   @State private var loading = true
   @State private var detailRoute: TaskDetailRoute?
+  @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
   private static let months = [
@@ -30,14 +31,7 @@ struct LogbookView: View {
             ForEach(keys, id: \.self) { key in
               Section {
                 ForEach(grouped.groups[key] ?? []) { task in
-                  TaskRow(task: task, onToggle: {}, onTap: {
-                    detailRoute = TaskDetailRoute(taskId: task.id)
-                  })
-                    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-                    .opacity(0.85)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                  logbookTaskRow(task)
                 }
               } header: {
                 SectionLabel(text: key)
@@ -62,6 +56,90 @@ struct LogbookView: View {
           .environment(ThemeManager.shared)
         }
       }
+      .sheet(item: $subtaskDetailRoute) { route in
+        SubtaskDetailView(subtask: route.subtask) {
+          _Concurrency.Task { await load() }
+        }
+        .environment(ThemeManager.shared)
+      }
+    }
+  }
+
+  private var rowInsets: EdgeInsets {
+    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  @ViewBuilder
+  private func logbookTaskRow(_ task: Task) -> some View {
+    TaskRow(
+      task: task,
+      onToggle: { uncomplete(task) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onSubtaskTap: { sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      },
+      onSubtaskChanged: {
+        _Concurrency.Task { await load() }
+      }
+    )
+    .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .opacity(0.85)
+    .listRowInsets(rowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { uncomplete(task) },
+      onDuplicate: { duplicate(task) },
+      onDelete: { delete(task) },
+      onRefresh: { _Concurrency.Task { await load() } }
+    )
+    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+      Button {
+        uncomplete(task)
+      } label: {
+        Label("Reabrir", systemImage: "arrow.uturn.backward")
+      }
+      .tint(AppColors.dateDueToday)
+    }
+    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+      Button(role: .destructive) {
+        HapticService.warning()
+        delete(task)
+      } label: {
+        Label("Excluir", systemImage: "trash")
+      }
+    }
+  }
+
+  private func uncomplete(_ task: Task) {
+    guard let i = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+    let snapshot = tasks[i]
+    tasks.remove(at: i)
+    HapticService.light()
+    _Concurrency.Task {
+      do {
+        try await TaskRepository.shared.toggleTaskDone(id: task.id, done: false)
+      } catch {
+        tasks.insert(snapshot, at: min(i, tasks.count))
+      }
+    }
+  }
+
+  private func delete(_ task: Task) {
+    tasks.removeAll { $0.id == task.id }
+    HapticService.taskDeleted()
+    _Concurrency.Task {
+      try? await TaskRepository.shared.deleteTask(id: task.id)
+    }
+  }
+
+  private func duplicate(_ task: Task) {
+    _Concurrency.Task {
+      _ = try? await TaskRepository.shared.duplicateTask(task)
+      await load()
     }
   }
 

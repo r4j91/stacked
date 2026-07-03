@@ -56,6 +56,51 @@ final class SearchStore {
     }
     isLoading = false
   }
+
+  func complete(_ task: Task) {
+    guard let i = allTasks.firstIndex(where: { $0.id == task.id }) else { return }
+    guard !allTasks[i].done else { return }
+
+    let originalIndex = i
+    let snapshot = allTasks[i]
+    let taskId = task.id
+
+    allTasks[i].done = true
+    HapticService.taskCompleted()
+
+    TaskCompletionMotion.afterDwell(
+      animatedRemoval: { [self] in
+        allTasks.removeAll { $0.id == taskId }
+      },
+      persist: { try await TaskRepository.shared.toggleTaskDone(id: taskId, done: true) },
+      rollback: { [self] in
+        var restored = snapshot
+        restored.done = false
+        allTasks.insert(restored, at: min(originalIndex, allTasks.count))
+      }
+    )
+  }
+
+  func delete(_ task: Task) {
+    allTasks.removeAll { $0.id == task.id }
+    HapticService.taskDeleted()
+    _Concurrency.Task {
+      try? await TaskRepository.shared.deleteTask(id: task.id)
+    }
+  }
+
+  func duplicate(_ task: Task) {
+    _Concurrency.Task {
+      _ = try? await TaskRepository.shared.duplicateTask(task)
+      await load()
+    }
+  }
+
+  func postpone(_ task: Task) async {
+    let iso = TaskMapper.postponedDateISO(for: task)
+    try? await TaskRepository.shared.updateTaskDate(id: task.id, isoDate: iso)
+    allTasks.removeAll { $0.id == task.id }
+  }
 }
 
 // Paridade lib/screens/search_screen.dart
@@ -64,6 +109,7 @@ struct SearchView: View {
   @Environment(ThemeManager.self) private var theme
   @State private var store = SearchStore.shared
   @State private var detailRoute: TaskDetailRoute?
+  @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @FocusState private var searchFocused: Bool
   @Namespace private var taskDetailZoom
 
@@ -95,13 +141,7 @@ struct SearchView: View {
             ForEach(store.groupedResults, id: \.title) { group in
               Section {
                 ForEach(group.tasks) { task in
-                  TaskRow(task: task, onToggle: { }, onTap: {
-                    detailRoute = TaskDetailRoute(taskId: task.id)
-                  })
-                  .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-                  .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                  .listRowSeparator(.hidden)
-                  .listRowBackground(Color.clear)
+                  searchTaskRow(task)
                 }
               } header: {
                 ListSectionHeader(text: group.title.uppercased())
@@ -134,6 +174,69 @@ struct SearchView: View {
           }
           .environment(ThemeManager.shared)
         }
+      }
+      .sheet(item: $subtaskDetailRoute) { route in
+        SubtaskDetailView(subtask: route.subtask) {
+          _Concurrency.Task { await store.load() }
+        }
+        .environment(ThemeManager.shared)
+      }
+    }
+  }
+
+  private var rowInsets: EdgeInsets {
+    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  @ViewBuilder
+  private func searchTaskRow(_ task: Task) -> some View {
+    TaskRow(
+      task: task,
+      onToggle: { store.complete(task) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onSubtaskTap: { sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      },
+      onSubtaskChanged: {
+        _Concurrency.Task { await store.load() }
+      }
+    )
+    .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .taskCompleteRemovalTransition()
+    .listRowInsets(rowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { store.complete(task) },
+      onDuplicate: { store.duplicate(task) },
+      onDelete: { store.delete(task) },
+      onRefresh: { _Concurrency.Task { await store.load() } }
+    )
+    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+      Button {
+        store.complete(task)
+      } label: {
+        Label("Concluir", systemImage: "checkmark")
+      }
+      .tint(AppColors.dateDueToday)
+    }
+    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+      Button {
+        HapticService.light()
+        _Concurrency.Task { await store.postpone(task) }
+      } label: {
+        Label("Adiar", systemImage: "clock")
+      }
+      .tint(AppColors.priorityMedium)
+
+      Button(role: .destructive) {
+        HapticService.warning()
+        store.delete(task)
+      } label: {
+        Label("Excluir", systemImage: "trash")
       }
     }
   }

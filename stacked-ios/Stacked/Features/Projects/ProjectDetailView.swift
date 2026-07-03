@@ -102,16 +102,7 @@ struct ProjectDetailView: View {
 
             if completedExpanded {
               ForEach(store.completed) { task in
-                TaskRow(
-                  task: task,
-                  style: isListMode ? .list : .card,
-                  onToggle: {},
-                  onTap: { detailRoute = TaskDetailRoute(taskId: task.id) }
-                )
-                .opacity(0.7)
-                .listRowInsets(rowInsets)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
+                completedProjectTaskRow(task)
               }
             }
           }
@@ -292,6 +283,61 @@ struct ProjectDetailView: View {
         store.complete(task)
       } label: {
         Label("Concluir", systemImage: "checkmark")
+      }
+      .tint(AppColors.dateDueToday)
+    }
+    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+      Button {
+        HapticService.light()
+        _Concurrency.Task { await store.postpone(task) }
+      } label: {
+        Label("Adiar", systemImage: "clock")
+      }
+      .tint(AppColors.priorityMedium)
+
+      Button(role: .destructive) {
+        HapticService.warning()
+        store.delete(task)
+      } label: {
+        Label("Excluir", systemImage: "trash")
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func completedProjectTaskRow(_ task: Task) -> some View {
+    TaskRow(
+      task: task,
+      style: isListMode ? .list : .card,
+      showProject: false,
+      onToggle: { store.uncomplete(task) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onSubtaskTap: { sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      },
+      onSubtaskChanged: {
+        _Concurrency.Task { await store.load() }
+      }
+    )
+    .id(task.id)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .opacity(0.7)
+    .listRowInsets(rowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+    .taskContextMenu(
+      task: task,
+      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onComplete: { store.uncomplete(task) },
+      onDuplicate: { store.duplicate(task) },
+      onDelete: { store.delete(task) },
+      onRefresh: { _Concurrency.Task { await store.load() } }
+    )
+    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+      Button {
+        store.uncomplete(task)
+      } label: {
+        Label("Reabrir", systemImage: "arrow.uturn.backward")
       }
       .tint(AppColors.dateDueToday)
     }
