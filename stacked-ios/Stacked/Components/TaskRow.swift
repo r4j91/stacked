@@ -4,6 +4,7 @@ import SwiftUI
 struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.openTaskContextMenu) private var openTaskContextMenu
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -105,9 +106,15 @@ struct TaskRow: View {
     }
     .contentShape(Rectangle())
 
-    if let onTap {
-      // SUBSTITUIDO_FASE3C: Button bloqueava onLongPressGesture do taskContextMenu.
-      content.pressableTapArea(action: onTap)
+    if let onTap, let openTaskContextMenu {
+      // Long-press exclusivo antes do tap: evita abrir TaskDetail ao soltar após o menu.
+      content.gesture(
+        LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
+          .onEnded { _ in openTaskContextMenu() }
+          .exclusively(before: TapGesture().onEnded { onTap() })
+      )
+    } else if let onTap {
+      content.onTapGesture(perform: onTap)
     } else {
       content
     }

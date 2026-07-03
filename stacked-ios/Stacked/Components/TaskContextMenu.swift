@@ -2,7 +2,7 @@ import SwiftUI
 import Hugeicons
 
 // Fase 4A — lift progressivo estilo Flutter task_context_menu.dart
-private enum TaskContextLift {
+enum TaskContextLift {
   static let minimumDuration: Double = 0.35
   static let scale: CGFloat = 1.02
   static let offsetY: CGFloat = -5
@@ -47,10 +47,8 @@ struct TaskContextMenu: ViewModifier {
       )
       .zIndex(isLifted ? 1 : 0)
       .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: liftPhase)
-      // SUBSTITUIDO_FASE7E: pressing: bloqueava o pan horizontal do swipe nativo na List.
-      .onLongPressGesture(minimumDuration: TaskContextLift.minimumDuration) {
-        openContextMenu()
-      }
+      // TaskRow usa long-press exclusivo antes do tap na área de conteúdo; aqui só expõe a ação.
+      .environment(\.openTaskContextMenu, openContextMenu)
   }
 
   private var isLifted: Bool {
@@ -91,7 +89,11 @@ struct TaskContextMenu: ViewModifier {
   private var menuItems: [PopoverMenuItem] {
     [
       PopoverMenuItem(id: "edit", icon: Hugeicons.edit01, label: "Editar"),
-      PopoverMenuItem(id: "complete", icon: Hugeicons.checkmarkCircle01, label: "Concluir"),
+      PopoverMenuItem(
+        id: "complete",
+        icon: Hugeicons.checkmarkCircle01,
+        label: task.done ? "Reabrir" : "Concluir"
+      ),
       PopoverMenuItem(id: "duplicate", icon: Hugeicons.copy01, label: "Duplicar"),
       PopoverMenuItem(
         id: "priority",
@@ -184,6 +186,17 @@ struct TaskContextMenu: ViewModifier {
 //   HapticService.light()
 //   PopoverPresenter.shared.present(...) { result in ... }
 // }
+
+private struct OpenTaskContextMenuKey: EnvironmentKey {
+  static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+  var openTaskContextMenu: (() -> Void)? {
+    get { self[OpenTaskContextMenuKey.self] }
+    set { self[OpenTaskContextMenuKey.self] = newValue }
+  }
+}
 
 extension View {
   func taskContextMenu(
