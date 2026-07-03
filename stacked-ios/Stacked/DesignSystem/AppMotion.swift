@@ -30,9 +30,9 @@ enum AppMotion {
     .snappy(duration: 0.24, extraBounce: 0)
   }
 
-  /// Navbar: morph liquid — bounce um pouco maior para a bolha “esticar” na troca.
+  /// Navbar: bolha sólida deslizante — paridade Flutter SpringSimulation(600, 32).
   static var navMorphSpring: Animation {
-    .bouncy(duration: 0.42, extraBounce: 0.11)
+    .interpolatingSpring(stiffness: 600, damping: 32)
   }
 
   /// Popover: entrada/saída — smooth curto (~150ms perceptual).
@@ -40,9 +40,9 @@ enum AppMotion {
     .smooth(duration: 0.22)
   }
 
-  /// Navbar: bounce contido no ícone ao selecionar aba.
+  /// Navbar: bounce no ícone ao selecionar — paridade Flutter AppDurations.medium (~240ms).
   static var iconBounceSpring: Animation {
-    .bouncy(duration: 0.32, extraBounce: 0.06)
+    .bouncy(duration: 0.24, extraBounce: 0.04)
   }
 
   /// Subtarefas inline — expand easeOutCubic (task_tile.dart ~220ms).

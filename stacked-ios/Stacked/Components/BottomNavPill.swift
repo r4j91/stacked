@@ -177,7 +177,6 @@ private struct NavPillItem: View {
       StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize, color: selected ? c.accent : c.textSecondary)
         .frame(width: NavPillMetrics.iconBoxSize, height: NavPillMetrics.iconBoxSize)
         .scaleEffect(bounceScale)
-        .animation(AppMotion.navMorph(reduceMotion: reduceMotion), value: selected)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
         .foregroundStyle(selected ? c.accent : c.textSecondary)
