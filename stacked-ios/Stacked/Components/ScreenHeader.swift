@@ -2,27 +2,13 @@ import SwiftUI
 
 // Paridade lib/widgets/screen_header.dart
 struct ScreenHeader: View {
-  @Environment(ThemeManager.self) private var theme
   let title: String
   var subtitle: String?
 
   var body: some View {
-    let c = theme.colors
-    VStack(alignment: .leading, spacing: 2) {
-      Text(title)
-        .font(AppTypography.screenTitle)
-        .foregroundStyle(c.textPrimary)
-        .tracking(-0.5)
-      if let subtitle {
-        Text(subtitle)
-          .font(.system(size: 12.5))
-          .foregroundStyle(c.textSecondary)
-      }
+    ScreenHeaderChrome(title: title, subtitle: subtitle) {
+      EmptyView()
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.horizontal, 20)
-    .padding(.top, 20)
-    .padding(.bottom, 8)
   }
 }
 
@@ -32,10 +18,11 @@ struct SectionLabel: View {
 
   var body: some View {
     Text(text)
-      .font(.system(size: 11, weight: .semibold))
-      .foregroundStyle(theme.colors.textSecondary)
-      .tracking(0.8)
-      .padding(.horizontal, 20)
+      .font(AppTypography.sectionLabel)
+      .foregroundStyle(theme.colors.textTertiary)
+      .tracking(0.6)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, ScreenHeaderMetrics.horizontalPadding)
       .padding(.top, 12)
       .padding(.bottom, 6)
   }

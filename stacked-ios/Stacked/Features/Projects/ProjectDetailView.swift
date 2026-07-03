@@ -56,9 +56,7 @@ struct ProjectDetailView: View {
                 projectTaskRow(task)
               }
             } header: {
-              Text(section.name.uppercased())
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(c.textTertiary)
+              ListSectionHeader(text: section.name.uppercased())
             }
           }
         }
@@ -71,9 +69,7 @@ struct ProjectDetailView: View {
             }
           } header: {
             if !store.sections.isEmpty {
-              Text("SEM SEÇÃO")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(c.textTertiary)
+              ListSectionHeader(text: "SEM SEÇÃO")
             }
           }
         }

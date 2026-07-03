@@ -34,6 +34,7 @@ struct HomeView: View {
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
       .stackedListTailInset()
+      .stackedTabletCentered()
       .safeAreaPadding(.top, AppLayout.headerControlSize + 14)
       .overlay(alignment: .top) {
         HomeHeaderBar(
@@ -176,7 +177,7 @@ struct HomeView: View {
       navRow(icon: .navToday, label: "Hoje", count: store.todayPending, tab: .today)
       navRow(icon: .navUpcoming, label: "Em breve", count: store.upcomingCount, tab: .upcoming)
     } header: {
-      sectionHeader("VISÃO GERAL")
+      ListSectionHeader(text: "VISÃO GERAL")
     }
   }
 
@@ -207,7 +208,7 @@ struct HomeView: View {
         }
       }
     } header: {
-      sectionHeader("PROJETOS")
+      ListSectionHeader(text: "PROJETOS")
     }
   }
 
@@ -243,10 +244,5 @@ struct HomeView: View {
         .foregroundStyle(c.textTertiary.opacity(0.7))
     }
     .padding(.vertical, 10)
-  }
-
-  private func sectionHeader(_ text: String) -> some View {
-    Text(text).font(.system(size: 11, weight: .bold))
-      .foregroundStyle(theme.colors.textSecondary).tracking(0.8).textCase(nil)
   }
 }

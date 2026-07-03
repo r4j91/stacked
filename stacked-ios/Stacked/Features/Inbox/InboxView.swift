@@ -91,6 +91,7 @@ struct InboxView: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadInbox() }
     .task { await store.loadInbox() }

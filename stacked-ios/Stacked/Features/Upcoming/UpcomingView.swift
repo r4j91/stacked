@@ -78,7 +78,7 @@ struct UpcomingView: View {
               taskRow(task)
             }
           } header: {
-            sectionHeader(TaskMapper.dayLabel(for: group.day).uppercased())
+            ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
           }
         }
       }
@@ -93,6 +93,7 @@ struct UpcomingView: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.load() }
     .task { await store.load() }
@@ -175,14 +176,6 @@ struct UpcomingView: View {
     case .agenda:
       EmptyView()
     }
-  }
-
-  private func sectionHeader(_ text: String) -> some View {
-    Text(text)
-      .font(.system(size: 11, weight: .bold))
-      .foregroundStyle(theme.colors.textTertiary)
-      .tracking(0.6)
-      .textCase(nil)
   }
 
   private var rowInsets: EdgeInsets {

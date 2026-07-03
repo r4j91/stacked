@@ -22,4 +22,6 @@ enum AppTypography {
   static let fieldLabel: Font = .system(size: 13)
   static let fieldInput: Font = .system(size: 14)
   static let authLink: Font = .system(size: 13)
+  static let screenSubtitle: Font = .system(size: 12.5)
+  static let drillDownTitle: Font = .system(size: 22, weight: .heavy)
 }

@@ -104,9 +104,7 @@ struct SearchView: View {
                   .listRowBackground(Color.clear)
                 }
               } header: {
-                Text(group.title.uppercased())
-                  .font(.system(size: 11, weight: .bold))
-                  .foregroundStyle(c.textTertiary)
+                ListSectionHeader(text: group.title.uppercased())
               }
             }
           }
@@ -114,6 +112,7 @@ struct SearchView: View {
           .scrollContentBackground(.hidden)
         }
       }
+      .stackedTabletCentered()
       .background(c.background)
       .navigationTitle("Buscar")
       .navigationBarTitleDisplayMode(.inline)

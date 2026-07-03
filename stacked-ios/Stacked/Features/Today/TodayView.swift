@@ -50,7 +50,7 @@ struct TodayView: View {
               taskRow(task)
             }
           } header: {
-            sectionHeader("ATRASADAS")
+            ListSectionHeader(text: "ATRASADAS")
           }
         }
 
@@ -60,7 +60,7 @@ struct TodayView: View {
               taskRow(task)
             }
           } header: {
-            if !overdue.isEmpty { sectionHeader("HOJE") }
+            if !overdue.isEmpty { ListSectionHeader(text: "HOJE") }
           }
         }
 
@@ -105,6 +105,7 @@ struct TodayView: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadToday() }
     .task { await store.loadToday() }
@@ -129,14 +130,6 @@ struct TodayView: View {
 
   private var rowInsets: EdgeInsets {
     EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
-  }
-
-  private func sectionHeader(_ text: String) -> some View {
-    Text(text)
-      .font(.system(size: 11, weight: .bold))
-      .foregroundStyle(theme.colors.textTertiary)
-      .tracking(0.6)
-      .textCase(nil)
   }
 
   @ViewBuilder

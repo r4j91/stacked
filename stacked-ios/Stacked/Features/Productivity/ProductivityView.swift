@@ -30,15 +30,7 @@ struct ProductivityView: View {
           .font(.system(size: 20, weight: .heavy))
           .foregroundStyle(c.textPrimary)
         Spacer()
-        Button { dismiss() } label: {
-          Image(systemName: "xmark")
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(c.textTertiary)
-            .frame(width: 30, height: 30)
-            .background(c.surfaceVariant)
-            .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
+        ModalChrome.closeTextButton(dismiss: dismiss, accent: c.accent)
       }
       .padding(.horizontal, 16)
       .padding(.top, 8)

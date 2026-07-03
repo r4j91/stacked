@@ -12,25 +12,9 @@ struct TaskListScreenHeader: View {
   @State private var optionsAnchor: CGRect = .zero
 
   var body: some View {
-    let c = theme.colors
-
-    HStack(alignment: .top, spacing: 8) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(title)
-          .font(AppTypography.screenTitle)
-          .foregroundStyle(c.textPrimary)
-          .tracking(-0.5)
-        if let subtitle {
-          Text(subtitle)
-            .font(.system(size: 12.5))
-            .foregroundStyle(c.textSecondary)
-        }
-      }
-
-      Spacer(minLength: 0)
-
+    ScreenHeaderChrome(title: title, subtitle: subtitle) {
       Button(action: openOptionsMenu) {
-        StackedIcons.icon(.more, size: 20, color: c.textSecondary)
+        StackedIcons.icon(.more, size: 20, color: theme.colors.textSecondary)
           .frame(width: 44, height: 44)
           .contentShape(Rectangle())
       }
@@ -38,10 +22,6 @@ struct TaskListScreenHeader: View {
       .readAnchor($optionsAnchor)
       .accessibilityLabel("Opções")
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.horizontal, 20)
-    .padding(.top, 20)
-    .padding(.bottom, 8)
   }
 
   private func openOptionsMenu() {

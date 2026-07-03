@@ -34,6 +34,7 @@ struct FiltersView: View {
         .environment(ThemeManager.shared)
       }
     }
+    .stackedTabletCentered()
     .background(theme.colors.background.ignoresSafeArea(.all))
     .fullScreenCover(item: $detailRoute) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
@@ -127,6 +128,7 @@ struct FiltersView: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadDashboard() }
   }
@@ -238,31 +240,12 @@ struct FiltersView: View {
 
     return List {
       Section {
-        HStack(spacing: 12) {
-          Button {
-            HapticService.selection()
-            // SUBSTITUIDO_FASE2: withAnimation { store.backToDashboard() }
-            AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { store.backToDashboard() }
-          } label: {
-            Image(systemName: "chevron.left")
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.textSecondary)
-              .frame(width: 36, height: 36)
-              .background(c.surfaceVariant)
-              .clipShape(RoundedRectangle(cornerRadius: 10))
-          }
-          .buttonStyle(.plain)
-
-          VStack(alignment: .leading, spacing: 2) {
-            Text(kind.title)
-              .font(.system(size: 22, weight: .heavy))
-              .foregroundStyle(tint)
-            Text("\(store.filterTasks.count) \(store.filterTasks.count == 1 ? "tarefa" : "tarefas")")
-              .font(AppTypography.taskPreview)
-              .foregroundStyle(c.textSecondary)
-          }
-          Spacer()
-        }
+        FilterDrillDownHeader(
+          title: kind.title,
+          taskCount: store.filterTasks.count,
+          tint: tint,
+          onBack: { store.backToDashboard() }
+        )
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
@@ -305,6 +288,7 @@ struct FiltersView: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .background(c.background)
     .refreshable {
       await store.openFilter(kind)
@@ -422,13 +406,5 @@ struct FiltersView: View {
         Label("Excluir", systemImage: "trash")
       }
     }
-  }
-
-  private func sectionHeader(_ text: String) -> some View {
-    Text(text)
-      .font(.system(size: 11, weight: .bold))
-      .foregroundStyle(theme.colors.textSecondary)
-      .tracking(0.8)
-      .textCase(nil)
   }
 }
