@@ -60,19 +60,16 @@ struct ProductivityView: View {
 
   private var profileCard: some View {
     let c = theme.colors
+    let store = HomeStore.shared
     let email = client.auth.currentUser?.email ?? ""
     let name = displayName.isEmpty ? (email.split(separator: "@").first.map(String.init) ?? "") : displayName
-    let initials = String(name.prefix(2)).uppercased()
 
     return HStack(spacing: 14) {
-      ZStack {
-        Circle()
-          .fill(c.accent.opacity(0.15))
-          .frame(width: 48, height: 48)
-        Text(initials.isEmpty ? "?" : initials)
-          .font(.system(size: 16, weight: .bold))
-          .foregroundStyle(c.accent)
-      }
+      UserAvatarView(
+        url: store.avatarURL,
+        initials: store.avatarInitials,
+        size: 48
+      )
 
       VStack(alignment: .leading, spacing: 2) {
         Text(name.isEmpty ? "Conta" : name)

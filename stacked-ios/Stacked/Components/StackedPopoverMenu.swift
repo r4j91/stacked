@@ -39,22 +39,23 @@ struct StackedPopoverOverlay: View {
 
   var body: some View {
     ZStack {
+      // Scrim no valor final — sem fade-in (só scale+opacity do card animam).
       Color.black.opacity(PopoverStyle.scrimOpacity * (isPresented ? 1 : 0))
+        .animation(.none, value: isPresented)
         .ignoresSafeArea()
         .contentShape(Rectangle())
         .onTapGesture { dismiss(nil) }
-        .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: isPresented)
+      // SUBSTITUIDO_POPOVER_E1: .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: isPresented)
 
-      menuCard
+      popoverCardLayer
         .position(x: clampedPosition.x, y: clampedPosition.y)
-        .scaleEffect(isPresented ? 1 : PopoverStyle.scaleBegin, anchor: scaleAnchor)
-        .opacity(isPresented ? 1 : 0)
-        .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: isPresented)
+      // SUBSTITUIDO_POPOVER_E2: menuCard inteiro (glass+shadow+conteúdo) recebia scale+opacity.
     }
     .onAppear {
       pageStack = [PopoverMenuPage(title: nil, items: rootItems)]
       toggleSelections = Set(rootItems.filter(\.selected).map(\.id))
-      AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = true }
+      // SUBSTITUIDO_POPOVER_E1: AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = true }
+      AppMotion.animate(AppMotion.popoverPresentSpring, reduceMotion: reduceMotion) { isPresented = true }
     }
   }
 
@@ -128,10 +129,43 @@ struct StackedPopoverOverlay: View {
     return CGPoint(x: left + w / 2, y: top + h / 2)
   }
 
+  // SUBSTITUIDO_POPOVER_E2: glass+stroke+shadow animavam no mesmo layer que scale+opacity.
+  // cardContent.background(c.surface) / LiquidGlass.popoverCard { cardContent } recebiam scaleEffect.
+
+  private var popoverCardLayer: some View {
+    let h = menuHeight
+    return ZStack {
+      menuCardChrome
+        .frame(width: PopoverStyle.menuWidth, height: h)
+        .opacity(isPresented ? 1 : 0)
+        .animation(.none, value: isPresented)
+
+      menuCardContent
+        .frame(width: PopoverStyle.menuWidth, height: h, alignment: .top)
+        .scaleEffect(isPresented ? 1 : PopoverStyle.scaleBegin, anchor: scaleAnchor)
+        .opacity(isPresented ? 1 : 0)
+    }
+    .compositingGroup()
+  }
+
   @ViewBuilder
-  private var menuCard: some View {
+  private var menuCardChrome: some View {
     let c = theme.colors
-    let cardContent = VStack(spacing: 0) {
+    let shape = RoundedRectangle(cornerRadius: PopoverStyle.radius, style: .continuous)
+    if opaqueSurface {
+      shape
+        .fill(c.surface)
+        .overlay {
+          shape.stroke(c.textTertiary.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
+        }
+    } else {
+      LiquidGlass.popoverCardChrome(navBarColor: c.navBar)
+    }
+  }
+
+  private var menuCardContent: some View {
+    let c = theme.colors
+    return VStack(spacing: 0) {
         if pageStack.count > 1 {
           HStack(spacing: 8) {
             Button { navigateBack() } label: {
@@ -181,7 +215,7 @@ struct StackedPopoverOverlay: View {
               }
               .padding(.horizontal, 14)
               .frame(height: PopoverStyle.itemHeight)
-              .background(isSelected && !allowsToggle ? c.accent.opacity(0.1) : Color.clear)
+              .background(rowSelectionBackground(isSelected: isSelected, item: item))
               .contentShape(Rectangle())
             }
             .buttonStyle(PopoverRowButtonStyle())
@@ -189,21 +223,19 @@ struct StackedPopoverOverlay: View {
         }
       }
       .frame(width: PopoverStyle.menuWidth)
+      .clipShape(RoundedRectangle(cornerRadius: PopoverStyle.radius, style: .continuous))
+      .id(pageStack.count)
+      .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
+  }
 
-    if opaqueSurface {
-      cardContent
-        .background(c.surface, in: RoundedRectangle(cornerRadius: PopoverStyle.radius))
-        .overlay {
-          RoundedRectangle(cornerRadius: PopoverStyle.radius)
-            .stroke(c.textTertiary.opacity(0.12), lineWidth: 0.5)
-        }
-        .id(pageStack.count)
-        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
-    } else {
-      LiquidGlass.popoverCard(navBarColor: c.navBar) { cardContent }
-        .id(pageStack.count)
-        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
+  /// Fundo da linha selecionada — paridade anchored_select_menu.dart (single + multi).
+  private func rowSelectionBackground(isSelected: Bool, item: PopoverMenuItem) -> Color {
+    guard isSelected else { return .clear }
+    let c = theme.colors
+    if allowsToggle {
+      return (item.iconColor ?? c.accent).opacity(0.12)
     }
+    return c.accent.opacity(0.14)
   }
 
   private func tap(_ item: PopoverMenuItem) async {
@@ -260,7 +292,8 @@ struct StackedPopoverOverlay: View {
       onDismiss(value)
       return
     }
-    AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = false }
+    // SUBSTITUIDO_POPOVER_E1: AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = false }
+    AppMotion.animate(AppMotion.popoverDismissSpring, reduceMotion: reduceMotion) { isPresented = false }
     DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
       onDismiss(value)
     }

@@ -39,6 +39,19 @@ enum LiquidGlass {
     )
   }
 
+  /// Chrome estático do popover (glass + stroke + shadow) — sem conteúdo; E2 animação.
+  @ViewBuilder
+  static func popoverCardChrome(
+    navBarColor: Color,
+    cornerRadius: CGFloat = PopoverStyle.radius
+  ) -> some View {
+    PopoverCardSurface(navBarColor: navBarColor, cornerRadius: cornerRadius) {
+      Color.clear
+    }
+  }
+
+  // SUBSTITUIDO_POPOVER_E2: glass+stroke+shadow animavam junto com scale no card inteiro.
+
   @ViewBuilder
   static func headerPill<Content: View>(
     navBarColor: Color,

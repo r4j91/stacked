@@ -35,10 +35,22 @@ enum AppMotion {
     .interpolatingSpring(stiffness: 600, damping: 32)
   }
 
-  /// Popover: entrada/saída — smooth curto (~150ms perceptual).
+  /// Popover: navegação interna (sub-páginas) — smooth curto.
   static var popoverSpring: Animation {
     .smooth(duration: 0.22)
   }
+
+  /// Popover metadata — abertura com spring físico (ProMotion / 120Hz).
+  static var popoverPresentSpring: Animation {
+    .spring(response: 0.28, dampingFraction: 0.82)
+  }
+
+  /// Popover metadata — fechamento seco, sem bounce.
+  static var popoverDismissSpring: Animation {
+    .spring(response: 0.2, dampingFraction: 1.0)
+  }
+
+  // SUBSTITUIDO_POPOVER_E1: popoverPresent/Dismiss usavam snappy (0.22, bounce 0) para abrir e fechar.
 
   /// Navbar: bounce no ícone ao selecionar — paridade Flutter AppDurations.medium (~240ms).
   static var iconBounceSpring: Animation {
@@ -60,8 +72,8 @@ enum AppMotion {
     .snappy(duration: 0.12, extraBounce: 0)
   }
 
-  static let popoverPresentDuration: TimeInterval = 0.16
-  static let popoverDismissDuration: TimeInterval = 0.12
+  static let popoverPresentDuration: TimeInterval = 0.28
+  static let popoverDismissDuration: TimeInterval = 0.18
 
   /// Permanência do check preenchido antes da saída da célula (Fase 3B).
   static let taskCompleteDwell: Duration = .milliseconds(300)
@@ -90,6 +102,14 @@ enum AppMotion {
 
   static func popover(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : popoverSpring
+  }
+
+  static func popoverPresent(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : popoverPresentSpring
+  }
+
+  static func popoverDismiss(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : popoverDismissSpring
   }
 
   static func iconBounce(reduceMotion: Bool) -> Animation? {

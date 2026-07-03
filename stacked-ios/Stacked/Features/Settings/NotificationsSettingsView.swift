@@ -35,35 +35,30 @@ struct NotificationsSettingsView: View {
           Section {
             SettingsCardSurface {
               VStack(spacing: 0) {
-                Toggle(isOn: Binding(
-                  get: { enabled },
-                  set: { newValue in _Concurrency.Task { await toggleEnabled(newValue) } }
-                )) {
-                  settingsLabel(icon: "bell", title: "Ativar notificações")
-                }
-                .tint(c.accent)
-                .padding(.horizontal, SettingsChrome.rowPaddingH)
-                .padding(.vertical, SettingsChrome.rowPaddingV)
+                notificationToggleRow(
+                  isOn: Binding(
+                    get: { enabled },
+                    set: { newValue in _Concurrency.Task { await toggleEnabled(newValue) } }
+                  ),
+                  icon: "bell",
+                  title: "Ativar notificações"
+                )
 
                 if enabled {
                   SettingsCardDivider(leadingPadding: 14)
-                  Toggle(isOn: Binding(
-                    get: { dailySummary },
-                    set: { newValue in
-                      NotificationPreferences.dailySummary = newValue
-                      dailySummary = newValue
-                      HapticService.selection()
-                    }
-                  )) {
-                    settingsLabel(
-                      icon: "sun.max",
-                      title: "Resumo diário",
-                      subtitle: "Resumo das tarefas do dia às 8h da manhã"
-                    )
-                  }
-                  .tint(c.accent)
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.vertical, SettingsChrome.rowPaddingV)
+                  notificationToggleRow(
+                    isOn: Binding(
+                      get: { dailySummary },
+                      set: { newValue in
+                        NotificationPreferences.dailySummary = newValue
+                        dailySummary = newValue
+                        HapticService.selection()
+                      }
+                    ),
+                    icon: "sun.max",
+                    title: "Resumo diário",
+                    subtitle: "Resumo das tarefas do dia às 8h da manhã"
+                  )
                 }
               }
             }
@@ -89,6 +84,21 @@ struct NotificationsSettingsView: View {
     .navigationTitle("Notificações")
     .navigationBarTitleDisplayMode(.inline)
     .task { await load() }
+  }
+
+  private func notificationToggleRow(
+    isOn: Binding<Bool>,
+    icon: String,
+    title: String,
+    subtitle: String? = nil
+  ) -> some View {
+    HStack(spacing: 12) {
+      settingsLabel(icon: icon, title: title, subtitle: subtitle)
+      Spacer(minLength: 8)
+      StackedSwitchControl(isOn: isOn, colors: theme.colors)
+    }
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
   }
 
   private func settingsLabel(icon: String, title: String, subtitle: String? = nil) -> some View {
