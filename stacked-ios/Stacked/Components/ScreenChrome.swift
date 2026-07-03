@@ -140,12 +140,8 @@ struct SettingsCardSurface<Content: View>: View {
   var body: some View {
     let c = theme.colors
     content()
-      .background(c.surface)
+      .background(c.surfaceVariant)
       .clipShape(RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius))
-      .overlay(
-        RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius)
-          .stroke(c.textPrimary.opacity(0.06), lineWidth: 0.5)
-      )
   }
 }
 
@@ -155,7 +151,7 @@ struct SettingsCardDivider: View {
 
   var body: some View {
     Divider()
-      .overlay(theme.colors.textTertiary.opacity(0.12))
+      .overlay(theme.colors.surface)
       .padding(.leading, leadingPadding)
   }
 }
@@ -174,21 +170,21 @@ private struct SettingsGroupedRowBackground: View {
     let r = SettingsChrome.cardCornerRadius
     switch position {
     case .only:
-      RoundedRectangle(cornerRadius: r).fill(c.surface)
+      RoundedRectangle(cornerRadius: r).fill(c.surfaceVariant)
     case .first:
       UnevenRoundedRectangle(
         topLeadingRadius: r, bottomLeadingRadius: 0,
         bottomTrailingRadius: 0, topTrailingRadius: r
       )
-      .fill(c.surface)
+      .fill(c.surfaceVariant)
     case .middle:
-      Rectangle().fill(c.surface)
+      Rectangle().fill(c.surfaceVariant)
     case .last:
       UnevenRoundedRectangle(
         topLeadingRadius: 0, bottomLeadingRadius: r,
         bottomTrailingRadius: r, topTrailingRadius: 0
       )
-      .fill(c.surface)
+      .fill(c.surfaceVariant)
     }
   }
 }
