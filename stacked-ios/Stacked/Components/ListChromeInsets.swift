@@ -28,11 +28,20 @@ struct ListTailSpacer: View {
 }
 
 extension View {
+  /// iOS 26 — remove fade/blur tardio nas bordas do scroll (`.soft` padrão do sistema).
+  /// `.hard` = corte limpo no topo e na base (dock customizado, sem fade atrasado).
+  func stackedScrollEdgeChrome() -> some View {
+    self
+      .scrollEdgeEffectStyle(.hard, for: .top)
+      .scrollEdgeEffectStyle(.hard, for: .bottom)
+  }
+
   /// Padding inferior para listas — paridade bottomListInset (sem duplicar ListTailSpacer).
   func stackedListTailInset() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
+    .stackedScrollEdgeChrome()
   }
 }

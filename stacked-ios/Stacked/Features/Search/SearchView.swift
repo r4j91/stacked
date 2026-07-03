@@ -150,6 +150,7 @@ struct SearchView: View {
           }
           .listStyle(.plain)
           .scrollContentBackground(.hidden)
+          .stackedScrollEdgeChrome()
         }
       }
       .stackedTabletCentered()

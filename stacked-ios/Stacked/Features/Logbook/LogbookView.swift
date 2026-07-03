@@ -39,6 +39,7 @@ struct LogbookView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .stackedScrollEdgeChrome()
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

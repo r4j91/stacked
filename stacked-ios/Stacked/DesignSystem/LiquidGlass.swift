@@ -173,6 +173,7 @@ private struct PopoverCardSurface<Content: View>: View {
 }
 
 private struct FabGlassSurface<Content: View>: View {
+  @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
   let tintColor: Color
@@ -189,13 +190,17 @@ private struct FabGlassSurface<Content: View>: View {
     self.content = content()
   }
 
+  private var subtleBorder: Color {
+    theme.colors.textPrimary.opacity(0.08)
+  }
+
   var body: some View {
     if reduceTransparency {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Circle().fill(solidFallback))
         .clipShape(Circle())
-        .overlay(Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8))
+        .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -208,9 +213,9 @@ private struct FabGlassSurface<Content: View>: View {
             )
             .allowsHitTesting(false)
         }
+        .compositingGroup()
         .clipShape(Circle())
-        .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.75))
-        .shadow(color: tintColor.opacity(0.22), radius: 10, y: 3)
+        .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     }
   }
 }
