@@ -30,19 +30,10 @@ enum LiquidGlass {
     cornerRadius: CGFloat = PopoverStyle.radius,
     @ViewBuilder content: () -> Content
   ) -> some View {
-    GlassSurface(
+    PopoverCardSurface(
       navBarColor: navBarColor,
-      shape: RoundedRectangle(cornerRadius: cornerRadius),
+      cornerRadius: cornerRadius,
       content: content
-    )
-    .overlay {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
-    }
-    .shadow(
-      color: .black.opacity(PopoverStyle.cardShadowOpacity),
-      radius: PopoverStyle.cardShadowRadius,
-      y: PopoverStyle.cardShadowY
     )
   }
 
@@ -127,6 +118,41 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
         }
         .clipShape(shape)
     }
+  }
+}
+
+private struct PopoverCardSurface<Content: View>: View {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  let navBarColor: Color
+  let cornerRadius: CGFloat
+  let content: Content
+
+  init(
+    navBarColor: Color,
+    cornerRadius: CGFloat,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.navBarColor = navBarColor
+    self.cornerRadius = cornerRadius
+    self.content = content()
+  }
+
+  var body: some View {
+    GlassSurface(
+      navBarColor: navBarColor,
+      shape: RoundedRectangle(cornerRadius: cornerRadius),
+      content: { content }
+    )
+    .overlay {
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
+    }
+    .shadow(
+      color: .black.opacity(reduceTransparency ? 0 : PopoverStyle.cardShadowOpacity),
+      radius: reduceTransparency ? 0 : PopoverStyle.cardShadowRadius,
+      y: reduceTransparency ? 0 : PopoverStyle.cardShadowY
+    )
   }
 }
 

@@ -1,12 +1,95 @@
 # AUDITORIA_FLUIDEZ — Stacked iOS
 
-**Data:** 30 jun 2026  
-**Escopo:** `stacked-ios/` (Passo 0 — read-only)  
+**Auditoria inicial:** 30 jun 2026  
+**Atualização pós-fases:** 3 jul 2026 (Fases A–H concluídas)  
+**Escopo:** `stacked-ios/`  
 **Skills aplicadas:** `impeccable` (motion, interaction, reduced-motion), `ui-ux-pro-max` (§3 Performance, §7 Animation, §9 Navigation)
 
 ---
 
-## Resumo executivo
+## Status pós-implementação (Jul 2026)
+
+Ciclo de polish **Impeccable iOS** concluído em 8 fases (A–H). Resumo do que mudou em relação à auditoria inicial:
+
+| Fase | Entrega | Status |
+|------|---------|--------|
+| **A** | Tema Slate default + `onAccent` | ✅ |
+| **B** | `AppTypography`, `PrimaryButton`, Auth Slate | ✅ |
+| **C** | `ScreenChrome`, headers, section labels, tablet centering | ✅ |
+| **D** | Navbar spring Todoist (`navMorphSpring` 600/32) | ✅ |
+| **E** | `TaskCompletionMotion`, subtarefas `SubtaskExpandReveal`, Quick Add focus | ✅ |
+| **F** | Context menu Search/Logbook/ProjectDetail completed | ✅ |
+| **G** | Settings cards `surfaceVariant`, tipografia, popover leve | ✅ |
+| **H** | A11y popover shadow + checklist QA (este doc) | ✅ |
+
+### Top 10 ofensores — status atual
+
+| # | Ofensor (Jun 2026) | Status Jul 2026 |
+|---|-------------------|-----------------|
+| 1 | Glass empilhado Material+fill | ✅ **Resolvido** — `GlassSurface` usa só `.glassEffect` + tint 12%; fallback sólido com reduce transparency |
+| 2 | Completar tarefa sem animação | ✅ **Resolvido** — `TaskCompletionMotion.afterDwell` + `taskCompleteRemovalTransition` |
+| 3 | Subtarefas `maxHeight` layout | ✅ **Resolvido** — `SubtaskExpandReveal` (UIKit height anim) |
+| 4 | Press states ausentes | 🟡 **Parcial** — `PressableStyle` em checkbox/nav/header; tap area da row sem press (removido `PressableTapArea` — bloqueava gestos) |
+| 5 | `DoneCircle` sem spring | ✅ **Resolvido** — spring scale + fill com reduce motion |
+| 6 | Quick Add overlay custom | 🟡 **Parcial** — sheet nativo; layout mantido |
+| 7 | `easeOut` espalhados | ✅ **Resolvido** — migrados para `AppMotion` snappy/smooth/bouncy |
+| 8 | Sombras pesadas glass | ✅ **Resolvido** — navbar sem shadow; popover r6 (desligada com reduce transparency) |
+| 9 | Hápticos com sleep | 🟡 **Aberto** — sequências FAB/complete mantidas; sync visual ok pós-Fase E |
+| 10 | Reduce motion/transparency | ✅ **Resolvido** — `AppMotion.animate`, `GlassSurface`, `BottomNavPill`, popover |
+
+### Pendências conscientes (fora deste ciclo)
+
+- Morph líquido `glassEffectID` na navbar (regressão Fase 6 — **não retomar**)
+- Swipe custom interactive spring (esforço alto; manter `.swipeActions` nativo)
+- Long-press preview lift durante hold (removido por conflito com swipe; menu funciona)
+- Press feedback na área de texto da `TaskRow` sem bloquear swipe/long-press
+
+---
+
+## Checklist QA — Release no device
+
+Validar em **Release** (`Product → Scheme → Edit Scheme → Run → Release`) no iPhone físico com ProMotion:
+
+### Fluidez (120Hz)
+
+- [ ] Scroll contínuo **Hoje** e **Inbox** — sem stutter perceptível
+- [ ] Concluir tarefa (checkbox) — dwell ~300ms + saída suave da célula
+- [ ] Concluir via swipe — mesma animação de saída
+- [ ] Trocar abas navbar — blob desliza com spring; ícone bounce
+- [ ] Abrir/fechar popover (long-press) — scale+opacity spring; sem sombra pesada
+
+### Gestos
+
+- [ ] Long-press tarefa → menu (sem abrir TaskDetail)
+- [ ] Tap curto → TaskDetail
+- [ ] Swipe Concluir/Adiar/Excluir em Hoje, Inbox, Projeto, Buscar, Registro
+
+### Configurações
+
+- [ ] Cards `surfaceVariant` — sem cinza do sistema
+- [ ] Navegação: Notificações, Aparência, Etiquetas, Registro → destinos corretos
+- [ ] Avatar no card de perfil e em Perfil
+- [ ] Sair da conta — botão vermelho outline, separado
+
+### Acessibilidade
+
+#### Reduce Motion (Ajustes → Acessibilidade → Movimento → Reduzir movimento)
+
+- [ ] Conclusão de tarefa — remoção instantânea (sem dwell animado)
+- [ ] Navbar — troca de aba sem bounce/spring
+- [ ] Popover — aparece/desaparece sem scale
+- [ ] Subtarefas expand — sem animação de altura (ou instantâneo)
+
+#### Reduce Transparency (Ajustes → Acessibilidade → Tela e tamanho de texto → Reduzir transparência)
+
+- [ ] Navbar — pill **sólida** (sem glass)
+- [ ] Header Home (avatar/sino) — pills sólidas
+- [ ] Popover — card sólido, **sem sombra**
+- [ ] Toolbar projeto — pills sólidas
+
+---
+
+## Resumo executivo (auditoria original — Jun 2026)
 
 O projeto **não é UIKit** como o brief assume: é **100% SwiftUI** para UI (único `UIKit` explícito: `HapticService`). Não há `UIView.animate`, `UIVisualEffectView`, `UIGlassEffect` ou `UIGlassContainerEffect` em código próprio. O “liquid glass” atual é uma **simulação Flutter** em `LiquidGlass.swift`: empilha tinta sólida + `Material` + (no iOS 26) `.glassEffect()`, o que **mata a aparência nativa** e viola a diretriz Apple de não empilhar glass sobre glass.
 
@@ -337,11 +420,17 @@ Ordenados para máximo ganho sensorial com menor risco:
 
 ---
 
-## Próximo passo
+## Próximo passo (pós Fase H)
 
-**Aguardando sua aprovação** deste relatório antes de iniciar a Fase 1.
+Ciclo Impeccable iOS **encerrado**. Próximas ações opcionais:
 
-Sugestões para validação rápida:
-1. Confirmar se o alvo de glass é **só SwiftUI `.glassEffect`** ou se quer bridge UIKit `UIGlassEffect` na navbar.  
-2. Confirmar se Quick Add deve migrar para `.sheet` nativo (mesmo layout, material diferente) ou manter overlay.  
-3. Após aprovação: **commit git** antes de qualquer código da Fase 1 (conforme suas regras).
+1. QA manual no device com checklist acima (Release build)
+2. TestFlight / cutover Flutter — ver `PARITY.md`
+3. Itens **Pendências conscientes** se quiser nova iteração
+
+~~**Aguardando sua aprovação** deste relatório antes de iniciar a Fase 1.~~
+
+~~Sugestões para validação rápida:~~
+~~1. Confirmar se o alvo de glass é **só SwiftUI `.glassEffect`** ou se quer bridge UIKit `UIGlassEffect` na navbar.~~
+~~2. Confirmar se Quick Add deve migrar para `.sheet` nativo (mesmo layout, material diferente) ou manter overlay.~~
+~~3. Após aprovação: **commit git** antes de qualquer código da Fase 1 (conforme suas regras).~~
