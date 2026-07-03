@@ -25,10 +25,22 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var sheetHeight: CGFloat = 120
+  @State private var sheetHeight: CGFloat = 105
 
-  private let iconCircleSize: CGFloat = 38
-  private let sendCircleSize: CGFloat = 40
+  private let iconCircleSize: CGFloat = 44
+  private let metadataIconSize: CGFloat = 23
+  private let sendCircleSize: CGFloat = 44
+  private let actionRowTopInset: CGFloat = 6
+  private let actionRowBottomInset: CGFloat = 2
+  /// Altura fixa do bloco (evita GeometryReader inflar o detent dentro do .sheet).
+  private var quickAddBlockHeight: CGFloat {
+    let grabber: CGFloat = 6 + 4 + 18 // top 6 + capsule 4 + bottom 18 (espaço até título)
+    let titleBlock: CGFloat = 22 + 6
+    let divider: CGFloat = 1
+    let actionRow: CGFloat = actionRowTopInset + iconCircleSize + actionRowBottomInset
+    let errorBlock: CGFloat = error == nil ? 0 : 22
+    return grabber + titleBlock + divider + actionRow + errorBlock
+  }
 
   init(
     initialProjectId: String? = nil,
@@ -44,16 +56,19 @@ struct QuickAddTaskView: View {
 
   var body: some View {
     sheetContent
-      .frame(maxWidth: .infinity, alignment: .top)
+      .frame(maxWidth: .infinity)
       .background(panelSurface)
-      .reportSheetHeight($sheetHeight)
-      .presentationDetents([.height(sheetHeight)])
-      .presentationDragIndicator(.visible)
-      .presentationBackground {
-        panelSurface.ignoresSafeArea(edges: .bottom)
+      .onChange(of: quickAddBlockHeight) { _, h in
+        sheetHeight = h
       }
+      .onAppear {
+        sheetHeight = quickAddBlockHeight
+      }
+      .presentationDetents([.height(sheetHeight)])
+      .presentationDragIndicator(.hidden)
+      .presentationBackground { panelSurface }
       .presentationBackgroundInteraction(.enabled(upThrough: .height(sheetHeight)))
-      // SUBSTITUIDO_FASE8A: overlay local no sheet (coords de tela via ScreenBoundsReader).
+      // SUBSTITUIDO_FASE8A: overlay local + coordinate space do sheet (âncora acima de cada botão).
       .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .quickAddSheet)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
@@ -87,6 +102,12 @@ struct QuickAddTaskView: View {
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
     return VStack(spacing: 0) {
+      Capsule()
+        .fill(c.textTertiary.opacity(0.35))
+        .frame(width: 36, height: 4)
+        .padding(.top, 6)
+        .padding(.bottom, 18)
+
       TextField("Nome da tarefa", text: $title)
         .font(.title3.weight(.semibold))
         .foregroundStyle(c.textPrimary)
@@ -94,8 +115,8 @@ struct QuickAddTaskView: View {
         .focused($titleFocused)
         .submitLabel(.done)
         .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
+        .padding(.top, 0)
+        .padding(.bottom, 6)
         .onSubmit {
           if hasTitle { _Concurrency.Task { await save() } }
         }
@@ -118,6 +139,7 @@ struct QuickAddTaskView: View {
           active: dueDate != nil,
           activeColor: datePillColor
         ) { _ in
+          titleFocused = false
           showDatePicker = true
         }
 
@@ -138,22 +160,22 @@ struct QuickAddTaskView: View {
         sendButton(hasTitle: hasTitle)
       }
       .padding(.horizontal, 12)
-      .padding(.vertical, 8)
+      .padding(.top, actionRowTopInset)
+      .padding(.bottom, actionRowBottomInset)
 
       if let error {
         Text(error)
           .font(.system(size: 12))
           .foregroundStyle(AppColors.priorityHigh)
           .padding(.horizontal, 14)
-          .padding(.bottom, 6)
+          .padding(.top, 2)
+          .padding(.bottom, 2)
       }
     }
   }
 
   private var panelSurface: Color {
-    theme.colors.isDark
-      ? Color(hex: 0x1B1D23)
-      : Color(uiColor: .secondarySystemGroupedBackground)
+    theme.colors.surface
   }
 
   private var hairlineColor: Color {
@@ -170,9 +192,13 @@ struct QuickAddTaskView: View {
     let iconColor = active ? activeColor : c.textSecondary
 
     return AnchoredTapButton(action: action) {
-      StackedIcons.icon(icon, size: 20, color: iconColor)
+      StackedIcons.icon(icon, size: metadataIconSize, color: iconColor)
         .frame(width: iconCircleSize, height: iconCircleSize)
-        .background(active ? activeColor.opacity(0.15) : Color.clear)
+        .background(
+          active
+            ? activeColor.opacity(0.15)
+            : c.surfaceVariant.opacity(0.45)
+        )
         .clipShape(Circle())
     }
     .accessibilityLabel(accessibilityLabel(for: icon))
@@ -198,9 +224,9 @@ struct QuickAddTaskView: View {
       showProjectMenu(anchor: rect)
     } label: {
       HStack(spacing: 6) {
-        StackedIcons.icon(.navInbox, size: 16, color: active ? dot : c.textSecondary)
+        StackedIcons.icon(.navInbox, size: 17, color: active ? dot : c.textSecondary)
         Text(name)
-          .font(.system(size: 14, weight: .medium))
+          .font(.system(size: 14.5, weight: .medium))
           .foregroundStyle(active ? dot : c.textSecondary)
           .lineLimit(1)
       }
@@ -223,7 +249,7 @@ struct QuickAddTaskView: View {
         } else {
           StackedIcons.icon(
             .arrowUp,
-            size: 18,
+            size: 19,
             color: hasTitle ? c.background : c.textSecondary
           )
         }
@@ -389,17 +415,13 @@ struct QuickAddTaskView: View {
     allowsToggle: Bool = false,
     onSelect: @escaping (String?) -> Void
   ) {
-    titleFocused = false
-    let rect = anchor
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-      presentAnchoredPopover(
-        anchorRect: rect,
-        items: items,
-        allowsToggle: allowsToggle,
-        preferAbove: true,
-        onSelect: onSelect
-      )
-    }
+    presentAnchoredPopover(
+      anchorRect: anchor,
+      items: items,
+      allowsToggle: allowsToggle,
+      preferAbove: true,
+      onSelect: onSelect
+    )
   }
 
   private func loadPickers() async {

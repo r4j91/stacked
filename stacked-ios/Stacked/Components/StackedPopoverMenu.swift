@@ -24,6 +24,8 @@ struct StackedPopoverOverlay: View {
   var anchorYOffset: CGFloat = 0
   /// Host de sheet: força abertura acima da âncora (teclado ocupa tudo abaixo).
   var forcePreferAbove: Bool = false
+  /// Fundo sólido (Quick Add) — evita bandas do glass sobre scrim + painel.
+  var opaqueSurface: Bool = false
   var preferAbove = false
   let rootItems: [PopoverMenuItem]
   let allowsToggle: Bool
@@ -71,6 +73,11 @@ struct StackedPopoverOverlay: View {
     hostBounds.width > 1 ? hostBounds.size : UIScreen.main.bounds.size
   }
 
+  /// Quick Add: âncora e host no mesmo espaço local do sheet — não aplicar clamp de teclado em coords de tela.
+  private var usesLocalHostCoordinates: Bool {
+    forcePreferAbove && hostBounds.height > 1 && hostBounds.height < ScreenMetrics.bounds.height * 0.45
+  }
+
   private var showsAbove: Bool {
     if forcePreferAbove { return true }
     let anchor = localAnchorRect
@@ -92,7 +99,7 @@ struct StackedPopoverOverlay: View {
     let header: CGFloat = pageStack.count > 1 ? 49 : 0
     let loading: CGFloat = currentPage.loading ? 52 : 0
     let rows = currentPage.loading ? 0 : CGFloat(currentPage.items.count) * PopoverStyle.itemHeight
-    return header + loading + rows + 16
+    return header + loading + rows
   }
 
   private var clampedPosition: CGPoint {
@@ -102,15 +109,15 @@ struct StackedPopoverOverlay: View {
     let h = menuHeight
     let keyboardTop = screen.height - keyboardHeight
 
-    var left = anchor.minX
+    var left = anchor.midX - w / 2
     left = min(max(8, left), screen.width - w - 8)
 
     let top: CGFloat
     if showsAbove {
-      var proposed = anchor.minY - h - 8
+      var proposed = anchor.minY - h - 6
       proposed = max(proposed, topInset)
-      if keyboardHeight > 0 {
-        proposed = min(proposed, keyboardTop - h - 8)
+      if keyboardHeight > 0, !usesLocalHostCoordinates {
+        proposed = min(proposed, keyboardTop - h - 6)
         proposed = max(proposed, topInset)
       }
       top = proposed
@@ -121,10 +128,10 @@ struct StackedPopoverOverlay: View {
     return CGPoint(x: left + w / 2, y: top + h / 2)
   }
 
+  @ViewBuilder
   private var menuCard: some View {
     let c = theme.colors
-    return LiquidGlass.popoverCard(navBarColor: c.navBar) {
-      VStack(spacing: 0) {
+    let cardContent = VStack(spacing: 0) {
         if pageStack.count > 1 {
           HStack(spacing: 8) {
             Button { navigateBack() } label: {
@@ -181,10 +188,21 @@ struct StackedPopoverOverlay: View {
         }
       }
       .frame(width: PopoverStyle.menuWidth)
+
+    if opaqueSurface {
+      cardContent
+        .background(c.surface, in: RoundedRectangle(cornerRadius: PopoverStyle.radius))
+        .overlay {
+          RoundedRectangle(cornerRadius: PopoverStyle.radius)
+            .stroke(c.textTertiary.opacity(0.12), lineWidth: 0.5)
+        }
+        .id(pageStack.count)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
+    } else {
+      LiquidGlass.popoverCard(navBarColor: c.navBar) { cardContent }
+        .id(pageStack.count)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
     }
-    // SUBSTITUIDO_FASE1: .shadow(color: .black.opacity(0.22), radius: 20, y: 8)
-    .id(pageStack.count)
-    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
   }
 
   private func tap(_ item: PopoverMenuItem) async {
@@ -270,23 +288,19 @@ private struct AnchorKey: PreferenceKey {
   static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
 }
 
-/// Botão que passa o frame da âncora no toque (GeometryReader síncrono no overlay).
+/// Botão que passa o frame da âncora no toque.
 struct AnchoredTapButton<Label: View>: View {
   let action: (CGRect) -> Void
   @ViewBuilder let label: () -> Label
 
   @Environment(\.popoverAnchorSpaceName) private var anchorSpaceName
-  @State private var screenRect: CGRect = .zero
 
   var body: some View {
-    Group {
-      if anchorSpaceName != nil {
-        localAnchorButton
-      } else {
-        screenAnchorButton
-      }
+    if anchorSpaceName != nil {
+      localAnchorButton
+    } else {
+      screenAnchorButton
     }
-    .buttonStyle(PressableStyle(cornerRadius: 22))
   }
 
   private var localAnchorButton: some View {
@@ -301,20 +315,16 @@ struct AnchoredTapButton<Label: View>: View {
           .buttonStyle(.plain)
         }
       }
+      .buttonStyle(PressableStyle(cornerRadius: 22))
   }
 
-  // SUBSTITUIDO_FASE8A: .global dentro de .sheet não é tela — usar ScreenBoundsReader.
+  // SUBSTITUIDO_FASE8A: captura frame de tela no toque via UIKit (confiável no .sheet).
   private var screenAnchorButton: some View {
     label()
-      .background(ScreenBoundsReader(rect: $screenRect))
       .overlay {
-        Button {
-          action(screenRect)
-        } label: {
-          Color.clear.contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        ScreenAnchorTapOverlay(onTap: action)
       }
+      .buttonStyle(PressableStyle(cornerRadius: 22))
   }
 }
 

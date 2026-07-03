@@ -22,7 +22,7 @@ extension View {
 private struct SheetHeightKey: PreferenceKey {
   static var defaultValue: CGFloat = 280
   static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-    value = max(value, nextValue())
+    value = nextValue()
   }
 }
 

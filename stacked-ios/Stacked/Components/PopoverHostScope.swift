@@ -68,13 +68,8 @@ struct PopoverHostScope: ViewModifier {
       case .quickAddSheet:
         content
           .environment(\.popoverAnchorSpaceName, nil)
-          .overlay {
-            PopoverOverlayHost(
-              presenter: presenter,
-              hostBounds: ScreenMetrics.bounds,
-              forcePreferAbove: true
-            )
-            .ignoresSafeArea()
+          .background {
+            QuickAddWindowPopoverHost(presenter: presenter)
           }
       }
     }

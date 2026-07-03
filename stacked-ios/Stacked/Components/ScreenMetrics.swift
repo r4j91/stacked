@@ -15,7 +15,42 @@ enum ScreenMetrics {
   }
 }
 
-/// Lê o frame do botão convertido para coordenadas da tela (correto dentro de .sheet).
+/// Overlay UIKit que captura frame de tela no toque (confiável dentro de .sheet).
+struct ScreenAnchorTapOverlay: UIViewRepresentable {
+  let onTap: (CGRect) -> Void
+
+  func makeUIView(context: Context) -> ScreenAnchorTapView {
+    let view = ScreenAnchorTapView()
+    view.onTap = onTap
+    return view
+  }
+
+  func updateUIView(_ uiView: ScreenAnchorTapView, context: Context) {
+    uiView.onTap = onTap
+  }
+}
+
+final class ScreenAnchorTapView: UIView {
+  var onTap: ((CGRect) -> Void)?
+
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    backgroundColor = .clear
+    isUserInteractionEnabled = true
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) { nil }
+
+  override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    super.touchesEnded(touches, with: event)
+    guard let touch = touches.first, touch.tapCount == 1 else { return }
+    guard bounds.width > 1, bounds.height > 1 else { return }
+    onTap?(convert(bounds, to: nil))
+  }
+}
+
+/// Legado — preferir ScreenAnchorTapOverlay para toques em sheet.
 struct ScreenBoundsReader: UIViewRepresentable {
   @Binding var rect: CGRect
 

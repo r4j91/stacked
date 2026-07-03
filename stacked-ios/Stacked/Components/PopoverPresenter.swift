@@ -76,6 +76,8 @@ struct PopoverOverlayHost: View {
   var anchorYOffset: CGFloat = 0
   /// Sheet escopado: sempre abrir acima — não há espaço útil abaixo da âncora com teclado.
   var forcePreferAbove: Bool = false
+  /// Quick Add: fundo opaco evita faixas do glass + scrim sobre o painel escuro.
+  var opaquePopoverSurface: Bool = false
 
   @Bindable private var boundPresenter: PopoverPresenter
   @State private var keyboardHeight: CGFloat = 0
@@ -84,12 +86,14 @@ struct PopoverOverlayHost: View {
     presenter: PopoverPresenter = .shared,
     hostBounds: CGRect = .zero,
     anchorYOffset: CGFloat = 0,
-    forcePreferAbove: Bool = false
+    forcePreferAbove: Bool = false,
+    opaquePopoverSurface: Bool = false
   ) {
     self.presenter = presenter
     self.hostBounds = hostBounds
     self.anchorYOffset = anchorYOffset
     self.forcePreferAbove = forcePreferAbove
+    self.opaquePopoverSurface = opaquePopoverSurface
     _boundPresenter = Bindable(presenter)
   }
 
@@ -102,6 +106,7 @@ struct PopoverOverlayHost: View {
           hostBounds: resolvedHostBounds,
           anchorYOffset: anchorYOffset,
           forcePreferAbove: forcePreferAbove,
+          opaqueSurface: opaquePopoverSurface,
           preferAbove: boundPresenter.preferAbove,
           rootItems: boundPresenter.items,
           allowsToggle: boundPresenter.allowsToggle
