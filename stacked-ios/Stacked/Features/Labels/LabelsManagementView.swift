@@ -45,7 +45,8 @@ struct LabelsManagementView: View {
           Button {
             openEditor(nil)
           } label: {
-            Image(systemName: "plus")
+            StackedIcons.image(.plus)
+              .font(.system(size: 16, weight: .semibold))
               .foregroundStyle(c.accent)
           }
         }
@@ -66,7 +67,7 @@ struct LabelsManagementView: View {
     let c = theme.colors
 
     return HStack(spacing: 12) {
-      Image(systemName: "tag.fill")
+      StackedIcons.image(.tag)
         .font(.system(size: 18))
         .foregroundStyle(label.color)
       Text(label.name)
@@ -76,16 +77,16 @@ struct LabelsManagementView: View {
       Button {
         openEditor(label)
       } label: {
-        Image(systemName: "pencil")
-          .font(.system(size: 15))
+        StackedIcons.image(.edit)
+          .font(.system(size: 16))
           .foregroundStyle(c.textSecondary)
       }
       .buttonStyle(.plain)
       Button {
         _Concurrency.Task { await deleteLabel(label) }
       } label: {
-        Image(systemName: "trash")
-          .font(.system(size: 15))
+        StackedIcons.image(.trash)
+          .font(.system(size: 16))
           .foregroundStyle(AppColors.priorityHigh)
       }
       .buttonStyle(.plain)
@@ -158,7 +159,8 @@ private struct LabelEditorSheet: View {
     NavigationStack {
       VStack(alignment: .leading, spacing: 16) {
         HStack(spacing: 10) {
-          Image(systemName: "tag.fill")
+          StackedIcons.image(.tag)
+            .font(.system(size: 18))
             .foregroundStyle(AppColors.parseHex(selectedHex))
           Text(name.isEmpty ? "Nova etiqueta" : name)
             .font(AppTypography.profileName)

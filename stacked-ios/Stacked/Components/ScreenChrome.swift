@@ -160,6 +160,39 @@ struct SettingsCardDivider: View {
   }
 }
 
+/// Posição da linha num card agrupado — NavigationLink precisa ser filho direto da List.
+enum SettingsCardRowPosition {
+  case only, first, middle, last
+}
+
+private struct SettingsGroupedRowBackground: View {
+  @Environment(ThemeManager.self) private var theme
+  let position: SettingsCardRowPosition
+
+  var body: some View {
+    let c = theme.colors
+    let r = SettingsChrome.cardCornerRadius
+    switch position {
+    case .only:
+      RoundedRectangle(cornerRadius: r).fill(c.surface)
+    case .first:
+      UnevenRoundedRectangle(
+        topLeadingRadius: r, bottomLeadingRadius: 0,
+        bottomTrailingRadius: 0, topTrailingRadius: r
+      )
+      .fill(c.surface)
+    case .middle:
+      Rectangle().fill(c.surface)
+    case .last:
+      UnevenRoundedRectangle(
+        topLeadingRadius: 0, bottomLeadingRadius: r,
+        bottomTrailingRadius: r, topTrailingRadius: 0
+      )
+      .fill(c.surface)
+    }
+  }
+}
+
 extension View {
   /// Lista de drill-down em Configurações — fundo escuro, sem insetGrouped do sistema.
   func settingsDrillDownList(background: Color) -> some View {
@@ -184,6 +217,30 @@ extension View {
       )
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
+  }
+
+  /// NavigationLink como linha direta da List, visual de card agrupado.
+  func settingsGroupedNavigationRow(
+    position: SettingsCardRowPosition,
+    showDivider: Bool = false,
+    dividerLeading: CGFloat = 52
+  ) -> some View {
+    self
+      .listRowInsets(
+        EdgeInsets(
+          top: position == .first || position == .only ? 4 : 0,
+          leading: SettingsChrome.horizontalPadding,
+          bottom: position == .last || position == .only ? 4 : 0,
+          trailing: SettingsChrome.horizontalPadding
+        )
+      )
+      .listRowSeparator(.hidden)
+      .listRowBackground(SettingsGroupedRowBackground(position: position))
+      .overlay(alignment: .bottom) {
+        if showDivider {
+          SettingsCardDivider(leadingPadding: dividerLeading)
+        }
+      }
   }
 }
 

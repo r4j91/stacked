@@ -22,59 +22,45 @@ struct SettingsView: View {
         }
 
         Section {
-          SettingsCardSurface {
-            VStack(spacing: 0) {
-              NavigationLink {
-                NotificationsSettingsView().environment(theme)
-              } label: {
-                settingsRow(icon: .notifications, label: "Notificações", subtitle: "Lembretes e resumo")
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.vertical, SettingsChrome.rowPaddingV)
-              }
-              .buttonStyle(.plain)
-
-              SettingsCardDivider(leadingPadding: 52)
-
-              NavigationLink {
-                AppearanceView().environment(theme)
-              } label: {
-                settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.vertical, SettingsChrome.rowPaddingV)
-              }
-              .buttonStyle(.plain)
-            }
+          NavigationLink {
+            NotificationsSettingsView().environment(theme)
+          } label: {
+            settingsRow(icon: .notifications, label: "Notificações", subtitle: "Lembretes e resumo")
+              .padding(.horizontal, SettingsChrome.rowPaddingH)
+              .padding(.vertical, SettingsChrome.rowPaddingV)
           }
-          .settingsListCardRow()
+          .settingsGroupedNavigationRow(position: .first, showDivider: true)
+
+          NavigationLink {
+            AppearanceView().environment(theme)
+          } label: {
+            settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)
+              .padding(.horizontal, SettingsChrome.rowPaddingH)
+              .padding(.vertical, SettingsChrome.rowPaddingV)
+          }
+          .settingsGroupedNavigationRow(position: .last)
         } header: {
           SettingsSectionHeader(text: "Preferências")
         }
 
         Section {
-          SettingsCardSurface {
-            VStack(spacing: 0) {
-              NavigationLink {
-                LabelsManagementView().environment(theme)
-              } label: {
-                settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.vertical, SettingsChrome.rowPaddingV)
-              }
-              .buttonStyle(.plain)
-
-              SettingsCardDivider(leadingPadding: 52)
-
-              NavigationLink {
-                LogbookView().environment(theme)
-              } label: {
-                settingsRow(icon: .logbook, label: "Registro", subtitle: "Tarefas concluídas")
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.vertical, SettingsChrome.rowPaddingV)
-              }
-              .buttonStyle(.plain)
-            }
+          NavigationLink {
+            LabelsManagementView().environment(theme)
+          } label: {
+            settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
+              .padding(.horizontal, SettingsChrome.rowPaddingH)
+              .padding(.vertical, SettingsChrome.rowPaddingV)
           }
-          .settingsListCardRow()
+          .settingsGroupedNavigationRow(position: .first, showDivider: true)
+
+          NavigationLink {
+            LogbookView().environment(theme)
+          } label: {
+            settingsRow(icon: .logbook, label: "Registro", subtitle: "Tarefas concluídas")
+              .padding(.horizontal, SettingsChrome.rowPaddingH)
+              .padding(.vertical, SettingsChrome.rowPaddingV)
+          }
+          .settingsGroupedNavigationRow(position: .last)
         } header: {
           SettingsSectionHeader(text: "Organização")
         }
