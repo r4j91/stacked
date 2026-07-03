@@ -34,6 +34,7 @@ struct FiltersView: View {
         .environment(ThemeManager.shared)
       }
     }
+    .background(theme.colors.background.ignoresSafeArea(.all))
     .fullScreenCover(item: $detailRoute) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
         TaskDetailView(taskId: route.taskId) {

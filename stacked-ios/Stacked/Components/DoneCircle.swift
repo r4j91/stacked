@@ -2,6 +2,12 @@ import SwiftUI
 
 // Paridade lib/widgets/done_circle.dart — check verde padrão global
 struct DoneCircle: View {
+  /// Espessura e preenchimento compartilhados entre tarefa e subtarefa na lista.
+  enum RingStyle {
+    static let borderWidth: CGFloat = 2
+    static let inactiveFillAlpha: CGFloat = 0.08
+  }
+
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let done: Bool
   var size: CGFloat = 22

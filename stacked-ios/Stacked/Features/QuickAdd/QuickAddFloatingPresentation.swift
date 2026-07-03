@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Quick Add flutuante — sem `.sheet` nativo (evita container retangular do sistema).
 struct QuickAddFloatingPresentation: ViewModifier {
+  @Environment(ThemeManager.self) private var theme
   @Binding var isPresented: Bool
   var initialProjectId: String?
   var initialSectionId: String?
@@ -13,6 +14,7 @@ struct QuickAddFloatingPresentation: ViewModifier {
 
   func body(content: Content) -> some View {
     content
+      .ignoresSafeArea(.keyboard, edges: .bottom)
       .overlay {
         if isPresented {
           Color.clear
@@ -22,18 +24,23 @@ struct QuickAddFloatingPresentation: ViewModifier {
             .transition(.opacity)
         }
       }
-      .safeAreaInset(edge: .bottom, spacing: 0) {
+      .overlay {
         if isPresented {
-          QuickAddTaskView(
-            initialProjectId: initialProjectId,
-            initialSectionId: initialSectionId,
-            onSaved: onSaved,
-            onDismiss: { dismiss() }
+          QuickAddKeyboardAnchorHost(
+            backdropColor: theme.colors.background,
+            gapAboveKeyboard: gapAboveKeyboard,
+            horizontalInset: horizontalInset,
+            content: AnyView(
+              QuickAddTaskView(
+                initialProjectId: initialProjectId,
+                initialSectionId: initialSectionId,
+                onSaved: onSaved,
+                onDismiss: { dismiss() }
+              )
+              .environment(ThemeManager.shared)
+            )
           )
-          .environment(ThemeManager.shared)
-          .padding(.horizontal, horizontalInset)
-          .padding(.bottom, gapAboveKeyboard)
-          .background(Color.clear)
+          .ignoresSafeArea()
           .transition(.move(edge: .bottom).combined(with: .opacity))
         }
       }

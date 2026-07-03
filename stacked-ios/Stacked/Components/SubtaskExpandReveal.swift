@@ -1,0 +1,173 @@
+import SwiftUI
+import UIKit
+
+/// Revela subtarefas com altura animada via UIKit — paridade Flutter `SizeTransition`, estável dentro de `List`.
+struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
+  let expanded: Bool
+  let reduceMotion: Bool
+  let content: Content
+
+  init(expanded: Bool, reduceMotion: Bool, @ViewBuilder content: () -> Content) {
+    self.expanded = expanded
+    self.reduceMotion = reduceMotion
+    self.content = content()
+  }
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator()
+  }
+
+  func makeUIView(context: Context) -> SubtaskExpandContainerView {
+    let view = SubtaskExpandContainerView()
+    context.coordinator.container = view
+    return view
+  }
+
+  func updateUIView(_ uiView: SubtaskExpandContainerView, context: Context) {
+    let width = uiView.bounds.width > 1 ? uiView.bounds.width : context.coordinator.lastWidth
+    context.coordinator.lastWidth = width
+    uiView.configure(
+      hosting: context.coordinator.hosting(in: uiView),
+      content: AnyView(content),
+      width: width,
+      expanded: expanded,
+      animated: !reduceMotion
+    )
+  }
+
+  final class Coordinator {
+    weak var container: SubtaskExpandContainerView?
+    private var host: UIHostingController<AnyView>?
+    var lastWidth: CGFloat = 320
+
+    func hosting(in container: SubtaskExpandContainerView) -> UIHostingController<AnyView> {
+      if let host { return host }
+      let host = UIHostingController(rootView: AnyView(EmptyView()))
+      host.view.backgroundColor = .clear
+      host.view.translatesAutoresizingMaskIntoConstraints = false
+      host.view.setContentHuggingPriority(.required, for: .vertical)
+      host.view.setContentCompressionResistancePriority(.required, for: .vertical)
+      container.install(host: host)
+      self.host = host
+      return host
+    }
+  }
+}
+
+// MARK: - UIKit container
+
+final class SubtaskExpandContainerView: UIView {
+  private weak var hostView: UIView?
+  private var hostHeightConstraint: NSLayoutConstraint?
+  private var selfHeightConstraint: NSLayoutConstraint?
+  private var fullHeight: CGFloat = 0
+  private var lastExpanded: Bool?
+
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    clipsToBounds = true
+    backgroundColor = .clear
+    setContentHuggingPriority(.required, for: .vertical)
+    setContentCompressionResistancePriority(.required, for: .vertical)
+    selfHeightConstraint = heightAnchor.constraint(equalToConstant: 0)
+    selfHeightConstraint?.isActive = true
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) { fatalError() }
+
+  override var intrinsicContentSize: CGSize {
+    CGSize(width: UIView.noIntrinsicMetric, height: selfHeightConstraint?.constant ?? 0)
+  }
+
+  func install(host: UIHostingController<AnyView>) {
+    guard hostView == nil else { return }
+    hostView = host.view
+    addSubview(host.view)
+    let height = host.view.heightAnchor.constraint(equalToConstant: 0)
+    hostHeightConstraint = height
+    NSLayoutConstraint.activate([
+      host.view.topAnchor.constraint(equalTo: topAnchor),
+      host.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+      host.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+      height,
+    ])
+  }
+
+  func configure(
+    hosting: UIHostingController<AnyView>,
+    content: AnyView,
+    width: CGFloat,
+    expanded: Bool,
+    animated: Bool
+  ) {
+    hosting.rootView = content
+
+    setNeedsLayout()
+    layoutIfNeeded()
+
+    let measured = measureHeight(hosting: hosting, width: width)
+    if measured > 0 { fullHeight = measured }
+
+    let target = expanded ? fullHeight : 0
+    let stateChanged = lastExpanded != expanded
+    lastExpanded = expanded
+
+    guard stateChanged || abs((selfHeightConstraint?.constant ?? 0) - target) > 0.5 else { return }
+
+    hostHeightConstraint?.constant = fullHeight
+    hosting.view.isUserInteractionEnabled = expanded
+    applyVisibleHeight(target, expanded: expanded, animated: animated && stateChanged)
+  }
+
+  private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {
+    let fitWidth = max(width, 1)
+    if #available(iOS 16.0, *) {
+      let size = hosting.sizeThatFits(in: CGSize(width: fitWidth, height: .greatestFiniteMagnitude))
+      return ceil(size.height)
+    }
+    hosting.view.setNeedsLayout()
+    hosting.view.layoutIfNeeded()
+    return ceil(hosting.view.systemLayoutSizeFitting(
+      CGSize(width: fitWidth, height: UIView.layoutFittingCompressedSize.height),
+      withHorizontalFittingPriority: .required,
+      verticalFittingPriority: .fittingSizeLevel
+    ).height)
+  }
+
+  private func applyVisibleHeight(_ height: CGFloat, expanded: Bool, animated: Bool) {
+    let applyLayout = { [weak self] in
+      guard let self else { return }
+      self.selfHeightConstraint?.constant = height
+      self.invalidateIntrinsicContentSize()
+      self.layoutIfNeeded()
+      if let table = self.findUITableView() {
+        table.beginUpdates()
+        table.endUpdates()
+      } else {
+        self.superview?.setNeedsLayout()
+        self.superview?.layoutIfNeeded()
+      }
+    }
+
+    guard animated else {
+      applyLayout()
+      return
+    }
+
+    let options: UIView.AnimationOptions = expanded
+      ? [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState]
+      : [.curveEaseIn, .allowUserInteraction, .beginFromCurrentState]
+
+    UIView.animate(withDuration: 0.22, delay: 0, options: options, animations: applyLayout)
+  }
+
+  private func findUITableView() -> UITableView? {
+    var view: UIView? = self
+    while let current = view {
+      if let table = current as? UITableView { return table }
+      view = current.superview
+    }
+    return nil
+  }
+}

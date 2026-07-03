@@ -107,14 +107,12 @@ struct TaskRow: View {
 
   @ViewBuilder
   private var subtasksExpansion: some View {
-    if task.hasSubtasks, expanded {
-      subtaskList
-        .transition(Self.subtaskExpandTransition)
+    if task.hasSubtasks {
+      SubtaskExpandReveal(expanded: expanded, reduceMotion: reduceMotion, content: {
+        subtaskList
+      })
     }
   }
-
-  private static let subtaskExpandTransition: AnyTransition =
-    .opacity.combined(with: .move(edge: .top))
 
   @ViewBuilder
   private var rowTextContent: some View {
@@ -170,19 +168,17 @@ struct TaskRow: View {
     let c = theme.colors
     return Button {
       HapticService.selection()
-      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-        expanded.toggle()
-      }
+      expanded.toggle()
     } label: {
       StackedIcons.image(.chevronDown)
         .font(.system(size: 12, weight: .semibold))
         .foregroundStyle(c.textTertiary)
         .rotationEffect(.degrees(expanded ? 180 : 0))
-        .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
+        .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
         .frame(width: 32, height: 32)
         .contentShape(Rectangle())
     }
-    .buttonStyle(PressableStyle())
+    .buttonStyle(.plain)
   }
 
   private var subtaskList: some View {
@@ -248,10 +244,10 @@ struct TaskRow: View {
     DoneCircle(
       done: done,
       size: 18,
-      borderWidth: 2,
+      borderWidth: DoneCircle.RingStyle.borderWidth,
       tickSize: 10,
       ringColor: sub.priority?.color ?? theme.colors.textTertiary,
-      ringFillAlpha: done ? 0 : 0.08
+      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )
   }
 
@@ -296,6 +292,7 @@ enum TaskRowStyle {
 }
 
 struct PriorityDot: View {
+  @Environment(ThemeManager.self) private var theme
   let priority: Priority?
   let done: Bool
 
@@ -303,10 +300,10 @@ struct PriorityDot: View {
     DoneCircle(
       done: done,
       size: 22,
-      borderWidth: 1.8,
+      borderWidth: DoneCircle.RingStyle.borderWidth,
       tickSize: 10,
-      ringColor: priority?.color ?? Color(hex: 0x6B6E76).opacity(0.45),
-      ringFillAlpha: done ? 0 : 0
+      ringColor: priority?.color ?? theme.colors.textTertiary,
+      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )
   }
 }

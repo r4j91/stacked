@@ -45,6 +45,16 @@ enum AppMotion {
     .bouncy(duration: 0.32, extraBounce: 0.06)
   }
 
+  /// Subtarefas inline — expand easeOutCubic (task_tile.dart ~220ms).
+  static var subtaskExpandSpring: Animation {
+    .timingCurve(0.215, 0.61, 0.355, 1.0, duration: 0.22)
+  }
+
+  /// Subtarefas inline — collapse easeInCubic.
+  static var subtaskCollapseSpring: Animation {
+    .timingCurve(0.55, 0.055, 0.675, 0.19, duration: 0.22)
+  }
+
   /// Feedback de press em linhas de popover.
   static var pressFeedback: Animation {
     .snappy(duration: 0.12, extraBounce: 0)
@@ -84,6 +94,14 @@ enum AppMotion {
 
   static func iconBounce(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : iconBounceSpring
+  }
+
+  static func subtaskExpand(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : subtaskExpandSpring
+  }
+
+  static func subtaskCollapse(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : subtaskCollapseSpring
   }
 
   static func press(reduceMotion: Bool) -> Animation? {

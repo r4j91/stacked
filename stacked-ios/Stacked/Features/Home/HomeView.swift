@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeView: View {
   @Environment(ThemeManager.self) private var theme
   var onNavigateToTab: (NavTab) -> Void
+  var onOpenFilter: (TaskFilterKind) -> Void
 
   @State private var store = HomeStore.shared
   @State private var selectedProject: ProjectRoute?
@@ -53,6 +54,7 @@ struct HomeView: View {
         .environment(ThemeManager.shared)
       }
     }
+    .background(c.background.ignoresSafeArea(.all))
     .sheet(isPresented: $showNewProject) {
       NewProjectSheetView(onCreated: { _Concurrency.Task { await store.load() } })
         .environment(ThemeManager.shared)
@@ -129,7 +131,10 @@ struct HomeView: View {
       }
     } else if store.overdueCount > 0 {
       Section {
-        Button { onNavigateToTab(.today) } label: {
+        Button {
+          HapticService.selection()
+          onOpenFilter(.overdue)
+        } label: {
           HStack(spacing: 10) {
             StackedIcons.image(.exclamation).foregroundStyle(AppColors.overdue)
             Text(store.overdueCount == 1 ? "1 tarefa atrasada" : "\(store.overdueCount) tarefas atrasadas")

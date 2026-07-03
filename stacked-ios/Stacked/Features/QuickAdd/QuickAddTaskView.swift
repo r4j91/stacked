@@ -49,7 +49,7 @@ struct QuickAddTaskView: View {
   var body: some View {
     sheetContent
       .frame(maxWidth: .infinity)
-      .background(panelSurface, in: RoundedRectangle(cornerRadius: capsuleRadius, style: .continuous))
+      .background { quickAddPanelChrome }
       .popoverHostScope(coordinateSpaceName: "quickAddSheet", placement: .quickAddSheet)
       .onAppear {
         DispatchQueue.main.async { titleFocused = true }
@@ -161,8 +161,25 @@ struct QuickAddTaskView: View {
     }
   }
 
-  private var panelSurface: Color {
-    theme.colors.surface
+  private var quickAddPanelChrome: some View {
+    let c = theme.colors
+    let shape = RoundedRectangle(cornerRadius: capsuleRadius, style: .continuous)
+
+    return shape
+      .fill(c.surfaceVariant)
+      .overlay {
+        shape.strokeBorder(c.textPrimary.opacity(0.10), lineWidth: 0.8)
+      }
+      .shadow(color: .black.opacity(0.26), radius: 8, y: -2)
+  }
+
+  /// Pílulas dos botões — `surface` sobre painel `surfaceVariant` (contraste como antes).
+  private func actionPillBackground(colors: AppThemeColors) -> Color {
+    colors.surface
+  }
+
+  private func actionPillBackground(activeColor: Color) -> Color {
+    activeColor.opacity(0.15)
   }
 
   private var hairlineColor: Color {
@@ -183,10 +200,16 @@ struct QuickAddTaskView: View {
         .frame(width: iconCircleSize, height: iconCircleSize)
         .background(
           active
-            ? activeColor.opacity(0.15)
-            : c.surfaceVariant.opacity(0.45)
+            ? actionPillBackground(activeColor: activeColor)
+            : actionPillBackground(colors: c)
         )
         .clipShape(Circle())
+        .overlay {
+          if !active {
+            Circle()
+              .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 0.6)
+          }
+        }
     }
     .accessibilityLabel(accessibilityLabel(for: icon))
   }
@@ -219,8 +242,18 @@ struct QuickAddTaskView: View {
       }
       .padding(.horizontal, 12)
       .frame(height: iconCircleSize)
-      .background(c.surfaceVariant.opacity(active ? 0.55 : 0.35))
+      .background(
+        active
+          ? dot.opacity(0.14)
+          : actionPillBackground(colors: c)
+      )
       .clipShape(Capsule())
+      .overlay {
+        if !active {
+          Capsule()
+            .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 0.6)
+        }
+      }
     }
     .accessibilityLabel("Projeto")
   }
@@ -242,8 +275,14 @@ struct QuickAddTaskView: View {
         }
       }
       .frame(width: sendCircleSize, height: sendCircleSize)
-      .background(hasTitle ? c.accent : c.surfaceVariant)
+      .background(hasTitle ? c.accent : actionPillBackground(colors: c))
       .clipShape(Circle())
+      .overlay {
+        if !hasTitle {
+          Circle()
+            .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 0.6)
+        }
+      }
     }
     .buttonStyle(PressableStyle(cornerRadius: sendCircleSize / 2))
     .animation(AppMotion.snappy, value: hasTitle)

@@ -82,7 +82,15 @@ struct RootTabContent: View {
   var body: some View {
     switch chrome.selectedTab {
     case .home:
-      HomeView(onNavigateToTab: { chrome.selectTab($0) })
+      HomeView(
+        onNavigateToTab: { chrome.selectTab($0) },
+        onOpenFilter: { kind in
+          _Concurrency.Task {
+            await FiltersStore.shared.openFilter(kind)
+            chrome.selectTab(.filters)
+          }
+        }
+      )
     case .inbox:
       InboxView()
     case .today:
