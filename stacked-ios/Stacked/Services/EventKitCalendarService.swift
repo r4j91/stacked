@@ -12,6 +12,9 @@ final class EventKitCalendarService {
 
   private let store = EKEventStore()
   private static let eventMapKey = "calendar_task_event_map"
+  private static let exportCalendarIdKey = "calendar_stacked_export_calendar_id"
+
+  private var cachedExportCalendar: EKCalendar?
 
   private(set) var authorizationGranted = false
   private(set) var writableCalendars: [EKCalendar] = []
@@ -31,6 +34,7 @@ final class EventKitCalendarService {
     ) { [weak self] _ in
       guard let self else { return }
       _Concurrency.Task { @MainActor in
+        self.cachedExportCalendar = nil
         self.reloadCalendarLists()
         await self.notifyStoresToRefresh()
       }
@@ -45,10 +49,10 @@ final class EventKitCalendarService {
 
   func requestAccess() async -> Bool {
     let status = EKEventStore.authorizationStatus(for: .event)
-    if hasReadAccess(status) {
-      authorizationGranted = true
+    if hasReadAccess(status) || canWriteEvents(status) {
+      authorizationGranted = hasReadAccess(status)
       reloadCalendarLists()
-      return true
+      return hasReadAccess(status) || canWriteEvents(status)
     }
 
     if #available(iOS 17.0, *), status == .denied || status == .restricted {
@@ -67,18 +71,20 @@ final class EventKitCalendarService {
           }
         }
       }
-      authorizationGranted = hasReadAccess(EKEventStore.authorizationStatus(for: .event)) || granted
+      let newStatus = EKEventStore.authorizationStatus(for: .event)
+      authorizationGranted = hasReadAccess(newStatus)
       reloadCalendarLists()
-      return authorizationGranted
+      return granted || canWriteEvents(newStatus)
     } catch {
-      authorizationGranted = hasReadAccess(EKEventStore.authorizationStatus(for: .event))
+      let newStatus = EKEventStore.authorizationStatus(for: .event)
+      authorizationGranted = hasReadAccess(newStatus)
       reloadCalendarLists()
-      return authorizationGranted
+      return hasReadAccess(newStatus) || canWriteEvents(newStatus)
     }
   }
 
   func reloadCalendarLists() {
-    guard authorizationGranted else {
+    guard authorizationGranted || canWriteEvents() else {
       writableCalendars = []
       importableCalendars = []
       return
@@ -118,7 +124,7 @@ final class EventKitCalendarService {
   // MARK: - Export
 
   func syncTask(_ task: Task) {
-    guard CalendarPreferences.exportEnabled, authorizationGranted else { return }
+    guard CalendarPreferences.exportEnabled, canWriteEvents() else { return }
 
     if task.done || task.dueDate == nil || task.time == nil || task.time?.isEmpty == true {
       removeEvent(forTaskId: task.id)
@@ -127,13 +133,13 @@ final class EventKitCalendarService {
 
     guard let due = task.dueDate,
           let time = task.time,
-          let start = TaskMapper.combinedDateTime(dueDate: due, time: time) else {
+          let start = TaskMapper.combinedDateTime(dueDate: due, time: time),
+          let calendar = resolveExportCalendar() else {
       removeEvent(forTaskId: task.id)
       return
     }
 
     let end = start.addingTimeInterval(3600)
-    let calendar = stackedExportCalendar()
 
     let event: EKEvent
     if let existingId = eventMap[task.id], let existing = store.event(withIdentifier: existingId) {
@@ -145,16 +151,20 @@ final class EventKitCalendarService {
     event.title = task.title
     event.startDate = start
     event.endDate = end
+    event.isAllDay = false
     event.calendar = calendar
     event.url = URL(string: Self.stackedTaskURLPrefix + task.id)
 
     do {
       try store.save(event, span: .thisEvent, commit: true)
+      guard let eventId = event.eventIdentifier else { return }
       var map = eventMap
-      map[task.id] = event.eventIdentifier
+      map[task.id] = eventId
       eventMap = map
     } catch {
-      // Falha silenciosa — usuário pode ter revogado permissão.
+      // Calendário inválido no simulador — limpa cache e tenta na próxima mutação.
+      cachedExportCalendar = nil
+      UserDefaults.standard.removeObject(forKey: Self.exportCalendarIdKey)
     }
   }
 
@@ -175,13 +185,22 @@ final class EventKitCalendarService {
   }
 
   func syncAllExportableTasks() async {
-    guard CalendarPreferences.exportEnabled else { return }
+    guard CalendarPreferences.exportEnabled, canWriteEvents() else { return }
     do {
       let tasks = try await TaskRepository.shared.fetchDatedPendingTasks()
       for task in tasks where !task.done {
         syncTask(task)
       }
     } catch { }
+  }
+
+  /// Re-sincroniza export ao abrir o app (tarefas criadas antes de ligar export).
+  func syncExportIfNeeded() async {
+    guard CalendarPreferences.exportEnabled else { return }
+    if !canWriteEvents() {
+      _ = await requestAccess()
+    }
+    await syncAllExportableTasks()
   }
 
   func openInCalendar(_ event: CalendarEvent) {
@@ -200,32 +219,76 @@ final class EventKitCalendarService {
     return status == .authorized
   }
 
-  private func selectedImportCalendars() -> [EKCalendar] {
-    let selected = CalendarPreferences.selectedCalendarIDs
-    let stackedId = stackedExportCalendar().calendarIdentifier
-    if selected.isEmpty {
-      return importableCalendars.filter { $0.calendarIdentifier != stackedId }
+  private func canWriteEvents(_ status: EKAuthorizationStatus? = nil) -> Bool {
+    let status = status ?? EKEventStore.authorizationStatus(for: .event)
+    if #available(iOS 17.0, *) {
+      return status == .fullAccess || status == .writeOnly
     }
-    return importableCalendars.filter { selected.contains($0.calendarIdentifier) && $0.calendarIdentifier != stackedId }
+    return status == .authorized
   }
 
-  private func stackedExportCalendar() -> EKCalendar {
+  private func selectedImportCalendars() -> [EKCalendar] {
+    let withoutStacked = importableCalendars.filter { $0.title != Self.stackedCalendarTitle }
+    let selected = CalendarPreferences.selectedCalendarIDs
+    if selected.isEmpty { return withoutStacked }
+    return withoutStacked.filter { selected.contains($0.calendarIdentifier) }
+  }
+
+  /// Calendário "Stacked" ou fallback para o calendário padrão do sistema (simulador).
+  private func resolveExportCalendar() -> EKCalendar? {
+    if let cachedExportCalendar { return cachedExportCalendar }
+
+    if let savedId = UserDefaults.standard.string(forKey: Self.exportCalendarIdKey),
+       let saved = store.calendar(withIdentifier: savedId) {
+      cachedExportCalendar = saved
+      return saved
+    }
+
     if let existing = store.calendars(for: .event).first(where: { $0.title == Self.stackedCalendarTitle }) {
+      cacheExportCalendar(existing)
       return existing
     }
+
+    if let created = createStackedCalendar() {
+      cacheExportCalendar(created)
+      return created
+    }
+
+    if let fallback = store.defaultCalendarForNewEvents ?? writableCalendars.first {
+      cacheExportCalendar(fallback)
+      return fallback
+    }
+
+    return nil
+  }
+
+  private func createStackedCalendar() -> EKCalendar? {
+    guard let source = preferredWritableSource() else { return nil }
 
     let calendar = EKCalendar(for: .event, eventStore: store)
     calendar.title = Self.stackedCalendarTitle
     calendar.cgColor = UIColor(Color(hex: 0x5FD3DC)).cgColor
+    calendar.source = source
 
-    if let source = store.defaultCalendarForNewEvents?.source
-      ?? store.sources.first(where: { $0.sourceType == .local })
-      ?? store.sources.first {
-      calendar.source = source
+    do {
+      try store.saveCalendar(calendar, commit: true)
+      return calendar
+    } catch {
+      return nil
     }
+  }
 
-    try? store.saveCalendar(calendar, commit: true)
-    return calendar
+  private func preferredWritableSource() -> EKSource? {
+    store.defaultCalendarForNewEvents?.source
+      ?? store.sources.first(where: { $0.sourceType == .local })
+      ?? store.sources.first(where: { $0.sourceType == .calDAV })
+      ?? store.sources.first(where: { $0.sourceType == .mobileMe })
+      ?? store.sources.first
+  }
+
+  private func cacheExportCalendar(_ calendar: EKCalendar) {
+    cachedExportCalendar = calendar
+    UserDefaults.standard.set(calendar.calendarIdentifier, forKey: Self.exportCalendarIdKey)
   }
 
   private func isStackedExportedEvent(_ event: EKEvent) -> Bool {

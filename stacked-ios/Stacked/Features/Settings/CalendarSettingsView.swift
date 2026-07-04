@@ -57,8 +57,21 @@ struct CalendarSettingsView: View {
                     isOn: $exportEnabled,
                     icon: "square.and.arrow.up",
                     title: "Exportar tarefas com hora",
-                    subtitle: "Cria eventos no calendário \"Stacked\" (só título)"
+                    subtitle: "Envia tarefas com data e hora para o calendário \"Stacked\""
                   )
+                } else if importEnabled {
+                  SettingsCardDivider(leadingPadding: 14)
+                  HStack(spacing: 12) {
+                    Image(systemName: "info.circle")
+                      .font(.system(size: 18))
+                      .foregroundStyle(theme.colors.textTertiary)
+                      .frame(width: 24)
+                    Text("Permita o acesso ao Calendário acima para exportar tarefas.")
+                      .font(AppTypography.meta)
+                      .foregroundStyle(theme.colors.textTertiary)
+                  }
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.vertical, SettingsChrome.rowPaddingV)
                 }
               }
             }
@@ -78,20 +91,26 @@ struct CalendarSettingsView: View {
                       .padding(.horizontal, SettingsChrome.rowPaddingH)
                       .padding(.vertical, SettingsChrome.rowPaddingV)
                   } else {
-                    ForEach(Array(calendarService.importableCalendars.enumerated()), id: \.element.calendarIdentifier) { index, cal in
+                    ForEach(Array(importableCalendarsForUI.enumerated()), id: \.element.calendarIdentifier) { index, cal in
                       if index > 0 { SettingsCardDivider(leadingPadding: 14) }
                       calendarSelectionRow(cal)
                     }
                   }
                 }
               }
-              .settingsListCardRow(top: 0, bottom: 8)
+              .settingsListCardRow(top: 0, bottom: 4)
             } header: {
               SettingsSectionHeader(text: "Calendários para importar")
-            } footer: {
-              Text("Eventos do calendário \"Stacked\" (exportados pelo app) não são importados de volta.")
+            }
+
+            Section {
+              Text("Não marque \"Stacked\" aqui — é só para exportar tarefas do app. Para ver no app Calendário do iPhone, abra Calendário → Calendários e ative \"Stacked\".")
                 .font(AppTypography.metaSmall)
                 .foregroundStyle(c.textTertiary)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .settingsListCardRow(top: 0, bottom: 8)
+                .listRowBackground(Color.clear)
             }
           }
         }
@@ -111,6 +130,10 @@ struct CalendarSettingsView: View {
       guard togglesReady else { return }
       _Concurrency.Task { await applyExportPreference(newValue) }
     }
+  }
+
+  private var importableCalendarsForUI: [EKCalendar] {
+    calendarService.importableCalendars.filter { $0.title != EventKitCalendarService.stackedCalendarTitle }
   }
 
   private func calendarToggle(

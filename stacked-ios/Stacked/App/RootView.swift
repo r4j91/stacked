@@ -63,6 +63,7 @@ struct RootView: View {
     TabRefreshPolicy.invalidate()
     await TabDataLoader.load(tab)
     TabBootstrapCoordinator.schedulePrefetch(excluding: tab)
+    await EventKitCalendarService.shared.syncExportIfNeeded()
   }
 
   private func reloadData(for tab: NavTab, force: Bool = false) {
