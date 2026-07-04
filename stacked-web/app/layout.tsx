@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   description: "Gerenciador de tarefas",
   manifest: "/manifest.json",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+    icon: [{ url: "/favicon.png?v=3", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png?v=3", type: "image/png" }],
   },
 };
 

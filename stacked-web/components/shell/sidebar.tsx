@@ -64,7 +64,7 @@ export function Sidebar() {
           className={`mb-4 flex w-full items-center justify-center gap-2.5 ${sidebarCollapsed ? "px-0" : "px-1"}`}
         >
           <Image
-            src="/app-icon.png"
+            src="/app-icon.png?v=3"
             alt=""
             width={36}
             height={36}
