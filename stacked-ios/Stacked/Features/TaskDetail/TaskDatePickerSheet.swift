@@ -1,13 +1,6 @@
 import SwiftUI
 import Hugeicons
 
-private struct DatePickerSheetHeightKey: PreferenceKey {
-  static var defaultValue: CGFloat = 0
-  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-    value = max(value, nextValue())
-  }
-}
-
 // Paridade lib/widgets/task_detail/sheets/task_date_picker_sheet.dart
 struct TaskDatePickerSheet: View {
   @Environment(\.dismiss) private var dismiss
@@ -25,8 +18,6 @@ struct TaskDatePickerSheet: View {
   @State private var hasTime = false
   @State private var timeExpanded = false
   @State private var displayedMonth: Date
-  @State private var sheetDetent: PresentationDetent = .height(620)
-  @State private var collapsedHeight: CGFloat = 620
 
   init(
     initialDate: Date?,
@@ -45,8 +36,6 @@ struct TaskDatePickerSheet: View {
     _hasTime = State(initialValue: initialTime != nil)
     _timeExpanded = State(initialValue: initialTime != nil)
     _displayedMonth = State(initialValue: initialDate ?? Date())
-    let startsExpanded = initialTime != nil
-    _sheetDetent = State(initialValue: startsExpanded ? .large : .height(620))
   }
 
   var body: some View {
@@ -55,15 +44,18 @@ struct TaskDatePickerSheet: View {
     NavigationStack {
       VStack(spacing: 0) {
         shortcutsSection
-        calendarSection
-        timeSection
-      }
-      .frame(maxWidth: .infinity, alignment: .top)
-      .background {
-        GeometryReader { proxy in
-          Color.clear
-            .preference(key: DatePickerSheetHeightKey.self, value: proxy.size.height)
+
+        Divider().overlay(c.surfaceVariant.opacity(0.55))
+
+        ScrollView {
+          calendarSection
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
+        .scrollIndicators(.hidden)
+      }
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        timeSection
       }
       .navigationTitle("Data")
       .navigationBarTitleDisplayMode(.inline)
@@ -86,26 +78,10 @@ struct TaskDatePickerSheet: View {
         }
       }
     }
-    .background(c.background)
-    .onPreferenceChange(DatePickerSheetHeightKey.self) { measured in
-      guard measured > 0, !timeExpanded else { return }
-      // Nav bar inline (~44) + conteúdo medido + respiro do grabber (~12)
-      let total = measured + 56
-      collapsedHeight = total
-      sheetDetent = .height(total)
-    }
-    .onChange(of: timeExpanded) { _, expanded in
-      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-        sheetDetent = expanded ? .large : .height(collapsedHeight)
-      }
-    }
-    .presentationDetents(
-      timeExpanded ? [.large] : [.height(collapsedHeight)],
-      selection: $sheetDetent
-    )
+    .background(c.background.ignoresSafeArea())
     .presentationDragIndicator(.visible)
     .presentationBackground(c.background)
-    .presentationCornerRadius(20)
+    .presentationSizing(.form)
   }
 
   // MARK: - Sections
@@ -136,6 +112,7 @@ struct TaskDatePickerSheet: View {
         .buttonStyle(.plain)
       }
     }
+    .padding(.bottom, 2)
   }
 
   private var calendarSection: some View {
@@ -157,15 +134,14 @@ struct TaskDatePickerSheet: View {
     .datePickerStyle(.graphical)
     .fixedSize(horizontal: false, vertical: true)
     .tint(c.accent)
-    .padding(.horizontal, 4)
-    .padding(.bottom, -6)
+    .padding(.horizontal, 8)
   }
 
   private var timeSection: some View {
     let c = theme.colors
 
     return VStack(spacing: 0) {
-      Divider().overlay(c.surfaceVariant)
+      Divider().overlay(c.surfaceVariant.opacity(0.55))
 
       Button {
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
@@ -206,6 +182,7 @@ struct TaskDatePickerSheet: View {
           }
       }
     }
+    .background(c.background)
   }
 
   private var shortcuts: [(label: String, icon: StackedIconKey, color: Color, date: Date)] {
@@ -260,7 +237,6 @@ struct TaskDatePickerSheet: View {
     selectedDate = nil
     hasTime = false
     timeExpanded = false
-    sheetDetent = .height(collapsedHeight)
     confirmChange()
     closePanel()
   }
