@@ -45,7 +45,6 @@ struct HomeView: View {
       }
       .background(c.background)
       .refreshable { await store.load() }
-      .task { await store.load() }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
           projectId: route.id,

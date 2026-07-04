@@ -24,7 +24,6 @@ struct FiltersView: View {
       }
       // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.32, dampingFraction: 0.86), value: store.mode)
       .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: store.mode)
-      .task { await store.loadDashboard() }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
           projectId: route.id,

@@ -108,7 +108,6 @@ struct TodayView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadToday() }
-    .task { await store.loadToday() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadToday()

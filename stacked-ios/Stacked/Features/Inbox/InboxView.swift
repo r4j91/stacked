@@ -94,7 +94,6 @@ struct InboxView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadInbox() }
-    .task { await store.loadInbox() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadInbox()

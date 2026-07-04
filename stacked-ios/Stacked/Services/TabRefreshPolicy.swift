@@ -1,6 +1,7 @@
 import Foundation
 
 /// Evita reload de rede a cada troca de aba — stale-while-revalidate (Fase I).
+/// Carregamento inicial: `TabDataLoader` + prefetch escalonado em `TabBootstrapCoordinator`.
 @MainActor
 enum TabRefreshPolicy {
   private static let staleInterval: TimeInterval = 45

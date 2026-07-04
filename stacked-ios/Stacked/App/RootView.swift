@@ -29,7 +29,9 @@ struct RootView: View {
     .onChange(of: router.pendingOpenSearch) { _, open in
       if open { showSearch = true }
     }
-    .task { reloadData(for: currentTab, force: true) }
+    .task {
+      await bootstrap(tab: currentTab)
+    }
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
@@ -55,29 +57,29 @@ struct RootView: View {
     showQuickAdd = true
   }
 
+  /// Cold start: aba visível primeiro; demais abas em prefetch escalonado.
+  private func bootstrap(tab: NavTab) async {
+    TabBootstrapCoordinator.cancelPrefetch()
+    TabRefreshPolicy.invalidate()
+    await TabDataLoader.load(tab)
+    TabBootstrapCoordinator.schedulePrefetch(excluding: tab)
+  }
+
   private func reloadData(for tab: NavTab, force: Bool = false) {
     guard force || TabRefreshPolicy.shouldRefresh(tab) else { return }
-    TabRefreshPolicy.markLoaded(tab)
-    _Concurrency.Task {
-      switch tab {
-      case .home: await HomeStore.shared.load()
-      case .today: await TaskStore.shared.loadToday()
-      case .inbox: await TaskStore.shared.loadInbox()
-      case .upcoming: await UpcomingStore.shared.load()
-      case .filters: await FiltersStore.shared.loadDashboard()
-      }
-    }
+    _Concurrency.Task { await TabDataLoader.load(tab) }
   }
 
   private func reloadAll() {
+    TabBootstrapCoordinator.cancelPrefetch()
     TabRefreshPolicy.invalidate()
     reloadData(for: chrome.selectedTab, force: true)
     _Concurrency.Task {
-      await TaskStore.shared.loadToday()
-      await TaskStore.shared.loadInbox()
-      await UpcomingStore.shared.load()
-      await HomeStore.shared.load()
-      await FiltersStore.shared.loadDashboard()
+      await TabDataLoader.load(.today)
+      await TabDataLoader.load(.inbox)
+      await TabDataLoader.load(.upcoming)
+      await TabDataLoader.load(.home)
+      await TabDataLoader.load(.filters)
     }
   }
 }

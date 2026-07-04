@@ -95,7 +95,6 @@ struct UpcomingView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.load() }
-    .task { await store.load() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task { await store.load() }
     }) { route in
