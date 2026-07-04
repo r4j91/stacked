@@ -309,6 +309,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const pendingDeletesRef = useRef<
     Map<string, { timer: ReturnType<typeof setTimeout>; snapshot: { task: Task; wasPending: boolean } }>
   >(new Map());
+  const viewCacheRef = useRef<Map<string, ViewTasks>>(new Map());
+  const globalDataLoadedRef = useRef(false);
+  const searchTasksLoadedRef = useRef(false);
+
+  const viewCacheKey = useCallback(
+    (mode: ViewMode = view, pid: string | null = projectId) => `${mode}:${pid ?? ""}`,
+    [view, projectId],
+  );
 
   const allTasks = useMemo(
     () => [...viewTasks.pending, ...viewTasks.completed],
@@ -370,121 +378,185 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshTasks = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const refreshTasks = useCallback(
+    async (options?: { showLoading?: boolean; refreshGlobal?: boolean }) => {
+      const showLoading = options?.showLoading ?? false;
+      const refreshGlobal = options?.refreshGlobal ?? !globalDataLoadedRef.current;
+      const cacheKey = viewCacheKey();
+      const isHomeHub = pathname === "/home";
 
-    if (!isSupabaseConfigured()) {
-      setUsingMock(true);
-      setProjects(mockProjectsList());
-      setViewTasks(mockViewTasks(view, projectId));
-      setSections(projectId ? mockSectionsForProject(projectId) : []);
-      setCurrentProject(
-        projectId
-          ? (() => {
-              const p = mockProjectById(projectId);
-              return p
-                ? { id: p.id, name: p.name, color: p.color, icon: p.icon ?? "folder", pendingCount: p.count }
-                : null;
-            })()
-          : null,
-      );
-      setNavCounts({
-        inbox: MOCK_TASKS.filter((t) => !t.done && !t.dueDate && !t.projectId).length,
-        today: MOCK_TASKS.filter((t) => !t.done).length,
-      });
-      setFilterCounts(mockFilterCounts());
-      setSearchTasks(mockAllPendingTasks());
-      setLabels(MOCK_LABELS);
-      setUserProfile({ name: "Rodrigo", email: "dev@stacked.app", avatarUrl: null, apelido: "Rodrigo", nome: "Rodrigo" });
-      setCalendarEvents([]);
-      setCalendarError(null);
-      setLoading(false);
-      return;
-    }
+      if (showLoading && !viewCacheRef.current.get(cacheKey)) {
+        setLoading(true);
+      }
+      setError(null);
 
+      if (!isSupabaseConfigured()) {
+        setUsingMock(true);
+        const mockData = isHomeHub ? { pending: [], completed: [] } : mockViewTasks(view, projectId);
+        setProjects(mockProjectsList());
+        setViewTasks(mockData);
+        if (!isHomeHub) viewCacheRef.current.set(cacheKey, mockData);
+        setSections(projectId ? mockSectionsForProject(projectId) : []);
+        setCurrentProject(
+          projectId
+            ? (() => {
+                const p = mockProjectById(projectId);
+                return p
+                  ? { id: p.id, name: p.name, color: p.color, icon: p.icon ?? "folder", pendingCount: p.count }
+                  : null;
+              })()
+            : null,
+        );
+        setNavCounts({
+          inbox: MOCK_TASKS.filter((t) => !t.done && !t.dueDate && !t.projectId).length,
+          today: MOCK_TASKS.filter((t) => !t.done).length,
+        });
+        setFilterCounts(mockFilterCounts());
+        setSearchTasks(mockAllPendingTasks());
+        searchTasksLoadedRef.current = true;
+        setLabels(MOCK_LABELS);
+        setUserProfile({ name: "Rodrigo", email: "dev@stacked.app", avatarUrl: null, apelido: "Rodrigo", nome: "Rodrigo" });
+        setCalendarEvents([]);
+        setCalendarError(null);
+        globalDataLoadedRef.current = true;
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const client = createClient();
+        const taskRepo = new TaskRepository(client);
+        const projectRepo = new ProjectRepository(client);
+
+        const loads: Promise<unknown>[] = [
+          isHomeHub
+            ? Promise.resolve({ pending: [], completed: [] } as ViewTasks)
+            : taskRepo.loadView(view, projectId),
+        ];
+
+        if (refreshGlobal) {
+          loads.push(
+            projectRepo.fetchProjects(),
+            taskRepo.fetchNavCounts(),
+            taskRepo.fetchFilterDashboardCounts(),
+            new LabelRepository(client).fetchLabels(),
+          );
+        }
+
+        if (view === "project" && projectId) {
+          loads.push(projectRepo.fetchProjectById(projectId));
+          loads.push(new SectionRepository(client).getSectionsForProject(projectId));
+        }
+
+        const results = await Promise.all(loads);
+        const data = results[0] as ViewTasks;
+
+        setUsingMock(false);
+        setViewTasks(data);
+        if (!isHomeHub) viewCacheRef.current.set(cacheKey, data);
+
+        let nextIndex = 1;
+        if (refreshGlobal) {
+          const projectList = results[nextIndex] as Project[];
+          const counts = results[nextIndex + 1] as NavCounts;
+          const filterDashboard = results[nextIndex + 2] as FilterDashboardCounts;
+          const labelList = results[nextIndex + 3] as Label[];
+
+          const {
+            data: { user },
+          } = await client.auth.getUser();
+          if (user) {
+            setUserProfile(profileFromUser(user));
+          }
+
+          setProjects(projectList);
+          setNavCounts(counts);
+          setFilterCounts(filterDashboard);
+          setLabels(labelList);
+          globalDataLoadedRef.current = true;
+          nextIndex += 4;
+        }
+
+        if (view === "project" && projectId) {
+          setCurrentProject((results[nextIndex] as Project | null) ?? null);
+          setSections((results[nextIndex + 1] as Section[]) ?? []);
+        } else {
+          setCurrentProject(null);
+          setSections([]);
+        }
+
+        if (!isHomeHub) {
+          await loadCalendarEvents(view);
+        } else {
+          setCalendarEvents([]);
+          setCalendarError(null);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Erro ao carregar tarefas");
+        setUsingMock(true);
+        setProjects(mockProjectsList());
+        const mockData = isHomeHub ? { pending: [], completed: [] } : mockViewTasks(view, projectId);
+        setViewTasks(mockData);
+        setSections(projectId ? mockSectionsForProject(projectId) : []);
+        setCurrentProject(
+          projectId && mockProjectById(projectId)
+            ? {
+                id: projectId,
+                name: mockProjectById(projectId)!.name,
+                color: mockProjectById(projectId)!.color,
+                icon: mockProjectById(projectId)!.icon ?? "folder",
+                pendingCount: mockProjectById(projectId)!.count,
+              }
+            : null,
+        );
+        setNavCounts({ inbox: 0, today: 0 });
+        setFilterCounts(mockFilterCounts());
+        setSearchTasks(mockAllPendingTasks());
+        searchTasksLoadedRef.current = true;
+        setLabels(MOCK_LABELS);
+        setUserProfile({ name: "Rodrigo", email: "dev@stacked.app", avatarUrl: null, apelido: "Rodrigo", nome: "Rodrigo" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [view, projectId, pathname, loadCalendarEvents, viewCacheKey],
+  );
+
+  const refreshTasksRef = useRef(refreshTasks);
+  refreshTasksRef.current = refreshTasks;
+
+  const loadSearchTasks = useCallback(async () => {
+    if (searchTasksLoadedRef.current || usingMock || !isSupabaseConfigured()) return;
     try {
-      const client = createClient();
-      const taskRepo = new TaskRepository(client);
-      const projectRepo = new ProjectRepository(client);
-
-      const loads: Promise<unknown>[] = [
-        taskRepo.loadView(view, projectId),
-        projectRepo.fetchProjects(),
-        taskRepo.fetchNavCounts(),
-        taskRepo.fetchFilterDashboardCounts(),
-        taskRepo.fetchAllPendingTasks(),
-        new LabelRepository(client).fetchLabels(),
-      ];
-
-      if (view === "project" && projectId) {
-        loads.push(projectRepo.fetchProjectById(projectId));
-        loads.push(new SectionRepository(client).getSectionsForProject(projectId));
-      }
-
-      const results = await Promise.all(loads);
-      const data = results[0] as ViewTasks;
-      const projectList = results[1] as Project[];
-      const counts = results[2] as NavCounts;
-      const filterDashboard = results[3] as FilterDashboardCounts;
-      const search = results[4] as Task[];
-      const labelList = results[5] as Label[];
-
-      const {
-        data: { user },
-      } = await client.auth.getUser();
-      if (user) {
-        setUserProfile(profileFromUser(user));
-      }
-
-      setUsingMock(false);
-      setViewTasks(data);
-      setProjects(projectList);
-      setNavCounts(counts);
-      setFilterCounts(filterDashboard);
-      setSearchTasks(search);
-      setLabels(labelList);
-
-      if (view === "project" && projectId) {
-        setCurrentProject((results[6] as Project | null) ?? null);
-        setSections((results[7] as Section[]) ?? []);
-      } else {
-        setCurrentProject(null);
-        setSections([]);
-      }
-      await loadCalendarEvents(view);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar tarefas");
-      setUsingMock(true);
-      setProjects(mockProjectsList());
-      setViewTasks(mockViewTasks(view, projectId));
-      setSections(projectId ? mockSectionsForProject(projectId) : []);
-      setCurrentProject(
-        projectId && mockProjectById(projectId)
-          ? {
-              id: projectId,
-              name: mockProjectById(projectId)!.name,
-              color: mockProjectById(projectId)!.color,
-              icon: mockProjectById(projectId)!.icon ?? "folder",
-              pendingCount: mockProjectById(projectId)!.count,
-            }
-          : null,
-      );
-      setNavCounts({ inbox: 0, today: 0 });
-      setFilterCounts(mockFilterCounts());
-      setSearchTasks(mockAllPendingTasks());
-      setLabels(MOCK_LABELS);
-      setUserProfile({ name: "Rodrigo", email: "dev@stacked.app", avatarUrl: null, apelido: "Rodrigo", nome: "Rodrigo" });
-    } finally {
-      setLoading(false);
+      const tasks = await new TaskRepository(createClient()).fetchAllPendingTasks();
+      setSearchTasks(tasks);
+      searchTasksLoadedRef.current = true;
+    } catch {
+      /* palette can retry on next open */
     }
-  }, [view, projectId, loadCalendarEvents]);
+  }, [usingMock]);
 
   useEffect(() => {
     setSelectedTaskId(null);
     setSelectedSubtaskKey(null);
-    refreshTasks();
-  }, [refreshTasks]);
+    const cacheKey = viewCacheKey();
+    const cached = viewCacheRef.current.get(cacheKey);
+    if (cached) {
+      setViewTasks(cached);
+      setLoading(false);
+      void refreshTasksRef.current({ refreshGlobal: !globalDataLoadedRef.current });
+    } else if (pathname === "/home") {
+      setViewTasks({ pending: [], completed: [] });
+      setLoading(false);
+      void refreshTasksRef.current({ refreshGlobal: !globalDataLoadedRef.current });
+    } else {
+      void refreshTasksRef.current({ showLoading: true, refreshGlobal: !globalDataLoadedRef.current });
+    }
+  }, [view, projectId, pathname, viewCacheKey]);
+
+  useEffect(() => {
+    if (paletteOpen) void loadSearchTasks();
+  }, [paletteOpen, loadSearchTasks]);
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_KEY);
@@ -511,7 +583,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     const channel = client
       .channel("tasks-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-        void refreshTasks();
+        void refreshTasksRef.current({ refreshGlobal: true });
       })
       .subscribe();
     return () => {
@@ -726,7 +798,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     setInspectorOverride(null);
   }, []);
 
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const openPalette = useCallback(() => {
+    setPaletteOpen(true);
+    void loadSearchTasks();
+  }, [loadSearchTasks]);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
   const openTaskInspector = useCallback((task: Task) => {

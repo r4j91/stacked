@@ -361,6 +361,7 @@ function SubtasksCard({ task }: { task: Task }) {
             <DoneCircle
               small
               done={s.done}
+              priority={s.priority}
               label={s.done ? "Marcar pendente" : "Marcar concluída"}
               onClick={() => toggleSubtaskDone(key)}
             />
@@ -577,6 +578,7 @@ export function InspectorPanel() {
               <div className="mb-4 flex items-start gap-3">
                 <DoneCircle
                   done={subCtx.sub.done}
+                  priority={subCtx.sub.priority}
                   label={subCtx.sub.done ? "Marcar pendente" : "Marcar concluída"}
                   onClick={() => toggleSubtaskDone(selectedSubtaskKey!)}
                 />
@@ -604,6 +606,7 @@ export function InspectorPanel() {
               <div className="mb-4 flex items-start gap-3">
                 <DoneCircle
                   done={selectedTask.done}
+                  priority={selectedTask.priority}
                   label={selectedTask.done ? "Marcar pendente" : "Marcar concluída"}
                   onClick={() => toggleTaskDone(selectedTask.id)}
                 />

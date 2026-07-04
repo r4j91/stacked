@@ -6,144 +6,23 @@ import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench, type SubtaskKey } from "@/components/shell/workbench-context";
 import { SwipeableTaskRow } from "@/components/tasks/swipeable-task-row";
 import { useTaskContextMenu } from "@/components/tasks/task-context-menu";
-import { isOverdueDate, parseDueDate, dateKey, startOfDay } from "@/lib/utils/date";
-import { priorityColor } from "@/lib/utils/priority";
+import { parseDueDate, dateKey, startOfDay } from "@/lib/utils/date";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CalendarEventRow } from "@/components/calendar/calendar-event-row";
 import { buildTodayTimeline } from "@/lib/utils/schedule-items";
 import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
-import { TagChip } from "@/components/ui/tag-chip";
+import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import {
   Sun01Icon,
   InboxIcon,
   TaskDone01Icon,
   Calendar03Icon,
-  Flag01Icon,
   ArrowDown01Icon,
 } from "@/lib/icons/nav-icons";
 
-function TaskMetaLine({ task }: { task: Task }) {
-  const { labels: allLabels } = useWorkbench();
-  const subs = task.subtasks ?? [];
-  const due = parseDueDate(task.dueDate);
-
-  let taskLabels =
-    task.labels ??
-    (task.labelIds ?? [])
-      .map((id) => allLabels.find((l) => l.id === id))
-      .filter((l): l is NonNullable<typeof l> => Boolean(l));
-
-  if (!taskLabels.length && task.tag) {
-    const matched = allLabels.find((l) => l.name === task.tag);
-    if (matched) taskLabels = [matched];
-  }
-
-  const items: React.ReactNode[] = [];
-
-  for (const label of taskLabels.slice(0, 3)) {
-    items.push(<TagChip key={label.id} label={label.name} color={label.color} />);
-  }
-  if (taskLabels.length > 3) {
-    items.push(
-      <TagChip key="more" label={`+${taskLabels.length - 3}`} color="var(--color-text-tertiary)" showIcon={false} />,
-    );
-  }
-
-  if (task.date) {
-    const overdue = isOverdueDate(due, task.done);
-    items.push(
-      <TagChip
-        key="d"
-        label={task.date}
-        color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
-        icon={Calendar03Icon}
-      />,
-    );
-  }
-
-  if (task.priority) {
-    items.push(
-      <span key="pri" className="inline-flex items-center gap-1 text-[12px]" style={{ color: priorityColor(task.priority) }}>
-        <AppIcon icon={Flag01Icon} size={11} strokeWidth={1.75} />
-        <span>{task.priority}</span>
-      </span>,
-    );
-  }
-
-  if (subs.length) {
-    const doneSubs = subs.filter((s) => s.done).length;
-    items.push(
-      <span key="sub" className="inline-flex items-center gap-1 text-[12px] text-[var(--color-text-tertiary)]">
-        <AppIcon icon={TaskDone01Icon} size={12} strokeWidth={1.75} />
-        <span className="tabular-nums">
-          {doneSubs}/{subs.length}
-        </span>
-      </span>,
-    );
-  }
-
-  if (!items.length) return task.done ? <span className="text-xs text-[var(--color-text-tertiary)]">—</span> : null;
-
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-      {items}
-    </div>
-  );
-}
-
-function SubtaskMetaLine({ sub }: { sub: Subtask }) {
-  const { labels: allLabels } = useWorkbench();
-
-  let subLabels =
-    (sub.labelIds ?? [])
-      .map((id) => allLabels.find((l) => l.id === id))
-      .filter((l): l is NonNullable<typeof l> => Boolean(l));
-
-  if (!subLabels.length && sub.tag) {
-    const matched = allLabels.find((l) => l.name === sub.tag);
-    if (matched) subLabels = [matched];
-  }
-
-  const items: React.ReactNode[] = [];
-
-  for (const label of subLabels.slice(0, 2)) {
-    items.push(<TagChip key={label.id} label={label.name} color={label.color} />);
-  }
-  if (subLabels.length > 2) {
-    items.push(
-      <TagChip key="more" label={`+${subLabels.length - 2}`} color="var(--color-text-tertiary)" showIcon={false} />,
-    );
-  }
-
-  if (sub.date) {
-    const overdue = isOverdueDate(parseDueDate(sub.dueDate), sub.done);
-    items.push(
-      <TagChip
-        key="d"
-        label={sub.date}
-        color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
-        icon={Calendar03Icon}
-      />,
-    );
-  }
-
-  if (sub.priority) {
-    items.push(
-      <span key="pri" className="inline-flex items-center gap-1 text-[11px]" style={{ color: priorityColor(sub.priority) }}>
-        <AppIcon icon={Flag01Icon} size={10} strokeWidth={1.75} />
-        <span>{sub.priority}</span>
-      </span>,
-    );
-  }
-
-  if (!items.length) return null;
-
-  return <div className="mt-0.5 flex flex-wrap items-center gap-1">{items}</div>;
-}
-
-function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
+export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone } = useWorkbench();
   if (!open || !task.subtasks?.length) return null;
 
@@ -190,6 +69,7 @@ function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
               <DoneCircle
                 small
                 done={s.done}
+                priority={s.priority}
                 label={`${s.done ? "Marcar pendente" : "Marcar concluída"}: ${s.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -262,7 +142,7 @@ export function TaskRow({
               selectTask(task.id);
             }
           }}
-          className={`mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 transition-colors ${
+          className={`task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
             reorderDragging
               ? "reorder-dragging"
               : reorderHolding
@@ -273,12 +153,14 @@ export function TaskRow({
                     ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
                     : keyboardFocused
                       ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
-                      : "border-transparent hover:bg-[var(--color-hover-overlay)]"
+                      : "border-transparent"
           } ${task.done && !reorderDragging && !reorderHolding ? "opacity-65" : ""}`}
           data-task-id={task.id}
+          data-selected={selectedTaskId === task.id ? "" : undefined}
         >
           <DoneCircle
             done={task.done}
+            priority={task.priority}
             label={task.done ? "Marcar pendente" : "Marcar concluída"}
             onClick={(e) => {
               e.stopPropagation();

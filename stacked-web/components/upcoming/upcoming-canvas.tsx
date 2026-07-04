@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { TaskRow, TaskListSkeleton } from "@/components/tasks/task-list";
+import { useCallback, useMemo, useState } from "react";
+import { TaskListSkeleton } from "@/components/tasks/task-list";
 import { CalendarEventRow } from "@/components/calendar/calendar-event-row";
+import { ScheduleTaskRow } from "@/components/tasks/schedule-task-row";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ArrowRight01Icon } from "@/lib/icons/nav-icons";
@@ -180,10 +181,14 @@ function WeekStrip({
 }
 
 export function UpcomingCanvas() {
-  const { viewTasks, loading, calendarEvents, calendarError } = useWorkbench();
+  const { viewTasks, loading, calendarEvents, calendarError, selectedTaskId, selectTask, toggleTaskDone } =
+    useWorkbench();
   const [mode, setMode] = useState<CalMode>("agenda");
   const [focusedMonth, setFocusedMonth] = useState(() => startOfDay(new Date()));
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+
+  const handleSelect = useCallback((id: string) => selectTask(id), [selectTask]);
+  const handleToggleDone = useCallback((id: string) => toggleTaskDone(id), [toggleTaskDone]);
 
   const tasksByDay = useMemo(() => groupByDay(viewTasks.pending), [viewTasks.pending]);
   const eventsByDay = useMemo(() => {
@@ -211,89 +216,102 @@ export function UpcomingCanvas() {
   if (loading) return <TaskListSkeleton />;
 
   return (
-    <>
-      <div className="mb-4 flex gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-        {(["month", "week", "agenda"] as CalMode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`flex-1 rounded-[var(--radius-sm)] py-1.5 text-xs font-semibold capitalize transition-colors ${
-              mode === m
-                ? "bg-[var(--color-surface-variant)] text-[var(--color-text)]"
-                : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
-            }`}
-          >
-            {m === "month" ? "Mês" : m === "week" ? "Semana" : "Agenda"}
-          </button>
-        ))}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0">
+        <div className="mb-4 flex gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+          {(["month", "week", "agenda"] as CalMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`flex-1 rounded-[var(--radius-sm)] py-1.5 text-xs font-semibold capitalize transition-colors ${
+                mode === m
+                  ? "bg-[var(--color-surface-variant)] text-[var(--color-text)]"
+                  : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
+              }`}
+            >
+              {m === "month" ? "Mês" : m === "week" ? "Semana" : "Agenda"}
+            </button>
+          ))}
+        </div>
+
+        {mode === "month" && (
+          <MonthGrid
+            focused={focusedMonth}
+            tasksByDay={tasksByDay}
+            eventsByDay={eventsByDay}
+            selectedKey={selectedDayKey}
+            onSelectDay={setSelectedDayKey}
+            onPrev={() =>
+              setFocusedMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+            }
+            onNext={() =>
+              setFocusedMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+            }
+          />
+        )}
+
+        {mode === "week" && (
+          <WeekStrip
+            focused={focusedMonth}
+            tasksByDay={tasksByDay}
+            eventsByDay={eventsByDay}
+            selectedKey={selectedDayKey}
+            onSelectDay={setSelectedDayKey}
+          />
+        )}
+
+        {selectedDayKey && (
+          <p className="mb-2 px-2 text-xs text-[var(--color-text-tertiary)]">
+            {formatDayLabel(parseDateKey(selectedDayKey))}
+            <button
+              type="button"
+              onClick={() => setSelectedDayKey(null)}
+              className="ml-2 text-[var(--color-text-secondary)] underline"
+            >
+              Limpar filtro
+            </button>
+          </p>
+        )}
+
+        {calendarError && (
+          <div className="mb-3 rounded-[var(--radius-md)] border border-[var(--color-overdue)]/30 bg-[var(--color-overdue)]/10 px-3 py-2 text-sm text-[var(--color-overdue)]">
+            {calendarError}
+          </div>
+        )}
       </div>
 
-      {mode === "month" && (
-        <MonthGrid
-          focused={focusedMonth}
-          tasksByDay={tasksByDay}
-          eventsByDay={eventsByDay}
-          selectedKey={selectedDayKey}
-          onSelectDay={setSelectedDayKey}
-          onPrev={() =>
-            setFocusedMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
-          }
-          onNext={() =>
-            setFocusedMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))
-          }
-        />
-      )}
-
-      {mode === "week" && (
-        <WeekStrip
-          focused={focusedMonth}
-          tasksByDay={tasksByDay}
-          eventsByDay={eventsByDay}
-          selectedKey={selectedDayKey}
-          onSelectDay={setSelectedDayKey}
-        />
-      )}
-
-      {selectedDayKey && (
-        <p className="mb-2 px-2 text-xs text-[var(--color-text-tertiary)]">
-          {formatDayLabel(parseDateKey(selectedDayKey))}
-          <button
-            type="button"
-            onClick={() => setSelectedDayKey(null)}
-            className="ml-2 text-[var(--color-text-secondary)] underline"
-          >
-            Limpar filtro
-          </button>
-        </p>
-      )}
-
-      {calendarError && (
-        <div className="mb-3 rounded-[var(--radius-md)] border border-[var(--color-overdue)]/30 bg-[var(--color-overdue)]/10 px-3 py-2 text-sm text-[var(--color-overdue)]">
-          {calendarError}
-        </div>
-      )}
-
-      {!filteredSchedule.length ? (
-        <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
-          Nenhuma tarefa ou compromisso com data.
-        </p>
-      ) : (
-        filteredSchedule.map(([key, items]) => (
-          <section key={key} className="mt-2">
-            <h2 className="px-2 pb-2 pt-3 text-[13px] font-semibold text-[var(--color-text-secondary)]">
-              {formatDayLabel(parseDateKey(key))}
-            </h2>
-            {items.map((item) =>
-              item.kind === "calendar" ? (
-                <CalendarEventRow key={item.event.id} event={item.event} />
-              ) : (
-                <TaskRow key={item.task.id} task={item.task} />
-              ),
-            )}
-          </section>
-        ))
-      )}
-    </>
+      <div
+        data-upcoming-scroll
+        className="scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-2"
+      >
+        {!filteredSchedule.length ? (
+          <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
+            Nenhuma tarefa ou compromisso com data.
+          </p>
+        ) : (
+          filteredSchedule.map(([key, items]) => (
+            <section key={key} className="mt-2">
+              <h2 className="px-2 pb-2 pt-3 text-[13px] font-semibold text-[var(--color-text-secondary)]">
+                {formatDayLabel(parseDateKey(key))}
+              </h2>
+              {items.map((item) =>
+                item.kind === "calendar" ? (
+                  <CalendarEventRow key={item.event.id} event={item.event} />
+                ) : (
+                  <ScheduleTaskRow
+                    key={item.task.id}
+                    task={item.task}
+                    selected={selectedTaskId === item.task.id}
+                    onSelect={handleSelect}
+                    onToggleDone={handleToggleDone}
+                  />
+                ),
+              )}
+            </section>
+          ))
+        )}
+      </div>
+    </div>
   );
 }

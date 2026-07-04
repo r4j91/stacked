@@ -93,7 +93,7 @@ export function SwipeableTaskRow({
 
   return (
     <div
-      className={`group relative mb-0.5 rounded-[var(--radius-md)] ${
+      className={`scroll-list-item group relative mb-0.5 rounded-[var(--radius-md)] ${
         allowOverflow ? "overflow-visible" : "overflow-hidden lg:overflow-visible"
       } ${dragGhost ? "pointer-events-none" : ""}`}
       data-reorder-dragging={dragGhost ? "" : undefined}
@@ -130,7 +130,9 @@ export function SwipeableTaskRow({
       </div>
 
       <div
-        className="relative bg-[var(--color-bg)] transition-transform duration-150 ease-out"
+        className={`relative bg-[var(--color-bg)]${
+          !dragging && offsetX === 0 ? "" : " transition-transform duration-150 ease-out"
+        }`}
         style={{ transform: `translateX(${offsetX}px)` }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -177,7 +179,7 @@ function ActionButton({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm transition-colors ${toneStyles[tone]}`}
+      className={`flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors ${toneStyles[tone]}`}
     >
       {children}
     </button>

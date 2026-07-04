@@ -114,6 +114,37 @@ textarea {
   display: none;
 }
 
+/* Scroll principal — isola repaint e evita scroll chaining */
+[data-workbench-scroll].scroll-pane,
+[data-upcoming-scroll],
+.scroll-thin.overflow-y-auto,
+.scroll-hidden.overflow-y-auto {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-upcoming-scroll],
+.scroll-pane {
+  contain: layout style paint;
+}
+
+/* Hover só com mouse fino — evita transition durante scroll/trackpad */
+@media (hover: hover) and (pointer: fine) {
+  .schedule-row:not([data-selected]):hover {
+    background-color: var(--color-hover-overlay);
+  }
+
+  .task-row:not([data-selected]):hover {
+    background-color: var(--color-hover-overlay);
+  }
+}
+
+/* Itens de lista longa — browser pula paint fora da viewport */
+.scroll-list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { CalendarEvent } from "@/lib/types/calendar-event";
 import { formatEventTime } from "@/lib/utils/schedule-items";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -10,7 +11,7 @@ type CalendarEventRowProps = {
   onOpen?: () => void;
 };
 
-export function CalendarEventRow({ event, onOpen }: CalendarEventRowProps) {
+export const CalendarEventRow = memo(function CalendarEventRow({ event, onOpen }: CalendarEventRowProps) {
   const accent = event.calendarColor ?? "var(--color-accent)";
   const time = formatEventTime(event);
   const subtitle = event.isAllDay
@@ -28,7 +29,7 @@ export function CalendarEventRow({ event, onOpen }: CalendarEventRowProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="mb-0.5 flex min-h-[52px] w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] border border-transparent bg-[var(--color-surface)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-hover-overlay)]"
+      className="scroll-list-item schedule-row mb-0.5 flex min-h-[52px] w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] border border-transparent bg-[var(--color-surface)] px-3 py-2 text-left"
       aria-label={`${event.title}, compromisso do calendário, ${subtitle}`}
     >
       <span className="h-8 w-[3px] shrink-0 rounded-full" style={{ background: accent }} />
@@ -53,4 +54,4 @@ export function CalendarEventRow({ event, onOpen }: CalendarEventRowProps) {
       )}
     </button>
   );
-}
+});

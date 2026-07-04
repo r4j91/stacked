@@ -98,7 +98,11 @@ export function CanvasArea() {
         </header>
         <div
           data-workbench-scroll
-          className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-8 pt-1"
+          className={
+            view === "upcoming"
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden pb-8 pt-1"
+              : "scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-8 pt-1"
+          }
         >
           {view === "project" && !loading && !currentProject ? (
             <p className="px-4 py-12 text-center text-sm text-[var(--color-text-tertiary)]">
