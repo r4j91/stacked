@@ -32,6 +32,14 @@ struct SettingsView: View {
           .settingsNavigationLinkStyle()
 
           NavigationLink {
+            CalendarSettingsView().environment(theme)
+          } label: {
+            settingsRow(icon: .calendar, label: "Calendário", subtitle: "Compromissos e exportação")
+          }
+          .settingsGroupedNavigationRow(position: .middle, showDivider: true)
+          .settingsNavigationLinkStyle()
+
+          NavigationLink {
             AppearanceView().environment(theme)
           } label: {
             settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)

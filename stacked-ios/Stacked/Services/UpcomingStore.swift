@@ -24,6 +24,7 @@ final class UpcomingStore {
   private let repo = TaskRepository.shared
 
   private(set) var tasks: [Task] = []
+  private(set) var calendarEvents: [CalendarEvent] = []
   private(set) var isLoading = false
   private(set) var error: String?
 
@@ -45,10 +46,28 @@ final class UpcomingStore {
     TaskMapper.groupTasksByDay(filteredTasks)
   }
 
+  var groupedSchedule: [(day: Date, items: [ScheduleItem])] {
+    let events: [CalendarEvent]
+    if let selectedDay {
+      events = calendarEvents.filter { TaskMapper.isSameDay($0.day, selectedDay) }
+    } else {
+      events = calendarEvents
+    }
+    return TaskMapper.groupScheduleItems(tasks: filteredTasks, events: events)
+  }
+
   var daysWithTasks: Set<Date> {
-    Set(tasks.compactMap { task in
+    var days = Set(tasks.compactMap { task in
       task.dueDate.map(TaskMapper.startOfDay)
     })
+    for event in calendarEvents {
+      days.insert(event.day)
+    }
+    return days
+  }
+
+  func reloadCalendarEvents() async {
+    calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
   }
 
   var agendaPeriodLabel: String {
@@ -64,6 +83,7 @@ final class UpcomingStore {
     error = nil
     do {
       tasks = try await repo.fetchDatedPendingTasks()
+      calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
@@ -95,7 +115,10 @@ final class UpcomingStore {
       animatedRemoval: { [self] in
         tasks.removeAll { $0.id == taskId }
       },
-      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
+      persist: {
+        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        TaskCalendarSync.remove(taskId: taskId)
+      },
       rollback: { [self] in
         var restored = snapshot
         restored.done = false
@@ -106,6 +129,7 @@ final class UpcomingStore {
 
   func delete(_ task: Task) {
     tasks.removeAll { $0.id == task.id }
+    TaskCalendarSync.remove(taskId: task.id)
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
     }

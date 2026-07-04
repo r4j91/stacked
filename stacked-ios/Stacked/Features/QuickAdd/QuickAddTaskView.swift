@@ -465,7 +465,7 @@ struct QuickAddTaskView: View {
     }
 
     do {
-      _ = try await TaskRepository.shared.createTask(.init(
+      let newId = try await TaskRepository.shared.createTask(.init(
         title: trimmed,
         description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
         priority: priority,
@@ -475,6 +475,7 @@ struct QuickAddTaskView: View {
         time: hora,
         labelIds: Array(selectedLabelIds)
       ))
+      await TaskCalendarSync.syncTaskId(newId)
       HapticService.taskCreated()
       onSaved()
       onDismiss()

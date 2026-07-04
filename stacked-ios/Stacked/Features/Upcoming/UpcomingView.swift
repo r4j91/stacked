@@ -64,16 +64,16 @@ struct UpcomingView: View {
             }
             .listRowBackground(Color.clear)
           }
-        } else if store.filteredTasks.isEmpty {
+        } else if store.groupedSchedule.isEmpty {
           Section {
             EmptyStateView(icon: .navUpcoming, title: "Nenhuma tarefa", subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento.")
               .listRowBackground(Color.clear)
           }
         } else {
-          ForEach(store.groupedTasks, id: \.day) { group in
+          ForEach(store.groupedSchedule, id: \.day) { group in
             Section {
-              ForEach(group.tasks) { task in
-                taskRow(task)
+              ForEach(group.items) { item in
+                scheduleRow(item)
               }
             } header: {
               ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
@@ -178,6 +178,21 @@ struct UpcomingView: View {
 
   private var rowInsets: EdgeInsets {
     EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.lg, bottom: AppSpacing.xs, trailing: AppSpacing.lg)
+  }
+
+  @ViewBuilder
+  private func scheduleRow(_ item: ScheduleItem) -> some View {
+    switch item {
+    case .task(let task):
+      taskRow(task)
+    case .calendarEvent(let event):
+      CalendarEventRow(event: event) {
+        EventKitCalendarService.shared.openInCalendar(event)
+      }
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
   }
 
   @ViewBuilder

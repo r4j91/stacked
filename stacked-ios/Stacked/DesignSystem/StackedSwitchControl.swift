@@ -1,59 +1,54 @@
 import SwiftUI
-import UIKit
 
-/// Switch com cores da paleta — trilho escuro no OFF (evita cinza claro do UISwitch padrão).
-struct StackedSwitchControl: UIViewRepresentable {
+/// Switch customizado — Button puro (Toggle dentro de List costuma engolir toques).
+struct StackedSwitchControl: View {
   @Binding var isOn: Bool
-  var accent: Color
+  var onTrack: Color
   var offTrack: Color
 
-  func makeCoordinator() -> Coordinator {
-    Coordinator(isOn: $isOn)
-  }
+  private let width: CGFloat = 51
+  private let height: CGFloat = 31
 
-  func makeUIView(context: Context) -> UISwitch {
-    let control = UISwitch(frame: .zero)
-    control.addTarget(context.coordinator, action: #selector(Coordinator.valueChanged(_:)), for: .valueChanged)
-    applyColors(to: control)
-    control.isOn = isOn
-    return control
-  }
+  var body: some View {
+    Button {
+      isOn.toggle()
+      HapticService.selection()
+    } label: {
+      ZStack(alignment: isOn ? .trailing : .leading) {
+        Capsule()
+          .fill(isOn ? onTrack : offTrack)
+          .frame(width: width, height: height)
 
-  func updateUIView(_ control: UISwitch, context: Context) {
-    applyColors(to: control)
-    if control.isOn != isOn {
-      control.setOn(isOn, animated: true)
+        Circle()
+          .fill(Color.white)
+          .shadow(color: Color.black.opacity(0.2), radius: 1.5, x: 0, y: 1)
+          .frame(width: height - 4, height: height - 4)
+          .padding(2)
+      }
+      .frame(width: width, height: height)
+      .animation(.snappy(duration: 0.2), value: isOn)
     }
-  }
-
-  private func applyColors(to control: UISwitch) {
-    control.onTintColor = UIColor(accent)
-    control.tintColor = UIColor(offTrack)
-    control.backgroundColor = UIColor(offTrack)
-    let radius = max(control.bounds.height, 31) / 2
-    control.layer.cornerRadius = radius
-    control.clipsToBounds = true
-    control.thumbTintColor = .white
-  }
-
-  final class Coordinator: NSObject {
-    var isOn: Binding<Bool>
-
-    init(isOn: Binding<Bool>) {
-      self.isOn = isOn
-    }
-
-    @objc func valueChanged(_ sender: UISwitch) {
-      isOn.wrappedValue = sender.isOn
-      _Concurrency.Task { @MainActor in HapticService.selection() }
-    }
+    .buttonStyle(.plain)
+    .frame(minWidth: 44, minHeight: 44)
+    .contentShape(Rectangle())
+    .accessibilityAddTraits(.isButton)
+    .accessibilityValue(isOn ? Text("Ativado") : Text("Desativado"))
   }
 }
 
 extension StackedSwitchControl {
   init(isOn: Binding<Bool>, colors: AppThemeColors) {
     self._isOn = isOn
-    self.accent = colors.accent
-    self.offTrack = colors.textTertiary.opacity(0.38)
+    self.onTrack = Self.resolvedOnTrack(for: colors)
+    self.offTrack = colors.isDark
+      ? colors.textTertiary.opacity(0.55)
+      : colors.textTertiary.opacity(0.35)
+  }
+
+  private static func resolvedOnTrack(for colors: AppThemeColors) -> Color {
+    if colors.isDark {
+      return Color(hex: 0x5FD3DC)
+    }
+    return colors.accent
   }
 }

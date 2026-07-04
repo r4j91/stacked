@@ -70,6 +70,8 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        NSCalendarsFullAccessUsageDescription: "O Stacked mostra compromissos do Calendário em Hoje e Em breve, e exporta tarefas com hora para o Calendário."
+        NSCalendarsWriteOnlyAccessUsageDescription: "O Stacked exporta tarefas com data e hora como eventos no Calendário."
         CFBundleURLTypes:
           - CFBundleURLName: com.stacked.app
             CFBundleURLSchemes:

@@ -23,6 +23,7 @@ struct NotificationsSettingsView: View {
   @State private var enabled = false
   @State private var dailySummary = false
   @State private var loading = true
+  @State private var togglesReady = false
 
   var body: some View {
     let c = theme.colors
@@ -36,10 +37,7 @@ struct NotificationsSettingsView: View {
             SettingsCardSurface {
               VStack(spacing: 0) {
                 notificationToggleRow(
-                  isOn: Binding(
-                    get: { enabled },
-                    set: { newValue in _Concurrency.Task { await toggleEnabled(newValue) } }
-                  ),
+                  isOn: $enabled,
                   icon: "bell",
                   title: "Ativar notificações"
                 )
@@ -84,6 +82,10 @@ struct NotificationsSettingsView: View {
     .navigationTitle("Notificações")
     .navigationBarTitleDisplayMode(.inline)
     .task { await load() }
+    .onChange(of: enabled) { _, newValue in
+      guard togglesReady else { return }
+      _Concurrency.Task { await toggleEnabled(newValue) }
+    }
   }
 
   private func notificationToggleRow(
@@ -125,17 +127,17 @@ struct NotificationsSettingsView: View {
     enabled = NotificationPreferences.enabled
     dailySummary = NotificationPreferences.dailySummary
     loading = false
+    togglesReady = true
   }
 
   private func toggleEnabled(_ value: Bool) async {
     if value {
       let granted = await requestPermission()
       NotificationPreferences.enabled = granted
-      enabled = granted
+      if !granted { enabled = false }
       if granted { HapticService.success() }
     } else {
       NotificationPreferences.enabled = false
-      enabled = false
       HapticService.selection()
     }
   }

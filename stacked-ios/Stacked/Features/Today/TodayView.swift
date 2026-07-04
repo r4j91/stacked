@@ -14,7 +14,7 @@ struct TodayView: View {
   var body: some View {
     let c = theme.colors
     let overdue = store.todayOverdue
-    let todayOnly = store.todayOnly
+    let timeline = store.todayTimeline
 
     List {
       Section {
@@ -38,7 +38,7 @@ struct TodayView: View {
           }
           .listRowBackground(Color.clear)
         }
-      } else if overdue.isEmpty && todayOnly.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
+      } else if overdue.isEmpty && timeline.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
         Section {
           EmptyStateView(icon: .sun, title: "Tudo em dia", subtitle: "Nenhuma tarefa para hoje")
           .listRowBackground(Color.clear)
@@ -54,10 +54,10 @@ struct TodayView: View {
           }
         }
 
-        if !todayOnly.isEmpty {
+        if !timeline.isEmpty {
           Section {
-            ForEach(todayOnly) { task in
-              taskRow(task)
+            ForEach(timeline) { item in
+              scheduleRow(item)
             }
           } header: {
             if !overdue.isEmpty { ListSectionHeader(text: "HOJE") }
@@ -130,6 +130,21 @@ struct TodayView: View {
 
   private var rowInsets: EdgeInsets {
     EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  @ViewBuilder
+  private func scheduleRow(_ item: ScheduleItem) -> some View {
+    switch item {
+    case .task(let task):
+      taskRow(task)
+    case .calendarEvent(let event):
+      CalendarEventRow(event: event) {
+        EventKitCalendarService.shared.openInCalendar(event)
+      }
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
   }
 
   @ViewBuilder

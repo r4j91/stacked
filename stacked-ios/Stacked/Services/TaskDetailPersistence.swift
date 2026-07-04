@@ -37,6 +37,14 @@ enum TaskDetailPersistence {
     }
   }
 
+  static func autosaveTime(taskId: String, time: String?) async {
+    if let time, !time.isEmpty {
+      try? await client.from("tasks").update(["hora": time]).eq("id", value: taskId).execute()
+    } else {
+      try? await client.from("tasks").update(["hora": Optional<String>.none]).eq("id", value: taskId).execute()
+    }
+  }
+
   static func autosaveProject(taskId: String, projectId: String?) async {
     if let projectId {
       try? await client.from("tasks").update([

@@ -213,4 +213,59 @@ enum TaskMapper {
     }
     return grouped.keys.sorted().map { ($0, grouped[$0]!) }
   }
+
+  /// Combina data civil + string HH:mm em Date local.
+  static func combinedDateTime(dueDate: Date, time: String) -> Date? {
+    let parts = time.split(separator: ":")
+    guard parts.count >= 2,
+          let h = Int(parts[0]),
+          let m = Int(parts[1]) else { return nil }
+    let cal = Calendar.current
+    var comps = cal.dateComponents([.year, .month, .day], from: startOfDay(dueDate))
+    comps.hour = h
+    comps.minute = m
+    return cal.date(from: comps)
+  }
+
+  static func timeString(from date: Date) -> String {
+    let cal = Calendar.current
+    let h = cal.component(.hour, from: date)
+    let m = cal.component(.minute, from: date)
+    return String(format: "%02d:%02d", h, m)
+  }
+
+  static func dateFromTimeString(_ time: String?, base: Date = Date()) -> Date? {
+    guard let time, !time.isEmpty else { return nil }
+    return combinedDateTime(dueDate: base, time: time)
+  }
+
+  /// Mescla tarefas + compromissos por dia; só inclui dias com conteúdo.
+  static func groupScheduleItems(tasks: [Task], events: [CalendarEvent]) -> [(day: Date, items: [ScheduleItem])] {
+    var grouped: [Date: [ScheduleItem]] = [:]
+    for task in tasks {
+      guard let due = task.dueDate else { continue }
+      let day = startOfDay(due)
+      grouped[day, default: []].append(.task(task))
+    }
+    for event in events {
+      grouped[event.day, default: []].append(.calendarEvent(event))
+    }
+    return grouped.keys.sorted().map { day in
+      let items = grouped[day]!.sorted { $0.sortDate < $1.sortDate }
+      return (day, items)
+    }
+  }
+
+  /// Hoje — compromissos + tarefas do dia, ordenados por horário.
+  static func todayTimeline(tasks: [Task], events: [CalendarEvent], now: Date = Date()) -> [ScheduleItem] {
+    let todayStart = startOfDay(now)
+    var items: [ScheduleItem] = tasks
+      .filter { task in
+        guard let due = task.dueDate else { return true }
+        return startOfDay(due) == todayStart
+      }
+      .map { .task($0) }
+    items += events.map { .calendarEvent($0) }
+    return items.sorted { $0.sortDate < $1.sortDate }
+  }
 }

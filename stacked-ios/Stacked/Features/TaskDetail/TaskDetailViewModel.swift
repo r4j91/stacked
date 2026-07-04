@@ -21,6 +21,7 @@ final class TaskDetailViewModel {
   var done = false
   var priority: Priority?
   var dueDate: Date?
+  var time: String?
   var projectId: String?
   var projectName = "Sem projeto"
   var selectedLabelIds: Set<String> = []
@@ -72,6 +73,7 @@ final class TaskDetailViewModel {
     done = task.done
     priority = task.priority
     dueDate = task.dueDate
+    time = task.time
     projectId = task.projectId
     projectName = task.project
     subtasks = task.subtasks
@@ -85,6 +87,13 @@ final class TaskDetailViewModel {
       try? await _Concurrency.Task.sleep(for: .milliseconds(400))
       guard !_Concurrency.Task.isCancelled else { return }
       await TaskDetailPersistence.autosaveTitle(taskId: taskId, title: title)
+      TaskCalendarSync.syncAfterMutation(
+        taskId: taskId,
+        title: title,
+        dueDate: dueDate,
+        time: time,
+        done: done
+      )
     }
   }
 
@@ -104,11 +113,27 @@ final class TaskDetailViewModel {
     }
   }
 
-  func setDueDate(_ date: Date?) {
+  func setDueDate(_ date: Date?, time timeDate: Date?) {
     dueDate = date
+    if date == nil {
+      time = nil
+    } else if let timeDate {
+      time = TaskMapper.timeString(from: timeDate)
+    } else {
+      time = nil
+    }
     let iso = date.map { TaskMapper.dateString($0) }
+    let savedTime = time
     _Concurrency.Task {
       await TaskDetailPersistence.autosaveDueDate(taskId: taskId, isoDate: iso)
+      await TaskDetailPersistence.autosaveTime(taskId: taskId, time: savedTime)
+      TaskCalendarSync.syncAfterMutation(
+        taskId: taskId,
+        title: title,
+        dueDate: dueDate,
+        time: savedTime,
+        done: done
+      )
     }
   }
 
@@ -132,6 +157,17 @@ final class TaskDetailViewModel {
     HapticService.success()
     _Concurrency.Task {
       try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: done)
+      if done {
+        TaskCalendarSync.remove(taskId: taskId)
+      } else {
+        TaskCalendarSync.syncAfterMutation(
+          taskId: taskId,
+          title: title,
+          dueDate: dueDate,
+          time: time,
+          done: done
+        )
+      }
     }
   }
 
@@ -194,6 +230,7 @@ final class TaskDetailViewModel {
   }
 
   func deleteTask() async throws {
+    TaskCalendarSync.remove(taskId: taskId)
     try await TaskRepository.shared.deleteTask(id: taskId)
   }
 
@@ -235,6 +272,15 @@ final class TaskDetailViewModel {
     let f = DateFormatter()
     f.locale = Locale(identifier: "pt_BR")
     f.dateStyle = .medium
-    return f.string(from: dueDate)
+    var label = f.string(from: dueDate)
+    if let time, !time.isEmpty {
+      label += " · \(TaskMapper.formatTimeDisplay(time))"
+    }
+    return label
+  }
+
+  var dueTimeDate: Date? {
+    guard let dueDate, let time else { return nil }
+    return TaskMapper.combinedDateTime(dueDate: dueDate, time: time)
   }
 }

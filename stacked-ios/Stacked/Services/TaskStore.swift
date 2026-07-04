@@ -10,6 +10,7 @@ final class TaskStore {
   // Today
   private(set) var todayPending: [Task] = []
   private(set) var todayCompleted: [Task] = []
+  private(set) var todayCalendarEvents: [CalendarEvent] = []
   private(set) var todayLoading = false
   private(set) var todayError: String?
 
@@ -24,6 +25,14 @@ final class TaskStore {
   var todayOverdue: [Task] { TaskMapper.splitTodayPending(todayPending).overdue }
   var todayOnly: [Task] { TaskMapper.splitTodayPending(todayPending).today }
 
+  var todayTimeline: [ScheduleItem] {
+    TaskMapper.todayTimeline(tasks: todayOnly, events: todayCalendarEvents)
+  }
+
+  func reloadCalendarEvents() async {
+    todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
+  }
+
   func loadToday() async {
     todayLoading = todayPending.isEmpty && todayCompleted.isEmpty
     todayError = nil
@@ -33,6 +42,7 @@ final class TaskStore {
       let (p, c) = try await (pending, completed)
       todayPending = p
       todayCompleted = c
+      todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
       WidgetSnapshotSync.updateFromToday(pending: p, completed: c)
     } catch {
       if AsyncLoad.isCancellation(error) { return }
@@ -79,7 +89,10 @@ final class TaskStore {
         }
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
       },
-      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
+      persist: {
+        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        TaskCalendarSync.remove(taskId: taskId)
+      },
       rollback: { [self] in
         todayCompleted.removeAll { $0.id == taskId }
         var restored = snapshot
@@ -111,7 +124,10 @@ final class TaskStore {
           inboxCompleted.insert(updated, at: 0)
         }
       },
-      persist: { try await self.repo.toggleTaskDone(id: taskId, done: true) },
+      persist: {
+        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        TaskCalendarSync.remove(taskId: taskId)
+      },
       rollback: { [self] in
         inboxCompleted.removeAll { $0.id == taskId }
         var restored = snapshot
@@ -129,6 +145,7 @@ final class TaskStore {
     WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
+      TaskCalendarSync.remove(taskId: task.id)
     }
     _ = wasPending
   }
@@ -138,6 +155,7 @@ final class TaskStore {
     inboxCompleted.removeAll { $0.id == task.id }
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
+      TaskCalendarSync.remove(taskId: task.id)
     }
   }
 
@@ -157,14 +175,18 @@ final class TaskStore {
 
   func duplicateToday(_ task: Task) {
     _Concurrency.Task {
-      _ = try? await repo.duplicateTask(task)
+      if let newId = try? await repo.duplicateTask(task) {
+        await TaskCalendarSync.syncTaskId(newId)
+      }
       await loadToday()
     }
   }
 
   func duplicateInbox(_ task: Task) {
     _Concurrency.Task {
-      _ = try? await repo.duplicateTask(task)
+      if let newId = try? await repo.duplicateTask(task) {
+        await TaskCalendarSync.syncTaskId(newId)
+      }
       await loadInbox()
     }
   }

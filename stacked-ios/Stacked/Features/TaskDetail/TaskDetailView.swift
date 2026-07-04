@@ -86,9 +86,10 @@ struct TaskDetailView: View {
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
         initialDate: vm.dueDate,
+        initialTime: vm.dueTimeDate,
         showRecurrence: true
-      ) { date, _ in
-        vm.setDueDate(date)
+      ) { date, timeDate in
+        vm.setDueDate(date, time: timeDate)
       }
       .sheet(item: $subtaskDetailRoute) { route in
         SubtaskDetailView(subtask: route.subtask, parentTaskTitle: vm.title) {
