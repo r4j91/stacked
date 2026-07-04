@@ -9,6 +9,8 @@ import { useTaskContextMenu } from "@/components/tasks/task-context-menu";
 import { isOverdueDate, parseDueDate, dateKey, startOfDay } from "@/lib/utils/date";
 import { priorityColor } from "@/lib/utils/priority";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CalendarEventRow } from "@/components/calendar/calendar-event-row";
+import { buildTodayTimeline } from "@/lib/utils/schedule-items";
 import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TagChip } from "@/components/ui/tag-chip";
@@ -20,7 +22,6 @@ import {
   Calendar03Icon,
   Flag01Icon,
   ArrowDown01Icon,
-  ArrowRight01Icon,
 } from "@/lib/icons/nav-icons";
 
 function TaskMetaLine({ task }: { task: Task }) {
@@ -312,11 +313,7 @@ export function TaskRow({
                 className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
               />
             </button>
-          ) : (
-            <span className="mt-1.5 flex h-8 w-8 shrink-0 items-center justify-center opacity-25" aria-hidden>
-              <AppIcon icon={ArrowRight01Icon} size={16} />
-            </span>
-          )}
+          ) : null}
         </div>
       </SwipeableTaskRow>
       {subs.length > 0 && (
@@ -391,10 +388,17 @@ export function TaskList() {
     usingMock,
     isShowCompleted,
     openQuickAdd,
+    calendarEvents,
+    calendarError,
+    googleCalendar,
   } = useWorkbench();
 
   const showCompleted = isShowCompleted();
   const completedTasks = showCompleted ? viewTasks.completed : [];
+  const todayTimeline = useMemo(
+    () => buildTodayTimeline(viewTasks.today ?? viewTasks.pending, calendarEvents),
+    [viewTasks.today, viewTasks.pending, calendarEvents],
+  );
 
   const visibleTaskIds = useMemo(() => {
     if (view === "today") {
@@ -444,6 +448,18 @@ export function TaskList() {
 
   return (
     <>
+      {calendarError && view === "today" && (
+        <div className="mx-2 mt-3 rounded-[var(--radius-md)] border border-[var(--color-overdue)]/30 bg-[var(--color-overdue)]/10 px-3 py-2 text-sm text-[var(--color-overdue)]">
+          {calendarError}
+        </div>
+      )}
+
+      {googleCalendar.configured && !googleCalendar.connected && view === "today" && !loading && (
+        <p className="mx-2 mt-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+          Conecte o Google Calendar em Configurações → Calendário para ver compromissos aqui.
+        </p>
+      )}
+
       {error && (
         <div className="mx-2 mt-3 rounded-[var(--radius-md)] border border-[var(--color-overdue)]/30 bg-[var(--color-overdue)]/10 px-3 py-2 text-sm text-[var(--color-overdue)]">
           {error}
@@ -457,7 +473,22 @@ export function TaskList() {
       {view === "today" && (
         <>
           <Section title="Atrasadas" count={viewTasks.overdue?.length} overdue tasks={viewTasks.overdue ?? []} focusedTaskId={focusedTaskId} />
-          <Section title="Hoje" tasks={viewTasks.today ?? viewTasks.pending} focusedTaskId={focusedTaskId} />
+          {(todayTimeline.length > 0 || (viewTasks.today ?? viewTasks.pending).length > 0) && (
+            <section>
+              {(viewTasks.overdue?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-2 px-2 pb-2 pt-4">
+                  <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)]">Hoje</h2>
+                </div>
+              )}
+              {todayTimeline.map((item) =>
+                item.kind === "calendar" ? (
+                  <CalendarEventRow key={item.event.id} event={item.event} />
+                ) : (
+                  <TaskRow key={item.task.id} task={item.task} keyboardFocused={focusedTaskId === item.task.id} />
+                ),
+              )}
+            </section>
+          )}
           {showCompleted && completedTasks.length > 0 && (
             <Section title="Concluídas hoje" tasks={completedTasks} focusedTaskId={focusedTaskId} />
           )}
@@ -492,7 +523,7 @@ export function TaskList() {
       {!loading &&
         view === "today" &&
         !viewTasks.overdue?.length &&
-        !(viewTasks.today ?? viewTasks.pending).length &&
+        !todayTimeline.length &&
         !completedTasks.length && (
           <EmptyState
             icon={Sun01Icon}

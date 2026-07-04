@@ -54,7 +54,7 @@ function SheetShell({ open, onClose, title, icon, children, anchorRect }: SheetS
 
   if (anchorRect) {
     return (
-      <AnchoredPopover open={open} onClose={onClose} anchorRect={anchorRect} width={300} preferSide="left">
+      <AnchoredPopover open={open} onClose={onClose} anchorRect={anchorRect} width={280} preferSide="left">
         {header}
       </AnchoredPopover>
     );

@@ -26,7 +26,7 @@ import { useToast } from "@/components/ui/toast-provider";
 import { LabelRepository } from "@/lib/repositories/label-repository";
 import { CommentRepository } from "@/lib/repositories/comment-repository";
 import { computeNextRecurrenceDate, parseRecurrence } from "@/lib/utils/recurrence";
-import { toDateStr, parseDueDate, formatTaskDate } from "@/lib/utils/date";
+import { toDateStr, parseDueDate, formatTaskDate, startOfDay } from "@/lib/utils/date";
 import {
   MOCK_TASKS,
   mockProjectById,
@@ -48,6 +48,11 @@ import { splitTodayPending } from "@/lib/supabase/map-task";
 export type NavCounts = { inbox: number; today: number };
 export type SubtaskKey = `${string}:${number}`;
 import type { UserProfile } from "@/lib/types/user-profile";
+import type { CalendarEvent, GoogleCalendarStatus } from "@/lib/types/calendar-event";
+import {
+  fetchGoogleCalendarEvents,
+  fetchGoogleCalendarStatus,
+} from "@/lib/services/google-calendar-client";
 import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { profileFromUser } from "@/lib/services/profile-service";
 import type { ReorderDropKind } from "@/lib/hooks/use-hold-to-reorder";
@@ -145,6 +150,11 @@ type WorkbenchContextValue = {
   labelsOpen: boolean;
   shortcutsOpen: boolean;
   shortcutsAnchor: AnchorRect | null;
+  calendarOpen: boolean;
+  calendarAnchor: AnchorRect | null;
+  calendarEvents: CalendarEvent[];
+  googleCalendar: GoogleCalendarStatus;
+  calendarError: string | null;
   showCompleted: Partial<Record<ViewMode, boolean>>;
   openQuickAdd: (opts?: QuickAddOptions) => void;
   closeQuickAdd: () => void;
@@ -161,6 +171,9 @@ type WorkbenchContextValue = {
   closeLabels: () => void;
   openShortcuts: (anchor?: AnchorRect) => void;
   closeShortcuts: () => void;
+  openCalendar: (anchor?: AnchorRect) => void;
+  closeCalendar: () => void;
+  refreshGoogleCalendar: () => Promise<void>;
   toggleShowCompleted: (mode?: ViewMode) => void;
   isShowCompleted: (mode?: ViewMode) => boolean;
   createTask: (input: {
@@ -279,6 +292,16 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shortcutsAnchor, setShortcutsAnchor] = useState<AnchorRect | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarAnchor, setCalendarAnchor] = useState<AnchorRect | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [googleCalendar, setGoogleCalendar] = useState<GoogleCalendarStatus>({
+    configured: false,
+    connected: false,
+    email: null,
+    importEnabled: false,
+  });
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Partial<Record<ViewMode, boolean>>>({});
   const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [projectSheetMode, setProjectSheetMode] = useState<"create" | "edit">("create");
@@ -300,6 +323,52 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     }),
     [viewTasks],
   );
+
+  const refreshGoogleCalendar = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setGoogleCalendar({ configured: false, connected: false, email: null, importEnabled: false });
+      setCalendarEvents([]);
+      return;
+    }
+    try {
+      const status = await fetchGoogleCalendarStatus();
+      setGoogleCalendar(status);
+    } catch {
+      setGoogleCalendar({ configured: false, connected: false, email: null, importEnabled: false });
+    }
+  }, []);
+
+  const loadCalendarEvents = useCallback(async (mode: ViewMode) => {
+    if (!isSupabaseConfigured() || (mode !== "today" && mode !== "upcoming")) {
+      setCalendarEvents([]);
+      setCalendarError(null);
+      return;
+    }
+
+    const status = await fetchGoogleCalendarStatus();
+    setGoogleCalendar(status);
+
+    if (!status.connected || !status.importEnabled) {
+      setCalendarEvents([]);
+      setCalendarError(null);
+      return;
+    }
+
+    const start = startOfDay(new Date());
+    const end =
+      mode === "today"
+        ? new Date(start.getTime() + 86400000)
+        : new Date(start.getTime() + 86400000 * 120);
+
+    try {
+      const events = await fetchGoogleCalendarEvents(start, end);
+      setCalendarEvents(events);
+      setCalendarError(null);
+    } catch (e) {
+      setCalendarEvents([]);
+      setCalendarError(e instanceof Error ? e.message : "Erro ao carregar calendário");
+    }
+  }, []);
 
   const refreshTasks = useCallback(async () => {
     setLoading(true);
@@ -328,6 +397,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       setSearchTasks(mockAllPendingTasks());
       setLabels(MOCK_LABELS);
       setUserProfile({ name: "Rodrigo", email: "dev@stacked.app", avatarUrl: null, apelido: "Rodrigo", nome: "Rodrigo" });
+      setCalendarEvents([]);
+      setCalendarError(null);
       setLoading(false);
       return;
     }
@@ -381,6 +452,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         setCurrentProject(null);
         setSections([]);
       }
+      await loadCalendarEvents(view);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar tarefas");
       setUsingMock(true);
@@ -406,7 +478,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [view, projectId]);
+  }, [view, projectId, loadCalendarEvents]);
 
   useEffect(() => {
     setSelectedTaskId(null);
@@ -498,6 +570,9 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         } else if (settingsOpen) {
           setSettingsOpen(false);
           setSettingsAnchor(null);
+        } else if (calendarOpen) {
+          setCalendarOpen(false);
+          setCalendarAnchor(null);
         } else if (appearanceOpen) {
           setAppearanceOpen(false);
           setAppearanceAnchor(null);
@@ -521,6 +596,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     shortcutsOpen,
     settingsOpen,
     appearanceOpen,
+    calendarOpen,
     profileOpen,
     productivityOpen,
     labelsOpen,
@@ -1152,6 +1228,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     setShortcutsOpen(false);
     setShortcutsAnchor(null);
   }, []);
+  const openCalendar = useCallback((anchor?: AnchorRect) => {
+    setCalendarAnchor(anchor ?? null);
+    setCalendarOpen(true);
+  }, []);
+  const closeCalendar = useCallback(() => {
+    setCalendarOpen(false);
+    setCalendarAnchor(null);
+  }, []);
 
   const isShowCompleted = useCallback(
     (mode: ViewMode = view) => Boolean(showCompleted[mode]),
@@ -1707,6 +1791,11 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     labelsOpen,
     shortcutsOpen,
     shortcutsAnchor,
+    calendarOpen,
+    calendarAnchor,
+    calendarEvents,
+    googleCalendar,
+    calendarError,
     showCompleted,
     openQuickAdd,
     closeQuickAdd,
@@ -1723,6 +1812,9 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     closeLabels,
     openShortcuts,
     closeShortcuts,
+    openCalendar,
+    closeCalendar,
+    refreshGoogleCalendar,
     toggleShowCompleted,
     isShowCompleted,
     createTask,

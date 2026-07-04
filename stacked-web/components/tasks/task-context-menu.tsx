@@ -80,7 +80,52 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (sectionFlyout) {
+          e.preventDefault();
+          setSectionFlyout(null);
+          return;
+        }
+        if (submenu) {
+          e.preventDefault();
+          setSubmenu(null);
+          return;
+        }
+        onClose();
+        return;
+      }
+
+      const root = sectionFlyoutRef.current ?? flyoutRef.current ?? menuRef.current;
+      if (!root) return;
+      const items = [...root.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not([disabled])')];
+      if (!items.length) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      const idx = items.findIndex((el) => el === active);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = items[(idx + 1 + items.length) % items.length];
+        next?.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const next = items[(idx - 1 + items.length) % items.length];
+        next?.focus();
+      } else if (e.key === "ArrowLeft") {
+        if (sectionFlyout) {
+          e.preventDefault();
+          setSectionFlyout(null);
+        } else if (submenu) {
+          e.preventDefault();
+          setSubmenu(null);
+        }
+      } else if (e.key === "ArrowRight" && !submenu && menuRef.current?.contains(active)) {
+        const chevronItem = items.find((el) => el === active && el.querySelector('[data-submenu]'));
+        if (chevronItem) {
+          e.preventDefault();
+          chevronItem.click();
+        }
+      }
     }
     function onPointerDown(e: PointerEvent) {
       const target = e.target as Node;
@@ -98,7 +143,13 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [onClose]);
+  }, [onClose, submenu, sectionFlyout]);
+
+  useEffect(() => {
+    if (confirmDelete) return;
+    const first = menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]');
+    first?.focus();
+  }, [confirmDelete, x, y]);
 
   function run(action: () => void | Promise<void>) {
     void action();
@@ -354,7 +405,9 @@ function MenuItem({
       <AppIcon icon={icon} size={16} className="shrink-0 text-[var(--color-text-secondary)]" />
       <span className="flex-1 truncate">{label}</span>
       {chevron && (
-        <AppIcon icon={ArrowRight01Icon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+        <span data-submenu="">
+          <AppIcon icon={ArrowRight01Icon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+        </span>
       )}
     </button>
   );

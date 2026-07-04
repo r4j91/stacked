@@ -2,8 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { TaskRow, TaskListSkeleton } from "@/components/tasks/task-list";
+import { CalendarEventRow } from "@/components/calendar/calendar-event-row";
 import { useWorkbench } from "@/components/shell/workbench-context";
+import { AppIcon } from "@/components/ui/app-icon";
+import { ArrowRight01Icon } from "@/lib/icons/nav-icons";
 import type { Task } from "@/lib/types/task";
+import { mergeScheduleByDay } from "@/lib/utils/schedule-items";
 import {
   dateKey,
   formatDayLabel,
@@ -31,6 +35,7 @@ function groupByDay(tasks: Task[]): Map<string, Task[]> {
 function MonthGrid({
   focused,
   tasksByDay,
+  eventsByDay,
   selectedKey,
   onSelectDay,
   onPrev,
@@ -38,6 +43,7 @@ function MonthGrid({
 }: {
   focused: Date;
   tasksByDay: Map<string, Task[]>;
+  eventsByDay: Map<string, unknown[]>;
   selectedKey: string | null;
   onSelectDay: (key: string | null) => void;
   onPrev: () => void;
@@ -63,7 +69,7 @@ function MonthGrid({
           className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]"
           aria-label="Mês anterior"
         >
-          ‹
+          <AppIcon icon={ArrowRight01Icon} size={16} className="rotate-180" />
         </button>
         <span className="text-sm font-semibold capitalize">{monthLabel(focused)}</span>
         <button
@@ -72,7 +78,7 @@ function MonthGrid({
           className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]"
           aria-label="Próximo mês"
         >
-          ›
+          <AppIcon icon={ArrowRight01Icon} size={16} />
         </button>
       </div>
       <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
@@ -84,7 +90,7 @@ function MonthGrid({
         {cells.map((date, i) => {
           if (!date) return <span key={`e-${i}`} />;
           const key = dateKey(date);
-          const hasTasks = tasksByDay.has(key);
+          const hasTasks = tasksByDay.has(key) || eventsByDay.has(key);
           const isToday = key === todayKey;
           const isSelected = selectedKey === key;
           return (
@@ -119,11 +125,13 @@ function MonthGrid({
 function WeekStrip({
   focused,
   tasksByDay,
+  eventsByDay,
   selectedKey,
   onSelectDay,
 }: {
   focused: Date;
   tasksByDay: Map<string, Task[]>;
+  eventsByDay: Map<string, unknown[]>;
   selectedKey: string | null;
   onSelectDay: (key: string | null) => void;
 }) {
@@ -141,7 +149,7 @@ function WeekStrip({
     <div className="mb-4 grid grid-cols-7 gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
       {days.map((date) => {
         const key = dateKey(date);
-        const hasTasks = tasksByDay.has(key);
+        const hasTasks = tasksByDay.has(key) || eventsByDay.has(key);
         const isSelected = selectedKey === key;
         const isToday = key === todayKey;
         return (
@@ -172,33 +180,33 @@ function WeekStrip({
 }
 
 export function UpcomingCanvas() {
-  const { viewTasks, loading } = useWorkbench();
+  const { viewTasks, loading, calendarEvents, calendarError } = useWorkbench();
   const [mode, setMode] = useState<CalMode>("agenda");
   const [focusedMonth, setFocusedMonth] = useState(() => startOfDay(new Date()));
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
 
   const tasksByDay = useMemo(() => groupByDay(viewTasks.pending), [viewTasks.pending]);
-
-  const filteredTasks = useMemo(() => {
-    if (!selectedDayKey) return viewTasks.pending;
-    return viewTasks.pending.filter((t) => {
-      const due = parseDueDate(t.dueDate);
-      return due && dateKey(due) === selectedDayKey;
-    });
-  }, [viewTasks.pending, selectedDayKey]);
-
-  const groupedList = useMemo(() => {
-    const map = new Map<string, Task[]>();
-    for (const t of filteredTasks) {
-      const due = parseDueDate(t.dueDate);
-      if (!due) continue;
-      const key = dateKey(due);
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, typeof calendarEvents>();
+    for (const event of calendarEvents) {
+      const key = dateKey(startOfDay(new Date(event.startDate)));
       const list = map.get(key) ?? [];
-      list.push(t);
+      list.push(event);
       map.set(key, list);
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredTasks]);
+    return map;
+  }, [calendarEvents]);
+
+  const scheduleByDay = useMemo(
+    () => mergeScheduleByDay(viewTasks.pending, calendarEvents),
+    [viewTasks.pending, calendarEvents],
+  );
+
+  const filteredSchedule = useMemo(() => {
+    if (!selectedDayKey) return [...scheduleByDay.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const items = scheduleByDay.get(selectedDayKey);
+    return items ? [[selectedDayKey, items] as const] : [];
+  }, [scheduleByDay, selectedDayKey]);
 
   if (loading) return <TaskListSkeleton />;
 
@@ -225,6 +233,7 @@ export function UpcomingCanvas() {
         <MonthGrid
           focused={focusedMonth}
           tasksByDay={tasksByDay}
+          eventsByDay={eventsByDay}
           selectedKey={selectedDayKey}
           onSelectDay={setSelectedDayKey}
           onPrev={() =>
@@ -240,6 +249,7 @@ export function UpcomingCanvas() {
         <WeekStrip
           focused={focusedMonth}
           tasksByDay={tasksByDay}
+          eventsByDay={eventsByDay}
           selectedKey={selectedDayKey}
           onSelectDay={setSelectedDayKey}
         />
@@ -258,19 +268,29 @@ export function UpcomingCanvas() {
         </p>
       )}
 
-      {!groupedList.length ? (
+      {calendarError && (
+        <div className="mb-3 rounded-[var(--radius-md)] border border-[var(--color-overdue)]/30 bg-[var(--color-overdue)]/10 px-3 py-2 text-sm text-[var(--color-overdue)]">
+          {calendarError}
+        </div>
+      )}
+
+      {!filteredSchedule.length ? (
         <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
-          Nenhuma tarefa com data.
+          Nenhuma tarefa ou compromisso com data.
         </p>
       ) : (
-        groupedList.map(([key, tasks]) => (
+        filteredSchedule.map(([key, items]) => (
           <section key={key} className="mt-2">
             <h2 className="px-2 pb-2 pt-3 text-[13px] font-semibold text-[var(--color-text-secondary)]">
               {formatDayLabel(parseDateKey(key))}
             </h2>
-            {tasks.map((t) => (
-              <TaskRow key={t.id} task={t} />
-            ))}
+            {items.map((item) =>
+              item.kind === "calendar" ? (
+                <CalendarEventRow key={item.event.id} event={item.event} />
+              ) : (
+                <TaskRow key={item.task.id} task={item.task} />
+              ),
+            )}
           </section>
         ))
       )}

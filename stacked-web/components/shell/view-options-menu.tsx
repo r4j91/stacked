@@ -34,8 +34,9 @@ export function ViewOptionsMenu({ showCompleted, onToggleCompleted, extraItems }
       >
         Opções
       </button>
-      <AnchoredPopover open={open} onClose={close} anchorRect={anchor} width={240} placement="below" className="p-1">
+      <AnchoredPopover open={open} onClose={close} anchorRect={anchor} width={240} placement="below" className="p-1" labelledBy="view-options-title">
         <div role="menu">
+          <p id="view-options-title" className="sr-only">Opções de visualização</p>
           {extraItems?.map((item) => (
             <button
               key={item.label}

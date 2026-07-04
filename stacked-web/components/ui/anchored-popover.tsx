@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 
 export type AnchorRect = {
   top: number;
@@ -24,6 +25,8 @@ type AnchoredPopoverProps = {
   verticalAlign?: "start" | "end" | "auto";
   /** Posicionamento relativo ao anchor */
   placement?: "side" | "below";
+  /** id do elemento título para aria-labelledby */
+  labelledBy?: string;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -40,9 +43,22 @@ export function AnchoredPopover({
   preferSide = "left",
   verticalAlign = "auto",
   placement = "side",
+  labelledBy,
 }: AnchoredPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useFocusTrap(open, popoverRef);
+
+  useLayoutEffect(() => {
+    if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [open]);
 
   useLayoutEffect(() => {
     if (!open || !anchorRect) {
@@ -68,10 +84,17 @@ export function AnchoredPopover({
           top = Math.max(pad, anchorRect!.top - popoverHeight - gap);
         }
       } else {
-        left = preferSide === "left" ? anchorRect!.left - width - gap : anchorRect!.right + gap;
-        if (left < pad) left = anchorRect!.right + gap;
+        const preferLeft = preferSide === "left";
+        left = preferLeft ? anchorRect!.left - width - gap : anchorRect!.right + gap;
+
+        if (left < pad) {
+          left = anchorRect!.right + gap;
+        }
         if (left + width > window.innerWidth - pad) {
           left = clamp(anchorRect!.left - width - gap, pad, window.innerWidth - width - pad);
+        }
+        if (left + width > window.innerWidth - pad) {
+          left = clamp(anchorRect!.right + gap, pad, window.innerWidth - width - pad);
         }
 
         top = anchorRect!.top;
@@ -91,7 +114,11 @@ export function AnchoredPopover({
     compute();
     const ro = popoverRef.current ? new ResizeObserver(compute) : null;
     if (popoverRef.current && ro) ro.observe(popoverRef.current);
-    return () => ro?.disconnect();
+    window.addEventListener("resize", compute);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", compute);
+    };
   }, [open, anchorRect, width, preferSide, verticalAlign, placement]);
 
   useLayoutEffect(() => {
@@ -107,7 +134,11 @@ export function AnchoredPopover({
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-[var(--z-popover)]" onClick={onClose} aria-hidden />
+      <div
+        className="fixed inset-0 z-[var(--z-popover)]"
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div
         ref={popoverRef}
         className={`fixed z-[calc(var(--z-popover)+1)] max-h-[min(70vh,420px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${className}`}
@@ -118,6 +149,7 @@ export function AnchoredPopover({
         }}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={labelledBy}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

@@ -88,10 +88,11 @@ export function ProductivityPopover() {
       width={340}
       preferSide="right"
       className="max-h-[min(85vh,560px)] p-0"
+      labelledBy="productivity-sheet-title"
     >
       <div className="border-b border-[var(--color-border)] px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold">Relatório</h2>
+          <h2 id="productivity-sheet-title" className="text-base font-bold">Relatório</h2>
           <button
             type="button"
             onClick={closeProductivity}
@@ -187,18 +188,24 @@ function last7Labels() {
 }
 
 function BarChart({ values, max, labels }: { values: number[]; max: number; labels: string[] }) {
+  const summary = labels.map((label, i) => `${label}: ${values[i]}`).join(", ");
   return (
-    <div className="flex items-end justify-between gap-1.5 pt-2">
+    <div
+      className="flex items-end justify-between gap-1.5 pt-2"
+      role="img"
+      aria-label={`Gráfico de barras. ${summary}`}
+    >
       {values.map((v, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <div className="flex h-24 w-full items-end justify-center">
             <div
               className="w-full max-w-[28px] rounded-t-[4px] bg-[var(--color-done)]/80 transition-all"
               style={{ height: `${Math.max(4, (v / max) * 100)}%` }}
-              title={String(v)}
+              title={`${labels[i]}: ${v}`}
+              aria-hidden="true"
             />
           </div>
-          <span className="text-[10px] text-[var(--color-text-tertiary)]">{labels[i]}</span>
+          <span className="type-micro text-[var(--color-text-tertiary)]">{labels[i]}</span>
         </div>
       ))}
     </div>

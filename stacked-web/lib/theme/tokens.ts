@@ -21,7 +21,10 @@ export const layout = {
   sidebarCollapsed: 56,
   inspectorWidth: 400,
   contentMaxWidth: 920,
+  contentMinWidth: 280,
   desktopBreakpoint: 1024,
+  /** sidebar expandida + inspector + padding mínimo do canvas */
+  desktopChromeMin: 260 + 400 + 48,
 } as const;
 
 export type NavId = "home" | "inbox" | "today" | "upcoming" | "filters" | "done";

@@ -11,6 +11,7 @@ import {
   UserIcon,
   ArrowRight01Icon,
   KeyboardIcon,
+  Calendar03Icon,
 } from "@/lib/icons/nav-icons";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -24,6 +25,7 @@ export function SettingsSheet() {
     openProfile,
     openLabels,
     openShortcuts,
+    openCalendar,
   } = useWorkbench();
   const router = useRouter();
 
@@ -45,10 +47,23 @@ export function SettingsSheet() {
       preferSide="right"
       verticalAlign="end"
       className="p-2"
+      labelledBy="settings-sheet-title"
     >
-      <p className="px-2 pb-1 pt-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+      <p
+        id="settings-sheet-title"
+        className="px-2 pb-1 pt-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
+      >
         Configurações
       </p>
+      <SettingsLink
+        icon={Calendar03Icon}
+        label="Calendário"
+        onClick={() => {
+          const anchor = settingsAnchor;
+          closeSettings();
+          openCalendar(anchor ?? undefined);
+        }}
+      />
       <SettingsLink
         icon={UserIcon}
         label="Perfil"

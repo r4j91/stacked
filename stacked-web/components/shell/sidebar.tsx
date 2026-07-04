@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems, type NavId } from "@/lib/theme/tokens";
@@ -60,20 +59,14 @@ export function Sidebar() {
       aria-label="Barra lateral"
     >
       <div className={`shrink-0 px-3 pt-4 ${sidebarCollapsed ? "px-2" : ""}`}>
-        <div
-          className={`mb-4 flex w-full items-center justify-center gap-2.5 ${sidebarCollapsed ? "px-0" : "px-1"}`}
-        >
-          <Image
-            src="/app-icon.png?v=3"
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 rounded-[8px]"
-            priority
-          />
-          {!sidebarCollapsed && (
-            <span className="text-[17px] font-bold tracking-tight text-[var(--color-text)]">Stacked</span>
-          )}
+        <div className="mb-4 flex w-full items-center justify-center px-1">
+          <span
+            className={`font-bold tracking-tight text-[var(--color-text)] ${
+              sidebarCollapsed ? "text-[15px]" : "text-[17px]"
+            }`}
+          >
+            {sidebarCollapsed ? "S" : "Stacked"}
+          </span>
         </div>
 
         <button

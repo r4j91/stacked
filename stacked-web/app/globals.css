@@ -8,7 +8,7 @@
   --color-surface-hover: #35353d;
   --color-text: #f2f2f4;
   --color-text-secondary: #9a9aa2;
-  --color-text-tertiary: #65656d;
+  --color-text-tertiary: #72727a;
   --color-accent: #e8e8ec;
   --color-accent-text: #0a0a0a;
   --color-done: #7ecc49;
@@ -43,6 +43,9 @@
   --z-command: 80;
   --z-toast: 90;
   --inspector-width: 400px;
+  --content-max-width: 920px;
+  --sidebar-expanded: 260px;
+  --sidebar-collapsed: 56px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -197,6 +200,36 @@ textarea:focus:not(:focus-visible) {
   line-height: 1.15;
   letter-spacing: -0.02em;
   text-wrap: balance;
+}
+
+.type-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.type-body {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.type-body-compact {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.type-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.type-micro {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .type-section-label {

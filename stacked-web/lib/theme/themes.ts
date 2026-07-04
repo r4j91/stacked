@@ -109,7 +109,7 @@ export const themes: Record<AppThemeId, AppTheme> = {
   },
 }
 
-export const DEFAULT_THEME_ID: AppThemeId = "slate"
+export const DEFAULT_THEME_ID: AppThemeId = "graphite"
 
 export function isAppThemeId(value: string): value is AppThemeId {
   return value in themes
@@ -200,4 +200,15 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   } else {
     root.style.setProperty("--color-inspector-bg", colors.surface)
   }
+
+  let themeColorMeta = document.querySelector('meta[name="theme-color"]')
+  if (!themeColorMeta) {
+    themeColorMeta = document.createElement("meta")
+    themeColorMeta.setAttribute("name", "theme-color")
+    document.head.appendChild(themeColorMeta)
+  }
+  themeColorMeta.setAttribute(
+    "content",
+    themeId === "moonstone" ? "#EEF1F6" : colors.background,
+  )
 }

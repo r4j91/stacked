@@ -34,20 +34,21 @@ export function CanvasArea() {
 
   return (
     <main
+      id="workbench-main-content"
       data-workbench-main
       tabIndex={-1}
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)] outline-none"
     >
-      <div className="mx-auto flex h-full w-full max-w-[920px] flex-col px-6">
+      <div className="mx-auto flex h-full w-full max-w-[var(--content-max-width)] min-w-0 flex-col px-4 lg:px-6">
         <header className="shrink-0 border-b border-[var(--color-border)] pb-4 pt-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="type-screen-title">{title}</h1>
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1 basis-[12rem]">
+              <h1 className="type-screen-title truncate">{title}</h1>
               {subtitle && (
-                <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">{subtitle}</p>
+                <p className="mt-1 truncate text-[13px] text-[var(--color-text-secondary)]">{subtitle}</p>
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5 xl:gap-2">
               {(view === "today" || view === "inbox" || view === "project") && (
                 <ViewOptionsMenu
                   showCompleted={showCompleted}
@@ -63,7 +64,7 @@ export function CanvasArea() {
                 <button
                   type="button"
                   onClick={() => setShowNewSection(true)}
-                  className="btn-secondary inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px]"
+                  className="btn-secondary inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs xl:px-3 xl:text-[13px]"
                 >
                   Nova seção
                 </button>
@@ -71,11 +72,12 @@ export function CanvasArea() {
               <button
                 type="button"
                 onClick={openPalette}
-                className="btn-secondary inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px]"
+                className="btn-secondary inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs xl:px-3 xl:text-[13px]"
                 title="Buscar (⌘K)"
+                aria-label="Buscar (⌘K)"
               >
                 Buscar
-                <kbd className="ml-1 rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]">
+                <kbd className="ml-1 hidden rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)] xl:inline">
                   ⌘K
                 </kbd>
               </button>

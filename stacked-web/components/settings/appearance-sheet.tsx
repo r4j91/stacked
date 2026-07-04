@@ -19,9 +19,10 @@ export function AppearanceSheet() {
       width={300}
       preferSide="right"
       className="max-h-[min(85vh,480px)] p-0"
+      labelledBy="appearance-sheet-title"
     >
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-        <h2 className="text-base font-bold">Aparência</h2>
+        <h2 id="appearance-sheet-title" className="text-base font-bold">Aparência</h2>
         <button
           type="button"
           onClick={closeAppearance}

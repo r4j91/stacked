@@ -56,9 +56,10 @@ export function LabelsManager() {
         preferSide="right"
         verticalAlign="start"
         className="flex max-h-[min(70vh,520px)] flex-col p-0"
+        labelledBy="labels-sheet-title"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-          <h2 className="text-base font-bold">Etiquetas</h2>
+          <h2 id="labels-sheet-title" className="text-base font-bold">Etiquetas</h2>
           <button
             type="button"
             onClick={handleClose}

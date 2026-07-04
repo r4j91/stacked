@@ -93,9 +93,10 @@ export function ProfileEditPanel() {
       width={360}
       preferSide="right"
       className="max-h-[min(85vh,520px)] p-0"
+      labelledBy="profile-sheet-title"
     >
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-        <h2 className="text-base font-bold">Perfil</h2>
+        <h2 id="profile-sheet-title" className="text-base font-bold">Perfil</h2>
         <div className="flex items-center gap-1">
           <button
             type="button"

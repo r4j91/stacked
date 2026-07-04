@@ -27,11 +27,12 @@ export function HomeCanvas() {
 
   return (
     <main
+      id="workbench-main-content"
       data-workbench-main
       tabIndex={-1}
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)] outline-none"
     >
-      <div className="mx-auto flex h-full w-full max-w-[920px] flex-col px-6">
+      <div className="mx-auto flex h-full w-full max-w-[var(--content-max-width)] min-w-0 flex-col px-4 lg:px-6">
         <header className="shrink-0 border-b border-[var(--color-border)] pb-4 pt-5">
           <h1 className="type-screen-title">
             {greeting(displayName)}

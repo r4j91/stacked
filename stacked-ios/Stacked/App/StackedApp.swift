@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct StackedApp: App {
+  @UIApplicationDelegateAdaptor(AppOrientationDelegate.self) private var appOrientation
+
   var body: some Scene {
     WindowGroup {
       AppRootView()
