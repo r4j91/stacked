@@ -89,11 +89,11 @@ struct ProjectDetailView: View {
             } label: {
               HStack {
                 Text("Concluídas (\(store.completed.count))")
-                  .font(.system(size: 13, weight: .semibold))
+                  .font(AppTypography.completedSectionHeader)
                   .foregroundStyle(c.textSecondary)
                 Spacer()
                 StackedIcons.image(completedExpanded ? .chevronDown : .chevronRight)
-                  .font(.system(size: 12, weight: .semibold))
+                  .font(AppTypography.metaSmall.weight(.semibold))
                   .foregroundStyle(c.textTertiary)
               }
             }
@@ -118,6 +118,7 @@ struct ProjectDetailView: View {
     }
     .listStyle(.plain)
     .stackedListTailInset()
+    .stackedTabletCentered()
     .scrollContentBackground(.hidden)
     .background(c.background)
     .navigationTitle(store.projectName)
@@ -190,11 +191,11 @@ struct ProjectDetailView: View {
       }
       Button("Cancelar", role: .cancel) { newSectionName = "" }
     }
-    .fullScreenCover(item: $detailRoute) { route in
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task { await store.load() }
+    }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task { await store.load() }
-        }
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }

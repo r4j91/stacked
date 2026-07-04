@@ -72,11 +72,11 @@ struct TodayView: View {
             } label: {
               HStack {
                 Text("Concluídas (\(store.todayCompleted.count))")
-                  .font(.system(size: 13, weight: .semibold))
+                  .font(AppTypography.completedSectionHeader)
                   .foregroundStyle(c.textSecondary)
                 Spacer()
                 Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                  .font(.system(size: 12, weight: .semibold))
+                  .font(AppTypography.metaSmall.weight(.semibold))
                   .foregroundStyle(c.textTertiary)
               }
             }
@@ -109,14 +109,14 @@ struct TodayView: View {
     .background(c.background)
     .refreshable { await store.loadToday() }
     .task { await store.loadToday() }
-    .fullScreenCover(item: $detailRoute) { route in
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task {
+        await store.loadToday()
+        await store.loadInbox()
+      }
+    }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task {
-            await store.loadToday()
-            await store.loadInbox()
-          }
-        }
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }

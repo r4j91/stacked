@@ -37,6 +37,9 @@ struct TaskRow: View {
     .frame(minHeight: AppLayout.taskRowHeight)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 12))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(taskAccessibilityLabel)
+    .accessibilityHint(taskAccessibilityHint)
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
@@ -57,6 +60,9 @@ struct TaskRow: View {
 
       Divider().overlay(c.textTertiary.opacity(0.12))
     }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(taskAccessibilityLabel)
+    .accessibilityHint(taskAccessibilityHint)
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
@@ -79,6 +85,8 @@ struct TaskRow: View {
             .padding(12)
         }
         .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
+        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
+        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
 
         Spacer(minLength: 0)
 
@@ -123,9 +131,9 @@ struct TaskRow: View {
   @ViewBuilder
   private var subtasksExpansion: some View {
     if task.hasSubtasks {
-      SubtaskExpandReveal(expanded: expanded, reduceMotion: reduceMotion, content: {
+      SubtaskExpandReveal(expanded: expanded, reduceMotion: reduceMotion) {
         subtaskList
-      })
+      }
     }
   }
 
@@ -171,7 +179,7 @@ struct TaskRow: View {
           StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
           // SUBSTITUIDO_FASE5: TaskMapper.formatTimeDisplay(time) no body
           Text(timeDisplay)
-            .font(.system(size: 11))
+            .font(AppTypography.timeChip)
             .foregroundStyle(c.textTertiary)
         }
         .fixedSize()
@@ -190,10 +198,12 @@ struct TaskRow: View {
         .foregroundStyle(c.textTertiary)
         .rotationEffect(.degrees(expanded ? 180 : 0))
         .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
-        .frame(width: 32, height: 32)
+        .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .accessibilityLabel(expanded ? "Recolher subtarefas" : "Expandir subtarefas")
+    .accessibilityValue("\(subtasksDone.filter { $0 }.count) de \(subtasksDone.count) concluídas")
   }
 
   private var subtaskList: some View {
@@ -217,12 +227,12 @@ struct TaskRow: View {
           } label: {
             VStack(alignment: .leading, spacing: 0) {
               Text(sub.title)
-                .font(.system(size: 14))
+                .font(AppTypography.subtaskRowTitle)
                 .foregroundStyle(done ? c.textTertiary : c.textPrimary.opacity(0.88))
                 .strikethrough(done)
               if let desc = sub.description, !desc.isEmpty {
                 Text(desc)
-                  .font(.system(size: 12))
+                  .font(AppTypography.subtaskPreview)
                   .foregroundStyle(c.textSecondary.opacity(done ? 0.55 : 0.85))
                   .lineLimit(2)
                   .padding(.top, 2)
@@ -289,6 +299,25 @@ struct TaskRow: View {
       onSubtaskChanged?()
     }
   }
+
+  private var taskAccessibilityLabel: String {
+    var parts = [task.title]
+    if task.done { parts.append("concluída") }
+    if showProject, !task.project.isEmpty {
+      parts.append("projeto \(task.project)")
+    }
+    if let due = task.dueDateChipLabel { parts.append("vencimento \(due)") }
+    if task.hasSubtasks {
+      let done = subtasksDone.filter { $0 }.count
+      parts.append("\(done) de \(subtasksDone.count) subtarefas concluídas")
+    }
+    return parts.joined(separator: ", ")
+  }
+
+  private var taskAccessibilityHint: String {
+    if onTap != nil { return "Toque para abrir detalhes. Pressione e segure para mais opções." }
+    return ""
+  }
 }
 
 // SUBSTITUIDO_FASE3D: subtaskList com frame(maxHeight:) + clip + opacity + .animation no VStack pai
@@ -320,5 +349,6 @@ struct PriorityDot: View {
       ringColor: priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )
+    .accessibilityHidden(true)
   }
 }

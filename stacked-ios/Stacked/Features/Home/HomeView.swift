@@ -55,6 +55,8 @@ struct HomeView: View {
         .environment(ThemeManager.shared)
       }
     }
+    .toolbarBackground(c.background, for: .navigationBar)
+    .toolbarBackground(.hidden, for: .navigationBar)
     .background(c.background.ignoresSafeArea(.all))
     .newProjectFloating(isPresented: $showNewProject) {
       _Concurrency.Task { await store.load() }
@@ -91,10 +93,10 @@ struct HomeView: View {
       return Project(
         id: hp.id,
         name: hp.name,
-        color: AppColors.parseHex(hp.colorHex, fallback: Color(hex: 0x5FD3DC))
+        color: AppColors.parseHex(hp.colorHex, fallback: theme.colors.accent)
       )
     }
-    return Project(id: route.id, name: route.name, color: Color(hex: 0x5FD3DC))
+    return Project(id: route.id, name: route.name, color: theme.colors.accent)
   }
 
   private var greetingTextSection: some View {
@@ -102,13 +104,13 @@ struct HomeView: View {
     return Section {
       VStack(alignment: .leading, spacing: 6) {
         Text(store.greeting)
-          .font(.system(size: 28, weight: .heavy))
+          .font(AppTypography.screenGreeting)
           .foregroundStyle(c.textPrimary)
         Text("Vamos focar no que realmente importa hoje.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
-      .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 8, trailing: 20))
+      .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }
@@ -136,7 +138,7 @@ struct HomeView: View {
           HStack(spacing: 10) {
             StackedIcons.image(.exclamation).foregroundStyle(AppColors.overdue)
             Text(store.overdueCount == 1 ? "1 tarefa atrasada" : "\(store.overdueCount) tarefas atrasadas")
-              .font(.system(size: 15, weight: .semibold))
+              .font(AppTypography.bodySemibold)
               .foregroundStyle(AppColors.overdue)
             Spacer()
             StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
@@ -148,20 +150,20 @@ struct HomeView: View {
           .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.overdue.opacity(0.28)))
         }
         .buttonStyle(.plain)
-        .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 8, trailing: 20))
+        .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
       }
     } else {
       Section {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.sm) {
           StackedIcons.image(.checkCircle)
             .foregroundStyle(AppColors.tagGreen.opacity(0.72))
           Text("Tudo em dia")
-            .font(.system(size: 14, weight: .medium))
+            .font(AppTypography.body)
             .foregroundStyle(AppColors.tagGreen.opacity(0.72))
         }
-        .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 8, trailing: 20))
+        .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
       }
@@ -181,10 +183,10 @@ struct HomeView: View {
   private var projectsSection: some View {
     Section {
       if store.projects.isEmpty {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.md) {
           EmptyStateView(icon: .folder, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
           Button("Criar projeto") { showNewProject = true }
-            .font(.system(size: 14, weight: .semibold))
+            .font(AppTypography.bodySemibold)
             .foregroundStyle(theme.colors.accent)
         }
         .listRowBackground(Color.clear)
@@ -199,7 +201,7 @@ struct HomeView: View {
               projectOptions = ProjectRoute(id: project.id, name: project.name)
             }
           }
-          .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+          .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
         }
@@ -214,29 +216,29 @@ struct HomeView: View {
     return Button { onNavigateToTab(tab) } label: {
       HStack(spacing: 14) {
         StackedIcons.image(icon).font(.system(size: 20)).foregroundStyle(c.textSecondary).frame(width: 28)
-        Text(label).font(.system(size: 16, weight: .medium)).foregroundStyle(c.textPrimary)
+        Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
         Spacer()
-        Text("\(count)").font(.system(size: 16, weight: .medium)).foregroundStyle(c.textTertiary)
+        Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
         StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
           .foregroundStyle(c.textTertiary.opacity(0.7))
       }
       .padding(.vertical, 10)
     }
     .buttonStyle(.plain)
-    .listRowInsets(EdgeInsets(top: 2, leading: 20, bottom: 2, trailing: 20))
+    .listRowInsets(EdgeInsets(top: 2, leading: AppSpacing.xl, bottom: 2, trailing: AppSpacing.xl))
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
   }
 
   private func projectRow(_ project: HomeProject) -> some View {
     let c = theme.colors
-    let color = AppColors.parseHex(project.colorHex, fallback: Color(hex: 0x5FD3DC))
+    let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.accent)
     return HStack(spacing: 14) {
       StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
         .font(.system(size: 20)).foregroundStyle(color).frame(width: 28)
-      Text(project.name).font(.system(size: 16, weight: .medium)).foregroundStyle(c.textPrimary)
+      Text(project.name).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
       Spacer()
-      Text("\(project.taskCount)").font(.system(size: 16, weight: .medium)).foregroundStyle(c.textTertiary)
+      Text("\(project.taskCount)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
       StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
         .foregroundStyle(c.textTertiary.opacity(0.7))
     }

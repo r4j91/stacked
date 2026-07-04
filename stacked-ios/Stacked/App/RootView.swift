@@ -3,6 +3,7 @@ import SwiftUI
 // Paridade lib/main.dart RootScreen + ResponsiveLayout (mobile)
 struct RootView: View {
   @Environment(MobileChromeController.self) private var chrome
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var showSearch = false
   @State private var showQuickAdd = false
   @State private var showNewProject = false
@@ -23,17 +24,18 @@ struct RootView: View {
       reloadData(for: tab)
     }
     .onChange(of: router.pendingTab) { _, tab in
-      if let tab { chrome.selectTab(tab) }
+      if let tab { chrome.selectTab(tab, reduceMotion: reduceMotion) }
     }
     .onChange(of: router.pendingOpenSearch) { _, open in
       if open { showSearch = true }
     }
-    .task { reloadData(for: currentTab) }
+    .task { reloadData(for: currentTab, force: true) }
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
     .quickAddFloating(isPresented: $showQuickAdd, onSaved: { reloadAll() })
     .newProjectFloating(isPresented: $showNewProject) {
+      TabRefreshPolicy.invalidate()
       _Concurrency.Task {
         await HomeStore.shared.load()
         await FiltersStore.shared.loadDashboard()
@@ -53,7 +55,9 @@ struct RootView: View {
     showQuickAdd = true
   }
 
-  private func reloadData(for tab: NavTab) {
+  private func reloadData(for tab: NavTab, force: Bool = false) {
+    guard force || TabRefreshPolicy.shouldRefresh(tab) else { return }
+    TabRefreshPolicy.markLoaded(tab)
     _Concurrency.Task {
       switch tab {
       case .home: await HomeStore.shared.load()
@@ -66,40 +70,49 @@ struct RootView: View {
   }
 
   private func reloadAll() {
-    reloadData(for: chrome.selectedTab)
+    TabRefreshPolicy.invalidate()
+    reloadData(for: chrome.selectedTab, force: true)
     _Concurrency.Task {
       await TaskStore.shared.loadToday()
       await TaskStore.shared.loadInbox()
       await UpcomingStore.shared.load()
       await HomeStore.shared.load()
+      await FiltersStore.shared.loadDashboard()
     }
   }
 }
 
-/// Conteúdo por aba — lê `selectedTab` do environment para reagir a toques UIKit no dock.
+/// Conteúdo por aba — mantém as 5 telas vivas para preservar scroll e estado (Fase I).
 struct RootTabContent: View {
   @Environment(MobileChromeController.self) private var chrome
+  @Environment(ThemeManager.self) private var theme
 
   var body: some View {
-    switch chrome.selectedTab {
-    case .home:
-      HomeView(
-        onNavigateToTab: { chrome.selectTab($0) },
-        onOpenFilter: { kind in
-          _Concurrency.Task {
-            await FiltersStore.shared.openFilter(kind)
-            chrome.selectTab(.filters)
+    ZStack {
+      preservedTab(.home) {
+        HomeView(
+          onNavigateToTab: { chrome.selectTab($0) },
+          onOpenFilter: { kind in
+            _Concurrency.Task {
+              await FiltersStore.shared.openFilter(kind)
+              chrome.selectTab(.filters)
+            }
           }
-        }
-      )
-    case .inbox:
-      InboxView()
-    case .today:
-      TodayView()
-    case .upcoming:
-      UpcomingView()
-    case .filters:
-      FiltersView()
+        )
+      }
+      preservedTab(.inbox) { InboxView() }
+      preservedTab(.today) { TodayView() }
+      preservedTab(.upcoming) { UpcomingView() }
+      preservedTab(.filters) { FiltersView() }
     }
+    .background(theme.colors.background.ignoresSafeArea())
+  }
+
+  @ViewBuilder
+  private func preservedTab<Content: View>(_ tab: NavTab, @ViewBuilder content: () -> Content) -> some View {
+    content()
+      .zIndex(chrome.selectedTab == tab ? 1 : 0)
+      .allowsHitTesting(chrome.selectedTab == tab)
+      .accessibilityHidden(chrome.selectedTab != tab)
   }
 }

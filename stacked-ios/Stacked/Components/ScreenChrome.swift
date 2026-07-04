@@ -74,7 +74,7 @@ struct FilterDrillDownHeader: View {
         Image(systemName: "chevron.left")
           .font(.system(size: 14, weight: .semibold))
           .foregroundStyle(c.textSecondary)
-          .frame(width: 36, height: 36)
+          .frame(width: 44, height: 44)
           .background(c.surfaceVariant)
           .clipShape(RoundedRectangle(cornerRadius: 10))
       }

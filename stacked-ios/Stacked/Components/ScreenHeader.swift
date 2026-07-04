@@ -41,10 +41,10 @@ struct EmptyStateView: View {
         .font(.system(size: 36))
         .foregroundStyle(c.textTertiary)
       Text(title)
-        .font(.system(size: 16, weight: .semibold))
+        .font(AppTypography.emptyStateTitle)
         .foregroundStyle(c.textPrimary)
       Text(subtitle)
-        .font(AppTypography.taskPreview)
+        .font(AppTypography.emptyStateSubtitle)
         .foregroundStyle(c.textSecondary)
         .multilineTextAlignment(.center)
     }
@@ -62,14 +62,14 @@ struct LoadErrorView: View {
   var body: some View {
     VStack(spacing: 12) {
       Text("Não foi possível carregar")
-        .font(.system(size: 16, weight: .semibold))
+        .font(AppTypography.emptyStateTitle)
         .foregroundStyle(theme.colors.textPrimary)
       Text(message)
         .font(AppTypography.meta)
         .foregroundStyle(theme.colors.textSecondary)
         .multilineTextAlignment(.center)
       Button("Tentar novamente", action: onRetry)
-        .font(.system(size: 14, weight: .semibold))
+        .font(AppTypography.bodySemibold)
         .foregroundStyle(theme.colors.accent)
     }
     .padding(32)

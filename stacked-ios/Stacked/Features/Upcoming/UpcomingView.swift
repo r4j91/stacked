@@ -12,96 +12,95 @@ struct UpcomingView: View {
   var body: some View {
     let c = theme.colors
 
-    List {
-      Section {
-        ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
-          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-
-      Section {
-        modeToggle
-          .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-
-      if store.mode == .agenda {
-        Section {
-          HStack(spacing: 6) {
-            Image(systemName: "list.bullet")
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.accent)
-            Text(store.agendaPeriodLabel)
-              .font(.system(size: 13, weight: .semibold))
-              .foregroundStyle(c.accent)
-          }
-          .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 8, trailing: 20))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-        }
-      }
-
+    VStack(spacing: 0) {
       if store.mode != .agenda {
+        calendarSection
+          .padding(.horizontal, AppSpacing.sm)
+          .padding(.bottom, AppSpacing.sm)
+      }
+
+      List {
         Section {
-          calendarSection
-            .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
+          ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
+
+        Section {
+          modeToggle
+            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
+
+        if store.mode == .agenda {
+          Section {
+            HStack(spacing: 6) {
+              Image(systemName: "list.bullet")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(c.accent)
+              Text(store.agendaPeriodLabel)
+                .font(AppTypography.completedSectionHeader)
+                .foregroundStyle(c.accent)
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+          }
+        }
+
+        if store.isLoading {
+          Section {
+            ProgressView()
+              .tint(c.accent)
+              .frame(maxWidth: .infinity)
+              .listRowBackground(Color.clear)
+          }
+        } else if let err = store.error, store.tasks.isEmpty {
+          Section {
+            LoadErrorView(message: err) {
+              _Concurrency.Task { await store.load() }
+            }
+            .listRowBackground(Color.clear)
+          }
+        } else if store.filteredTasks.isEmpty {
+          Section {
+            EmptyStateView(icon: .navUpcoming, title: "Nenhuma tarefa", subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento.")
+              .listRowBackground(Color.clear)
+          }
+        } else {
+          ForEach(store.groupedTasks, id: \.day) { group in
+            Section {
+              ForEach(group.tasks) { task in
+                taskRow(task)
+              }
+            } header: {
+              ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
+            }
+          }
+        }
+
+        Section {
+          ListTailSpacer()
+            .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
         }
       }
-
-      if store.isLoading {
-        Section {
-          ProgressView()
-            .tint(c.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.error, store.tasks.isEmpty {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.load() }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.filteredTasks.isEmpty {
-        Section {
-          EmptyStateView(icon: .navUpcoming, title: "Nenhuma tarefa", subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento.")
-          .listRowBackground(Color.clear)
-        }
-      } else {
-        ForEach(store.groupedTasks, id: \.day) { group in
-          Section {
-            ForEach(group.tasks) { task in
-              taskRow(task)
-            }
-          } header: {
-            ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
-          }
-        }
-      }
-
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
+      .listStyle(.plain)
+      .scrollContentBackground(.hidden)
+      .stackedListTailInset()
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedListTailInset()
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.load() }
     .task { await store.load() }
-    .fullScreenCover(item: $detailRoute) { route in
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task { await store.load() }
+    }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task { await store.load() }
-        }
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }
@@ -115,28 +114,27 @@ struct UpcomingView: View {
 
   private var modeToggle: some View {
     let c = theme.colors
-    return HStack(spacing: 4) {
+    return HStack(spacing: AppSpacing.xs) {
       ForEach(UpcomingCalendarMode.allCases) { mode in
         let selected = store.mode == mode
         Button {
           HapticService.selection()
-          // SUBSTITUIDO_FASE2: withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) { store.mode = mode }
           AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
             store.mode = mode
           }
         } label: {
           Text(mode.label)
-            .font(.system(size: 13, weight: selected ? .semibold : .medium))
+            .font(AppTypography.modeToggleLabel(selected: selected))
             .foregroundStyle(selected ? c.accent : c.textSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, AppSpacing.sm)
             .background(selected ? c.surfaceVariant : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
       }
     }
-    .padding(4)
+    .padding(AppSpacing.xs)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 12))
     .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.textPrimary.opacity(0.06)))
@@ -179,7 +177,7 @@ struct UpcomingView: View {
   }
 
   private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.lg, bottom: AppSpacing.xs, trailing: AppSpacing.lg)
   }
 
   @ViewBuilder
@@ -265,26 +263,26 @@ private struct WeekStripCalendar: View {
           HapticService.selection()
           onSelect(day)
         } label: {
-          VStack(spacing: 4) {
+          VStack(spacing: AppSpacing.xs) {
             Text(shortWeekday(day))
-              .font(.system(size: 10, weight: .medium))
+              .font(AppTypography.metaSmall)
               .foregroundStyle(c.textTertiary)
             Text("\(Calendar.current.component(.day, from: day))")
-              .font(.system(size: 16, weight: selected ? .bold : .semibold))
+              .font(AppTypography.calendarDayNumber(selected: selected))
               .foregroundStyle(selected ? c.accent : (isToday ? c.textPrimary : c.textSecondary))
             Circle()
               .fill(hasTasks ? c.accent : Color.clear)
               .frame(width: 5, height: 5)
           }
           .frame(maxWidth: .infinity)
-          .padding(.vertical, 8)
+          .padding(.vertical, AppSpacing.sm)
           .background(selected ? c.surfaceVariant : Color.clear)
           .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
       }
     }
-    .padding(.vertical, 4)
+    .padding(.vertical, AppSpacing.xs)
   }
 
   private func shortWeekday(_ date: Date) -> String {

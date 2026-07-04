@@ -77,6 +77,7 @@ struct SettingsView: View {
       }
       .settingsDrillDownList(background: c.background)
       .listSectionSpacing(20)
+      .stackedTabletCentered()
       .navigationTitle("Configurações")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {

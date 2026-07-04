@@ -28,12 +28,10 @@ struct MobileShell<Content: View>: View {
   var body: some View {
     @Bindable var chrome = chrome
     let c = theme.colors
-    let tab = chrome.selectedTab
 
     ZStack(alignment: .bottomTrailing) {
       // Conteúdo fora do GeometryReader — o reader não reavalia filhos quando só o tab muda.
       content()
-        .id(tab)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.keyboard, edges: .bottom)
 

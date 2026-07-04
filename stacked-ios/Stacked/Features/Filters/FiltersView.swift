@@ -34,18 +34,20 @@ struct FiltersView: View {
         .environment(ThemeManager.shared)
       }
     }
+    .toolbarBackground(theme.colors.background, for: .navigationBar)
+    .toolbarBackground(.hidden, for: .navigationBar)
     .stackedTabletCentered()
     .background(theme.colors.background.ignoresSafeArea(.all))
-    .fullScreenCover(item: $detailRoute) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task {
-            await store.loadDashboard()
-            if case .filter(let kind) = store.mode {
-              await store.openFilter(kind)
-            }
-          }
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task {
+        await store.loadDashboard()
+        if case .filter(let kind) = store.mode {
+          await store.openFilter(kind)
         }
+      }
+    }) { route in
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }
@@ -205,7 +207,7 @@ struct FiltersView: View {
           Spacer()
           if hasCount {
             Text("\(count)")
-              .font(.system(size: 12, weight: .bold))
+              .font(AppTypography.statBadge)
               .foregroundStyle(colored ? tint : c.textTertiary)
               .padding(.horizontal, 9)
               .padding(.vertical, 4)
@@ -214,12 +216,12 @@ struct FiltersView: View {
           }
         }
         Text(label)
-          .font(.system(size: 14, weight: .semibold))
+          .font(AppTypography.cardHeading)
           .foregroundStyle(c.textPrimary)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
         Text(hasCount ? countLabel : "Nenhuma")
-          .font(.system(size: 12))
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,7 +312,7 @@ struct FiltersView: View {
 
       VStack(alignment: .leading, spacing: 7) {
         Text(project.name)
-          .font(.system(size: 16, weight: .medium))
+          .font(AppTypography.navRowTitle)
           .foregroundStyle(c.textPrimary)
           .lineLimit(1)
         if project.total > 0 {
@@ -325,7 +327,7 @@ struct FiltersView: View {
       }
 
       Text("\(project.pending)")
-        .font(.system(size: 15, weight: .medium))
+        .font(AppTypography.filterRowTitle)
         .foregroundStyle(c.textTertiary)
 
       StackedIcons.image(.chevronRight)

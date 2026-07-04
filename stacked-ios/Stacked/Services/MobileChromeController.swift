@@ -12,13 +12,13 @@ final class MobileChromeController {
 
   private init() {}
 
-  func selectTab(_ tab: NavTab) {
+  func selectTab(_ tab: NavTab, reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
     guard tab != selectedTab else { return }
     HapticService.prepareTabChange()
     HapticService.tabChanged()
     PopoverPresenter.shared.dismiss()
     fabOpen = false
-    withAnimation(AppMotion.navMorphSpring) {
+    AppMotion.animate(AppMotion.navMorphSpring, reduceMotion: reduceMotion) {
       selectedTab = tab
     }
   }

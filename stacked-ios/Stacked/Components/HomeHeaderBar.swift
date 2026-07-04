@@ -31,11 +31,11 @@ struct HomeHeaderBar: View {
 
       LiquidGlass.headerPill(navBarColor: c.navBar, textPrimary: c.textPrimary) {
         HStack(spacing: 0) {
-          headerIconButton(.notifications) { showNotifications = true }
+          headerIconButton(.notifications, label: "Notificações") { showNotifications = true }
           Rectangle()
             .fill(c.textTertiary.opacity(0.2))
             .frame(width: 1, height: AppLayout.headerControlSize * 0.5)
-          headerIconButton(.settings) { showSettings = true }
+          headerIconButton(.settings, label: "Configurações") { showSettings = true }
         }
         .padding(.horizontal, 2)
       }
@@ -45,7 +45,7 @@ struct HomeHeaderBar: View {
     .padding(.bottom, 10)
   }
 
-  private func headerIconButton(_ icon: StackedIconKey, action: @escaping () -> Void) -> some View {
+  private func headerIconButton(_ icon: StackedIconKey, label: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
       StackedIcons.image(icon)
         .font(.system(size: AppLayout.headerIconSize, weight: .medium))
@@ -53,5 +53,6 @@ struct HomeHeaderBar: View {
         .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
     }
     .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
+    .accessibilityLabel(label)
   }
 }

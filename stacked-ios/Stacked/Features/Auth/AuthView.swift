@@ -54,10 +54,11 @@ struct AuthView: View {
                 obscurePassword.toggle()
               } label: {
                 StackedIcons.image(obscurePassword ? Hugeicons.eye : Hugeicons.eyeOff)
-                  .frame(width: 20, height: 20)
+                  .frame(width: 44, height: 44)
                   .foregroundStyle(c.textTertiary)
               }
               .buttonStyle(.plain)
+              .accessibilityLabel(obscurePassword ? "Mostrar senha" : "Ocultar senha")
             }
           )
 

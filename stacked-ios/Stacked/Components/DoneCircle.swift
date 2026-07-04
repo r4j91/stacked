@@ -45,6 +45,9 @@ struct DoneCircle: View {
       }
     }
     .frame(width: size, height: size)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(done ? "Concluída" : "Não concluída")
+    .accessibilityAddTraits(.isImage)
     .onAppear { syncVisualState(animated: false) }
     .onChange(of: done) { wasDone, isDone in
       if isDone && !wasDone {

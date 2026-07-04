@@ -168,12 +168,12 @@ struct SearchView: View {
         await store.load()
         searchFocused = true
       }
-      .fullScreenCover(item: $detailRoute) { route in
+      .fullScreenCover(item: $detailRoute, onDismiss: {
+        _Concurrency.Task { await store.load() }
+      }) { route in
         TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-          TaskDetailView(taskId: route.taskId) {
-            _Concurrency.Task { await store.load() }
-          }
-          .environment(ThemeManager.shared)
+          TaskDetailView(taskId: route.taskId)
+            .environment(ThemeManager.shared)
         }
       }
       .sheet(item: $subtaskDetailRoute) { route in

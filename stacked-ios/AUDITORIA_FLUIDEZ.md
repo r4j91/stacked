@@ -1,7 +1,7 @@
 # AUDITORIA_FLUIDEZ — Stacked iOS
 
 **Auditoria inicial:** 30 jun 2026  
-**Atualização pós-fases:** 3 jul 2026 (Fases A–H concluídas)  
+**Atualização pós-fases:** 3 jul 2026 (Fases A–H concluídas; **Auditoria II — Fases I–N** implementada localmente, sem commit)  
 **Escopo:** `stacked-ios/`  
 **Skills aplicadas:** `impeccable` (motion, interaction, reduced-motion), `ui-ux-pro-max` (§3 Performance, §7 Animation, §9 Navigation)
 
@@ -22,13 +22,53 @@ Ciclo de polish **Impeccable iOS** concluído em 8 fases (A–H). Resumo do que 
 | **G** | Settings cards `surfaceVariant`, tipografia, popover leve | ✅ |
 | **H** | A11y popover shadow + checklist QA (este doc) | ✅ |
 
+---
+
+## Auditoria II — Fluidez estrutural (Jul 2026, Fases I–N)
+
+Ciclo focado em **preservação de estado**, performance de listas, design system e tablet — **sem shell desktop ≥1024**.
+
+| Fase | Entrega | Status |
+|------|---------|--------|
+| **I** | Tab preservation (`RootTabContent` ZStack) + `TabRefreshPolicy` stale-while-revalidate (45s) | ✅ |
+| **J** | Subtarefas: clip SwiftUI (sem UIKit `beginUpdates`); calendário Em breve fora da `List` | ✅ |
+| **K** | `AppSpacing` + tokens tipográficos; Home/Filters/TaskDetail/EmptyState | ✅ |
+| **L** | Touch 44pt; VoiceOver em `TaskRow`/`DoneCircle`/Home header | ✅ |
+| **M** | `stackedTabletCentered()` em Projeto, Registro, Settings, Etiquetas | ✅ |
+| **N** | Build verificado; doc atualizada | ✅ |
+
+**Decisões:** desktop fora de escopo; dwell Todoist ~300ms mantido; `SubtaskExpandReveal.swift` legado (não usado na row).
+
+### Novos ofensores resolvidos (Auditoria II)
+
+| # | Problema | Solução |
+|---|----------|---------|
+| P0 | `MobileShell` `.id(tab)` destruía aba | 5 views vivas com opacity/hitTesting |
+| P0 | Reload de rede a cada troca de aba | `TabRefreshPolicy` — reload só se stale (45s) |
+| P1 | `DatePicker` gráfico dentro da `List` | Calendário fixo acima da lista (Em breve) |
+| P1 | UIKit height anim + `UITableView.beginUpdates` | Clip + `maxHeight` SwiftUI na `TaskRow` |
+| P2 | Tipografia ad-hoc | `AppTypography` + `AppSpacing` (parcial) |
+| P2 | Touch targets &lt;44pt | Back Filtros, etiquetas, senha Auth, chevron expand |
+| P3 | Tablet centering incompleto | Projeto, Registro, Settings subtree |
+
+### Checklist QA adicional (Auditoria II)
+
+- [ ] Trocar Hoje ↔ Inbox ↔ Em breve 20× — scroll não reseta
+- [ ] Voltar à aba antes de 45s — sem reload visível; após 45s — dados frescos
+- [ ] Expandir subtarefas durante scroll — sem micro-freeze
+- [ ] Em breve modo Mês/Semana — calendário não relayouta a lista
+- [ ] VoiceOver: linha de tarefa anuncia título, projeto, subtarefas
+- [ ] iPad ≥600pt: Projeto, Registro, Configurações centralizados
+
+---
+
 ### Top 10 ofensores — status atual
 
 | # | Ofensor (Jun 2026) | Status Jul 2026 |
 |---|-------------------|-----------------|
 | 1 | Glass empilhado Material+fill | ✅ **Resolvido** — `GlassSurface` usa só `.glassEffect` + tint 12%; fallback sólido com reduce transparency |
 | 2 | Completar tarefa sem animação | ✅ **Resolvido** — `TaskCompletionMotion.afterDwell` + `taskCompleteRemovalTransition` |
-| 3 | Subtarefas `maxHeight` layout | ✅ **Resolvido** — `SubtaskExpandReveal` (UIKit height anim) |
+| 3 | Subtarefas `maxHeight` layout | ✅ **Resolvido** — clip SwiftUI na `TaskRow` (Fase J; substitui `SubtaskExpandReveal`) |
 | 4 | Press states ausentes | 🟡 **Parcial** — `PressableStyle` em checkbox/nav/header; tap area da row sem press (removido `PressableTapArea` — bloqueava gestos) |
 | 5 | `DoneCircle` sem spring | ✅ **Resolvido** — spring scale + fill com reduce motion |
 | 6 | Quick Add overlay custom | 🟡 **Parcial** — sheet nativo; layout mantido |
@@ -43,6 +83,7 @@ Ciclo de polish **Impeccable iOS** concluído em 8 fases (A–H). Resumo do que 
 - Swipe custom interactive spring (esforço alto; manter `.swipeActions` nativo)
 - Long-press preview lift durante hold (removido por conflito com swipe; menu funciona)
 - Press feedback na área de texto da `TaskRow` sem bloquear swipe/long-press
+- **Shell desktop ≥1024** — decisão: não implementar no iOS nativo
 
 ---
 

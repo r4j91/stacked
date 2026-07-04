@@ -9,6 +9,7 @@ struct TaskDetailView: View {
   @State private var vm: TaskDetailViewModel
   @State private var newSubtaskTitle = ""
   @FocusState private var newSubtaskFocused: Bool
+  @FocusState private var descriptionFocused: Bool
   @State private var showDatePicker = false
   @State private var showDeleteConfirm = false
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
@@ -23,9 +24,9 @@ struct TaskDetailView: View {
   @State private var labelsPillAnchor: CGRect = .zero
   @State private var recurrencePillAnchor: CGRect = .zero
 
-  var onDismiss: () -> Void
+  var onDismiss: () -> Void = {}
 
-  init(taskId: String, onDismiss: @escaping () -> Void) {
+  init(taskId: String, onDismiss: @escaping () -> Void = {}) {
     _vm = State(initialValue: TaskDetailViewModel(taskId: taskId))
     self.onDismiss = onDismiss
   }
@@ -35,14 +36,17 @@ struct TaskDetailView: View {
 
     NavigationStack {
       Group {
-        if vm.isLoading {
-          ProgressView().tint(c.accent)
-        } else if let error = vm.error {
+        if let error = vm.error, vm.title.isEmpty {
           LoadErrorView(message: error) {
             _Concurrency.Task { await vm.load() }
           }
         } else {
           scrollContent
+            .overlay {
+              if vm.isLoading && vm.title.isEmpty {
+                ProgressView().tint(c.accent)
+              }
+            }
         }
       }
       .background(c.background.ignoresSafeArea())
@@ -53,7 +57,7 @@ struct TaskDetailView: View {
             close()
           } label: {
             Image(systemName: "xmark")
-              .font(.system(size: 14, weight: .semibold))
+              .font(AppTypography.bodySemibold)
               .foregroundStyle(c.textSecondary)
           }
         }
@@ -91,6 +95,8 @@ struct TaskDetailView: View {
           _Concurrency.Task { await vm.load() }
         }
         .environment(ThemeManager.shared)
+        .presentationBackground(c.background)
+        .presentationDragIndicator(.visible)
       }
       .task { await vm.load() }
       .popoverHostScope()
@@ -110,20 +116,17 @@ struct TaskDetailView: View {
           .padding(.top, 4)
 
           TextField("O que precisa ser feito?", text: $vm.title, axis: .vertical)
-            .font(.system(size: 20, weight: .bold))
+            .font(AppTypography.detailTitle)
             .foregroundStyle(c.textPrimary)
             .onChange(of: vm.title) { _, _ in vm.onTitleChanged() }
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
 
-        TextField("Descrição", text: $vm.descriptionText, axis: .vertical)
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-          .padding(.horizontal, 52)
+        descriptionNotesField
+          .padding(.horizontal, 20)
           .padding(.top, 8)
           .padding(.bottom, 14)
-          .onChange(of: vm.descriptionText) { _, _ in vm.onDescriptionChanged() }
 
         metadataCard
           .padding(.horizontal, 16)
@@ -202,84 +205,143 @@ struct TaskDetailView: View {
   private var subtasksSection: some View {
     let c = theme.colors
 
-    return VStack(alignment: .leading, spacing: 10) {
+    return VStack(alignment: .leading, spacing: 8) {
       Text("Subtarefas")
-        .font(.system(size: 13, weight: .semibold))
+        .font(AppTypography.detailSectionLabel)
         .foregroundStyle(c.textSecondary)
 
-      ForEach(vm.subtasks, id: \.idOrFallback) { sub in
-        HStack(alignment: .center, spacing: 10) {
-          Button {
-            vm.toggleSubtask(sub)
-          } label: {
-            DoneCircle(
-              done: sub.done,
-              size: 20,
-              borderWidth: 1.5,
-              tickSize: 11,
-              ringColor: c.textTertiary.opacity(0.4)
-            )
-          }
-          .buttonStyle(.plain)
-
-          Text(sub.title)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
-            .strikethrough(sub.done)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .onTapGesture {
-              subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
-            }
-
-          Button {
-            HapticService.warning()
-            _Concurrency.Task { await vm.deleteSubtask(sub) }
-          } label: {
-            Image(systemName: "trash")
-              .font(.system(size: 13))
-              .foregroundStyle(c.textTertiary)
-              .frame(width: 28, height: 28)
-          }
-          .buttonStyle(.plain)
-        }
-        .padding(.vertical, 4)
-        .contextMenu {
-          Button(role: .destructive) {
-            HapticService.warning()
-            _Concurrency.Task { await vm.deleteSubtask(sub) }
-          } label: {
-            Label("Excluir subtarefa", systemImage: "trash")
+      VStack(spacing: 0) {
+        ForEach(Array(vm.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
+          subtaskEditorRow(sub)
+          if index < vm.subtasks.count - 1 {
+            Divider()
+              .overlay(c.textTertiary.opacity(0.08))
+              .padding(.leading, 34)
           }
         }
       }
 
-      HStack(spacing: 8) {
-        Button {
-          _Concurrency.Task { await submitNewSubtask() }
-        } label: {
-          StackedIcons.image(.plus)
-            .font(.system(size: 14))
-            .foregroundStyle(c.accent)
-            .frame(width: 28, height: 28)
-        }
-        .buttonStyle(.plain)
-        .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-        TextField("Nova subtarefa", text: $newSubtaskTitle)
-          .font(.system(size: 14))
-          .foregroundStyle(c.textPrimary)
-          .focused($newSubtaskFocused)
-          .submitLabel(.done)
-          .onSubmit {
-            _Concurrency.Task { await submitNewSubtask() }
-          }
-      }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 10)
-      .background(c.surfaceVariant.opacity(0.5))
-      .clipShape(RoundedRectangle(cornerRadius: 10))
+      newSubtaskField
     }
+  }
+
+  private func subtaskEditorRow(_ sub: Subtask) -> some View {
+    let c = theme.colors
+    return HStack(alignment: .center, spacing: 8) {
+      Button {
+        vm.toggleSubtask(sub)
+      } label: {
+        DoneCircle(
+          done: sub.done,
+          size: 20,
+          borderWidth: 1.5,
+          tickSize: 11,
+          ringColor: c.textTertiary.opacity(0.4)
+        )
+        .frame(width: 32, height: 32)
+      }
+      .buttonStyle(.plain)
+
+      Text(sub.title)
+        .font(AppTypography.subtaskRowTitle.weight(.medium))
+        .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
+        .strikethrough(sub.done)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+        }
+
+      Button {
+        HapticService.warning()
+        _Concurrency.Task { await vm.deleteSubtask(sub) }
+      } label: {
+        Image(systemName: "trash")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textTertiary)
+          .frame(width: 44, height: 36)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(.vertical, 2)
+    .contextMenu {
+      Button(role: .destructive) {
+        HapticService.warning()
+        _Concurrency.Task { await vm.deleteSubtask(sub) }
+      } label: {
+        Label("Excluir subtarefa", systemImage: "trash")
+      }
+    }
+  }
+
+  private var newSubtaskField: some View {
+    let c = theme.colors
+    let canSubmit = !newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    return HStack(spacing: 8) {
+      Button {
+        if canSubmit {
+          _Concurrency.Task { await submitNewSubtask() }
+        } else {
+          HapticService.selection()
+          newSubtaskFocused = true
+        }
+      } label: {
+        StackedIcons.image(.plus)
+          .font(AppTypography.body)
+          .foregroundStyle(c.accent)
+          .frame(width: 32, height: 32)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(canSubmit ? "Adicionar subtarefa" : "Focar campo de nova subtarefa")
+
+      TextField("Nova subtarefa", text: $newSubtaskTitle)
+        .font(AppTypography.commentBody)
+        .foregroundStyle(c.textPrimary)
+        .focused($newSubtaskFocused)
+        .submitLabel(.done)
+        .onSubmit {
+          _Concurrency.Task { await submitNewSubtask() }
+        }
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 9)
+    .background(c.surfaceVariant.opacity(0.45))
+    .clipShape(RoundedRectangle(cornerRadius: 10))
+    .overlay(
+      RoundedRectangle(cornerRadius: 10)
+        .stroke(
+          newSubtaskFocused ? c.accent.opacity(0.5) : c.textTertiary.opacity(0.12),
+          lineWidth: 1
+        )
+    )
+    .contentShape(RoundedRectangle(cornerRadius: 10))
+    .onTapGesture {
+      newSubtaskFocused = true
+    }
+  }
+
+  private var descriptionNotesField: some View {
+    let c = theme.colors
+    return TextField("Adicionar notas...", text: $vm.descriptionText, axis: .vertical)
+      .font(AppTypography.commentBody)
+      .foregroundStyle(c.textSecondary)
+      .lineLimit(2...8)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 9)
+      .background(c.surfaceVariant.opacity(0.45))
+      .clipShape(RoundedRectangle(cornerRadius: 10))
+      .overlay(
+        RoundedRectangle(cornerRadius: 10)
+          .stroke(
+            descriptionFocused ? c.accent.opacity(0.5) : c.textTertiary.opacity(0.12),
+            lineWidth: 1
+          )
+      )
+      .focused($descriptionFocused)
+      .onChange(of: vm.descriptionText) { _, _ in vm.onDescriptionChanged() }
   }
 
   private var commentsSection: some View {
@@ -287,13 +349,13 @@ struct TaskDetailView: View {
 
     return VStack(alignment: .leading, spacing: 10) {
       Text("Comentários")
-        .font(.system(size: 13, weight: .semibold))
+        .font(AppTypography.detailSectionLabel)
         .foregroundStyle(c.textSecondary)
 
       ForEach(vm.comments) { comment in
         VStack(alignment: .leading, spacing: 4) {
           Text(comment.content)
-            .font(.system(size: 14))
+            .font(AppTypography.commentBody)
             .foregroundStyle(c.textPrimary)
           Text(comment.createdAt, style: .relative)
             .font(.caption2)
@@ -307,7 +369,7 @@ struct TaskDetailView: View {
 
       HStack(spacing: 8) {
         TextField("Adicionar comentário…", text: $vm.newCommentText, axis: .vertical)
-          .font(.system(size: 14))
+          .font(AppTypography.commentBody)
           .lineLimit(1...3)
         Button {
           _Concurrency.Task { await vm.sendComment() }
@@ -345,19 +407,19 @@ struct TaskDetailView: View {
     return Button(action: action) {
       HStack(spacing: 12) {
         StackedIcons.image(icon)
-          .font(.system(size: 16))
+          .font(AppTypography.body)
           .foregroundStyle(active ? accent : c.textTertiary)
           .frame(width: 22)
         Text(title)
-          .font(.system(size: 13))
+          .font(AppTypography.meta)
           .foregroundStyle(c.textTertiary)
         Spacer()
         Text(value)
-          .font(.system(size: 13, weight: .medium))
+          .font(AppTypography.metadataLabel)
           .foregroundStyle(active ? accent : c.textTertiary)
           .lineLimit(1)
         StackedIcons.image(.chevronRight)
-          .font(.system(size: 11, weight: .semibold))
+          .font(AppTypography.metaSmall.weight(.semibold))
           .foregroundStyle(c.textTertiary)
       }
       .padding(.horizontal, 16)
@@ -372,9 +434,9 @@ struct TaskDetailView: View {
     return Button(action: action) {
       HStack(spacing: 6) {
         StackedIcons.image(icon)
-          .font(.system(size: 12))
+          .font(AppTypography.metaSmall)
         Text(title)
-          .font(.system(size: 13, weight: .medium))
+          .font(AppTypography.metadataLabel)
       }
       .foregroundStyle(c.textSecondary)
       .padding(.horizontal, 12)
@@ -481,7 +543,6 @@ struct TaskDetailView: View {
   }
 
   private func close() {
-    onDismiss()
     dismiss()
   }
 

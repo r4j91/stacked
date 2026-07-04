@@ -36,6 +36,7 @@ struct LabelsManagementView: View {
           .settingsDrillDownList(background: c.background)
         }
       }
+      .stackedTabletCentered()
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(c.background)
       .navigationTitle("Gerenciar Etiquetas")
@@ -80,16 +81,22 @@ struct LabelsManagementView: View {
         StackedIcons.image(.edit)
           .font(.system(size: 16))
           .foregroundStyle(c.textSecondary)
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
+      .accessibilityLabel("Editar etiqueta \(label.name)")
       Button {
         _Concurrency.Task { await deleteLabel(label) }
       } label: {
         StackedIcons.image(.trash)
           .font(.system(size: 16))
           .foregroundStyle(AppColors.priorityHigh)
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
+      .accessibilityLabel("Excluir etiqueta \(label.name)")
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)

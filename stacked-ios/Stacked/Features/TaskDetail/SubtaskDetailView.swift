@@ -92,6 +92,7 @@ struct SubtaskDetailView: View {
         .padding(.bottom, 24)
       }
       .background(c.background)
+      .presentationBackground(c.background)
       .navigationTitle("Subtarefa")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {

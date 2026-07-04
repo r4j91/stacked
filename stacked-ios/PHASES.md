@@ -219,6 +219,31 @@ Nada no projeto Flutter é alterado durante a migração.
 
 ---
 
+## Fases Impeccable A–H — Polish visual/motion ✅
+
+Ciclo documentado em [`AUDITORIA_FLUIDEZ.md`](AUDITORIA_FLUIDEZ.md) (Slate default, `AppMotion`, chrome unificado, context menu, settings cards).
+
+---
+
+## Fases I–N — Fluidez estrutural (Auditoria II) ✅
+
+**Objetivo:** sensação “liso” / ProMotion — preservar estado entre abas, menos jank em listas, design system enforced, tablet.
+
+| Fase | Entrega | Status |
+|------|---------|--------|
+| **I** | `RootTabContent` preserva 5 abas; `TabRefreshPolicy`; reduce motion em `selectTab` | ✅ |
+| **J** | Subtarefas clip SwiftUI; calendário Em breve fora da `List` | ✅ |
+| **K** | `AppSpacing.swift`; tokens `AppTypography` estendidos; Home/Filters/TaskDetail/EmptyState | ✅ |
+| **L** | Touch 44pt; VoiceOver TaskRow/DoneCircle/HomeHeaderBar | ✅ |
+| **M** | Tablet centering: Projeto, Registro, Settings, Etiquetas (**sem desktop**) | ✅ |
+| **N** | Build + [`AUDITORIA_FLUIDEZ.md`](AUDITORIA_FLUIDEZ.md) seção Auditoria II | ✅ |
+
+**Como validar:** trocar abas 20× (scroll preservado); expandir subtarefas em scroll; Em breve modo Mês; VoiceOver numa tarefa; abrir Projeto/Registro no iPad.
+
+**Fora de escopo:** shell desktop ≥1024; encurtar dwell de conclusão.
+
+---
+
 ## Referências no repo
 
 | Flutter | iOS nativo | Web |

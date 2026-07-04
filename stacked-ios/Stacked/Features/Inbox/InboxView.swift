@@ -58,11 +58,11 @@ struct InboxView: View {
             } label: {
               HStack {
                 Text("Concluídas (\(store.inboxCompleted.count))")
-                  .font(.system(size: 13, weight: .semibold))
+                  .font(AppTypography.completedSectionHeader)
                   .foregroundStyle(c.textSecondary)
                 Spacer()
                 Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                  .font(.system(size: 12, weight: .semibold))
+                  .font(AppTypography.metaSmall.weight(.semibold))
                   .foregroundStyle(c.textTertiary)
               }
             }
@@ -95,14 +95,14 @@ struct InboxView: View {
     .background(c.background)
     .refreshable { await store.loadInbox() }
     .task { await store.loadInbox() }
-    .fullScreenCover(item: $detailRoute) { route in
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task {
+        await store.loadInbox()
+        await store.loadToday()
+      }
+    }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task {
-            await store.loadInbox()
-            await store.loadToday()
-          }
-        }
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }

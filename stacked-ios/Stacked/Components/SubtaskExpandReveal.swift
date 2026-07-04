@@ -26,9 +26,10 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   func updateUIView(_ uiView: SubtaskExpandContainerView, context: Context) {
     let width = uiView.bounds.width > 1 ? uiView.bounds.width : context.coordinator.lastWidth
     context.coordinator.lastWidth = width
+    let hosting = context.coordinator.hosting(in: uiView)
+    context.coordinator.updateContent(AnyView(content), hosting: hosting)
     uiView.configure(
-      hosting: context.coordinator.hosting(in: uiView),
-      content: AnyView(content),
+      hosting: hosting,
       width: width,
       expanded: expanded,
       animated: !reduceMotion
@@ -51,6 +52,10 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
       self.host = host
       return host
     }
+
+    func updateContent(_ content: AnyView, hosting: UIHostingController<AnyView>) {
+      hosting.rootView = content
+    }
   }
 }
 
@@ -62,6 +67,8 @@ final class SubtaskExpandContainerView: UIView {
   private var selfHeightConstraint: NSLayoutConstraint?
   private var fullHeight: CGFloat = 0
   private var lastExpanded: Bool?
+  private var lastAppliedWidth: CGFloat = 0
+  private var isAnimating = false
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -96,40 +103,49 @@ final class SubtaskExpandContainerView: UIView {
 
   func configure(
     hosting: UIHostingController<AnyView>,
-    content: AnyView,
     width: CGFloat,
     expanded: Bool,
     animated: Bool
   ) {
-    hosting.rootView = content
+    let fitWidth = max(width, 1)
+    let widthChanged = abs(fitWidth - lastAppliedWidth) > 1
+    if widthChanged {
+      lastAppliedWidth = fitWidth
+    }
 
-    setNeedsLayout()
-    layoutIfNeeded()
-
-    let measured = measureHeight(hosting: hosting, width: width)
-    if measured > 0 { fullHeight = measured }
-
-    let target = expanded ? fullHeight : 0
     let stateChanged = lastExpanded != expanded
-    lastExpanded = expanded
 
-    guard stateChanged || abs((selfHeightConstraint?.constant ?? 0) - target) > 0.5 else { return }
+    // Mede ao abrir ou na primeira layout; congela durante animação e ao fechar.
+    if !isAnimating {
+      let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded)
+      if needsMeasure {
+        let measured = measureHeight(hosting: hosting, width: fitWidth)
+        if measured > 0 { fullHeight = measured }
+      }
+    }
 
     hostHeightConstraint?.constant = fullHeight
     hosting.view.isUserInteractionEnabled = expanded
-    applyVisibleHeight(target, expanded: expanded, animated: animated && stateChanged)
+
+    let target = expanded ? fullHeight : 0
+    lastExpanded = expanded
+
+    let current = selfHeightConstraint?.constant ?? 0
+    guard stateChanged || abs(current - target) > 0.5 else { return }
+
+    let shouldAnimate = animated && stateChanged && !UIAccessibility.isReduceMotionEnabled
+    applyVisibleHeight(target, expanded: expanded, animated: shouldAnimate)
   }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {
-    let fitWidth = max(width, 1)
     if #available(iOS 16.0, *) {
-      let size = hosting.sizeThatFits(in: CGSize(width: fitWidth, height: .greatestFiniteMagnitude))
+      let size = hosting.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
       return ceil(size.height)
     }
     hosting.view.setNeedsLayout()
     hosting.view.layoutIfNeeded()
     return ceil(hosting.view.systemLayoutSizeFitting(
-      CGSize(width: fitWidth, height: UIView.layoutFittingCompressedSize.height),
+      CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
       withHorizontalFittingPriority: .required,
       verticalFittingPriority: .fittingSizeLevel
     ).height)
@@ -140,14 +156,9 @@ final class SubtaskExpandContainerView: UIView {
       guard let self else { return }
       self.selfHeightConstraint?.constant = height
       self.invalidateIntrinsicContentSize()
-      self.layoutIfNeeded()
-      if let table = self.findUITableView() {
-        table.beginUpdates()
-        table.endUpdates()
-      } else {
-        self.superview?.setNeedsLayout()
-        self.superview?.layoutIfNeeded()
-      }
+      // Sem beginUpdates/endUpdates — UITableView recalcula via intrinsic size sem forçar relayout brusco.
+      self.superview?.setNeedsLayout()
+      self.superview?.layoutIfNeeded()
     }
 
     guard animated else {
@@ -155,19 +166,14 @@ final class SubtaskExpandContainerView: UIView {
       return
     }
 
+    isAnimating = true
+    let duration: TimeInterval = 0.22
     let options: UIView.AnimationOptions = expanded
-      ? [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState]
-      : [.curveEaseIn, .allowUserInteraction, .beginFromCurrentState]
+      ? [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState, .layoutSubviews]
+      : [.curveEaseIn, .allowUserInteraction, .beginFromCurrentState, .layoutSubviews]
 
-    UIView.animate(withDuration: 0.22, delay: 0, options: options, animations: applyLayout)
-  }
-
-  private func findUITableView() -> UITableView? {
-    var view: UIView? = self
-    while let current = view {
-      if let table = current as? UITableView { return table }
-      view = current.superview
+    UIView.animate(withDuration: duration, delay: 0, options: options, animations: applyLayout) { [weak self] _ in
+      self?.isAnimating = false
     }
-    return nil
   }
 }

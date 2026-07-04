@@ -39,20 +39,22 @@ struct LogbookView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .stackedListTailInset()
         .stackedScrollEdgeChrome()
       }
     }
+    .stackedTabletCentered()
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(c.background)
     .navigationTitle("Registro")
     .navigationBarTitleDisplayMode(.large)
     .refreshable { await load() }
     .task { await load() }
-    .fullScreenCover(item: $detailRoute) { route in
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task { await load() }
+    }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId) {
-          _Concurrency.Task { await load() }
-        }
+        TaskDetailView(taskId: route.taskId)
         .environment(ThemeManager.shared)
       }
     }
