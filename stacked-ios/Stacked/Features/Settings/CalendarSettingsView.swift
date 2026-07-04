@@ -22,20 +22,24 @@ struct CalendarSettingsView: View {
         List {
           if importEnabled && !calendarService.authorizationGranted {
             Section {
-              VStack(alignment: .leading, spacing: 8) {
-                Text("Ative o acesso ao Calendário para ver compromissos em Hoje e Em breve.")
-                  .font(AppTypography.taskPreview)
-                  .foregroundStyle(c.textSecondary)
-                Button("Permitir acesso ao Calendário") {
-                  _Concurrency.Task { await requestAccess() }
+              SettingsCardSurface {
+                VStack(alignment: .leading, spacing: 8) {
+                  Text("Ative o acesso ao Calendário para ver compromissos em Hoje e Em breve.")
+                    .font(AppTypography.taskPreview)
+                    .foregroundStyle(c.textSecondary)
+                  Button("Permitir acesso ao Calendário") {
+                    _Concurrency.Task { await requestAccess() }
+                  }
+                  .font(AppTypography.bodySemibold)
+                  .foregroundStyle(c.accent)
+                  if needsPermissionHint {
+                    Text("Se o diálogo não aparecer, abra Ajustes → Privacidade → Calendários e permita o Stacked.")
+                      .font(AppTypography.metaSmall)
+                      .foregroundStyle(c.textTertiary)
+                  }
                 }
-                .font(AppTypography.bodySemibold)
-                .foregroundStyle(c.accent)
-                if needsPermissionHint {
-                  Text("Se o diálogo não aparecer, abra Ajustes → Privacidade → Calendários e permita o Stacked.")
-                    .font(AppTypography.metaSmall)
-                    .foregroundStyle(c.textTertiary)
-                }
+                .padding(.horizontal, SettingsChrome.rowPaddingH)
+                .padding(.vertical, SettingsChrome.rowPaddingV)
               }
               .settingsListCardRow(top: 8, bottom: 8)
             }

@@ -30,9 +30,9 @@ enum AppMotion {
     .snappy(duration: 0.24, extraBounce: 0)
   }
 
-  /// Navbar: bolha sólida deslizante — paridade Flutter SpringSimulation(600, 32).
+  /// Navbar: bolha — overshoot leve + assentamento fluido (efeito “água”).
   static var navMorphSpring: Animation {
-    .interpolatingSpring(stiffness: 600, damping: 32)
+    .spring(response: 0.36, dampingFraction: 0.72)
   }
 
   /// Popover: navegação interna (sub-páginas) — smooth curto.
@@ -52,10 +52,13 @@ enum AppMotion {
 
   // SUBSTITUIDO_POPOVER_E1: popoverPresent/Dismiss usavam snappy (0.22, bounce 0) para abrir e fechar.
 
-  /// Navbar: bounce no ícone ao selecionar — paridade Flutter AppDurations.medium (~240ms).
+  /// Navbar: bounce no ícone ao selecionar — segue o blob ~35ms depois.
   static var iconBounceSpring: Animation {
-    .bouncy(duration: 0.24, extraBounce: 0.04)
+    .bouncy(duration: 0.26, extraBounce: 0.08)
   }
+
+  /// Atraso da coreografia ícone após o blob (ms).
+  static let navIconFollowDelay: Duration = .milliseconds(35)
 
   /// Subtarefas inline — expand easeOutCubic (task_tile.dart ~220ms).
   static var subtaskExpandSpring: Animation {

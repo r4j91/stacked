@@ -23,6 +23,8 @@ struct TaskDetailView: View {
   @State private var priorityPillAnchor: CGRect = .zero
   @State private var labelsPillAnchor: CGRect = .zero
   @State private var recurrencePillAnchor: CGRect = .zero
+  @State private var installmentPillAnchor: CGRect = .zero
+  @State private var installmentRoute: InstallmentGeneratorRoute?
 
   var onDismiss: () -> Void = {}
 
@@ -90,6 +92,9 @@ struct TaskDetailView: View {
         showRecurrence: true
       ) { date, timeDate in
         vm.setDueDate(date, time: timeDate)
+      }
+      .installmentGeneratorSheet(route: $installmentRoute) {
+        _Concurrency.Task { await vm.load() }
       }
       .sheet(item: $subtaskDetailRoute) { route in
         SubtaskDetailView(subtask: route.subtask, parentTaskTitle: vm.title) {
@@ -192,6 +197,9 @@ struct TaskDetailView: View {
           }
           if vm.recurrence == nil {
             fieldPill("Recorrência", icon: .repeatIcon, anchor: $recurrencePillAnchor) { showRecurrenceMenu(anchor: recurrencePillAnchor) }
+          }
+          fieldPill("Parcelas", icon: .money, anchor: $installmentPillAnchor) {
+            installmentRoute = InstallmentGeneratorRoute(taskId: vm.taskId, taskTitle: vm.title)
           }
         }
         .padding(.horizontal, 16)

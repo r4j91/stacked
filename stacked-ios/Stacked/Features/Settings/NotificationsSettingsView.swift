@@ -68,9 +68,10 @@ struct NotificationsSettingsView: View {
               Text("Você recebe um alerta na hora definida na tarefa. Tarefas só com data, sem hora, não disparam notificação.")
                 .font(AppTypography.taskPreview)
                 .foregroundStyle(c.textTertiary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .settingsListCardRow(top: 0, bottom: 8)
+                .listRowBackground(Color.clear)
             }
           }
         }

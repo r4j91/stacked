@@ -34,6 +34,21 @@ final class SubtaskRepository {
     return row.id
   }
 
+  /// Paridade SubtaskRepository.createSubtasksBatch — gerador de parcelas.
+  func createSubtasksBatch(_ rows: [InstallmentSubtaskInsert]) async throws {
+    guard !rows.isEmpty else { return }
+    try await client.from("subtasks").insert(rows).execute()
+  }
+
+  struct InstallmentSubtaskInsert: Encodable {
+    let task_id: String
+    let titulo: String
+    let data_vencimento: String
+    let valor: Double?
+    let concluida: Bool
+    let ordem: Int
+  }
+
   func updateTitle(id: String, title: String) async throws {
     try await client
       .from("subtasks")

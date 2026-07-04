@@ -190,12 +190,13 @@ private struct SettingsGroupedRowBackground: View {
 }
 
 extension View {
-  /// Lista de drill-down em Configurações — fundo escuro, sem insetGrouped do sistema.
+  /// Lista de drill-down em Configurações — fundo escuro, margem horizontal uniforme.
   func settingsDrillDownList(background: Color) -> some View {
     self
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
       .background(background)
+      .contentMargins(.horizontal, SettingsChrome.horizontalPadding, for: .scrollContent)
   }
 
   func settingsListCardRow(
@@ -206,9 +207,9 @@ extension View {
       .listRowInsets(
         EdgeInsets(
           top: top,
-          leading: SettingsChrome.horizontalPadding,
+          leading: 0,
           bottom: bottom,
-          trailing: SettingsChrome.horizontalPadding
+          trailing: 0
         )
       )
       .listRowSeparator(.hidden)
@@ -225,13 +226,13 @@ extension View {
       .listRowInsets(
         EdgeInsets(
           top: position == .first || position == .only ? 4 : 0,
-          leading: SettingsChrome.horizontalPadding,
+          leading: 0,
           bottom: position == .last || position == .only ? 4 : 0,
-          trailing: SettingsChrome.horizontalPadding
+          trailing: 0
         )
       )
       .listRowSeparator(.hidden)
-      .listRowBackground(SettingsGroupedRowBackground(position: position))
+      .listRowBackground(Color.clear)
       .overlay(alignment: .bottom) {
         if showDivider {
           SettingsCardDivider(leadingPadding: dividerLeading)

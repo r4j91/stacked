@@ -21,9 +21,17 @@ extension AppLayout {
 }
 
 struct ListTailSpacer: View {
+  private static let cachedSafeBottom: CGFloat = {
+    UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap(\.windows)
+      .first(where: \.isKeyWindow)?
+      .safeAreaInsets.bottom ?? 0
+  }()
+
   var body: some View {
     Color.clear
-      .frame(height: AppLayout.listTailInset(safeBottom: AppLayout.windowSafeBottomInset))
+      .frame(height: AppLayout.listTailInset(safeBottom: Self.cachedSafeBottom))
   }
 }
 

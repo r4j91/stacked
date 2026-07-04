@@ -25,6 +25,7 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
+  @State private var installmentRoute: InstallmentGeneratorRoute?
 
   private let iconCircleSize: CGFloat = 44
   private let metadataIconSize: CGFloat = 23
@@ -67,6 +68,10 @@ struct QuickAddTaskView: View {
       ) { date, time in
         dueDate = date
         dueTime = time
+      }
+      .installmentGeneratorSheet(route: $installmentRoute) {
+        onSaved()
+        onDismiss()
       }
   }
 
@@ -138,7 +143,11 @@ struct QuickAddTaskView: View {
           icon: .money,
           active: false,
           activeColor: c.accent
-        ) { _ in }
+        ) { _ in
+          _Concurrency.Task { await openInstallmentGenerator() }
+        }
+        .opacity(hasTitle && !saving ? 1 : 0.45)
+        .allowsHitTesting(hasTitle && !saving)
 
         Spacer(minLength: 4)
 
@@ -447,10 +456,26 @@ struct QuickAddTaskView: View {
   }
 
   private func save() async {
-    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return }
     saving = true
     error = nil
+    do {
+      guard try await persistTask() != nil else {
+        saving = false
+        return
+      }
+      HapticService.taskCreated()
+      onSaved()
+      onDismiss()
+    } catch {
+      self.error = error.localizedDescription
+      saving = false
+    }
+  }
+
+  /// Salva tarefa sem fechar o Quick Add — usado pelo gerador de parcelas.
+  private func persistTask() async throws -> String? {
+    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
 
     var dueISO: String?
     var hora: String?
@@ -464,21 +489,33 @@ struct QuickAddTaskView: View {
       }
     }
 
+    let newId = try await TaskRepository.shared.createTask(.init(
+      title: trimmed,
+      description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+      priority: priority,
+      projectId: selectedProjectId,
+      sectionId: selectedSectionId,
+      dueDateISO: dueISO,
+      time: hora,
+      labelIds: Array(selectedLabelIds)
+    ))
+    await TaskCalendarSync.syncTaskId(newId)
+    return newId
+  }
+
+  private func openInstallmentGenerator() async {
+    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, !saving else { return }
+    saving = true
+    error = nil
     do {
-      let newId = try await TaskRepository.shared.createTask(.init(
-        title: trimmed,
-        description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-        priority: priority,
-        projectId: selectedProjectId,
-        sectionId: selectedSectionId,
-        dueDateISO: dueISO,
-        time: hora,
-        labelIds: Array(selectedLabelIds)
-      ))
-      await TaskCalendarSync.syncTaskId(newId)
+      guard let taskId = try await persistTask() else {
+        saving = false
+        return
+      }
       HapticService.taskCreated()
-      onSaved()
-      onDismiss()
+      saving = false
+      installmentRoute = InstallmentGeneratorRoute(taskId: taskId, taskTitle: trimmed)
     } catch {
       self.error = error.localizedDescription
       saving = false

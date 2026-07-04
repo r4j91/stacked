@@ -123,11 +123,6 @@ struct ProjectColorGridPopoverOverlay: View {
   }
 
   private func dismiss() {
-    AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-      isPresented = false
-    }
-    DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
-      onDismiss()
-    }
+    onDismiss()
   }
 }

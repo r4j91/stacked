@@ -17,10 +17,6 @@ extension View {
         onChanged: onChanged
       )
       .environment(ThemeManager.shared)
-      .presentationDetents([.large])
-      .presentationDragIndicator(.visible)
-      .presentationBackground(ThemeManager.shared.colors.background)
-      .presentationCornerRadius(20)
     }
   }
 }

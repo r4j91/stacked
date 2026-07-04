@@ -113,9 +113,11 @@ struct RootTabContent: View {
 
   @ViewBuilder
   private func preservedTab<Content: View>(_ tab: NavTab, @ViewBuilder content: () -> Content) -> some View {
+    let isActive = chrome.selectedTab == tab
     content()
-      .zIndex(chrome.selectedTab == tab ? 1 : 0)
-      .allowsHitTesting(chrome.selectedTab == tab)
-      .accessibilityHidden(chrome.selectedTab != tab)
+      .opacity(isActive ? 1 : 0)
+      .zIndex(isActive ? 1 : 0)
+      .allowsHitTesting(isActive)
+      .accessibilityHidden(!isActive)
   }
 }

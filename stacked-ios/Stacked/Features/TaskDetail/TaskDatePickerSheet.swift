@@ -1,6 +1,13 @@
 import SwiftUI
 import Hugeicons
 
+private struct DatePickerSheetHeightKey: PreferenceKey {
+  static var defaultValue: CGFloat = 0
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = max(value, nextValue())
+  }
+}
+
 // Paridade lib/widgets/task_detail/sheets/task_date_picker_sheet.dart
 struct TaskDatePickerSheet: View {
   @Environment(\.dismiss) private var dismiss
@@ -18,6 +25,8 @@ struct TaskDatePickerSheet: View {
   @State private var hasTime = false
   @State private var timeExpanded = false
   @State private var displayedMonth: Date
+  @State private var sheetDetent: PresentationDetent = .height(620)
+  @State private var collapsedHeight: CGFloat = 620
 
   init(
     initialDate: Date?,
@@ -36,43 +45,75 @@ struct TaskDatePickerSheet: View {
     _hasTime = State(initialValue: initialTime != nil)
     _timeExpanded = State(initialValue: initialTime != nil)
     _displayedMonth = State(initialValue: initialDate ?? Date())
+    let startsExpanded = initialTime != nil
+    _sheetDetent = State(initialValue: startsExpanded ? .large : .height(620))
   }
 
   var body: some View {
     let c = theme.colors
 
-    VStack(spacing: 0) {
-      Capsule()
-        .fill(c.textTertiary.opacity(0.35))
-        .frame(width: 36, height: 4)
-        .padding(.top, 10)
-        .padding(.bottom, 4)
-
-      HStack {
-        Button { confirmAndDismiss() } label: {
-          StackedIcons.image(.close)
-            .font(.system(size: 18))
-            .foregroundStyle(c.textSecondary)
-            .frame(width: 44, height: 44)
-        }
-        .buttonStyle(.plain)
-
-        Text("Data")
-          .font(.system(size: 16, weight: .semibold))
-          .foregroundStyle(c.textPrimary)
-          .frame(maxWidth: .infinity)
-
-        if selectedDate != nil {
-          Button("Limpar") { clearDate() }
-            .font(.system(size: 14))
-            .foregroundStyle(c.textTertiary)
-            .padding(.horizontal, 12)
-        } else {
-          Color.clear.frame(width: 60, height: 44)
+    NavigationStack {
+      VStack(spacing: 0) {
+        shortcutsSection
+        calendarSection
+        timeSection
+      }
+      .frame(maxWidth: .infinity, alignment: .top)
+      .background {
+        GeometryReader { proxy in
+          Color.clear
+            .preference(key: DatePickerSheetHeightKey.self, value: proxy.size.height)
         }
       }
-      .padding(.horizontal, 4)
+      .navigationTitle("Data")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(c.background, for: .navigationBar)
+      .toolbarBackground(.visible, for: .navigationBar)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) {
+          Button { confirmAndDismiss() } label: {
+            StackedIcons.image(.close)
+              .font(.system(size: 16))
+              .foregroundStyle(c.textSecondary)
+          }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+          if selectedDate != nil {
+            Button("Limpar") { clearDate() }
+              .font(.system(size: 14))
+              .foregroundStyle(c.textTertiary)
+          }
+        }
+      }
+    }
+    .background(c.background)
+    .onPreferenceChange(DatePickerSheetHeightKey.self) { measured in
+      guard measured > 0, !timeExpanded else { return }
+      // Nav bar inline (~44) + conteúdo medido + respiro do grabber (~12)
+      let total = measured + 56
+      collapsedHeight = total
+      sheetDetent = .height(total)
+    }
+    .onChange(of: timeExpanded) { _, expanded in
+      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+        sheetDetent = expanded ? .large : .height(collapsedHeight)
+      }
+    }
+    .presentationDetents(
+      timeExpanded ? [.large] : [.height(collapsedHeight)],
+      selection: $sheetDetent
+    )
+    .presentationDragIndicator(.visible)
+    .presentationBackground(c.background)
+    .presentationCornerRadius(20)
+  }
 
+  // MARK: - Sections
+
+  private var shortcutsSection: some View {
+    let c = theme.colors
+
+    return VStack(spacing: 0) {
       ForEach(shortcuts, id: \.label) { shortcut in
         Button { applyShortcut(shortcut.date) } label: {
           HStack(spacing: 14) {
@@ -94,28 +135,39 @@ struct TaskDatePickerSheet: View {
         }
         .buttonStyle(.plain)
       }
+    }
+  }
 
-      DatePicker(
-        "",
-        selection: Binding(
-          get: { selectedDate ?? Date() },
-          set: { newDate in
-            selectedDate = Calendar.current.startOfDay(for: newDate)
-            displayedMonth = newDate
-            HapticService.selection()
-            confirmChange()
-          }
-        ),
-        displayedComponents: .date
-      )
-      .datePickerStyle(.graphical)
-      .tint(c.accent)
-      .padding(.horizontal, 4)
+  private var calendarSection: some View {
+    let c = theme.colors
 
+    return DatePicker(
+      "",
+      selection: Binding(
+        get: { selectedDate ?? Date() },
+        set: { newDate in
+          selectedDate = Calendar.current.startOfDay(for: newDate)
+          displayedMonth = newDate
+          HapticService.selection()
+          confirmChange()
+        }
+      ),
+      displayedComponents: .date
+    )
+    .datePickerStyle(.graphical)
+    .fixedSize(horizontal: false, vertical: true)
+    .tint(c.accent)
+    .padding(.horizontal, 4)
+    .padding(.bottom, -6)
+  }
+
+  private var timeSection: some View {
+    let c = theme.colors
+
+    return VStack(spacing: 0) {
       Divider().overlay(c.surfaceVariant)
 
       Button {
-        // SUBSTITUIDO_FASE2: withAnimation(.easeOut(duration: 0.2)) { timeExpanded.toggle() ... }
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
           timeExpanded.toggle()
           if timeExpanded { hasTime = true }
@@ -146,16 +198,14 @@ struct TaskDatePickerSheet: View {
         DatePicker("", selection: $selectedTime, displayedComponents: .hourAndMinute)
           .datePickerStyle(.wheel)
           .labelsHidden()
-          .frame(maxHeight: 140)
+          .frame(height: 140)
+          .transition(.move(edge: .bottom).combined(with: .opacity))
           .onChange(of: selectedTime) { _, _ in
             hasTime = true
             confirmChange()
           }
       }
-
-      Spacer(minLength: 8)
     }
-    .background(c.background)
   }
 
   private var shortcuts: [(label: String, icon: StackedIconKey, color: Color, date: Date)] {
@@ -210,6 +260,7 @@ struct TaskDatePickerSheet: View {
     selectedDate = nil
     hasTime = false
     timeExpanded = false
+    sheetDetent = .height(collapsedHeight)
     confirmChange()
     closePanel()
   }

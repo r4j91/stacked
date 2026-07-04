@@ -10,8 +10,12 @@ enum LiquidGlass {
   static let navTrackTintOpacity: CGFloat = 0.12
   /// FAB — tint um pouco mais forte para ler a cor accent através do glass.
   static let fabTintOpacity: CGFloat = 0.48
-  /// Borda do blob — paridade Flutter/Todoist (~textPrimary 6–8%).
+  /// Borda do shell glass (~textPrimary 6–8%).
   static let navSelectionStrokeOpacity: CGFloat = 0.07
+  /// Borda do blob sólido — um pouco mais visível para separar do trilho glass.
+  static let navBlobStrokeOpacity: CGFloat = 0.10
+  /// Tint do blob glass — mais opaco que o trilho para ler seleção + morph líquido.
+  static let navBlobTintOpacity: CGFloat = 0.32
   static let navSelectionStrokeWidth: CGFloat = 0.75
 
   @ViewBuilder

@@ -19,7 +19,7 @@ struct SettingsView: View {
           }
           .buttonStyle(.plain)
           .settingsNavigationLinkStyle()
-          .settingsListCardRow(top: 8, bottom: 8)
+          .settingsGroupedNavigationRow(position: .only)
         }
 
         Section {
@@ -28,24 +28,24 @@ struct SettingsView: View {
           } label: {
             settingsRow(icon: .notifications, label: "Notificações", subtitle: "Lembretes e resumo")
           }
-          .settingsGroupedNavigationRow(position: .first, showDivider: true)
           .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .first, showDivider: true)
 
           NavigationLink {
             CalendarSettingsView().environment(theme)
           } label: {
             settingsRow(icon: .calendar, label: "Calendário", subtitle: "Compromissos e exportação")
           }
-          .settingsGroupedNavigationRow(position: .middle, showDivider: true)
           .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .middle, showDivider: true)
 
           NavigationLink {
             AppearanceView().environment(theme)
           } label: {
             settingsRow(icon: .paintbrush, label: "Aparência", subtitle: theme.currentId.displayName)
           }
-          .settingsGroupedNavigationRow(position: .last)
           .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .last)
         } header: {
           SettingsSectionHeader(text: "Preferências")
         }
@@ -56,16 +56,16 @@ struct SettingsView: View {
           } label: {
             settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
           }
-          .settingsGroupedNavigationRow(position: .first, showDivider: true)
           .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .first, showDivider: true)
 
           NavigationLink {
             LogbookView().environment(theme)
           } label: {
             settingsRow(icon: .logbook, label: "Registro", subtitle: "Tarefas concluídas")
           }
-          .settingsGroupedNavigationRow(position: .last)
           .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .last)
         } header: {
           SettingsSectionHeader(text: "Organização")
         }
@@ -125,8 +125,6 @@ struct SettingsView: View {
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
-    .background(c.surfaceVariant)
-    .clipShape(RoundedRectangle(cornerRadius: SettingsChrome.cardCornerRadius))
   }
 
   private var logoutButton: some View {

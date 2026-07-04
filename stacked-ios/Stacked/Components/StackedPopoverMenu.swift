@@ -288,15 +288,8 @@ struct StackedPopoverOverlay: View {
   private func dismiss(_ value: String?) {
     guard !isDismissing else { return }
     isDismissing = true
-    if reduceMotion {
-      onDismiss(value)
-      return
-    }
-    // SUBSTITUIDO_POPOVER_E1: AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = false }
-    AppMotion.animate(AppMotion.popoverDismissSpring, reduceMotion: reduceMotion) { isPresented = false }
-    DispatchQueue.main.asyncAfter(deadline: .now() + AppMotion.popoverDismissDuration) {
-      onDismiss(value)
-    }
+    // Fechamento instantâneo — evita fade do conteúdo enquanto o card encolhe.
+    onDismiss(value)
   }
 }
 

@@ -25,6 +25,17 @@ struct DockTouchOverlay: UIViewRepresentable {
 
   final class Coordinator: NSObject {
     @MainActor
+    @objc func tabTouchDown(_ sender: UIButton) {
+      guard let tab = NavTab(rawValue: sender.tag) else { return }
+      MobileChromeController.shared.setTabPressed(tab)
+    }
+
+    @MainActor
+    @objc func tabTouchEnded(_ sender: UIButton) {
+      MobileChromeController.shared.setTabPressed(nil)
+    }
+
+    @MainActor
     @objc func tabTapped(_ sender: UIButton) {
       guard let tab = NavTab(rawValue: sender.tag) else { return }
       MobileChromeController.shared.selectTab(tab)
@@ -92,6 +103,12 @@ final class DockTouchUIView: UIView {
     guard let coordinator else { return }
     for button in tabButtons {
       button.removeTarget(nil, action: nil, for: .allEvents)
+      button.addTarget(coordinator, action: #selector(DockTouchOverlay.Coordinator.tabTouchDown(_:)), for: .touchDown)
+      button.addTarget(
+        coordinator,
+        action: #selector(DockTouchOverlay.Coordinator.tabTouchEnded(_:)),
+        for: [.touchUpInside, .touchUpOutside, .touchCancel]
+      )
       button.addTarget(coordinator, action: #selector(DockTouchOverlay.Coordinator.tabTapped(_:)), for: .touchUpInside)
     }
     fabButton.removeTarget(nil, action: nil, for: .allEvents)
