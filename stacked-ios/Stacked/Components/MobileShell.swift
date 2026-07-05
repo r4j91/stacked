@@ -86,7 +86,7 @@ struct MobileShell<Content: View>: View {
       .zIndex(20)
     }
     .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: chrome.fabOpen)
-    .animation(AppMotion.islandNavMorph(reduceMotion: reduceMotion), value: chrome.islandNavExpanded)
+    // REMOVIDO_A1_ETAPA2 — .animation(AppMotion.islandNavMorph(reduceMotion: reduceMotion), value: chrome.islandNavExpanded)
     .ignoresSafeArea(edges: .bottom)
     .background(c.background.ignoresSafeArea(.all))
   }

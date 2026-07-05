@@ -35,7 +35,7 @@ struct IslandNavBar: View {
           .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
         Spacer(minLength: 0)
       }
-      .animation(islandAnimation, value: isExpanded)
+      // REMOVIDO_A1_ETAPA2 — .animation(islandAnimation, value: isExpanded)
       // REMOVIDO_SELECTED_TAB_ANIM — .animation(islandAnimation, value: selectedTab)
     }
     .frame(height: IslandNavMetrics.pillHeight)
@@ -147,10 +147,11 @@ struct IslandNavBar: View {
       expandedItemsOpacity = 1
       return
     }
-    expandedItemsOpacity = 0
-    withAnimation(.easeIn(duration: IslandNavMetrics.itemsFadeInDuration).delay(IslandNavMetrics.itemsFadeInDelay)) {
-      expandedItemsOpacity = 1
-    }
+    // SUBSTITUIDO_A1_ETAPA2 — expandedItemsOpacity = 0
+    // SUBSTITUIDO_A1_ETAPA2 — withAnimation(.easeIn(duration: IslandNavMetrics.itemsFadeInDuration).delay(IslandNavMetrics.itemsFadeInDelay)) {
+    // SUBSTITUIDO_A1_ETAPA2 —   expandedItemsOpacity = 1
+    // SUBSTITUIDO_A1_ETAPA2 — }
+    expandedItemsOpacity = 1
   }
 }
 

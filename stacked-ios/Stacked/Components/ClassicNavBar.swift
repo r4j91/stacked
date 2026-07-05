@@ -163,7 +163,8 @@ struct ClassicNavBar: View {
 private enum ClassicNavGlassPhase {
   /// Etapa 1 (CORREÇÃO): `false` — lente + matchedGeometryEffect, sem container/id morph.
   /// Etapa 2: `true` — GlassEffectContainer só na camada do indicador + glassEffectID.
-  static let morphEnabled = true
+  // SUBSTITUIDO_A1_ETAPA1 — static let morphEnabled = true
+  static let morphEnabled = false
 }
 
 // MARK: - Item de aba (paridade BottomNavPill / NavPillItem)
