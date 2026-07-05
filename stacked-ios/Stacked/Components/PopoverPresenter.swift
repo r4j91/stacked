@@ -11,6 +11,7 @@ final class PopoverPresenter {
   var items: [PopoverMenuItem] = []
   var allowsToggle = false
   var preferAbove = false
+  var alignTrailing = false
 
   private var onSelectHandler: ((String?) -> Void)?
 
@@ -21,6 +22,7 @@ final class PopoverPresenter {
     items: [PopoverMenuItem],
     allowsToggle: Bool = false,
     preferAbove: Bool = false,
+    alignTrailing: Bool = false,
     onSelect: @escaping (String?) -> Void
   ) {
     let rect = anchorRect.isValidAnchor ? anchorRect : Self.fallbackAnchor(near: anchorRect)
@@ -28,6 +30,7 @@ final class PopoverPresenter {
     self.items = items
     self.allowsToggle = allowsToggle
     self.preferAbove = preferAbove
+    self.alignTrailing = alignTrailing
     onSelectHandler = onSelect
     isPresented = true
   }
@@ -37,6 +40,7 @@ final class PopoverPresenter {
     items: [PopoverMenuItem],
     allowsToggle: Bool = false,
     preferAbove: Bool = false,
+    alignTrailing: Bool = false,
     onSelect: @escaping (String?) -> Void
   ) {
     present(
@@ -44,6 +48,7 @@ final class PopoverPresenter {
       items: items,
       allowsToggle: allowsToggle,
       preferAbove: preferAbove,
+      alignTrailing: alignTrailing,
       onSelect: onSelect
     )
   }
@@ -54,6 +59,7 @@ final class PopoverPresenter {
     items = []
     allowsToggle = false
     preferAbove = false
+    alignTrailing = false
     onSelectHandler = nil
     handler?(value)
   }
@@ -108,6 +114,7 @@ struct PopoverOverlayHost: View {
           forcePreferAbove: forcePreferAbove,
           opaqueSurface: opaquePopoverSurface,
           preferAbove: boundPresenter.preferAbove,
+          alignTrailing: boundPresenter.alignTrailing,
           rootItems: boundPresenter.items,
           allowsToggle: boundPresenter.allowsToggle
         ) { value in

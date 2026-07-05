@@ -14,10 +14,13 @@ struct ProjectDetailView: View {
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var showQuickAdd = false
-  @State private var toolbarAnchor: CGRect = .zero
   @State private var showProjectOptions = false
   @State private var showNewSection = false
   @State private var newSectionName = ""
+  @State private var renameSectionTarget: ProjectSection?
+  @State private var renameSectionName = ""
+  @State private var deleteSectionTarget: ProjectSection?
+  @State private var collapsedSectionIds: Set<String> = []
   @Namespace private var taskDetailZoom
 
   let projectColorHex: String?
@@ -51,27 +54,18 @@ struct ProjectDetailView: View {
         ForEach(store.sections) { section in
           let tasks = store.tasks(in: section.id)
           if !tasks.isEmpty {
-            Section {
-              ForEach(tasks) { task in
-                projectTaskRow(task)
-              }
-            } header: {
-              ListSectionHeader(text: section.name.uppercased())
-            }
+            projectSectionBlock(section: section, tasks: tasks)
           }
         }
 
         let uncategorized = store.tasks(in: nil)
         if !uncategorized.isEmpty {
-          Section {
-            ForEach(uncategorized) { task in
-              projectTaskRow(task)
-            }
-          } header: {
-            if !store.sections.isEmpty {
-              ListSectionHeader(text: "SEM SEÇÃO")
-            }
-          }
+          projectSectionBlock(
+            id: ProjectSectionCollapse.uncategorizedId,
+            title: "SEM SEÇÃO",
+            tasks: uncategorized,
+            showsHeader: !store.sections.isEmpty
+          )
         }
 
         if store.pending.isEmpty && store.completed.isEmpty {
@@ -83,21 +77,18 @@ struct ProjectDetailView: View {
 
         if showCompleted && !store.completed.isEmpty {
           Section {
-            Button {
-              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
-              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
-            } label: {
-              HStack {
-                Text("Concluídas (\(store.completed.count))")
-                  .font(AppTypography.completedSectionHeader)
-                  .foregroundStyle(c.textSecondary)
-                Spacer()
-                StackedIcons.image(completedExpanded ? .chevronDown : .chevronRight)
-                  .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(c.textTertiary)
+            CollapsibleSectionHeader(
+              title: "CONCLUÍDAS",
+              count: store.completed.count,
+              expanded: completedExpanded,
+              onToggle: {
+                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+                  completedExpanded.toggle()
+                }
               }
-            }
-            .buttonStyle(PressableStyle())
+            )
+            .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
 
             if completedExpanded {
@@ -128,7 +119,9 @@ struct ProjectDetailView: View {
       ToolbarItem(placement: .topBarTrailing) {
         HStack(spacing: 6) {
           if isListMode {
-            Button { openToolbarMenu() } label: {
+            AnchoredTapButton { rect in
+              openToolbarMenu(anchor: rect)
+            } label: {
               LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
                 HStack(spacing: 5) {
                   StackedIcons.image(.list)
@@ -143,7 +136,9 @@ struct ProjectDetailView: View {
             .buttonStyle(PressableStyle(cornerRadius: 20))
           }
 
-          Button { openToolbarMenu() } label: {
+          AnchoredTapButton { rect in
+            openToolbarMenu(anchor: rect)
+          } label: {
             LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
               StackedIcons.image(.more)
                 .font(.system(size: 16, weight: .medium))
@@ -152,7 +147,6 @@ struct ProjectDetailView: View {
           }
           .buttonStyle(PressableStyle(cornerRadius: 20))
         }
-        .readAnchor($toolbarAnchor)
       }
     }
     .refreshable { await store.load() }
@@ -191,6 +185,35 @@ struct ProjectDetailView: View {
       }
       Button("Cancelar", role: .cancel) { newSectionName = "" }
     }
+    .alert("Renomear seção", isPresented: renameSectionAlertPresented) {
+      TextField("Nome da seção", text: $renameSectionName)
+      Button("Salvar") {
+        guard let section = renameSectionTarget else { return }
+        let name = renameSectionName
+        renameSectionTarget = nil
+        renameSectionName = ""
+        _Concurrency.Task { await store.renameSection(section, name: name) }
+      }
+      Button("Cancelar", role: .cancel) {
+        renameSectionTarget = nil
+        renameSectionName = ""
+      }
+    }
+    .alert(
+      "Excluir seção?",
+      isPresented: deleteSectionAlertPresented,
+      presenting: deleteSectionTarget
+    ) { section in
+      Button("Excluir", role: .destructive) {
+        deleteSectionTarget = nil
+        _Concurrency.Task { await store.deleteSection(section) }
+      }
+      Button("Cancelar", role: .cancel) {
+        deleteSectionTarget = nil
+      }
+    } message: { section in
+      Text("As tarefas de \"\(section.name)\" ficarão sem seção.")
+    }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task { await store.load() }
     }) { route in
@@ -201,10 +224,25 @@ struct ProjectDetailView: View {
     }
   }
 
-  private func openToolbarMenu() {
+  private var renameSectionAlertPresented: Binding<Bool> {
+    Binding(
+      get: { renameSectionTarget != nil },
+      set: { if !$0 { renameSectionTarget = nil; renameSectionName = "" } }
+    )
+  }
+
+  private var deleteSectionAlertPresented: Binding<Bool> {
+    Binding(
+      get: { deleteSectionTarget != nil },
+      set: { if !$0 { deleteSectionTarget = nil } }
+    )
+  }
+
+  private func openToolbarMenu(anchor: CGRect) {
     presentAnchoredPopover(
-      anchorRect: toolbarAnchor,
-      items: toolbarMenuItems
+      anchorRect: anchor,
+      items: toolbarMenuItems,
+      alignTrailing: true
     ) { value in
       handleToolbarAction(value)
     }
@@ -244,6 +282,74 @@ struct ProjectDetailView: View {
     isListMode
       ? EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
       : EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  private func isSectionExpanded(_ id: String) -> Bool {
+    !collapsedSectionIds.contains(id)
+  }
+
+  private func toggleSection(_ id: String) {
+    if collapsedSectionIds.contains(id) {
+      collapsedSectionIds.remove(id)
+    } else {
+      collapsedSectionIds.insert(id)
+    }
+  }
+
+  @ViewBuilder
+  private func projectSectionBlock(
+    section: ProjectSection,
+    tasks: [Task]
+  ) -> some View {
+    CollapsibleSectionHeader(
+      title: section.name.uppercased(),
+      count: tasks.count,
+      expanded: isSectionExpanded(section.id),
+      onToggle: { toggleSection(section.id) },
+      section: section,
+      onRename: { section in
+        renameSectionTarget = section
+        renameSectionName = section.name
+      },
+      onDelete: { section in
+        deleteSectionTarget = section
+      }
+    )
+    .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 8))
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+
+    if isSectionExpanded(section.id) {
+      ForEach(tasks) { task in
+        projectTaskRow(task)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func projectSectionBlock(
+    id: String,
+    title: String,
+    tasks: [Task],
+    showsHeader: Bool = true
+  ) -> some View {
+    if showsHeader {
+      CollapsibleSectionHeader(
+        title: title,
+        count: tasks.count,
+        expanded: isSectionExpanded(id),
+        onToggle: { toggleSection(id) }
+      )
+      .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
+
+    if !showsHeader || isSectionExpanded(id) {
+      ForEach(tasks) { task in
+        projectTaskRow(task)
+      }
+    }
   }
 
   @ViewBuilder

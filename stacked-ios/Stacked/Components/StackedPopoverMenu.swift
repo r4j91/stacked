@@ -27,6 +27,7 @@ struct StackedPopoverOverlay: View {
   /// Fundo sólido (Quick Add) — evita bandas do glass sobre scrim + painel.
   var opaqueSurface: Bool = false
   var preferAbove = false
+  var alignTrailing = false
   let rootItems: [PopoverMenuItem]
   let allowsToggle: Bool
   let onDismiss: (String?) -> Void
@@ -110,8 +111,12 @@ struct StackedPopoverOverlay: View {
     let h = menuHeight
     let keyboardTop = screen.height - keyboardHeight
 
-    var left = anchor.midX - w / 2
-    left = min(max(8, left), screen.width - w - 8)
+    let left: CGFloat
+    if alignTrailing {
+      left = min(max(8, anchor.maxX - w), screen.width - w - 8)
+    } else {
+      left = min(max(8, anchor.midX - w / 2), screen.width - w - 8)
+    }
 
     let top: CGFloat
     if showsAbove {
@@ -418,6 +423,7 @@ func presentAnchoredPopover(
   items: [PopoverMenuItem],
   allowsToggle: Bool = false,
   preferAbove: Bool = false,
+  alignTrailing: Bool = false,
   onSelect: @escaping (String?) -> Void
 ) {
   func fire(with rect: CGRect) {
@@ -426,6 +432,7 @@ func presentAnchoredPopover(
       items: items,
       allowsToggle: allowsToggle,
       preferAbove: preferAbove,
+      alignTrailing: alignTrailing,
       onSelect: onSelect
     )
   }

@@ -225,6 +225,13 @@ final class ProjectDetailStore {
     await load()
   }
 
+  func renameSection(_ section: ProjectSection, name: String) async {
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return }
+    try? await SectionRepository.shared.renameSection(id: section.id, name: trimmed)
+    await load()
+  }
+
   func deleteSection(_ section: ProjectSection) async {
     try? await SectionRepository.shared.deleteSection(id: section.id)
     await load()

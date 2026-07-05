@@ -12,6 +12,8 @@ enum AppTypography {
   static let meta: Font = .system(size: 12)
   static let metaSmall: Font = .system(size: 11)
   static let sectionLabel: Font = .system(size: 11, weight: .bold)
+  /// Título de seção colapsável em detalhe de projeto.
+  static let collapsibleSectionTitle: Font = .system(size: 14, weight: .bold)
   static let badge: Font = .system(size: 12, weight: .medium)
   static let navLabel: Font = .system(size: 10.5, weight: .regular)
   static let navLabelSelected: Font = .system(size: 10.5, weight: .semibold)
