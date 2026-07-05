@@ -99,7 +99,7 @@ struct AppearanceView: View {
       theme.setTheme(themeId)
     } label: {
       HStack(spacing: 14) {
-        themeSwatch(themeId.colors)
+        themeSwatch(themeId)
         VStack(alignment: .leading, spacing: 3) {
           Text(themeId.displayName)
             .font(AppTypography.settingsTitle)
@@ -192,11 +192,12 @@ struct AppearanceView: View {
     .disabled(iconManager.isChanging)
   }
 
-  private func themeSwatch(_ colors: AppThemeColors) -> some View {
-    HStack(spacing: 0) {
-      colors.background.frame(width: 14)
-      colors.surface.frame(width: 14)
-      colors.accent.frame(width: 14)
+  private func themeSwatch(_ themeId: AppThemeId) -> some View {
+    let swatch = themeId.previewSwatch
+    return HStack(spacing: 0) {
+      swatch.background.frame(width: 14)
+      swatch.surface.frame(width: 14)
+      swatch.accent.frame(width: 14)
     }
     .frame(height: 36)
     .clipShape(RoundedRectangle(cornerRadius: 8))

@@ -68,7 +68,8 @@ struct ClassicNavBar: View {
   /// Camada 2 — indicador isolado (GlassEffectContainer só aqui na Etapa 2).
   @ViewBuilder
   private func indicatorLayer(colors: AppThemeColors) -> some View {
-    let row = HStack(spacing: 0) {
+    // AJUSTADO_SPACING_CORRECAO
+    let row = HStack(spacing: 1) {
       ForEach(tabs) { tab in
         Color.clear
           .frame(maxWidth: .infinity)

@@ -7,6 +7,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case midnight
     case obsidian
     case slate
+    case titanium
+    case sodalite
+    case hematite
 
     var id: String { rawValue }
 
@@ -17,6 +20,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .midnight: "Midnight"
         case .obsidian: "Obsidian"
         case .slate: "Slate"
+        case .titanium: "Titanium"
+        case .sodalite: "Sodalite"
+        case .hematite: "Hematite"
         }
     }
 
@@ -27,6 +33,24 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .midnight: "Escuro premium"
         case .obsidian: "Preto puro"
         case .slate: "Monocromático"
+        case .titanium: "Escuro metálico"
+        case .sodalite: "Azul profundo"
+        case .hematite: "Preto polido"
+        }
+    }
+
+    /// Preview do seletor (3 retângulos). Temas novos usam hex de mockup; demais = tokens reais.
+    var previewSwatch: (background: Color, surface: Color, accent: Color) {
+        switch self {
+        case .titanium:
+            return (Color(hex: 0x0A0C10), Color(hex: 0x171B21), Color(hex: 0x8FA8C7))
+        case .sodalite:
+            return (Color(hex: 0x070A12), Color(hex: 0x101626), Color(hex: 0xA9BAD9))
+        case .hematite:
+            return (Color(hex: 0x060707), Color(hex: 0x131416), Color(hex: 0xC4CCD6))
+        default:
+            let c = colors
+            return (c.background, c.surface, c.accent)
         }
     }
 
@@ -37,6 +61,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .midnight: .midnight
         case .obsidian: .obsidian
         case .slate: .slate
+        case .titanium: .titanium
+        case .sodalite: .sodalite
+        case .hematite: .hematite
         }
     }
 }
@@ -117,6 +144,45 @@ struct AppThemeColors: Equatable {
         accent: Color(hex: 0xE8E8EC),
         onAccent: Color(hex: 0x16161A),
         navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
+    static let titanium = AppThemeColors(
+        background: Color(hex: 0x101318),
+        surface: Color(hex: 0x171B21),
+        surfaceVariant: Color(hex: 0x1E242C),
+        textPrimary: Color(hex: 0xE6EAF0),
+        textSecondary: Color(hex: 0x98A2B0),
+        textTertiary: Color(hex: 0x616B7A),
+        accent: Color(hex: 0x8FA8C7),
+        onAccent: Color(hex: 0x0E1319),
+        navBar: Color(hex: 0x171B21),
+        isDark: true
+    )
+
+    static let sodalite = AppThemeColors(
+        background: Color(hex: 0x0A0E19),
+        surface: Color(hex: 0x101626),
+        surfaceVariant: Color(hex: 0x161E33),
+        textPrimary: Color(hex: 0xE7EAF3),
+        textSecondary: Color(hex: 0x8E97B2),
+        textTertiary: Color(hex: 0x5A6480),
+        accent: Color(hex: 0xA9BAD9),
+        onAccent: Color(hex: 0x0A0F1D),
+        navBar: Color(hex: 0x101626),
+        isDark: true
+    )
+
+    static let hematite = AppThemeColors(
+        background: Color(hex: 0x0A0B0C),
+        surface: Color(hex: 0x131416),
+        surfaceVariant: Color(hex: 0x1A1C1F),
+        textPrimary: Color(hex: 0xECEEF1),
+        textSecondary: Color(hex: 0x93999F),
+        textTertiary: Color(hex: 0x5C6167),
+        accent: Color(hex: 0xC4CCD6),
+        onAccent: Color(hex: 0x0B0C0E),
+        navBar: Color(hex: 0x131416),
         isDark: true
     )
 }

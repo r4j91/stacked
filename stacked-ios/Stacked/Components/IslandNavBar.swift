@@ -36,7 +36,7 @@ struct IslandNavBar: View {
         Spacer(minLength: 0)
       }
       .animation(islandAnimation, value: isExpanded)
-      .animation(islandAnimation, value: selectedTab)
+      // REMOVIDO_SELECTED_TAB_ANIM — .animation(islandAnimation, value: selectedTab)
     }
     .frame(height: IslandNavMetrics.pillHeight)
     .padding(ChromeLayout.pillInnerPadding)
@@ -96,6 +96,7 @@ struct IslandNavBar: View {
         .font(.system(size: IslandNavMetrics.collapsedLabelSize, weight: .semibold))
         .foregroundStyle(colors.textPrimary)
         .lineLimit(1)
+        .contentTransition(.opacity) // AJUSTADO_CONTENT_TRANSITION
         .minimumScaleFactor(0.85)
 
       Spacer(minLength: 4)
@@ -163,8 +164,9 @@ enum IslandNavMetrics {
   static let collapsedHorizontalPadding: CGFloat = 14
   static let expandedHorizontalPadding: CGFloat = 4
   static let minTouchSize: CGFloat = 44
-  static let itemsFadeInDelay: TimeInterval = 0.12
-  static let itemsFadeInDuration: TimeInterval = 0.2
+  // AJUSTADO_ISLAND_FADE
+  static let itemsFadeInDelay: TimeInterval = 0.06
+  static let itemsFadeInDuration: TimeInterval = 0.15
 }
 
 // MARK: - Item expandido

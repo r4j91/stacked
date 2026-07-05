@@ -31,6 +31,11 @@ private struct AppRootView: View {
     }
     .syncWindowBackground(themeManager.colors.background)
     .onAppear { HapticService.prepare() }
+    .task {
+      await MainActor.run {
+        IconCache.shared.warmUp()
+      }
+    } // AJUSTADO_ICONCACHE_WARMUP
     .onOpenURL { AppNavigationRouter.shared.handle(url: $0) }
   }
 }

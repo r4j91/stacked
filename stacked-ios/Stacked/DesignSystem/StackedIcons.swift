@@ -59,9 +59,15 @@ enum StackedIcons {
   }
 
   @MainActor
-  @ViewBuilder
   static func icon(_ key: StackedIconKey, size: CGFloat, color: Color) -> some View {
-    image(key)
+    let img: Image
+    let navKeys: [StackedIconKey] = [.navHome, .navInbox, .navToday, .navUpcoming, .navFilters]
+    if navKeys.contains(key) {
+      img = IconCache.shared.image(for: key) // AJUSTADO_ICONCACHE
+    } else {
+      img = image(key)
+    }
+    return img
       .resizable()
       .scaledToFit()
       .frame(width: size, height: size)

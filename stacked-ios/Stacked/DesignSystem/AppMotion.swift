@@ -68,7 +68,8 @@ enum AppMotion {
 
   /// Navbar ilha (Fase 3) — expandir/colapsar.
   static var islandNavSpring: Animation {
-    .spring(response: 0.5, dampingFraction: 0.78)
+    // AJUSTADO_ISLAND_SPRING
+    .spring(response: 0.36, dampingFraction: 0.72)
   }
 
   static func islandNavMorph(reduceMotion: Bool) -> Animation? {

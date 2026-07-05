@@ -8,6 +8,7 @@ struct RootView: View {
   @State private var showQuickAdd = false
   @State private var showNewProject = false
   @State private var router = AppNavigationRouter.shared
+  @State private var visitedTabs: Set<NavTab> = [.home] // AJUSTADO_VISITED_TABS
 
   var body: some View {
     @Bindable var chrome = chrome
@@ -18,9 +19,10 @@ struct RootView: View {
       onSearch: { showSearch = true },
       onNewProject: { openNewProject() }
     ) {
-      RootTabContent()
+      RootTabContent(visitedTabs: visitedTabs)
     }
     .onChange(of: currentTab) { _, tab in
+      visitedTabs.insert(tab) // AJUSTADO_VISITED_TABS
       reloadData(for: tab)
     }
     .onChange(of: router.pendingTab) { _, tab in
@@ -68,7 +70,12 @@ struct RootView: View {
 
   private func reloadData(for tab: NavTab, force: Bool = false) {
     guard force || TabRefreshPolicy.shouldRefresh(tab) else { return }
-    _Concurrency.Task { await TabDataLoader.load(tab) }
+    _Concurrency.Task {
+      // Aguarda a animação de troca de aba completar antes de disparar fetch
+      // navMorphSpring (response: 0.36) — 400ms cobre a transição com folga
+      try? await _Concurrency.Task.sleep(for: .milliseconds(400)) // AJUSTADO_RELOAD_DELAY
+      await TabDataLoader.load(tab)
+    }
   }
 
   private func reloadAll() {
@@ -89,6 +96,7 @@ struct RootView: View {
 struct RootTabContent: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(ThemeManager.self) private var theme
+  let visitedTabs: Set<NavTab> // AJUSTADO_VISITED_TABS
 
   var body: some View {
     ZStack {
@@ -111,13 +119,24 @@ struct RootTabContent: View {
     .background(theme.colors.background.ignoresSafeArea())
   }
 
-  @ViewBuilder
-  private func preservedTab<Content: View>(_ tab: NavTab, @ViewBuilder content: () -> Content) -> some View {
+  private func preservedTab<Content: View>(
+    _ tab: NavTab,
+    @ViewBuilder content: () -> Content
+  ) -> AnyView {
     let isActive = chrome.selectedTab == tab
-    content()
-      .opacity(isActive ? 1 : 0)
-      .zIndex(isActive ? 1 : 0)
-      .allowsHitTesting(isActive)
-      .accessibilityHidden(!isActive)
+    let hasBeenVisited = visitedTabs.contains(tab)
+
+    // Aba nunca visitada e inativa: não entra no render tree
+    // AJUSTADO_VISITED_TABS
+    guard isActive || hasBeenVisited else { return AnyView(EmptyView()) }
+
+    return AnyView(
+      content()
+        .opacity(isActive ? 1 : 0)
+        .animation(.linear(duration: 0.08), value: isActive)
+        .zIndex(isActive ? 1 : 0)
+        .allowsHitTesting(isActive)
+        .accessibilityHidden(!isActive)
+    )
   }
 }
