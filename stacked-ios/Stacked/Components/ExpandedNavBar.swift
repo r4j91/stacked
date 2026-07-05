@@ -58,36 +58,41 @@ struct ExpandedNavBar: View {
   }
 
   private func slotWidths(totalWidth: CGFloat, selected: NavTab) -> [NavTab: CGFloat] {
-    let inactiveCount = CGFloat(tabs.count - 1)
-    let unit = totalWidth / (ExpandedNavMetrics.activeWidthMultiplier + inactiveCount)
-    var map: [NavTab: CGFloat] = [:]
-    for tab in tabs {
-      map[tab] = tab == selected ? unit * ExpandedNavMetrics.activeWidthMultiplier : unit
-    }
-    return map
+    ExpandedNavLayout.slotWidths(totalWidth: totalWidth, selected: selected)
   }
 
   @ViewBuilder
   private func activeCapsule(colors: AppThemeColors) -> some View {
-    Capsule()
-      .fill(activeCapsuleFill(colors: colors))
-      .overlay {
+    Group {
+      if reduceTransparency {
         Capsule()
-          .strokeBorder(
-            colors.textPrimary.opacity(LiquidGlass.navBlobStrokeOpacity),
-            lineWidth: LiquidGlass.navSelectionStrokeWidth
-          )
+          .fill(activeCapsuleSolidFill(colors: colors))
+          .overlay {
+            Capsule().strokeBorder(
+              activeCapsuleStrokeColor(colors: colors),
+              lineWidth: LiquidGlass.navSelectionStrokeWidth
+            )
+          }
+      } else {
+        Capsule()
+          .fill(.clear)
+          .glassEffect(.regular.interactive(), in: Capsule())
       }
-      .padding(.horizontal, ExpandedNavMetrics.capsuleHorizontalInset)
-      .padding(.vertical, ExpandedNavMetrics.capsuleVerticalInset)
-      .matchedGeometryEffect(id: "expandedActiveCapsule", in: capsuleNamespace)
+    }
+    .padding(.horizontal, ExpandedNavMetrics.capsuleHorizontalInset)
+    .padding(.vertical, ExpandedNavMetrics.capsuleVerticalInset)
+    .matchedGeometryEffect(id: "expandedActiveCapsule", in: capsuleNamespace)
   }
 
-  private func activeCapsuleFill(colors: AppThemeColors) -> Color {
+  private func activeCapsuleSolidFill(colors: AppThemeColors) -> Color {
+    colors.isDark ? colors.surfaceVariant : colors.background
+  }
+
+  private func activeCapsuleStrokeColor(colors: AppThemeColors) -> Color {
     if colors.isDark {
-      return Color.white.opacity(ExpandedNavMetrics.activeCapsuleOpacityDark)
+      return colors.textPrimary.opacity(LiquidGlass.navBlobStrokeOpacity)
     }
-    return colors.textPrimary.opacity(ExpandedNavMetrics.activeCapsuleOpacityLight)
+    return colors.textSecondary.opacity(LiquidGlass.navBlobStrokeOpacity * 1.2)
   }
 
   private var expandedNavAnimation: Animation? {
@@ -138,10 +143,8 @@ struct ExpandedNavBar: View {
 // MARK: - Métricas
 
 private enum ExpandedNavMetrics {
-  /// Ativo ~2.4× largura de um inativo (mockup C).
-  static let activeWidthMultiplier: CGFloat = 2.4
-  static let activeCapsuleOpacityDark: CGFloat = 0.12
-  static let activeCapsuleOpacityLight: CGFloat = 0.10
+  /// Ativo ~2.4× largura de um inativo (mockup C) — ver ExpandedNavLayout.activeWidthMultiplier.
+  static let activeWidthMultiplier: CGFloat = ExpandedNavLayout.activeWidthMultiplier
   static let capsuleHorizontalInset: CGFloat = 2
   static let capsuleVerticalInset: CGFloat = 4
   static let iconBoxSize: CGFloat = 24

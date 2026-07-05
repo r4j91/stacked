@@ -26,7 +26,8 @@ struct DockTouchOverlay: UIViewRepresentable {
     uiView.applyLayout(
       safeBottom: safeBottom,
       navStyle: navBarStyle,
-      islandExpanded: chrome.islandNavExpanded
+      islandExpanded: chrome.islandNavExpanded,
+      selectedTab: chrome.selectedTab
     )
     uiView.syncSelection(
       selectedTab: chrome.selectedTab,
@@ -77,6 +78,7 @@ final class DockTouchUIView: UIView {
   // ISLAND_FASE3
   private let islandCompactButton = UIButton(type: .custom)
   private var layoutConstraints: [NSLayoutConstraint] = []
+  private var tabWidthConstraints: [NSLayoutConstraint] = []
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -152,7 +154,7 @@ final class DockTouchUIView: UIView {
     )
   }
 
-  func applyLayout(safeBottom: CGFloat, navStyle: NavBarStyle, islandExpanded: Bool) {
+  func applyLayout(safeBottom: CGFloat, navStyle: NavBarStyle, islandExpanded: Bool, selectedTab: NavTab) {
     let pillMarginBottom = ChromeLayout.pillMarginBottom(safeBottom: safeBottom)
     let fabMarginBottom = ChromeLayout.fabMarginBottom(safeBottom: safeBottom)
     let side = AppLayout.fabSideMargin
@@ -184,6 +186,10 @@ final class DockTouchUIView: UIView {
         tabStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -pillMarginBottom),
         tabStack.heightAnchor.constraint(equalToConstant: pillHeight),
       ]
+      applyTabTouchWidths(trackWidth: trackWidth, navStyle: navStyle, selectedTab: selectedTab)
+    } else {
+      NSLayoutConstraint.deactivate(tabWidthConstraints)
+      tabWidthConstraints.removeAll()
     }
 
     if useIslandCompact {
@@ -196,6 +202,29 @@ final class DockTouchUIView: UIView {
     }
 
     NSLayoutConstraint.activate(layoutConstraints)
+  }
+
+  /// Navbar expandida usa slots assimétricos — fillEqually deslocava o toque uma aba à frente.
+  private func applyTabTouchWidths(trackWidth: CGFloat, navStyle: NavBarStyle, selectedTab: NavTab) {
+    NSLayoutConstraint.deactivate(tabWidthConstraints)
+    tabWidthConstraints.removeAll()
+
+    let widths: [CGFloat]
+    if navStyle == .expanded, trackWidth > 0 {
+      tabStack.distribution = .fill
+      widths = ExpandedNavLayout.orderedSlotWidths(totalWidth: trackWidth, selected: selectedTab)
+    } else {
+      tabStack.distribution = .fillEqually
+      let equal = trackWidth > 0 ? trackWidth / CGFloat(NavTab.allCases.count) : 0
+      widths = Array(repeating: equal, count: NavTab.allCases.count)
+    }
+
+    for (button, width) in zip(tabButtons, widths) {
+      guard width > 0 else { continue }
+      let constraint = button.widthAnchor.constraint(equalToConstant: width)
+      tabWidthConstraints.append(constraint)
+    }
+    NSLayoutConstraint.activate(tabWidthConstraints)
   }
 
   func syncSelection(
