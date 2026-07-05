@@ -53,6 +53,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.roarns.stacked.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         INFOPLIST_KEY_CFBundleDisplayName: Stacked
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -77,6 +78,44 @@ targets:
           - CFBundleURLName: com.stacked.app
             CFBundleURLSchemes:
               - stacked
+        CFBundleIcons:
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - AppIcon
+            UIPrerenderedIcon: false
+          CFBundleAlternateIcons:
+            carvao:
+              CFBundleIconFiles:
+                - AppIcon-carvao
+              UIPrerenderedIcon: false
+            grafite:
+              CFBundleIconFiles:
+                - AppIcon-grafite
+              UIPrerenderedIcon: false
+            fosco:
+              CFBundleIconFiles:
+                - AppIcon-fosco
+              UIPrerenderedIcon: false
+            titanio:
+              CFBundleIconFiles:
+                - AppIcon-titanio
+              UIPrerenderedIcon: false
+            cinza_escuro:
+              CFBundleIconFiles:
+                - AppIcon-cinza_escuro
+              UIPrerenderedIcon: false
+            cinza_medio:
+              CFBundleIconFiles:
+                - AppIcon-cinza_medio
+              UIPrerenderedIcon: false
+            azul_nevoa:
+              CFBundleIconFiles:
+                - AppIcon-azul_nevoa
+              UIPrerenderedIcon: false
+            azul_oceano:
+              CFBundleIconFiles:
+                - AppIcon-azul_oceano
+              UIPrerenderedIcon: false
 
   StackedWidgetExtension:
     type: app-extension
