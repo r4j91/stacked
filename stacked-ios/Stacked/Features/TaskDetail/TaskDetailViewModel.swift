@@ -8,7 +8,18 @@ struct TaskDetailRoute: Identifiable, Equatable {
 
 struct SubtaskDetailRoute: Identifiable {
   let subtask: Subtask
-  var id: String { subtask.idOrFallback }
+  let parentTaskId: String
+  let id: String
+
+  init(subtask: Subtask, parentTaskId: String) {
+    self.subtask = subtask
+    self.parentTaskId = parentTaskId
+    if let sid = subtask.id, !sid.isEmpty {
+      id = sid
+    } else {
+      id = "\(parentTaskId):\(subtask.order)"
+    }
+  }
 }
 
 @MainActor
@@ -38,12 +49,15 @@ final class TaskDetailViewModel {
 
   private var titleSaveTask: _Concurrency.Task<Void, Never>?
   private var descSaveTask: _Concurrency.Task<Void, Never>?
+  private var loadGeneration = 0
 
   init(taskId: String) {
     self.taskId = taskId
   }
 
   func load() async {
+    loadGeneration += 1
+    let generation = loadGeneration
     isLoading = true
     error = nil
     do {
@@ -52,19 +66,31 @@ final class TaskDetailViewModel {
       async let labelsReq = LabelRepository.shared.fetchLabels()
       async let commentsReq = CommentRepository.shared.fetchComments(taskId: taskId)
       guard let task = try await taskReq else {
+        guard generation == loadGeneration else { return }
         error = "Tarefa não encontrada"
         isLoading = false
         return
       }
+      guard generation == loadGeneration else { return }
       apply(task)
       allProjects = try await projectsReq
+      guard generation == loadGeneration else { return }
       allLabels = try await labelsReq
+      guard generation == loadGeneration else { return }
       comments = try await commentsReq
+      guard generation == loadGeneration else { return }
       selectedLabelIds = Set(task.labels.map(\.id))
     } catch {
+      guard generation == loadGeneration else { return }
       self.error = error.localizedDescription
     }
+    guard generation == loadGeneration else { return }
     isLoading = false
+  }
+
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    guard snapshot.parentTaskId == taskId else { return }
+    SubtaskListPatch.apply(snapshot, to: &subtasks)
   }
 
   private func apply(_ task: Task) {

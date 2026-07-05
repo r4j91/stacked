@@ -106,8 +106,8 @@ struct InboxView: View {
       }
     }
     .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask) {
-        _Concurrency.Task { await store.loadInbox() }
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot) { await store.loadInbox() }
       }
       .environment(ThemeManager.shared)
     }
@@ -124,7 +124,7 @@ struct InboxView: View {
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)
     }, onSubtaskTap: { sub in
-      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
     }, onSubtaskChanged: {
       _Concurrency.Task { await store.loadInbox() }
     })

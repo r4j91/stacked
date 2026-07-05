@@ -51,8 +51,8 @@ struct FiltersView: View {
       }
     }
     .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask) {
-        _Concurrency.Task {
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot, patch: store.applySubtaskPatch) {
           await store.loadDashboard()
           if case .filter(let kind) = store.mode {
             await store.openFilter(kind)
@@ -347,7 +347,7 @@ struct FiltersView: View {
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)
     }, onSubtaskTap: { sub in
-      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
     })
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)

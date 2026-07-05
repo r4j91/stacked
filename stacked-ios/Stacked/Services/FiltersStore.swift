@@ -58,6 +58,10 @@ final class FiltersStore {
     filterLoading = false
   }
 
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &filterTasks)
+  }
+
   func backToDashboard() {
     mode = .dashboard
     filterTasks = []

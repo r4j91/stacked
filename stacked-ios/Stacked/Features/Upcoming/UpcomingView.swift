@@ -104,8 +104,8 @@ struct UpcomingView: View {
       }
     }
     .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask) {
-        _Concurrency.Task { await store.load() }
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot, patch: store.applySubtaskPatch) { await store.load() }
       }
       .environment(ThemeManager.shared)
     }
@@ -201,7 +201,7 @@ struct UpcomingView: View {
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)
     }, onSubtaskTap: { sub in
-      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
     }, onSubtaskChanged: {
       _Concurrency.Task { await store.load() }
     })

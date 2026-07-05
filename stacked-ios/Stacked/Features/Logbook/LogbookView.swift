@@ -59,8 +59,8 @@ struct LogbookView: View {
       }
     }
     .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask) {
-        _Concurrency.Task { await load() }
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot, patch: { patchLogbookSubtask($0) }) { await load() }
       }
       .environment(ThemeManager.shared)
     }
@@ -77,7 +77,7 @@ struct LogbookView: View {
       onToggle: { uncomplete(task) },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
       onSubtaskTap: { sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
       onSubtaskChanged: {
         _Concurrency.Task { await load() }
@@ -113,6 +113,10 @@ struct LogbookView: View {
         Label("Excluir", systemImage: "trash")
       }
     }
+  }
+
+  private func patchLogbookSubtask(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &tasks)
   }
 
   private func uncomplete(_ task: Task) {

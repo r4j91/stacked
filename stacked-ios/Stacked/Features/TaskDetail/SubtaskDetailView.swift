@@ -7,8 +7,9 @@ struct SubtaskDetailView: View {
   @Environment(ThemeManager.self) private var theme
 
   let subtask: Subtask
+  let parentTaskId: String
   var parentTaskTitle: String?
-  var onChanged: () -> Void
+  var onChanged: (SubtaskSaveSnapshot?) async -> Void
 
   @State private var title: String
   @State private var descriptionText: String
@@ -18,14 +19,28 @@ struct SubtaskDetailView: View {
   @State private var selectedLabelIds: Set<String> = []
   @State private var labels: [TaskLabel] = []
   @State private var saving = false
+  @State private var saveError: String?
   @State private var showDatePicker = false
+  @State private var resolvedSubtaskId: String?
 
   @State private var priorityAnchor: CGRect = .zero
   @State private var dateAnchor: CGRect = .zero
   @State private var labelsAnchor: CGRect = .zero
 
-  init(subtask: Subtask, parentTaskTitle: String? = nil, onChanged: @escaping () -> Void) {
+  private var persistSubtaskId: String? {
+    if let resolvedSubtaskId, !resolvedSubtaskId.isEmpty { return resolvedSubtaskId }
+    if let id = subtask.id, !id.isEmpty { return id }
+    return nil
+  }
+
+  init(
+    subtask: Subtask,
+    parentTaskId: String,
+    parentTaskTitle: String? = nil,
+    onChanged: @escaping (SubtaskSaveSnapshot?) async -> Void
+  ) {
     self.subtask = subtask
+    self.parentTaskId = parentTaskId
     self.parentTaskTitle = parentTaskTitle
     self.onChanged = onChanged
     _title = State(initialValue: subtask.title)
@@ -34,6 +49,7 @@ struct SubtaskDetailView: View {
     _priority = State(initialValue: subtask.priority)
     _dueDate = State(initialValue: subtask.dueDate)
     _selectedLabelIds = State(initialValue: Set(subtask.labelIds))
+    _resolvedSubtaskId = State(initialValue: subtask.id)
   }
 
   var body: some View {
@@ -59,7 +75,7 @@ struct SubtaskDetailView: View {
             TextField("Nova subtarefa", text: $title)
               .font(.system(size: 20, weight: .bold))
               .foregroundStyle(c.textPrimary)
-              .onSubmit { _Concurrency.Task { await saveTitle() } }
+              .onSubmit { _Concurrency.Task { await flushPending() } }
           }
           .padding(.horizontal, 20)
 
@@ -83,7 +99,14 @@ struct SubtaskDetailView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(c.textTertiary.opacity(0.12)))
             .padding(.horizontal, 20)
-            .onSubmit { _Concurrency.Task { await saveDescription() } }
+            .onSubmit { _Concurrency.Task { await flushPending() } }
+
+          if let saveError {
+            Text(saveError)
+              .font(.system(size: 13))
+              .foregroundStyle(AppColors.priorityHigh)
+              .padding(.horizontal, 20)
+          }
 
           metadataCard
             .padding(.horizontal, 16)
@@ -108,7 +131,7 @@ struct SubtaskDetailView: View {
           Button("Salvar") {
             _Concurrency.Task {
               await flushPending()
-              dismiss()
+              if saveError == nil { dismiss() }
             }
           }
           .disabled(saving)
@@ -123,7 +146,7 @@ struct SubtaskDetailView: View {
         showRecurrence: false
       ) { date, _ in
         dueDate = date
-        _Concurrency.Task { await persistMetadata() }
+        _Concurrency.Task { await flushPending() }
       }
     }
     .presentationDetents([.large])
@@ -246,7 +269,7 @@ struct SubtaskDetailView: View {
       case "none": priority = nil
       default: break
       }
-      _Concurrency.Task { await persistMetadata() }
+      _Concurrency.Task { await flushPending() }
     }
   }
 
@@ -267,68 +290,142 @@ struct SubtaskDetailView: View {
       } else {
         selectedLabelIds.insert(result)
       }
-      _Concurrency.Task { await persistMetadata() }
+      _Concurrency.Task { await flushPending() }
     }
+  }
+
+  private func currentSnapshot(resolvedId: String?) -> SubtaskSaveSnapshot {
+    SubtaskSaveSnapshot(
+      parentTaskId: parentTaskId,
+      order: subtask.order,
+      resolvedId: resolvedId,
+      title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+      description: {
+        let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+      }(),
+      done: done,
+      priority: priority,
+      dueDate: dueDate,
+      labelIds: Array(selectedLabelIds)
+    )
+  }
+
+  private func notifyChanged(resolvedId: String?) async {
+    await onChanged(currentSnapshot(resolvedId: resolvedId ?? persistSubtaskId))
   }
 
   private func toggleDone() async {
-    guard let id = subtask.id else { return }
     let newValue = !done
     done = newValue
     do {
-      try await SubtaskRepository.shared.toggleDone(id: id, done: newValue)
+      var activeId = persistSubtaskId
+      let resolved = try await SubtaskRepository.shared.persistSubtask(
+        id: activeId,
+        taskId: parentTaskId,
+        order: subtask.order,
+        payload: TogglePayload(concluida: newValue)
+      )
+      if let resolved {
+        activeId = resolved
+        resolvedSubtaskId = resolved
+      }
       HapticService.taskCompleted()
-      onChanged()
+      await notifyChanged(resolvedId: activeId)
     } catch {
       done = !newValue
+      saveError = error.localizedDescription
     }
   }
 
-  private func saveTitle() async {
-    guard let id = subtask.id else { return }
-    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return }
-    saving = true
-    defer { saving = false }
-    do {
-      try await SubtaskRepository.shared.updateTitle(id: id, title: trimmed)
-      onChanged()
-    } catch {}
-  }
-
-  private func saveDescription() async {
-    guard let id = subtask.id else { return }
-    saving = true
-    defer { saving = false }
-    let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
-    do {
-      try await SupabaseService.client
-        .from("subtasks")
-        .update(["descricao": trimmed.isEmpty ? nil : trimmed])
-        .eq("id", value: id)
-        .execute()
-      onChanged()
-    } catch {}
-  }
-
-  private func persistMetadata() async {
-    guard let id = subtask.id else { return }
-    let dueISO = dueDate.map { TaskMapper.dateString($0) }
-    do {
-      try await SubtaskRepository.shared.updateMetadata(
-        id: id,
-        priority: priority,
-        dueDateISO: dueISO,
-        labelIds: Array(selectedLabelIds)
-      )
-      onChanged()
-    } catch {}
+  private struct TogglePayload: Encodable {
+    let concluida: Bool
   }
 
   private func flushPending() async {
-    await saveTitle()
-    await saveDescription()
-    await persistMetadata()
-    HapticService.saved()
+    saving = true
+    saveError = nil
+    defer { saving = false }
+
+    let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedDesc = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+    let initialDesc = (subtask.description ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let titleChanged = !trimmedTitle.isEmpty && trimmedTitle != subtask.title
+    let descChanged = trimmedDesc != initialDesc
+    let metaChanged = priority != subtask.priority
+      || dueDate != subtask.dueDate
+      || selectedLabelIds != Set(subtask.labelIds)
+
+    guard titleChanged || descChanged || metaChanged else { return }
+
+    var activeId = persistSubtaskId
+
+    do {
+      if titleChanged {
+        let resolved = try await SubtaskRepository.shared.persistSubtask(
+          id: activeId,
+          taskId: parentTaskId,
+          order: subtask.order,
+          payload: TitlePayload(titulo: trimmedTitle)
+        )
+        if let resolved {
+          activeId = resolved
+          resolvedSubtaskId = resolved
+        }
+      }
+
+      if descChanged {
+        do {
+          let resolved = try await SubtaskRepository.shared.persistSubtask(
+            id: activeId,
+            taskId: parentTaskId,
+            order: subtask.order,
+            payload: DescriptionPayload(descricao: trimmedDesc.isEmpty ? nil : trimmedDesc)
+          )
+          if let resolved {
+            activeId = resolved
+            resolvedSubtaskId = resolved
+          }
+        } catch {
+          guard SubtaskRepository.shared.isMissingDescriptionColumn(error) else { throw error }
+        }
+      }
+
+      if metaChanged {
+        let dueISO = dueDate.map { TaskMapper.dateString($0) }
+        try await SubtaskRepository.shared.updateMetadata(
+          id: activeId,
+          taskId: parentTaskId,
+          order: subtask.order,
+          priority: priority,
+          dueDateISO: dueISO,
+          labelIds: Array(selectedLabelIds)
+        )
+      }
+
+      await notifyChanged(resolvedId: activeId)
+      HapticService.saved()
+    } catch {
+      saveError = error.localizedDescription
+    }
+  }
+
+  private struct TitlePayload: Encodable {
+    let titulo: String
+  }
+
+  private struct DescriptionPayload: Encodable {
+    let descricao: String?
+
+    enum CodingKeys: String, CodingKey { case descricao }
+
+    func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      if let descricao {
+        try container.encode(descricao, forKey: .descricao)
+      } else {
+        try container.encodeNil(forKey: .descricao)
+      }
+    }
   }
 }

@@ -33,6 +33,29 @@ struct SubtaskRowDTO: Decodable {
   let valor: Double?
   let data_vencimento: String?
   let label_ids: [String]?
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    if let s = try? c.decodeIfPresent(String.self, forKey: .id) {
+      id = s
+    } else if let u = try? c.decodeIfPresent(UUID.self, forKey: .id) {
+      id = u.uuidString
+    } else {
+      id = nil
+    }
+    titulo = try c.decodeIfPresent(String.self, forKey: .titulo)
+    descricao = try c.decodeIfPresent(String.self, forKey: .descricao)
+    concluida = try c.decodeIfPresent(Bool.self, forKey: .concluida)
+    ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
+    prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
+    valor = try c.decodeIfPresent(Double.self, forKey: .valor)
+    data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
+    label_ids = try c.decodeIfPresent([String].self, forKey: .label_ids)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, label_ids
+  }
 }
 
 struct TaskLabelJoinDTO: Decodable {

@@ -10,7 +10,7 @@ enum TaskMapper {
   static func mapRow(_ row: TaskRowDTO) -> Task {
     let subtasks = (row.subtasks ?? [])
       .sorted { ($0.ordem ?? 0) < ($1.ordem ?? 0) }
-      .map(mapSubtask)
+      .map { mapSubtask($0, taskId: row.id) }
 
     let labels: [TaskLabel] = (row.task_labels ?? []).compactMap { tl in
       guard let label = tl.labels,
@@ -48,11 +48,11 @@ enum TaskMapper {
     )
   }
 
-  private static func mapSubtask(_ row: SubtaskRowDTO) -> Subtask {
+  private static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
     let due = parseDueDate(row.data_vencimento)
     return Subtask(
       id: row.id,
-      taskId: nil,
+      taskId: taskId,
       title: row.titulo ?? "",
       description: row.descricao,
       done: row.concluida ?? false,

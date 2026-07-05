@@ -17,5 +17,9 @@ struct Subtask: Identifiable, Equatable {
   var dueDateChipColor: Color? = nil
   let labelIds: [String]
 
-  var idOrFallback: String { id ?? UUID().uuidString }
+  var idOrFallback: String {
+    if let id, !id.isEmpty { return id }
+    if let taskId { return "\(taskId):\(order)" }
+    return "sub-\(order)-\(title)"
+  }
 }

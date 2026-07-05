@@ -46,6 +46,10 @@ final class SearchStore {
     return groups
   }
 
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &allTasks)
+  }
+
   func load() async {
     isLoading = allTasks.isEmpty
     error = nil
@@ -177,8 +181,8 @@ struct SearchView: View {
         }
       }
       .sheet(item: $subtaskDetailRoute) { route in
-        SubtaskDetailView(subtask: route.subtask) {
-          _Concurrency.Task { await store.load() }
+        SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+          await SubtaskSaveHandler.handle(snapshot, patch: store.applySubtaskPatch) { await store.load() }
         }
         .environment(ThemeManager.shared)
       }
@@ -196,7 +200,7 @@ struct SearchView: View {
       onToggle: { store.complete(task) },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
       onSubtaskTap: { sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
       onSubtaskChanged: {
         _Concurrency.Task { await store.load() }

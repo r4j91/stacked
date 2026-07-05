@@ -482,6 +482,7 @@ export function InspectorPanel() {
     inspectorOpen,
     closeInspector,
     selectedTask,
+    selectedTaskId,
     selectedSubtaskKey,
     getSubtaskContext,
     selectTask,
@@ -500,14 +501,22 @@ export function InspectorPanel() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (isSub && subCtx) {
-      setTitle(subCtx.sub.name);
-      setNotes(subCtx.sub.notes ?? "");
-    } else if (selectedTask) {
+    // Só reseta campos ao trocar seleção — não quando autosave atualiza sub.name/notes
+    // (evita apagar edição em progresso no outro campo).
+    if (selectedSubtaskKey) {
+      const ctx = getSubtaskContext(selectedSubtaskKey);
+      if (ctx) {
+        setTitle(ctx.sub.name);
+        setNotes(ctx.sub.notes ?? "");
+      }
+      return;
+    }
+    if (selectedTaskId && selectedTask) {
       setTitle(selectedTask.title);
       setNotes(selectedTask.notes ?? "");
     }
-  }, [isSub, selectedTask?.id, selectedSubtaskKey, subCtx?.sub.name, subCtx?.sub.notes, selectedTask?.title, selectedTask?.notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only on selection change
+  }, [selectedSubtaskKey, selectedTaskId]);
 
   if (!inspectorOpen || !selectedTask) return null;
 

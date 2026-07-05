@@ -286,7 +286,8 @@ struct TaskRow: View {
   }
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
-    guard let id = sub.id, index < subtasksDone.count else { return }
+    guard index < subtasksDone.count else { return }
+    guard sub.id != nil || sub.taskId != nil else { return }
     let newDone = !subtasksDone[index]
     if newDone {
       HapticService.taskCompleted()
@@ -295,7 +296,12 @@ struct TaskRow: View {
     }
     subtasksDone[index] = newDone
     _Concurrency.Task {
-      try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
+      try? await SubtaskRepository.shared.toggleDone(
+        id: sub.id,
+        taskId: sub.taskId,
+        order: sub.order,
+        done: newDone
+      )
       onSubtaskChanged?()
     }
   }

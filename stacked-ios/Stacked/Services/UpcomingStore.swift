@@ -78,6 +78,10 @@ final class UpcomingStore {
     return firstLabel == lastLabel ? firstLabel : "\(firstLabel) – \(lastLabel)"
   }
 
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &tasks)
+  }
+
   func load() async {
     isLoading = tasks.isEmpty
     error = nil

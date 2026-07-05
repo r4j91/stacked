@@ -318,10 +318,22 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [view, projectId],
   );
 
-  const allTasks = useMemo(
-    () => [...viewTasks.pending, ...viewTasks.completed],
-    [viewTasks],
-  );
+  const allTasks = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: Task[] = [];
+    const add = (list?: Task[]) => {
+      for (const t of list ?? []) {
+        if (seen.has(t.id)) continue;
+        seen.add(t.id);
+        merged.push(t);
+      }
+    };
+    add(viewTasks.pending);
+    add(viewTasks.overdue);
+    add(viewTasks.today);
+    add(viewTasks.completed);
+    return merged;
+  }, [viewTasks]);
 
   const todayStats = useMemo<TodayStats>(
     () => ({

@@ -97,8 +97,13 @@ struct TaskDetailView: View {
         _Concurrency.Task { await vm.load() }
       }
       .sheet(item: $subtaskDetailRoute) { route in
-        SubtaskDetailView(subtask: route.subtask, parentTaskTitle: vm.title) {
-          _Concurrency.Task { await vm.load() }
+        SubtaskDetailView(
+          subtask: route.subtask,
+          parentTaskId: route.parentTaskId,
+          parentTaskTitle: vm.title
+        ) { snapshot in
+          if let snapshot { vm.applySubtaskPatch(snapshot) }
+          await vm.load()
         }
         .environment(ThemeManager.shared)
         .presentationBackground(c.background)
@@ -258,7 +263,7 @@ struct TaskDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
-          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub)
+          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: vm.taskId)
         }
 
       Button {

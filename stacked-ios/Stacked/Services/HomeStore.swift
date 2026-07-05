@@ -120,6 +120,11 @@ final class ProjectDetailStore {
     self.projectName = projectName
   }
 
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &pending)
+    SubtaskListPatch.apply(snapshot, to: &completed)
+  }
+
   func load() async {
     isLoading = pending.isEmpty && completed.isEmpty
     error = nil

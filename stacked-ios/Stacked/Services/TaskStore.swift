@@ -33,35 +33,53 @@ final class TaskStore {
     todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
   }
 
+  private var loadTodayGeneration = 0
+  private var loadInboxGeneration = 0
+
+  func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
+    SubtaskListPatch.apply(snapshot, to: &todayPending)
+    SubtaskListPatch.apply(snapshot, to: &todayCompleted)
+    SubtaskListPatch.apply(snapshot, to: &inboxPending)
+    SubtaskListPatch.apply(snapshot, to: &inboxCompleted)
+  }
+
   func loadToday() async {
+    loadTodayGeneration += 1
+    let generation = loadTodayGeneration
     todayLoading = todayPending.isEmpty && todayCompleted.isEmpty
     todayError = nil
     do {
       async let pending = repo.fetchTodayTasks()
       async let completed = repo.fetchCompletedTodayTasks()
       let (p, c) = try await (pending, completed)
+      guard generation == loadTodayGeneration else { return }
       todayPending = p
       todayCompleted = c
       todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
       WidgetSnapshotSync.updateFromToday(pending: p, completed: c)
     } catch {
       if AsyncLoad.isCancellation(error) { return }
+      guard generation == loadTodayGeneration else { return }
       todayError = error.localizedDescription
     }
     todayLoading = false
   }
 
   func loadInbox() async {
+    loadInboxGeneration += 1
+    let generation = loadInboxGeneration
     inboxLoading = inboxPending.isEmpty && inboxCompleted.isEmpty
     inboxError = nil
     do {
       async let pending = repo.fetchInboxTasks()
       async let completed = repo.fetchCompletedInboxTasks()
       let (p, c) = try await (pending, completed)
+      guard generation == loadInboxGeneration else { return }
       inboxPending = p
       inboxCompleted = c
     } catch {
       if AsyncLoad.isCancellation(error) { return }
+      guard generation == loadInboxGeneration else { return }
       inboxError = error.localizedDescription
     }
     inboxLoading = false
