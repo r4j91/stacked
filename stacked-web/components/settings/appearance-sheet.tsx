@@ -5,7 +5,7 @@ import { useWorkbench } from "@/components/shell/workbench-context";
 import { AnchoredPopover } from "@/components/ui/anchored-popover";
 import { AppIcon } from "@/components/ui/app-icon";
 import { Cancel01Icon, Tick01Icon } from "@/lib/icons/nav-icons";
-import { themes, type AppThemeId } from "@/lib/theme/themes";
+import { themes, type AppTheme, type AppThemeId } from "@/lib/theme/themes";
 
 export function AppearanceSheet() {
   const { appearanceOpen, appearanceAnchor, closeAppearance } = useWorkbench();
@@ -48,7 +48,7 @@ export function AppearanceSheet() {
                   : "hover:bg-[var(--color-hover-overlay)]"
               }`}
             >
-              <ThemePreview colors={theme.colors} />
+              <ThemePreview theme={theme} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">{theme.name}</p>
                 <p className="text-[11px] text-[var(--color-text-tertiary)]">{theme.subtitle}</p>
@@ -66,20 +66,25 @@ export function AppearanceSheet() {
   );
 }
 
-function ThemePreview({ colors }: { colors: (typeof themes)[AppThemeId]["colors"] }) {
+function ThemePreview({ theme }: { theme: AppTheme }) {
+  const swatch = theme.previewSwatch ?? {
+    background: theme.colors.background,
+    surface: theme.colors.surface,
+    accent: theme.colors.accent,
+  };
   return (
     <div
       className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[10px] border border-white/10 shadow-sm"
-      style={{ background: colors.background }}
+      style={{ background: swatch.background }}
     >
-      <div className="absolute bottom-0 left-0 right-0 h-5" style={{ background: colors.surface }} />
+      <div className="absolute bottom-0 left-0 right-0 h-5" style={{ background: swatch.surface }} />
       <div
         className="absolute bottom-1.5 left-1.5 h-2.5 w-2.5 rounded-[3px]"
-        style={{ background: colors.accent }}
+        style={{ background: swatch.accent }}
       />
       <div
         className="absolute bottom-1.5 right-1.5 h-1 w-4 rounded-full opacity-60"
-        style={{ background: colors.textSecondary }}
+        style={{ background: theme.colors.textSecondary }}
       />
     </div>
   );

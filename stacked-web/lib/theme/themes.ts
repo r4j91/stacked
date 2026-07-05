@@ -1,5 +1,13 @@
-/** Paridade lib/theme/app_theme_data.dart */
-export type AppThemeId = "graphite" | "moonstone" | "midnight" | "obsidian" | "slate"
+/** Paridade lib/theme/app_theme_data.dart + iOS AppTheme.swift */
+export type AppThemeId =
+  | "graphite"
+  | "moonstone"
+  | "midnight"
+  | "obsidian"
+  | "slate"
+  | "titanium"
+  | "sodalite"
+  | "hematite"
 
 export type AppThemeColors = {
   background: string
@@ -14,11 +22,19 @@ export type AppThemeColors = {
   isDark: boolean
 }
 
+export type AppThemePreviewSwatch = {
+  background: string
+  surface: string
+  accent: string
+}
+
 export type AppTheme = {
   id: AppThemeId
   name: string
   subtitle: string
   colors: AppThemeColors
+  /** Seletor Aparência — hex de mockup nos temas novos (paridade iOS). */
+  previewSwatch?: AppThemePreviewSwatch
 }
 
 export const themes: Record<AppThemeId, AppTheme> = {
@@ -104,6 +120,72 @@ export const themes: Record<AppThemeId, AppTheme> = {
       accent: "#E8E8EC",
       accentText: "#0A0A0A",
       navBar: "#16161A",
+      isDark: true,
+    },
+  },
+  titanium: {
+    id: "titanium",
+    name: "Titanium",
+    subtitle: "Escuro metálico",
+    previewSwatch: {
+      background: "#0A0C10",
+      surface: "#171B21",
+      accent: "#8FA8C7",
+    },
+    colors: {
+      background: "#101318",
+      surface: "#171B21",
+      surfaceVariant: "#1E242C",
+      textPrimary: "#E6EAF0",
+      textSecondary: "#98A2B0",
+      textTertiary: "#616B7A",
+      accent: "#8FA8C7",
+      accentText: "#0E1319",
+      navBar: "#171B21",
+      isDark: true,
+    },
+  },
+  sodalite: {
+    id: "sodalite",
+    name: "Sodalite",
+    subtitle: "Azul profundo",
+    previewSwatch: {
+      background: "#070A12",
+      surface: "#101626",
+      accent: "#A9BAD9",
+    },
+    colors: {
+      background: "#0A0E19",
+      surface: "#101626",
+      surfaceVariant: "#161E33",
+      textPrimary: "#E7EAF3",
+      textSecondary: "#8E97B2",
+      textTertiary: "#5A6480",
+      accent: "#A9BAD9",
+      accentText: "#0A0F1D",
+      navBar: "#101626",
+      isDark: true,
+    },
+  },
+  hematite: {
+    id: "hematite",
+    name: "Hematite",
+    subtitle: "Preto polido",
+    previewSwatch: {
+      background: "#060707",
+      surface: "#131416",
+      accent: "#C4CCD6",
+    },
+    colors: {
+      background: "#0A0B0C",
+      surface: "#131416",
+      surfaceVariant: "#1A1C1F",
+      textPrimary: "#ECEEF1",
+      textSecondary: "#93999F",
+      textTertiary: "#5C6167",
+      accent: "#C4CCD6",
+      accentText: "#0B0C0E",
+      navBar: "#131416",
       isDark: true,
     },
   },
