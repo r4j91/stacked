@@ -57,6 +57,24 @@ enum AppMotion {
     .bouncy(duration: 0.26, extraBounce: 0.08)
   }
 
+  /// Navbar expandida (Fase 2) — cápsula ativa expande/colapsa.
+  static var expandedNavSpring: Animation {
+    .spring(response: 0.45, dampingFraction: 0.75)
+  }
+
+  static func expandedNavMorph(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : expandedNavSpring
+  }
+
+  /// Navbar ilha (Fase 3) — expandir/colapsar.
+  static var islandNavSpring: Animation {
+    .spring(response: 0.5, dampingFraction: 0.78)
+  }
+
+  static func islandNavMorph(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : islandNavSpring
+  }
+
   /// Atraso da coreografia ícone após o blob (ms).
   static let navIconFollowDelay: Duration = .milliseconds(35)
 

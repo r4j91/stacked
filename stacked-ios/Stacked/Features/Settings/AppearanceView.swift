@@ -6,11 +6,17 @@ struct AppearanceView: View {
   @Environment(ThemeManager.self) private var theme
   @State private var iconManager = AppIconManager.shared
   @State private var iconErrorMessage: String?
+  @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
+
+  private var navBarStyle: NavBarStyle {
+    NavBarStyleStorage.style(from: navBarStyleRaw)
+  }
 
   var body: some View {
     let c = theme.colors
     let themes = AppThemeId.allCases
     let icons = AppIconId.allCases
+    let navStyles = NavBarStyle.allCases
 
     List {
       Section {
@@ -25,6 +31,22 @@ struct AppearanceView: View {
           }
         }
         .settingsListCardRow(top: 8)
+      }
+
+      Section {
+        SettingsCardSurface {
+          VStack(spacing: 0) {
+            ForEach(Array(navStyles.enumerated()), id: \.element) { index, style in
+              navBarStyleRow(style)
+              if index < navStyles.count - 1 {
+                SettingsCardDivider(leadingPadding: 56)
+              }
+            }
+          }
+        }
+        .settingsListCardRow(top: 4, bottom: 4)
+      } header: {
+        SettingsSectionHeader(text: "Barra de navegação")
       }
 
       if iconManager.isSupported {
@@ -92,6 +114,35 @@ struct AppearanceView: View {
             .foregroundStyle(c.accent)
         }
       }
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func navBarStyleRow(_ style: NavBarStyle) -> some View {
+    let c = theme.colors
+    let isSelected = navBarStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      navBarStyleRaw = style.rawValue
+      MobileChromeController.shared.collapseIslandNav()
+    } label: {
+      HStack(spacing: 14) {
+        NavBarStylePreview(style: style, colors: c, selected: isSelected)
+        Text(style.displayName)
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Spacer()
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
       .padding(.horizontal, SettingsChrome.rowPaddingH)
       .padding(.vertical, SettingsChrome.rowPaddingV)
       .contentShape(Rectangle())

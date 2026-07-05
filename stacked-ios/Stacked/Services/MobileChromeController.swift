@@ -11,8 +11,38 @@ final class MobileChromeController {
   var fabOpen = false
   /// Aba com dedo em touch-down (feedback visual SwiftUI).
   var pressedTab: NavTab?
+  /// Fase 3 — ilha expansível (estilo Dynamic Island).
+  var islandNavExpanded = false
 
   private init() {}
+
+  var navBarStyle: NavBarStyle {
+    NavBarStyleStorage.style(
+      from: UserDefaults.standard.string(forKey: NavBarStyleStorage.key)
+        ?? NavBarStyleStorage.defaultRawValue
+    )
+  }
+
+  func expandIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+    guard navBarStyle == .island else { return }
+    fabOpen = false
+    AppMotion.animate(AppMotion.islandNavSpring, reduceMotion: reduceMotion) {
+      islandNavExpanded = true
+    }
+  }
+
+  func collapseIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+    guard islandNavExpanded else { return }
+    AppMotion.animate(AppMotion.islandNavSpring, reduceMotion: reduceMotion) {
+      islandNavExpanded = false
+    }
+  }
+
+  private func collapseIslandNavIfNeeded() {
+    if navBarStyle == .island {
+      islandNavExpanded = false
+    }
+  }
 
   func setTabPressed(_ tab: NavTab?) {
     guard pressedTab != tab else { return }
@@ -24,12 +54,15 @@ final class MobileChromeController {
 
   func selectTab(_ tab: NavTab, reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
     pressedTab = nil
-    guard tab != selectedTab else { return }
-    HapticService.tabChanged()
-    PopoverPresenter.shared.dismiss()
-    fabOpen = false
+    let changing = tab != selectedTab
+    if changing {
+      HapticService.tabChanged()
+      PopoverPresenter.shared.dismiss()
+      fabOpen = false
+    }
     AppMotion.animate(AppMotion.navMorphSpring, reduceMotion: reduceMotion) {
       selectedTab = tab
+      self.collapseIslandNavIfNeeded()
     }
   }
 

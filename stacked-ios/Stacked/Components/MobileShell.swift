@@ -5,6 +5,7 @@ struct MobileShell<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   var hideBottomChrome: Bool = false
   var onNewTask: () -> Void = {}
   var onSearch: () -> Void = {}
@@ -28,6 +29,7 @@ struct MobileShell<Content: View>: View {
   var body: some View {
     @Bindable var chrome = chrome
     let c = theme.colors
+    let navBarStyle = NavBarStyleStorage.style(from: navBarStyleRaw)
 
     ZStack(alignment: .bottomTrailing) {
       // Conteúdo fora do GeometryReader — o reader não reavalia filhos quando só o tab muda.
@@ -41,6 +43,16 @@ struct MobileShell<Content: View>: View {
         let fabBottom = ChromeLayout.fabMarginBottom(safeBottom: safeBottom)
 
         ZStack(alignment: .bottomTrailing) {
+          // ISLAND_FASE3 — dismiss abaixo do dock para não bloquear DockTouchOverlay.
+          if !hideBottomChrome, navBarStyle == .island, chrome.islandNavExpanded {
+            Color.clear
+              .ignoresSafeArea()
+              .contentShape(Rectangle())
+              .onTapGesture { chrome.collapseIslandNav() }
+              .frame(width: geo.size.width, height: geo.size.height)
+              .transition(.opacity)
+          }
+
           if !hideBottomChrome {
             BottomChromeBar(
               safeBottom: safeBottom,
@@ -74,6 +86,7 @@ struct MobileShell<Content: View>: View {
       .zIndex(20)
     }
     .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: chrome.fabOpen)
+    .animation(AppMotion.islandNavMorph(reduceMotion: reduceMotion), value: chrome.islandNavExpanded)
     .ignoresSafeArea(edges: .bottom)
     .background(c.background.ignoresSafeArea(.all))
   }
@@ -90,7 +103,9 @@ private struct BottomChromeBar: View {
     @Bindable var chrome = chrome
 
     ZStack(alignment: .bottomTrailing) {
-      BottomNavPill(selectedTab: $chrome.selectedTab)
+      // SUBSTITUIDO_ETAPA2 — BottomNavPill → NavBarContainer (classic por composição).
+      NavBarContainer(selectedTab: $chrome.selectedTab)
+      // BottomNavPill(selectedTab: $chrome.selectedTab)
         .padding(.horizontal, AppLayout.fabSideMargin)
         .padding(.bottom, pillBottom)
         .frame(maxWidth: .infinity, alignment: .bottom)
