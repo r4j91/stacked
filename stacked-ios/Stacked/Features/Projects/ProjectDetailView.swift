@@ -89,10 +89,7 @@ struct ProjectDetailView: View {
           }
         } else {
           ForEach(sections) { section in
-            let tasks = tasks(in: section.id)
-            if !tasks.isEmpty {
-              projectSectionBlock(section: section, tasks: tasks)
-            }
+            projectSectionBlock(section: section, tasks: tasks(in: section.id))
           }
 
           let uncategorized = tasks(in: nil)
@@ -105,7 +102,7 @@ struct ProjectDetailView: View {
             )
           }
 
-          if pending.isEmpty && completed.isEmpty {
+          if pending.isEmpty && completed.isEmpty && sections.isEmpty {
             Section {
               EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
               .listRowBackground(Color.clear)

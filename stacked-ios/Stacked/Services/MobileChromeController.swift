@@ -60,6 +60,23 @@ final class MobileChromeController {
       PopoverPresenter.shared.dismiss()
       fabOpen = false
     }
+
+    if navBarStyle == .island {
+      if islandNavExpanded {
+        AppMotion.animate(AppMotion.islandTabSelectSpring, reduceMotion: reduceMotion) {
+          selectedTab = tab
+          islandNavExpanded = false
+        }
+      } else if changing {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+          selectedTab = tab
+        }
+      }
+      return
+    }
+
     AppMotion.animate(AppMotion.navMorphSpring, reduceMotion: reduceMotion) {
       selectedTab = tab
       self.collapseIslandNavIfNeeded()

@@ -72,6 +72,11 @@ enum AppMotion {
     .spring(response: 0.36, dampingFraction: 0.72)
   }
 
+  /// Ilha — troca de aba com colapso: snappy sem bounce (evita animar largura com spring pesado).
+  static var islandTabSelectSpring: Animation {
+    .snappy(duration: 0.22, extraBounce: 0)
+  }
+
   static func islandNavMorph(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : islandNavSpring
   }

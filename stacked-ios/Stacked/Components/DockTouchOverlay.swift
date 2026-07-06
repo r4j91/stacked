@@ -79,6 +79,7 @@ final class DockTouchUIView: UIView {
   private let islandCompactButton = UIButton(type: .custom)
   private var layoutConstraints: [NSLayoutConstraint] = []
   private var tabWidthConstraints: [NSLayoutConstraint] = []
+  private var layoutSignature: Int?
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -164,6 +165,18 @@ final class DockTouchUIView: UIView {
     let trackWidth = bounds.width > 0 ? bounds.width - side * 2 - inner * 2 : 0
     let islandCompactWidth = trackWidth * IslandNavMetrics.compactWidthRatio
     let islandLeading = side + inner + max(0, (trackWidth - islandCompactWidth) / 2)
+
+    var hasher = Hasher()
+    hasher.combine(navStyle)
+    hasher.combine(islandExpanded)
+    hasher.combine(bounds.width)
+    hasher.combine(bounds.height)
+    hasher.combine(safeBottom)
+    let signature = hasher.finalize()
+    if signature == layoutSignature {
+      return
+    }
+    layoutSignature = signature
 
     NSLayoutConstraint.deactivate(layoutConstraints)
     layoutConstraints = [

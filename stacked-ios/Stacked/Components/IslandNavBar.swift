@@ -35,8 +35,7 @@ struct IslandNavBar: View {
           .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
         Spacer(minLength: 0)
       }
-      // REMOVIDO_A1_ETAPA2 — .animation(islandAnimation, value: isExpanded)
-      // REMOVIDO_SELECTED_TAB_ANIM — .animation(islandAnimation, value: selectedTab)
+      .animation(islandAnimation, value: isExpanded)
     }
     .frame(height: IslandNavMetrics.pillHeight)
     .padding(ChromeLayout.pillInnerPadding)
@@ -55,15 +54,17 @@ struct IslandNavBar: View {
     pillWidth: CGFloat,
     useGlass: Bool
   ) -> some View {
-    ZStack {
-      collapsedSummary(colors: colors, tab: selectedTab)
-        .opacity(isExpanded ? 0 : 1)
-
-      expandedItems(colors: colors)
-        .opacity(expandedItemsOpacity)
+    Group {
+      if isExpanded {
+        expandedItems(colors: colors)
+          .opacity(expandedItemsOpacity)
+      } else {
+        collapsedSummary(colors: colors, tab: selectedTab)
+      }
     }
     .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
     .clipped()
+    .compositingGroup()
     .background {
       if useGlass {
         pillShape
@@ -96,7 +97,6 @@ struct IslandNavBar: View {
         .font(.system(size: IslandNavMetrics.collapsedLabelSize, weight: .semibold))
         .foregroundStyle(colors.textPrimary)
         .lineLimit(1)
-        .contentTransition(.opacity) // AJUSTADO_CONTENT_TRANSITION
         .minimumScaleFactor(0.85)
 
       Spacer(minLength: 4)
@@ -112,6 +112,8 @@ struct IslandNavBar: View {
     }
     .padding(.horizontal, IslandNavMetrics.collapsedHorizontalPadding)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .id(tab)
+    .animation(nil, value: selectedTab)
   }
 
   private func expandedItems(colors: AppThemeColors) -> some View {
@@ -180,8 +182,6 @@ private struct IslandNavExpandedItem: View {
   let colors: AppThemeColors
   let itemsVisible: Bool
 
-  @State private var bounceScale: CGFloat = 1
-
   private var isPressed: Bool { chrome.pressedTab == tab }
 
   var body: some View {
@@ -191,7 +191,6 @@ private struct IslandNavExpandedItem: View {
     VStack(spacing: 2) {
       StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize, color: iconColor)
         .frame(width: IslandNavMetrics.iconBoxSize, height: IslandNavMetrics.iconBoxSize)
-        .scaleEffect(bounceScale)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
         .foregroundStyle(selected ? colors.accent : colors.textSecondary)
@@ -207,25 +206,6 @@ private struct IslandNavExpandedItem: View {
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(tab.label)
     .accessibilityAddTraits(selected ? .isSelected : [])
-    .onChange(of: selected) { wasSelected, isSelected in
-      guard !wasSelected, isSelected else { return }
-      runIconBounce()
-    }
-  }
-
-  private func runIconBounce() {
-    if reduceMotion {
-      bounceScale = 1
-      return
-    }
-    _Concurrency.Task { @MainActor in
-      try? await _Concurrency.Task.sleep(for: AppMotion.navIconFollowDelay)
-      guard selected else { return }
-      bounceScale = 1.14
-      AppMotion.animate(AppMotion.iconBounceSpring, reduceMotion: reduceMotion) {
-        bounceScale = 1
-      }
-    }
   }
 }
 
