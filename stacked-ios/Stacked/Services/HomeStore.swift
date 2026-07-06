@@ -115,9 +115,23 @@ final class ProjectDetailStore {
   private(set) var isLoading = true
   private(set) var error: String?
 
-  init(projectId: String, projectName: String) {
+  init(projectId: String, projectName: String, initialSnapshot: ProjectDetailSnapshot? = nil) {
     self.projectId = projectId
     self.projectName = projectName
+    if let snap = initialSnapshot {
+      sections = snap.sections
+      pending = snap.pending
+      completed = snap.completed
+      isLoading = false
+    }
+  }
+
+  func adoptSnapshot(_ snapshot: ProjectDetailSnapshot) {
+    sections = snapshot.sections
+    pending = snapshot.pending
+    completed = snapshot.completed
+    isLoading = snapshot.pending.isEmpty && snapshot.completed.isEmpty
+    error = nil
   }
 
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
@@ -126,15 +140,39 @@ final class ProjectDetailStore {
   }
 
   func load() async {
-    isLoading = pending.isEmpty && completed.isEmpty
+    let hadData = !pending.isEmpty || !completed.isEmpty
+    if !hadData { isLoading = true }
     error = nil
     do {
       async let sectionsReq = SectionRepository.shared.fetchSections(projectId: projectId)
       async let pendingReq = TaskRepository.shared.fetchTasksByProject(projectId)
       async let completedReq = TaskRepository.shared.fetchCompletedTasksByProject(projectId)
-      sections = try await sectionsReq
-      pending = try await pendingReq
-      completed = try await completedReq
+      let newSections = try await sectionsReq
+      let newPending = try await pendingReq
+      let newCompleted = try await completedReq
+
+      if newSections == sections, newPending == pending, newCompleted == completed {
+        isLoading = false
+        return
+      }
+
+      let apply = {
+        self.sections = newSections
+        self.pending = newPending
+        self.completed = newCompleted
+        ProjectDetailCache.shared.store(
+          projectId: self.projectId,
+          sections: newSections,
+          pending: newPending,
+          completed: newCompleted
+        )
+      }
+
+      if hadData {
+        await NavigationPushMotion.afterSettle(apply)
+      } else {
+        apply()
+      }
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription

@@ -39,6 +39,43 @@ struct ScreenHeaderChrome<Trailing: View>: View {
   }
 }
 
+/// Placeholder de linha de tarefa — altura fixa para evitar content jump no push.
+struct TaskRowSkeleton: View {
+  @Environment(ThemeManager.self) private var theme
+
+  var body: some View {
+    let c = theme.colors
+    HStack(spacing: 12) {
+      Circle()
+        .fill(c.surfaceVariant.opacity(0.7))
+        .frame(width: 20, height: 20)
+      RoundedRectangle(cornerRadius: 4)
+        .fill(c.surfaceVariant.opacity(0.5))
+        .frame(height: 14)
+      Spacer(minLength: 0)
+    }
+    .frame(height: AppLayout.taskRowHeight)
+    .padding(.horizontal, 4)
+    .redacted(reason: .placeholder)
+  }
+}
+
+struct TaskListSkeleton: View {
+  let rowCount: Int
+  private let rowInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+
+  var body: some View {
+    Section {
+      ForEach(0..<rowCount, id: \.self) { _ in
+        TaskRowSkeleton()
+          .listRowInsets(rowInsets)
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+  }
+}
+
 /// Section label para headers de `List` (sem padding extra).
 struct ListSectionHeader: View {
   @Environment(ThemeManager.self) private var theme
@@ -236,5 +273,13 @@ extension View {
   /// Centraliza conteúdo em tablet (≥600pt) com max-width 640/720.
   func stackedTabletCentered() -> some View {
     modifier(StackedTabletCenteredModifier())
+  }
+
+  /// Toolbar + título inline no drill-down — sem fundo sólido (iOS 26 glass + scroll edge nativos).
+  func stackedDrillDownNavChrome(title: String, background _: Color) -> some View {
+    navigationTitle(title)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar(.visible, for: .navigationBar)
+      .toolbarBackground(.hidden, for: .navigationBar)
   }
 }

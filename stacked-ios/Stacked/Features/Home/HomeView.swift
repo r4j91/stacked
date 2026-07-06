@@ -49,13 +49,14 @@ struct HomeView: View {
         ProjectDetailView(
           projectId: route.id,
           projectName: route.name,
-          projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex
+          projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex,
+          initialSnapshot: route.snapshot
         )
         .environment(ThemeManager.shared)
       }
     }
     .toolbarBackground(c.background, for: .navigationBar)
-    .toolbarBackground(.hidden, for: .navigationBar)
+    .toolbarBackground(.visible, for: .navigationBar)
     .background(c.background.ignoresSafeArea(.all))
     .newProjectFloating(isPresented: $showNewProject) {
       _Concurrency.Task { await store.load() }
@@ -191,7 +192,15 @@ struct HomeView: View {
         .listRowBackground(Color.clear)
       } else {
         ForEach(store.projects) { project in
-          Button { selectedProject = ProjectRoute(id: project.id, name: project.name) } label: {
+          Button {
+            let projectId = project.id
+            ProjectDetailCache.shared.prefetch(projectId: projectId)
+            selectedProject = ProjectRoute(
+              id: projectId,
+              name: project.name,
+              snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+            )
+          } label: {
             projectRow(project)
           }
           .buttonStyle(.plain)

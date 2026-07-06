@@ -10,6 +10,7 @@ struct TaskRow: View {
   var style: TaskRowStyle = .card
   var showProject: Bool = true
   var allLabels: [TaskLabel] = []
+  var deferHeavyWork: Bool = false
   var onToggle: () -> Void
   var onTap: (() -> Void)?
   var onSubtaskTap: ((Subtask) -> Void)?
@@ -40,10 +41,20 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear { syncSubtasks() }
-    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onAppear {
+      guard !deferHeavyWork else { return }
+      syncSubtasks()
+    }
+    .onChange(of: task.subtasks) { _, _ in
+      guard !deferHeavyWork else { return }
+      syncSubtasks()
+    }
+    .onChange(of: deferHeavyWork) { _, deferred in
+      guard !deferred else { return }
+      syncSubtasks()
+    }
     .task(id: task.id) {
-      guard task.hasSubtasks, allLabels.isEmpty else { return }
+      guard !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
   }
@@ -62,10 +73,20 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear { syncSubtasks() }
-    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onAppear {
+      guard !deferHeavyWork else { return }
+      syncSubtasks()
+    }
+    .onChange(of: task.subtasks) { _, _ in
+      guard !deferHeavyWork else { return }
+      syncSubtasks()
+    }
+    .onChange(of: deferHeavyWork) { _, deferred in
+      guard !deferred else { return }
+      syncSubtasks()
+    }
     .task(id: task.id) {
-      guard task.hasSubtasks, allLabels.isEmpty else { return }
+      guard !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
   }

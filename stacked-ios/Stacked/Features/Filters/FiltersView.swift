@@ -35,19 +35,19 @@ struct FiltersView: View {
           ProjectDetailView(
             projectId: route.id,
             projectName: route.name,
-            projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex
+            projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex,
+            initialSnapshot: route.snapshot
           )
           .environment(ThemeManager.shared)
         }
         .navigationDestination(item: $presetFilterRoute) { kind in
-          filterListView(kind: kind)
-            .onAppear {
-              _Concurrency.Task {
-                try? await _Concurrency.Task.sleep(for: AppMotion.navigationPushSettle)
-                guard !_Concurrency.Task.isCancelled else { return }
-                await store.openFilter(kind)
-              }
-            }
+          PresetFilterResultsScreen(
+            kind: kind,
+            initialTasks: store.cachedPresetTasks(for: kind),
+            taskDetailNamespace: taskDetailZoom,
+            onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
+            onSubtaskTap: { subtaskDetailRoute = $0 }
+          )
         }
         .navigationDestination(item: $savedFilterRoute) { route in
           SavedFilterResultsScreen(
@@ -64,10 +64,7 @@ struct FiltersView: View {
           )
         }
     }
-    .toolbarBackground(theme.colors.background, for: .navigationBar)
-    .toolbarBackground(.hidden, for: .navigationBar)
     .tint(theme.colors.textSecondary)
-    .stackedTabletCentered()
     .background(theme.colors.background.ignoresSafeArea(.all))
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
@@ -119,6 +116,7 @@ struct FiltersView: View {
     }
     .onAppear {
       if let kind = store.takePendingPresetFilter() {
+        store.preparePresetFilterSession(kind)
         presetFilterRoute = kind
       }
     }
@@ -126,6 +124,7 @@ struct FiltersView: View {
 
   private func openPresetFilter(_ kind: TaskFilterKind) {
     HapticService.selection()
+    store.preparePresetFilterSession(kind)
     presetFilterRoute = kind
   }
 
@@ -137,12 +136,10 @@ struct FiltersView: View {
   /// Limpa estado do drill-down após o pop do NavigationStack — evita re-layout da lista durante a animação.
   private func deferDashboardReset() {
     _Concurrency.Task {
-      try? await _Concurrency.Task.sleep(for: AppMotion.navigationPushSettle)
+      await NavigationPushMotion.awaitSettle()
       guard presetFilterRoute == nil, savedFilterRoute == nil else { return }
       if case .dashboard = store.mode { return }
-      var transaction = Transaction()
-      transaction.disablesAnimations = true
-      withTransaction(transaction) {
+      await NavigationPushMotion.afterSettle {
         store.backToDashboard()
       }
     }
@@ -152,13 +149,6 @@ struct FiltersView: View {
     let c = theme.colors
 
     return List {
-      Section {
-        ScreenHeader(title: "Filtros")
-          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-
       if store.dashboardLoading {
         Section {
           ProgressView()
@@ -207,7 +197,13 @@ struct FiltersView: View {
             ForEach(store.projects) { project in
               Button {
                 HapticService.selection()
-                selectedProject = ProjectRoute(id: project.id, name: project.name)
+                let projectId = project.id
+                ProjectDetailCache.shared.prefetch(projectId: projectId)
+                selectedProject = ProjectRoute(
+                  id: projectId,
+                  name: project.name,
+                  snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+                )
               } label: {
                 projectRow(project)
               }
@@ -231,9 +227,12 @@ struct FiltersView: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedListTailInset()
+    .stackedDashboardListChrome()
     .stackedTabletCentered()
     .background(c.background)
+    .navigationTitle("Filtros")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(.hidden, for: .navigationBar)
     .refreshable { await store.loadDashboard() }
   }
 
@@ -392,57 +391,6 @@ struct FiltersView: View {
     .padding(.vertical, 13)
   }
 
-  private func filterListView(kind: TaskFilterKind) -> some View {
-    let c = theme.colors
-
-    return List {
-      if store.filterLoading {
-        Section {
-          ProgressView()
-            .tint(c.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.filterError, store.filterTasks.isEmpty {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.openFilter(kind) }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.filterTasks.isEmpty {
-        Section {
-          EmptyStateView(icon: kind.stackedIcon, title: "Nenhuma tarefa", subtitle: "Nada neste filtro por enquanto.")
-          .listRowBackground(Color.clear)
-        }
-      } else {
-        Section {
-          ForEach(store.filterTasks) { task in
-            filterTaskRow(task, canPostpone: kind != .completedToday)
-          }
-        }
-      }
-
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-    }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedListTailInset()
-    .stackedTabletCentered()
-    .background(c.background)
-    .navigationTitle(kind.title)
-    .navigationBarTitleDisplayMode(.large)
-    .refreshable {
-      await store.openFilter(kind)
-      await store.loadDashboard()
-    }
-  }
-
   private func projectRow(_ project: ProjectTaskStats) -> some View {
     let c = theme.colors
     let color = AppColors.parseHex(project.colorHex, fallback: c.accent)
@@ -480,81 +428,5 @@ struct FiltersView: View {
         .foregroundStyle(c.textTertiary.opacity(0.7))
     }
     .padding(.vertical, 13)
-  }
-
-  private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
-  }
-
-  @ViewBuilder
-  private func filterTaskRow(_ task: Task, canPostpone: Bool) -> some View {
-    TaskRow(task: task, onToggle: {
-      store.complete(task)
-    }, onTap: {
-      detailRoute = TaskDetailRoute(taskId: task.id)
-    }, onSubtaskTap: { sub in
-      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-    })
-    .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-    .taskCompleteRemovalTransition()
-    .listRowInsets(rowInsets)
-    .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
-    .taskContextMenu(
-      task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-      onComplete: { store.complete(task) },
-      onDuplicate: {
-        _Concurrency.Task {
-          _ = try? await TaskRepository.shared.duplicateTask(task)
-          if case .presetFilter(let kind) = store.mode {
-            await store.openFilter(kind)
-          } else if case .savedFilter(let filter) = store.mode {
-            await store.openSavedFilter(filter)
-          }
-          await store.loadDashboard()
-        }
-      },
-      onDelete: { store.delete(task) },
-      onRefresh: {
-        _Concurrency.Task {
-          if case .presetFilter(let kind) = store.mode {
-            await store.openFilter(kind)
-          } else if case .savedFilter(let filter) = store.mode {
-            await store.openSavedFilter(filter)
-          }
-          await store.loadDashboard()
-        }
-      }
-    )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      if !task.done {
-        Button {
-          store.complete(task)
-        } label: {
-          Label("Concluir", systemImage: "checkmark")
-        }
-        .tint(AppColors.dateDueToday)
-      }
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      if canPostpone {
-        Button {
-          HapticService.light()
-          _Concurrency.Task { await store.postpone(task) }
-        } label: {
-          Label("Adiar", systemImage: "clock")
-        }
-        .tint(AppColors.priorityMedium)
-      }
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 }

@@ -21,13 +21,45 @@ struct ProjectDetailView: View {
   @State private var renameSectionName = ""
   @State private var deleteSectionTarget: ProjectSection?
   @State private var collapsedSectionIds: Set<String> = []
+  @State private var allowRowHeavyWork = false
   @Namespace private var taskDetailZoom
 
   let projectColorHex: String?
+  let initialSnapshot: ProjectDetailSnapshot
 
-  init(projectId: String, projectName: String, projectColorHex: String? = nil) {
-    _store = State(initialValue: ProjectDetailStore(projectId: projectId, projectName: projectName))
+  init(
+    projectId: String,
+    projectName: String,
+    projectColorHex: String? = nil,
+    initialSnapshot: ProjectDetailSnapshot? = nil
+  ) {
+    let snap = initialSnapshot
+      ?? ProjectDetailCache.shared.snapshot(for: projectId)
+      ?? ProjectDetailSnapshot(sections: [], pending: [], completed: [])
+    self.initialSnapshot = snap
     self.projectColorHex = projectColorHex
+    _store = State(initialValue: ProjectDetailStore(projectId: projectId, projectName: projectName))
+  }
+
+  private var sections: [ProjectSection] { usesStore ? store.sections : initialSnapshot.sections }
+  private var pending: [Task] { usesStore ? store.pending : initialSnapshot.pending }
+  private var completed: [Task] { usesStore ? store.completed : initialSnapshot.completed }
+  private var isLoading: Bool {
+    usesStore
+      ? store.isLoading
+      : initialSnapshot.pending.isEmpty && initialSnapshot.completed.isEmpty
+        && !ProjectDetailCache.shared.hasSnapshot(for: store.projectId)
+  }
+  private var loadError: String? { usesStore ? store.error : nil }
+
+  @State private var usesStore = false
+
+  private var deferHeavyRowWork: Bool {
+    !allowRowHeavyWork
+  }
+
+  private var hasLocalContent: Bool {
+    !initialSnapshot.pending.isEmpty || !initialSnapshot.completed.isEmpty
   }
 
   private var isListMode: Bool { displayMode == "list" }
@@ -36,14 +68,9 @@ struct ProjectDetailView: View {
     let c = theme.colors
 
     List {
-      if store.isLoading {
-        Section {
-          ProgressView()
-            .tint(c.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.error {
+      if isLoading {
+        TaskListSkeleton(rowCount: 6)
+      } else if let err = loadError {
         Section {
           LoadErrorView(message: err) {
             _Concurrency.Task { await store.load() }
@@ -51,35 +78,35 @@ struct ProjectDetailView: View {
           .listRowBackground(Color.clear)
         }
       } else {
-        ForEach(store.sections) { section in
-          let tasks = store.tasks(in: section.id)
+        ForEach(sections) { section in
+          let tasks = tasks(in: section.id)
           if !tasks.isEmpty {
             projectSectionBlock(section: section, tasks: tasks)
           }
         }
 
-        let uncategorized = store.tasks(in: nil)
+        let uncategorized = tasks(in: nil)
         if !uncategorized.isEmpty {
           projectSectionBlock(
             id: ProjectSectionCollapse.uncategorizedId,
             title: "SEM SEÇÃO",
             tasks: uncategorized,
-            showsHeader: !store.sections.isEmpty
+            showsHeader: !sections.isEmpty
           )
         }
 
-        if store.pending.isEmpty && store.completed.isEmpty {
+        if pending.isEmpty && completed.isEmpty {
           Section {
             EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
             .listRowBackground(Color.clear)
           }
         }
 
-        if showCompleted && !store.completed.isEmpty {
+        if showCompleted && !completed.isEmpty {
           Section {
             CollapsibleSectionHeader(
               title: "CONCLUÍDAS",
-              count: store.completed.count,
+              count: completed.count,
               expanded: completedExpanded,
               onToggle: {
                 AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
@@ -92,7 +119,7 @@ struct ProjectDetailView: View {
             .listRowBackground(Color.clear)
 
             if completedExpanded {
-              ForEach(store.completed) { task in
+              ForEach(completed) { task in
                 completedProjectTaskRow(task)
               }
             }
@@ -108,13 +135,12 @@ struct ProjectDetailView: View {
       }
     }
     .listStyle(.plain)
-    .stackedListTailInset()
+    .stackedDrillDownListChrome()
     .stackedTabletCentered()
     .scrollContentBackground(.hidden)
     .background(c.background)
-    .navigationTitle(store.projectName)
-    .navigationBarTitleDisplayMode(.large)
     .navigationBarBackButtonHidden(false)
+    .stackedDrillDownNavChrome(title: store.projectName, background: c.background)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         HStack(spacing: 6) {
@@ -150,7 +176,24 @@ struct ProjectDetailView: View {
       }
     }
     .refreshable { await store.load() }
-    .task { await store.load() }
+    .task(id: store.projectId) {
+      await NavigationPushMotion.awaitSettle()
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowRowHeavyWork = true
+      await NavigationPushMotion.afterSettle {
+        store.adoptSnapshot(initialSnapshot)
+        usesStore = true
+      }
+      if hasLocalContent {
+        _Concurrency.Task {
+          try? await _Concurrency.Task.sleep(for: .milliseconds(600))
+          guard !_Concurrency.Task.isCancelled else { return }
+          await store.load()
+        }
+      } else {
+        await store.load()
+      }
+    }
     .quickAddFloating(
       isPresented: $showQuickAdd,
       initialProjectId: store.projectId,
@@ -236,6 +279,16 @@ struct ProjectDetailView: View {
       get: { deleteSectionTarget != nil },
       set: { if !$0 { deleteSectionTarget = nil } }
     )
+  }
+
+  private func tasks(in sectionId: String?) -> [Task] {
+    pending.filter { $0.sectionId == sectionId }
+  }
+
+  private func ensureStoreLinked() {
+    guard !usesStore else { return }
+    usesStore = true
+    store.adoptSnapshot(initialSnapshot)
   }
 
   private func openToolbarMenu(anchor: CGRect) {
@@ -358,7 +411,9 @@ struct ProjectDetailView: View {
       task: task,
       style: isListMode ? .list : .card,
       showProject: false,
+      deferHeavyWork: deferHeavyRowWork,
       onToggle: {
+        ensureStoreLinked()
         store.complete(task)
       },
       onTap: {
@@ -380,13 +435,26 @@ struct ProjectDetailView: View {
     .taskContextMenu(
       task: task,
       onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-      onComplete: { store.complete(task) },
-      onDuplicate: { store.duplicate(task) },
-      onDelete: { store.delete(task) },
-      onRefresh: { _Concurrency.Task { await store.load() } }
+      onComplete: {
+        ensureStoreLinked()
+        store.complete(task)
+      },
+      onDuplicate: {
+        ensureStoreLinked()
+        store.duplicate(task)
+      },
+      onDelete: {
+        ensureStoreLinked()
+        store.delete(task)
+      },
+      onRefresh: {
+        ensureStoreLinked()
+        _Concurrency.Task { await store.load() }
+      }
     )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
+        ensureStoreLinked()
         store.complete(task)
       } label: {
         Label("Concluir", systemImage: "checkmark")
@@ -396,6 +464,7 @@ struct ProjectDetailView: View {
     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
       Button {
         HapticService.light()
+        ensureStoreLinked()
         _Concurrency.Task { await store.postpone(task) }
       } label: {
         Label("Adiar", systemImage: "clock")
@@ -404,6 +473,7 @@ struct ProjectDetailView: View {
 
       Button(role: .destructive) {
         HapticService.warning()
+        ensureStoreLinked()
         store.delete(task)
       } label: {
         Label("Excluir", systemImage: "trash")
@@ -417,7 +487,11 @@ struct ProjectDetailView: View {
       task: task,
       style: isListMode ? .list : .card,
       showProject: false,
-      onToggle: { store.uncomplete(task) },
+      deferHeavyWork: deferHeavyRowWork,
+      onToggle: {
+        ensureStoreLinked()
+        store.uncomplete(task)
+      },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
       onSubtaskTap: { sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
@@ -435,13 +509,26 @@ struct ProjectDetailView: View {
     .taskContextMenu(
       task: task,
       onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-      onComplete: { store.uncomplete(task) },
-      onDuplicate: { store.duplicate(task) },
-      onDelete: { store.delete(task) },
-      onRefresh: { _Concurrency.Task { await store.load() } }
+      onComplete: {
+        ensureStoreLinked()
+        store.uncomplete(task)
+      },
+      onDuplicate: {
+        ensureStoreLinked()
+        store.duplicate(task)
+      },
+      onDelete: {
+        ensureStoreLinked()
+        store.delete(task)
+      },
+      onRefresh: {
+        ensureStoreLinked()
+        _Concurrency.Task { await store.load() }
+      }
     )
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       Button {
+        ensureStoreLinked()
         store.uncomplete(task)
       } label: {
         Label("Reabrir", systemImage: "arrow.uturn.backward")
@@ -451,6 +538,7 @@ struct ProjectDetailView: View {
     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
       Button {
         HapticService.light()
+        ensureStoreLinked()
         _Concurrency.Task { await store.postpone(task) }
       } label: {
         Label("Adiar", systemImage: "clock")
@@ -459,6 +547,7 @@ struct ProjectDetailView: View {
 
       Button(role: .destructive) {
         HapticService.warning()
+        ensureStoreLinked()
         store.delete(task)
       } label: {
         Label("Excluir", systemImage: "trash")

@@ -101,7 +101,7 @@ enum AppMotion {
   static let taskCompleteDwell: Duration = .milliseconds(300)
 
   /// Push/pop do NavigationStack — adia fetch/reset até a transição terminar (~navMorphSpring + folga).
-  static let navigationPushSettle: Duration = .milliseconds(400)
+  static let navigationPushSettle: Duration = .milliseconds(280)
 
   // MARK: - Reduce Motion (decisão centralizada)
 

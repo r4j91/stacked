@@ -15,6 +15,7 @@ struct SavedFilterResultsScreen: View {
   @Bindable private var store = FiltersStore.shared
   @AppStorage("show_completed_tasks") private var showCompleted = false
   @State private var usesStore = false
+  @State private var allowRowHeavyWork = false
 
   private let rowInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
 
@@ -30,17 +31,16 @@ struct SavedFilterResultsScreen: View {
     usesStore ? store.filterLoading : initialPending.isEmpty && initialCompleted.isEmpty && !store.hasSavedFilterCache(filter.id)
   }
 
+  private var deferHeavyRowWork: Bool {
+    !allowRowHeavyWork
+  }
+
   var body: some View {
     let c = theme.colors
 
     List {
       if isLoading {
-        Section {
-          ProgressView()
-            .tint(c.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
+        TaskListSkeleton(rowCount: 6)
       } else if let err = store.filterError, pendingResults.isEmpty, usesStore {
         Section {
           LoadErrorView(message: err) {
@@ -83,11 +83,9 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedListTailInset()
-    .stackedTabletCentered()
+    .stackedDrillDownListChrome()
     .background(c.background)
-    .navigationTitle(filter.name)
-    .navigationBarTitleDisplayMode(.large)
+    .stackedDrillDownNavChrome(title: filter.name, background: c.background)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         AnchoredTapButton { rect in
@@ -101,6 +99,7 @@ struct SavedFilterResultsScreen: View {
         }
         .buttonStyle(PressableStyle(cornerRadius: 20))
       }
+      .sharedBackgroundVisibility(.hidden)
     }
     .refreshable {
       await store.openSavedFilter(filter)
@@ -108,15 +107,16 @@ struct SavedFilterResultsScreen: View {
       usesStore = true
     }
     .task(id: filter.id) {
-      try? await _Concurrency.Task.sleep(for: AppMotion.navigationPushSettle)
+      await NavigationPushMotion.awaitSettle()
       guard !_Concurrency.Task.isCancelled else { return }
       var transaction = Transaction()
       transaction.disablesAnimations = true
       withTransaction(transaction) {
+        allowRowHeavyWork = true
         store.adoptSavedFilterSession(filter, pending: initialPending, completed: initialCompleted)
         usesStore = true
       }
-      if !store.hasSavedFilterCache(filter.id) {
+      if initialPending.isEmpty && initialCompleted.isEmpty && !store.hasSavedFilterCache(filter.id) {
         await store.openSavedFilter(filter)
       }
     }
@@ -183,14 +183,20 @@ struct SavedFilterResultsScreen: View {
 
   @ViewBuilder
   private func taskRow(_ task: Task, canPostpone: Bool) -> some View {
-    TaskRow(task: task, onToggle: {
-      ensureStoreLinked()
-      store.complete(task)
-    }, onTap: {
-      onTaskTap(task.id)
-    }, onSubtaskTap: { sub in
-      onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
-    })
+    TaskRow(
+      task: task,
+      deferHeavyWork: deferHeavyRowWork,
+      onToggle: {
+        ensureStoreLinked()
+        store.complete(task)
+      },
+      onTap: {
+        onTaskTap(task.id)
+      },
+      onSubtaskTap: { sub in
+        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
+      }
+    )
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailNamespace)
     .taskCompleteRemovalTransition()

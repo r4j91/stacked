@@ -52,4 +52,23 @@ extension View {
     )
     .stackedScrollEdgeChrome()
   }
+
+  /// Dashboard — só borda inferior; sem `.hard` no topo (evita tarja no push do drill-down).
+  func stackedDashboardListChrome() -> some View {
+    safeAreaPadding(
+      .bottom,
+      AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
+    )
+    .scrollEdgeEffectStyle(.hard, for: .bottom)
+  }
+
+  /// Drill-down — corte limpo no topo (iOS 26 scroll edge) + inset inferior do dock.
+  func stackedDrillDownListChrome() -> some View {
+    safeAreaPadding(
+      .bottom,
+      AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
+    )
+    .scrollEdgeEffectStyle(.hard, for: .top)
+    .scrollEdgeEffectStyle(.hard, for: .bottom)
+  }
 }
