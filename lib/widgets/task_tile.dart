@@ -695,7 +695,8 @@ class SubtaskList extends StatelessWidget {
   Widget _buildSubtaskRow(BuildContext context, Subtask sub, int index) {
     final done = _doneAt(index);
     final hasDesc = sub.description != null && sub.description!.isNotEmpty;
-    final hasChips = sub.dueDate != null || sub.labelIds.isNotEmpty;
+    final hasChips =
+        sub.dueDate != null || sub.labelIds.isNotEmpty || sub.priority != null;
     final centerTitle = !hasDesc && !hasChips;
 
     return Row(
@@ -805,6 +806,7 @@ class SubtaskList extends StatelessWidget {
     return TaskMetaLine(
       labels: resolved,
       dueDate: sub.dueDate,
+      subtaskPriority: sub.priority,
       padding: const EdgeInsets.only(top: 6),
     );
   }
@@ -1002,6 +1004,7 @@ TagChip dueDateTagChip(DateTime dueDate) {
 class TaskMetaLine extends StatelessWidget {
   final List<TaskLabel> labels;
   final DateTime? dueDate;
+  final SubtaskPriority? subtaskPriority;
   final int subtasksDone;
   final int subtasksTotal;
   final int commentCount;
@@ -1013,6 +1016,7 @@ class TaskMetaLine extends StatelessWidget {
     super.key,
     this.labels = const [],
     this.dueDate,
+    this.subtaskPriority,
     this.subtasksDone = 0,
     this.subtasksTotal = 0,
     this.commentCount = 0,
@@ -1049,6 +1053,14 @@ class TaskMetaLine extends StatelessWidget {
 
     if (dueDate != null) {
       items.add(dueDateTagChip(dueDate!));
+    }
+
+    if (subtaskPriority != null) {
+      items.add(TagChip(
+        label: subtaskPriority!.label,
+        color: subtaskPriority!.color,
+        hugeIcon: HugeIcons.strokeRoundedFlag01,
+      ));
     }
 
     if (subtasksTotal > 0) {

@@ -52,6 +52,24 @@ struct ListSectionHeader: View {
   }
 }
 
+/// Section header com ação à direita — mesmo alinhamento que `ListSectionHeader`.
+struct ListSectionHeaderWithTrailing<Trailing: View>: View {
+  @Environment(ThemeManager.self) private var theme
+  let text: String
+  @ViewBuilder var trailing: () -> Trailing
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 8) {
+      Text(text)
+        .font(AppTypography.sectionLabel)
+        .foregroundStyle(theme.colors.textTertiary)
+        .tracking(0.6)
+      Spacer(minLength: 0)
+      trailing()
+    }
+  }
+}
+
 /// Header do drill-down em Filtros (voltar + título colorido).
 struct FilterDrillDownHeader: View {
   @Environment(ThemeManager.self) private var theme

@@ -6,6 +6,7 @@ struct TaskMetaLine: View {
 
   let labels: [TaskLabel]
   var dueDate: Date?
+  var priority: Priority?
   /// FASE5: quando presentes, evitam formatação no body.
   var dueDateLabel: String? = nil
   var dueDateColor: Color? = nil
@@ -47,6 +48,10 @@ struct TaskMetaLine: View {
     }
     if labels.count > maxLabels {
       result.append(AnyView(TagChip(label: "+\(labels.count - maxLabels)", color: c.textTertiary, showIcon: false)))
+    }
+
+    if let priority {
+      result.append(AnyView(TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)))
     }
 
     if let dueDate {

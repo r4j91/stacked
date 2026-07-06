@@ -1,5 +1,12 @@
 export type { Task, Subtask, Priority, ViewMode, ViewTasks, TodayStats } from "@/lib/types/task";
 export type { Project, Section } from "@/lib/types/project";
+export type { Label } from "@/lib/types/label";
+import type { SavedFilter, SavedFilterWithCount } from "@/lib/types/saved-filter";
+import {
+  buildCompletedFilterResults,
+  buildPendingFilterResults,
+  countPendingFilterResults,
+} from "@/lib/utils/filter-criteria";
 
 export type MockProject = {
   id: string;
@@ -8,6 +15,34 @@ export type MockProject = {
   icon?: string;
   count: number;
 };
+
+export const MOCK_LABELS: import("@/lib/types/label").Label[] = [
+  { id: "l1", name: "Em Andamento", color: "#8FD46B" },
+  { id: "l2", name: "Ideia", color: "#B18CF5" },
+];
+
+export const MOCK_SAVED_FILTERS: SavedFilter[] = [
+  {
+    id: "sf1",
+    name: "Trabalho urgente",
+    color: "#EF5A5F",
+    sortOrder: 0,
+    criteria: { labelIds: [], priorities: ["high"], projectId: "p1", dateScope: "any" },
+  },
+  {
+    id: "sf2",
+    name: "Em andamento",
+    color: "#8FD46B",
+    sortOrder: 1,
+    criteria: { labelIds: ["l1"], priorities: [], projectId: null, dateScope: "any" },
+  },
+];
+
+let mockSavedFiltersState = [...MOCK_SAVED_FILTERS];
+
+function mockSavedFiltersList(): SavedFilter[] {
+  return mockSavedFiltersState;
+}
 
 export const MOCK_PROJECTS: MockProject[] = [
   { id: "p1", name: "Trabalho", color: "#E8E8EC", icon: "work", count: 1 },
@@ -37,6 +72,7 @@ export const MOCK_TASKS: import("@/lib/types/task").Task[] = [
     dueDate: "2026-06-28",
     priority: "P1",
     done: false,
+    labelIds: [],
   },
   {
     id: "4",
@@ -46,12 +82,23 @@ export const MOCK_TASKS: import("@/lib/types/task").Task[] = [
     projectId: "p2",
     sectionId: "sec1",
     date: "23:05",
+    dueDate: "2026-06-28",
     tag: "Em Andamento",
+    labelIds: ["l1"],
     done: false,
     subtasks: [
       { id: "s1", name: "Presunto", done: false, notes: "Comprar fatias finas." },
       { id: "s2", name: "Item 2", done: true },
     ],
+  },
+  {
+    id: "5",
+    title: "Revisão geral",
+    project: "Trabalho",
+    projectId: "p1",
+    done: false,
+    labelIds: [],
+    subtasks: [{ id: "s3", name: "Ajustar prioridade alta", done: false, priority: "P1" }],
   },
 ];
 
@@ -124,4 +171,70 @@ export function mockFilteredTasks(kind: import("@/lib/types/task").TaskFilterKin
         return false;
     }
   });
+}
+
+export function mockSavedFiltersWithCounts(): SavedFilterWithCount[] {
+  return mockSavedFiltersList().map((f) => ({
+    ...f,
+    pendingCount: countPendingFilterResults(MOCK_TASKS, f.criteria),
+  }));
+}
+
+export function mockSavedFilterById(id: string): SavedFilter | undefined {
+  return mockSavedFiltersList().find((f) => f.id === id);
+}
+
+export function mockCreateSavedFilter(input: {
+  name: string;
+  color: string | null;
+  criteria: SavedFilter["criteria"];
+}): SavedFilter {
+  const filter: SavedFilter = {
+    id: `sf-mock-${Date.now()}`,
+    name: input.name,
+    color: input.color,
+    criteria: input.criteria,
+    sortOrder: mockSavedFiltersState.length,
+  };
+  mockSavedFiltersState = [...mockSavedFiltersState, filter];
+  return filter;
+}
+
+export function mockUpdateSavedFilter(
+  id: string,
+  input: { name: string; color: string | null; criteria: SavedFilter["criteria"] },
+): SavedFilter | undefined {
+  const idx = mockSavedFiltersState.findIndex((f) => f.id === id);
+  if (idx < 0) return undefined;
+  const updated: SavedFilter = {
+    ...mockSavedFiltersState[idx]!,
+    name: input.name,
+    color: input.color,
+    criteria: input.criteria,
+  };
+  mockSavedFiltersState = mockSavedFiltersState.map((f) => (f.id === id ? updated : f));
+  return updated;
+}
+
+export function mockDeleteSavedFilter(id: string): void {
+  mockSavedFiltersState = mockSavedFiltersState.filter((f) => f.id !== id);
+}
+
+export function mockTasksMatchingCriteria(
+  criteria: import("@/lib/types/saved-filter").FilterCriteria,
+  includeCompleted = false,
+) {
+  const pending = buildPendingFilterResults(MOCK_TASKS, criteria);
+  const completed = buildCompletedFilterResults(MOCK_TASKS, criteria);
+  if (includeCompleted) return [...pending, ...completed];
+  return pending;
+}
+
+export function mockPendingAndCompletedMatchingCriteria(
+  criteria: import("@/lib/types/saved-filter").FilterCriteria,
+) {
+  return {
+    pending: buildPendingFilterResults(MOCK_TASKS, criteria),
+    completed: buildCompletedFilterResults(MOCK_TASKS, criteria),
+  };
 }

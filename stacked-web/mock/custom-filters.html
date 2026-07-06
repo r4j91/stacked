@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stacked — Filtros personalizados (mock)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Mobile = Graphite (AppTheme.graphite) · Desktop = Slate (globals.css) */
+    :root {
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 14px;
+      --radius-xl: 16px;
+      --overdue: #EF5A5F;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-purple: #B18CF5;
+      --tag-green: #8FD46B;
+      --done: #7ECC49;
+      --done-bg: rgba(126, 204, 73, 0.15);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.12);
+    }
+
+    html, body { min-height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #0E0F11;
+      color: #F2F3F5;
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: background 0.18s var(--ease), color 0.18s var(--ease), opacity 0.18s var(--ease);
+    }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ── Chrome do mock ── */
+    .mock-chrome {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 20px;
+      padding: 14px 20px;
+      background: #121316;
+      border-bottom: 1px solid var(--border);
+    }
+    .mock-chrome h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .mock-chrome p {
+      font-size: 12px;
+      color: #72727A;
+      flex: 1 1 200px;
+    }
+    .pill-group {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      background: #1C1C20;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .pill-group button {
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9A9AA2;
+    }
+    .pill-group button.active {
+      background: #2C2C32;
+      color: #F2F2F4;
+    }
+
+    .stage {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 20px 48px;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ── Mobile frame (Graphite) ── */
+    .frame-mobile {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --accent-text: #1A1B1E;
+      --nav-bar: #242529;
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 44px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .frame-mobile .status-bar {
+      height: 54px;
+      padding: 14px 28px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .frame-mobile .screen {
+      height: calc(100% - 54px);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .frame-mobile .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 0 120px;
+      scrollbar-width: none;
+    }
+    .frame-mobile .scroll::-webkit-scrollbar { display: none; }
+
+    /* ── Desktop frame (Slate) ── */
+    .frame-desktop {
+      --bg: #16161A;
+      --surface: #1C1C20;
+      --surface-variant: #2C2C32;
+      --surface-hover: #35353D;
+      --text: #F2F2F4;
+      --text-secondary: #9A9AA2;
+      --text-tertiary: #72727A;
+      --accent: #E8E8EC;
+      --accent-text: #0A0A0A;
+      --nav-bar: #2C2C32;
+      width: 1120px;
+      height: 720px;
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .frame-desktop .titlebar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .traffic { display: flex; gap: 7px; }
+    .traffic span {
+      width: 11px; height: 11px; border-radius: 50%;
+    }
+    .traffic .r { background: #FF5F57; }
+    .traffic .y { background: #FEBC2E; }
+    .traffic .g { background: #28C840; }
+    .titlebar-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .workbench {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .sidebar {
+      width: 260px;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 18px 16px 12px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 4px 8px;
+      overflow-y: auto;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: left;
+    }
+    .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+    .nav-item.active {
+      background: var(--surface-variant);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .canvas {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px 32px;
+      max-width: 720px;
+    }
+
+    /* ── Shared UI tokens ── */
+    .screen-title {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      padding: 4px 20px 8px;
+    }
+    .frame-desktop .screen-title { padding: 0 2px 16px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 8px;
+    }
+    .frame-desktop .section-header { padding: 20px 2px 8px; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+    .btn-icon:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+    .btn-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* Stat grid */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 4px 16px 12px;
+    }
+    .frame-desktop .stat-grid { padding: 0 0 16px; }
+    .stat-card {
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border: 1px solid color-mix(in srgb, var(--text-tertiary) 10%, transparent);
+      text-align: left;
+    }
+    .stat-card.overdue {
+      background: color-mix(in srgb, var(--overdue) 7%, var(--surface));
+      border-color: color-mix(in srgb, var(--overdue) 22%, transparent);
+    }
+    .stat-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stat-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.75; }
+    .stat-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-card h3 {
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .stat-card p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Saved filter rows */
+    .saved-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      padding: 13px 20px;
+      text-align: left;
+    }
+    .frame-desktop .saved-filter-row { padding: 11px 10px; border-radius: var(--radius-sm); }
+    .frame-desktop .saved-filter-row:hover { background: var(--surface); }
+    /* Ícone de filtro salvo — só o glyph, sem fundo */
+    .filter-accent-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+    .filter-accent-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.75;
+    }
+    .filter-info { flex: 1; min-width: 0; }
+    .filter-name {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .filter-criteria {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .filter-count {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+    .chevron {
+      width: 14px;
+      height: 14px;
+      stroke: var(--text-tertiary);
+      fill: none;
+      stroke-width: 2;
+      opacity: 0.7;
+    }
+
+    /* Project rows */
+    .project-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 20px;
+      width: 100%;
+      text-align: left;
+    }
+    .frame-desktop .project-row { padding: 10px; border-radius: var(--radius-sm); }
+    .frame-desktop .project-row:hover { background: var(--surface); }
+    .project-icon { font-size: 22px; width: 28px; text-align: center; }
+    .project-body { flex: 1; min-width: 0; }
+    .project-name { font-size: 16px; font-weight: 500; }
+    .project-bar {
+      height: 3px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--text-tertiary) 12%, transparent);
+      margin-top: 7px;
+      overflow: hidden;
+    }
+    .project-bar-fill { height: 100%; border-radius: 999px; }
+
+    /* Drill-down header */
+    .drill-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px 12px;
+    }
+    .frame-desktop .drill-header { padding: 0 2px 16px; }
+    .back-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .back-btn svg { width: 14px; height: 14px; stroke: var(--text-secondary); fill: none; stroke-width: 2.5; }
+    .drill-titles { flex: 1; min-width: 0; }
+    .drill-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .drill-sub {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .menu-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+    .menu-btn:hover { background: var(--surface-variant); }
+
+    /* Task rows */
+    .task-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-height: 54px;
+      padding: 10px 16px 10px 20px;
+      text-align: left;
+    }
+    .frame-desktop .task-row { padding: 10px 10px 10px 4px; border-radius: var(--radius-md); }
+    .frame-desktop .task-row:hover { background: var(--surface); }
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .checkbox.done {
+      border-color: var(--done);
+      background: var(--done-bg);
+    }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title {
+      font-size: 15.5px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .task-row.done { opacity: 0.72; }
+    .task-row.done .task-title {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+    .task-preview {
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+    .meta-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .completed-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .frame-desktop .completed-divider { padding: 16px 4px 8px; }
+    .completed-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Builder sheet (mobile) */
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 50;
+    }
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 92%;
+      background: var(--surface);
+      border-radius: 16px 16px 0 0;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.35);
+    }
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--text-tertiary);
+      opacity: 0.35;
+      margin: 10px auto 0;
+    }
+    .sheet-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 8px;
+    }
+    .sheet-toolbar button {
+      font-size: 15px;
+      font-weight: 600;
+      padding: 8px 4px;
+    }
+    .sheet-toolbar .cancel { color: var(--text-secondary); }
+    .sheet-toolbar .save { color: var(--accent); }
+    .sheet-toolbar h2 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 20px 28px;
+    }
+
+    /* Builder modal (desktop) */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal {
+      width: 480px;
+      max-height: 90%;
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-strong);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 700; }
+    .modal-actions { display: flex; gap: 8px; }
+    .btn-secondary {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--surface-variant);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--surface-hover); }
+    .btn-primary {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+
+    /* Builder form */
+    .field { margin-bottom: 22px; }
+    .field-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .text-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .text-input:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    /* Meta rows — paridade TaskDetailView metaRow + QuickAdd pickers */
+    .builder-hairline {
+      height: 1px;
+      background: var(--text-tertiary);
+      opacity: 0.15;
+      margin: 8px 20px 0;
+    }
+    /* Toolbar — paridade QuickAddTaskView (projectChip + metadataIconButton) */
+    .metadata-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .metadata-toolbar::-webkit-scrollbar { display: none; }
+    .project-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 44px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 14.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      color: var(--text-secondary);
+      background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+      border: 0.6px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
+    }
+    .project-chip.active {
+      color: var(--chip-accent, var(--accent));
+      background: color-mix(in srgb, var(--chip-accent, var(--accent)) 14%, transparent);
+      border-color: transparent;
+    }
+    .project-chip svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.75; flex-shrink: 0; }
+    .meta-icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+      border: 0.6px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
+    }
+    .meta-icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.75; }
+    .meta-icon-btn.active {
+      color: var(--btn-accent, var(--accent));
+      background: color-mix(in srgb, var(--btn-accent, var(--accent)) 15%, transparent);
+      border-color: transparent;
+    }
+    .meta-icon-btn .color-dot-inner {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    /* Meta chips — paridade quick-add-sheet MetaChip (web) */
+    .meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 0 16px;
+    }
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 100%;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .meta-chip:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .meta-chip.active {
+      border-color: var(--border-strong);
+      background: var(--surface-variant);
+      color: var(--text);
+    }
+    .meta-chip svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.75; flex-shrink: 0; }
+    .meta-chip .chip-label { color: inherit; }
+    .meta-chip.active .chip-label { color: var(--chip-accent, var(--text)); }
+    .meta-chip.active svg { stroke: var(--chip-accent, var(--text-secondary)); }
+    .meta-chip .color-dot-inner { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Menus ancorados — paridade StackedPopoverMenu / PopoverStyle */
+    .anchor-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.18);
+      z-index: 70;
+    }
+    .anchor-popover {
+      position: absolute;
+      z-index: 80;
+      width: 260px;
+      background: color-mix(in srgb, var(--surface-variant) 92%, white 8%);
+      border: 0.5px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .anchor-popover.color-grid-popover { padding: 14px; }
+    .anchor-popover-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 0 2px 10px;
+    }
+    .popover-menu-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 48px;
+      padding: 0 14px;
+      text-align: left;
+      font-size: 15px;
+    }
+    .popover-menu-row:hover { background: rgba(255,255,255,0.05); }
+    .popover-menu-row.selected { background: color-mix(in srgb, var(--row-accent, var(--accent)) 12%, transparent); }
+    .popover-menu-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      stroke: var(--row-accent, var(--text-secondary));
+      fill: none;
+      stroke-width: 1.75;
+    }
+    .popover-menu-label { flex: 1; }
+    .popover-menu-check {
+      width: 16px;
+      height: 16px;
+      stroke: var(--row-accent, var(--accent));
+      fill: none;
+      stroke-width: 2.5;
+      opacity: 0;
+    }
+    .popover-menu-row.selected .popover-menu-check { opacity: 1; }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    .color-grid button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      margin: 0 auto;
+      position: relative;
+    }
+    .color-grid button.selected {
+      border-color: rgba(255,255,255,0.45);
+    }
+    .color-grid button.selected::after {
+      content: "✓";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .radio-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-align: left;
+      width: 100%;
+    }
+    .radio-item.selected {
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface-variant));
+      color: var(--text);
+    }
+    .radio-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .radio-item.selected .radio-dot {
+      border-color: var(--accent);
+    }
+    .radio-item.selected .radio-dot::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* Popover menu */
+    .popover {
+      position: absolute;
+      top: 56px;
+      right: 16px;
+      width: 220px;
+      background: var(--surface-variant);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      z-index: 30;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    }
+    .frame-desktop .popover { top: 48px; right: 0; }
+    .popover-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      text-align: left;
+      color: var(--text);
+    }
+    .popover-item:hover { background: rgba(255,255,255,0.05); }
+    .popover-item.danger { color: var(--overdue); }
+    .popover-item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; }
+
+    /* Mobile bottom nav + FAB */
+    .mobile-chrome-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0 16px 28px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .nav-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 62px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--nav-bar) 88%, transparent);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      pointer-events: auto;
+    }
+    .nav-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 10.5px;
+      color: var(--text-tertiary);
+      padding: 6px 8px;
+    }
+    .nav-slot.active { color: var(--accent); font-weight: 600; }
+    .nav-slot svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.75; }
+    .fab {
+      position: absolute;
+      right: 24px;
+      bottom: 98px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      pointer-events: auto;
+      z-index: 11;
+    }
+    .fab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+    .hidden { display: none !important; }
+
+    .legend {
+      max-width: 390px;
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: #1C1C20;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: #9A9AA2;
+      line-height: 1.5;
+    }
+    .legend strong { color: #F2F2F4; font-weight: 600; }
+
+    @media (max-width: 1180px) {
+      .stage { flex-direction: column; align-items: center; }
+      .frame-desktop { width: 100%; max-width: 1120px; height: 680px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="mock-chrome">
+    <h1>Filtros personalizados — Mock Fase 0</h1>
+    <p>Prova visual antes da implementação. Tokens Graphite (mobile) e Slate (web).</p>
+    <div class="pill-group" role="tablist" aria-label="Plataforma">
+      <button type="button" class="active" data-platform="mobile" role="tab" aria-selected="true">Mobile (iOS)</button>
+      <button type="button" data-platform="desktop" role="tab" aria-selected="false">Web (desktop)</button>
+    </div>
+    <div class="pill-group" role="tablist" aria-label="Tela">
+      <button type="button" class="active" data-screen="dashboard" role="tab" aria-selected="true">Dashboard</button>
+      <button type="button" data-screen="builder" role="tab" aria-selected="false">Construtor</button>
+      <button type="button" data-screen="drilldown" role="tab" aria-selected="false">Filtro salvo</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <!-- MOBILE -->
+    <div id="frame-mobile" class="frame-mobile">
+      <div class="status-bar">
+        <span>21:04</span>
+        <span style="font-size:12px;opacity:0.7">●●●</span>
+      </div>
+      <div class="screen">
+        <!-- Dashboard -->
+        <div class="view view-dashboard">
+          <div class="scroll">
+            <h1 class="screen-title">Filtros</h1>
+            <div class="stat-grid">
+              <div class="stat-card overdue">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(239,90,95,0.14);color:#EF5A5F">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(239,90,95,0.16);color:#EF5A5F">3</span>
+                </div>
+                <h3>Atrasadas</h3>
+                <p>3 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F3F5">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(107,110,118,0.12);color:#6B6E76">5</span>
+                </div>
+                <h3>Hoje</h3>
+                <p>5 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F3F5">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(107,110,118,0.12);color:#6B6E76">8</span>
+                </div>
+                <h3>Próximos 7 dias</h3>
+                <p>8 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F3F5">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <h3>Concluídas hoje</h3>
+                <p>Nenhuma</p>
+              </div>
+            </div>
+
+            <div class="section-header">
+              <span class="section-label">Meus filtros</span>
+              <button type="button" class="btn-icon" aria-label="Novo filtro" data-goto="builder">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <button type="button" class="saved-filter-row" data-goto="drilldown">
+              <div class="filter-accent-icon" style="color:#B18CF5">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+              <div class="filter-info">
+                <div class="filter-name">Ideias</div>
+                <div class="filter-criteria">Etiqueta Ideia</div>
+              </div>
+              <span class="filter-count">12</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button type="button" class="saved-filter-row">
+              <div class="filter-accent-icon" style="color:#EF5A5F">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+              <div class="filter-info">
+                <div class="filter-name">Alta prioridade</div>
+                <div class="filter-criteria">Prioridade Alta</div>
+              </div>
+              <span class="filter-count">3</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button type="button" class="saved-filter-row">
+              <div class="filter-accent-icon" style="color:#5FD3DC">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+              <div class="filter-info">
+                <div class="filter-name">Trabalho urgente</div>
+                <div class="filter-criteria">Em andamento · Alta · Projeto Alpha</div>
+              </div>
+              <span class="filter-count">7</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <div class="section-header">
+              <span class="section-label">Projetos</span>
+            </div>
+            <button type="button" class="project-row">
+              <span class="project-icon" style="color:#5FD3DC">
+                <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </span>
+              <div class="project-body">
+                <div class="project-name">Projeto Alpha</div>
+                <div class="project-bar"><div class="project-bar-fill" style="width:58%;background:#5FD3DC"></div></div>
+              </div>
+              <span class="filter-count">4</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button type="button" class="project-row">
+              <span class="project-icon" style="color:#B18CF5">
+                <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </span>
+              <div class="project-body">
+                <div class="project-name">Pessoal</div>
+                <div class="project-bar"><div class="project-bar-fill" style="width:30%;background:#B18CF5"></div></div>
+              </div>
+              <span class="filter-count">2</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="mobile-chrome-bottom">
+            <div class="nav-pill">
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Navegar</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Inbox</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Hoje</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Em breve</div>
+              <div class="nav-slot active"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros</div>
+            </div>
+          </div>
+          <button type="button" class="fab" aria-label="Nova tarefa">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <!-- Builder -->
+        <div class="view view-builder hidden" style="position:relative">
+          <div class="scroll" style="opacity:0.35;pointer-events:none">
+            <h1 class="screen-title">Filtros</h1>
+            <div class="stat-grid" style="padding-bottom:40px"><div class="stat-card"><h3>Hoje</h3></div><div class="stat-card"><h3>7 dias</h3></div></div>
+          </div>
+          <div class="sheet-backdrop"></div>
+          <div class="sheet" style="position:relative">
+            <div class="sheet-handle"></div>
+            <div class="sheet-toolbar">
+              <button type="button" class="cancel" data-goto="dashboard">Cancelar</button>
+              <h2>Novo filtro</h2>
+              <button type="button" class="save" data-goto="dashboard">Salvar</button>
+            </div>
+            <div class="sheet-body" style="padding-left:0;padding-right:0">
+              <div class="field" style="padding:0 20px;margin-bottom:0">
+                <div class="field-label">Nome</div>
+                <input class="text-input" type="text" value="Trabalho urgente" />
+              </div>
+              <div class="builder-hairline"></div>
+              <div class="metadata-toolbar">
+                <button type="button" class="project-chip active" data-open-popover="project-m" style="--chip-accent:#5FD3DC">
+                  <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  Projeto Alpha
+                </button>
+                <button type="button" class="meta-icon-btn active" data-open-popover="labels-m" style="--btn-accent:#8FD46B" aria-label="Etiquetas">
+                  <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                </button>
+                <button type="button" class="meta-icon-btn active" data-open-popover="priority-m" style="--btn-accent:#EF5A5F" aria-label="Prioridade">
+                  <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                </button>
+                <button type="button" class="meta-icon-btn active" data-open-popover="color-m" aria-label="Cor do filtro">
+                  <span class="color-dot-inner" id="swatch-preview-m" style="background:#5FD3DC"></span>
+                </button>
+              </div>
+              <div class="field" style="padding:0 20px;margin-bottom:0">
+                <div class="field-label">Data</div>
+                <div class="radio-row" data-radio-group="date">
+                  <button type="button" class="radio-item"><span class="radio-dot"></span>Qualquer</button>
+                  <button type="button" class="radio-item selected"><span class="radio-dot"></span>Atrasadas</button>
+                  <button type="button" class="radio-item"><span class="radio-dot"></span>Hoje</button>
+                  <button type="button" class="radio-item"><span class="radio-dot"></span>Próximos 7 dias</button>
+                  <button type="button" class="radio-item"><span class="radio-dot"></span>Sem data</button>
+                </div>
+              </div>
+            </div>
+            <!-- Popovers ancorados (paridade QuickAdd / TaskDetail) -->
+            <div class="anchor-scrim hidden" data-builder-scrim="mobile"></div>
+            <div class="anchor-popover hidden" data-builder-popover="labels-m" style="left:16px;bottom:200px">
+              <button type="button" class="popover-menu-row" style="--row-accent:#B18CF5"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Ideia</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row selected" style="--row-accent:#8FD46B"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Em andamento</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row" style="--row-accent:#9CA3AF"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Revisão</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+            </div>
+            <div class="anchor-popover hidden" data-builder-popover="priority-m" style="left:16px;bottom:200px">
+              <button type="button" class="popover-menu-row"><svg class="popover-menu-icon" style="stroke:#6B6E76" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Sem prioridade</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row selected" style="--row-accent:#EF5A5F"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 1</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row" style="--row-accent:#F5A623"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 2</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row" style="--row-accent:#4D9FEC"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 3</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+            </div>
+            <div class="anchor-popover hidden" data-builder-popover="project-m" style="left:16px;bottom:200px">
+              <button type="button" class="popover-menu-row"><svg class="popover-menu-icon" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/></svg><span class="popover-menu-label">Qualquer projeto</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row selected" style="--row-accent:#5FD3DC"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="popover-menu-label">Projeto Alpha</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button type="button" class="popover-menu-row" style="--row-accent:#B18CF5"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="popover-menu-label">Pessoal</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+            </div>
+            <div class="anchor-popover color-grid-popover hidden" data-builder-popover="color-m" style="left:16px;bottom:160px">
+              <div class="anchor-popover-title">Cor</div>
+              <div class="color-grid" id="color-grid-m"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drill-down -->
+        <div class="view view-drilldown hidden">
+          <div class="scroll">
+            <div class="drill-header">
+              <button type="button" class="back-btn" data-goto="dashboard" aria-label="Voltar">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div class="drill-titles">
+                <div class="drill-title" style="color:#B18CF5">Ideias</div>
+                <div class="drill-sub">12 tarefas</div>
+              </div>
+              <button type="button" class="menu-btn" id="mobile-menu-btn" aria-label="Opções">
+                <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" fill="currentColor" stroke-width="0"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+            </div>
+            <div class="popover hidden" id="mobile-popover">
+              <button type="button" class="popover-item" id="toggle-completed-mobile">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span id="toggle-completed-label-mobile">Mostrar concluídas</span>
+              </button>
+              <button type="button" class="popover-item" data-goto="builder">Editar filtro</button>
+              <button type="button" class="popover-item danger">Excluir filtro</button>
+            </div>
+
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Revisar brief do cliente</div>
+                <div class="task-preview">Checar escopo e prazos antes da call de amanhã</div>
+                <div class="task-meta">
+                  <span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span>
+                  <span class="meta-text">Projeto Alpha</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Escrever post LinkedIn</div>
+                <div class="task-meta">
+                  <span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Brainstorm feature filtros</div>
+                <div class="task-preview">Anotar critérios: etiqueta, prioridade, projeto, data</div>
+                <div class="task-meta">
+                  <span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span>
+                  <span class="meta-text">2/4 subtarefas</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="completed-section hidden" id="mobile-completed">
+              <div class="completed-divider">Concluídas <span style="font-weight:400;color:var(--text-tertiary)">(3)</span></div>
+              <div class="task-row done">
+                <div class="checkbox done"></div>
+                <div class="task-body">
+                  <div class="task-title">Rascunho v1 do mockup</div>
+                  <div class="task-meta"><span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span></div>
+                </div>
+              </div>
+              <div class="task-row done">
+                <div class="checkbox done"></div>
+                <div class="task-body">
+                  <div class="task-title">Pesquisar filtros Todoist</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-chrome-bottom">
+            <div class="nav-pill">
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Navegar</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/></svg>Inbox</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Hoje</div>
+              <div class="nav-slot"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>Em breve</div>
+              <div class="nav-slot active"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESKTOP -->
+    <div id="frame-desktop" class="frame-desktop hidden">
+      <div class="titlebar">
+        <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <span class="titlebar-label">Stacked — Filtros</span>
+      </div>
+      <div class="workbench">
+        <aside class="sidebar">
+          <div class="sidebar-logo">Stacked</div>
+          <nav class="sidebar-nav">
+            <button type="button" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Navegar</button>
+            <button type="button" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/></svg>Inbox</button>
+            <button type="button" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Hoje</button>
+            <button type="button" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/></svg>Em breve</button>
+            <button type="button" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros</button>
+          </nav>
+        </aside>
+
+        <div class="canvas" style="position:relative">
+          <!-- Dashboard -->
+          <div class="view view-dashboard">
+            <h1 class="screen-title">Filtros</h1>
+            <div class="stat-grid">
+              <div class="stat-card overdue">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(239,90,95,0.14);color:#EF5A5F">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(239,90,95,0.16);color:#EF5A5F">3</span>
+                </div>
+                <h3>Atrasadas</h3>
+                <p>3 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F2F4">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(114,114,122,0.12);color:#72727A">5</span>
+                </div>
+                <h3>Hoje</h3>
+                <p>5 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F2F4">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <span class="stat-badge" style="background:rgba(114,114,122,0.12);color:#72727A">8</span>
+                </div>
+                <h3>Próximos 7 dias</h3>
+                <p>8 tarefas</p>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-top">
+                  <div class="stat-icon" style="background:rgba(255,255,255,0.06);color:#F2F2F4">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <h3>Concluídas hoje</h3>
+                <p>Nenhuma</p>
+              </div>
+            </div>
+
+            <div class="section-header">
+              <span class="section-label">Meus filtros</span>
+              <button type="button" class="btn-icon" data-goto="builder" style="color:var(--text);background:var(--surface-variant)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <button type="button" class="saved-filter-row" data-goto="drilldown">
+              <div class="filter-accent-icon" style="color:#B18CF5">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+              <div class="filter-info">
+                <div class="filter-name">Ideias</div>
+                <div class="filter-criteria">Etiqueta Ideia</div>
+              </div>
+              <span class="filter-count">12</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button type="button" class="saved-filter-row">
+              <div class="filter-accent-icon" style="color:#EF5A5F">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+              <div class="filter-info">
+                <div class="filter-name">Alta prioridade</div>
+                <div class="filter-criteria">Prioridade Alta</div>
+              </div>
+              <span class="filter-count">3</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button type="button" class="saved-filter-row">
+              <div class="filter-accent-icon" style="color:#E8E8EC">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </div>
+                <div class="filter-name">Trabalho urgente</div>
+                <div class="filter-criteria">Em andamento · Alta · Projeto Alpha</div>
+              </div>
+              <span class="filter-count">7</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <div class="section-header">
+              <span class="section-label">Projetos</span>
+            </div>
+            <button type="button" class="project-row">
+              <span class="project-icon" style="color:#E8E8EC">
+                <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </span>
+              <div class="project-body">
+                <div class="project-name">Projeto Alpha</div>
+                <div class="project-bar"><div class="project-bar-fill" style="width:58%;background:#E8E8EC"></div></div>
+              </div>
+              <span class="filter-count">4</span>
+              <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Builder modal -->
+          <div class="view view-builder hidden" style="position:relative">
+            <div style="opacity:0.4;pointer-events:none">
+              <h1 class="screen-title">Filtros</h1>
+              <div class="stat-grid"><div class="stat-card"><h3>Hoje</h3></div><div class="stat-card"><h3>7 dias</h3></div></div>
+            </div>
+            <div class="modal-backdrop">
+              <div class="modal" role="dialog" aria-labelledby="modal-title" style="position:relative;overflow:visible">
+                <div class="modal-header">
+                  <h2 id="modal-title">Novo filtro</h2>
+                  <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-goto="dashboard">Cancelar</button>
+                    <button type="button" class="btn-primary" data-goto="dashboard">Salvar</button>
+                  </div>
+                </div>
+                <div class="sheet-body" style="padding:0 20px 20px">
+                  <div class="field">
+                    <div class="field-label">Nome</div>
+                    <input class="text-input" type="text" value="Trabalho urgente" />
+                  </div>
+                  <div class="meta-chips">
+                    <button type="button" class="meta-chip active" data-open-popover="project-d" style="--chip-accent:#E8E8EC">
+                      <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                      <span class="chip-label">Projeto Alpha</span>
+                    </button>
+                    <button type="button" class="meta-chip active" data-open-popover="labels-d" style="--chip-accent:#8FD46B">
+                      <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+                      <span class="chip-label">Em andamento</span>
+                    </button>
+                    <button type="button" class="meta-chip active" data-open-popover="priority-d" style="--chip-accent:#EF5A5F">
+                      <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg>
+                      <span class="chip-label">Prioridade 1</span>
+                    </button>
+                    <button type="button" class="meta-chip active" data-open-popover="color-d" style="--chip-accent:#B18CF5">
+                      <span class="color-dot-inner" id="swatch-preview-d" style="background:#B18CF5"></span>
+                      <span class="chip-label">Cor</span>
+                    </button>
+                  </div>
+                  <div class="field" style="margin-top:4px;margin-bottom:0">
+                    <div class="field-label">Data</div>
+                    <div class="radio-row" data-radio-group="date-d">
+                      <button type="button" class="radio-item"><span class="radio-dot"></span>Qualquer</button>
+                      <button type="button" class="radio-item selected"><span class="radio-dot"></span>Atrasadas</button>
+                      <button type="button" class="radio-item"><span class="radio-dot"></span>Hoje</button>
+                      <button type="button" class="radio-item"><span class="radio-dot"></span>Próximos 7 dias</button>
+                      <button type="button" class="radio-item"><span class="radio-dot"></span>Sem data</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Popovers desktop — posicionados sobre o modal -->
+              <div class="anchor-scrim hidden" data-builder-scrim="desktop" style="position:absolute;inset:0;z-index:60"></div>
+              <div class="anchor-popover hidden" data-builder-popover="labels-d" style="position:absolute;left:calc(50% - 130px);top:38%;z-index:70">
+                <button type="button" class="popover-menu-row" style="--row-accent:#B18CF5"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Ideia</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row selected" style="--row-accent:#8FD46B"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Em andamento</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row" style="--row-accent:#9CA3AF"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg><span class="popover-menu-label">Revisão</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              </div>
+              <div class="anchor-popover hidden" data-builder-popover="priority-d" style="position:absolute;left:calc(50% - 130px);top:38%;z-index:70">
+                <button type="button" class="popover-menu-row"><svg class="popover-menu-icon" style="stroke:#72727A" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Sem prioridade</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row selected" style="--row-accent:#EF5A5F"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 1</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row" style="--row-accent:#F5A623"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 2</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row" style="--row-accent:#4D9FEC"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg><span class="popover-menu-label">Prioridade 3</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              </div>
+              <div class="anchor-popover hidden" data-builder-popover="project-d" style="position:absolute;left:calc(50% - 130px);top:38%;z-index:70">
+                <button type="button" class="popover-menu-row"><svg class="popover-menu-icon" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/></svg><span class="popover-menu-label">Qualquer projeto</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row selected" style="--row-accent:#E8E8EC"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="popover-menu-label">Projeto Alpha</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                <button type="button" class="popover-menu-row" style="--row-accent:#B18CF5"><svg class="popover-menu-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="popover-menu-label">Pessoal</span><svg class="popover-menu-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+              </div>
+              <div class="anchor-popover color-grid-popover hidden" data-builder-popover="color-d" style="position:absolute;left:calc(50% - 130px);top:32%;z-index:70">
+                <div class="anchor-popover-title">Cor</div>
+                <div class="color-grid" id="color-grid-d"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drill-down -->
+          <div class="view view-drilldown hidden">
+            <button type="button" class="back-btn" data-goto="dashboard" style="width:auto;height:auto;padding:6px 0 12px;background:none;display:inline-flex;gap:6px;font-size:13px;color:var(--text-secondary)">
+              <svg style="width:14px;height:14px" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Filtros
+            </button>
+            <div class="drill-header" style="padding-left:0;padding-right:0;position:relative">
+              <div class="drill-titles">
+                <div class="drill-title" style="color:#B18CF5;font-size:18px">Ideias</div>
+                <div class="drill-sub">12 tarefas</div>
+              </div>
+              <button type="button" class="btn-secondary" id="desktop-menu-btn" style="margin-left:auto">Opções</button>
+              <div class="popover hidden" id="desktop-popover">
+                <button type="button" class="popover-item" id="toggle-completed-desktop">
+                  <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span id="toggle-completed-label-desktop">Mostrar concluídas</span>
+                </button>
+                <button type="button" class="popover-item" data-goto="builder">Editar filtro</button>
+                <button type="button" class="popover-item danger">Excluir filtro</button>
+              </div>
+            </div>
+
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Revisar brief do cliente</div>
+                <div class="task-preview">Checar escopo e prazos antes da call de amanhã</div>
+                <div class="task-meta">
+                  <span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span>
+                  <span class="meta-text">Projeto Alpha</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Escrever post LinkedIn</div>
+                <div class="task-meta"><span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span></div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="checkbox"></div>
+              <div class="task-body">
+                <div class="task-title">Brainstorm feature filtros</div>
+                <div class="task-preview">Anotar critérios: etiqueta, prioridade, projeto, data</div>
+                <div class="task-meta">
+                  <span class="tag" style="background:rgba(177,140,245,0.18);color:#B18CF5">Ideia</span>
+                  <span class="meta-text">2/4 subtarefas</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="completed-section hidden" id="desktop-completed">
+              <div class="completed-divider">Concluídas <span style="font-weight:400;color:var(--text-tertiary)">(3)</span></div>
+              <div class="task-row done">
+                <div class="checkbox done"></div>
+                <div class="task-body">
+                  <div class="task-title">Rascunho v1 do mockup</div>
+                </div>
+              </div>
+              <div class="task-row done">
+                <div class="checkbox done"></div>
+                <div class="task-body">
+                  <div class="task-title">Pesquisar filtros Todoist</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="legend" id="legend">
+      <strong>O que validar</strong><br>
+      Lista: ícone de filtro <strong>sem fundo</strong>, só cor do glyph · Construtor mobile: <strong>projectChip + botões circulares</strong> (QuickAdd) · Web: <strong>MetaChips</strong> (quick-add-sheet) · Menus ancorados + paleta completa · Data com radio.
+    </aside>
+  </main>
+
+  <script>
+    const PALETTE_HEX = [
+      "#63C7D8","#6F8FB8","#84B98E","#789C6B","#C58D97","#C58A72",
+      "#A496C8","#6F79B6","#C7B38A","#D3B36A","#7F99A8","#9CA3AF",
+      "#5FD3DC","#4D9FEC","#B18CF5","#8FD46B","#F5A623","#EF5A5F",
+      "#FF85A1","#64D8A0","#FFD166","#E07B54",
+      "#F43F5E","#EC4899","#D946EF","#06B6D4","#10B981","#84CC16",
+      "#F59E0B","#F97316",
+      "#0E7490","#1D4ED8","#6D28D9","#15803D","#B45309","#B91C1C",
+      "#BE185D","#047857","#0F766E","#1E40AF","#5B21B6","#166534",
+      "#92400E","#7F1D1D","#831843","#134E4A",
+    ];
+
+    let platform = "mobile";
+    let screen = "dashboard";
+    let showCompleted = false;
+    let selectedColor = { mobile: "#5FD3DC", desktop: "#B18CF5" };
+    let openBuilderPopover = null;
+
+    const platformBtns = document.querySelectorAll("[data-platform]");
+    const screenBtns = document.querySelectorAll("[data-screen]");
+    const frameMobile = document.getElementById("frame-mobile");
+    const frameDesktop = document.getElementById("frame-desktop");
+    const legend = document.getElementById("legend");
+
+    function buildColorGrids() {
+      ["m", "d"].forEach((suffix) => {
+        const grid = document.getElementById("color-grid-" + suffix);
+        if (!grid || grid.childElementCount) return;
+        const key = suffix === "m" ? "mobile" : "desktop";
+        const selected = selectedColor[key];
+        PALETTE_HEX.forEach((hex) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.style.background = hex;
+          btn.dataset.hex = hex;
+          btn.dataset.grid = suffix;
+          if (hex === selected) btn.classList.add("selected");
+          grid.appendChild(btn);
+        });
+      });
+    }
+
+    function activeFrame() {
+      return platform === "mobile" ? frameMobile : frameDesktop;
+    }
+
+    function closeBuilderPopovers() {
+      openBuilderPopover = null;
+      document.querySelectorAll("[data-builder-popover]").forEach((p) => p.classList.add("hidden"));
+      document.querySelectorAll("[data-builder-scrim]").forEach((s) => s.classList.add("hidden"));
+    }
+
+    function openBuilderPopoverById(id) {
+      closeBuilderPopovers();
+      openBuilderPopover = id;
+      const pop = document.querySelector('[data-builder-popover="' + id + '"]');
+      const scrimKey = id.endsWith("-m") ? "mobile" : "desktop";
+      const scrim = document.querySelector('[data-builder-scrim="' + scrimKey + '"]');
+      if (pop) pop.classList.remove("hidden");
+      if (scrim) scrim.classList.remove("hidden");
+    }
+
+    function showView(name) {
+      screen = name;
+      screenBtns.forEach((b) => {
+        const on = b.dataset.screen === name;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      activeFrame().querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+      const view = activeFrame().querySelector(".view-" + name);
+      if (view) view.classList.remove("hidden");
+      closeBuilderPopovers();
+      closeOptionPopovers();
+      if (name === "builder") {
+        const suffix = platform === "mobile" ? "labels-m" : "labels-d";
+        openBuilderPopoverById(suffix);
+      }
+    }
+
+    function closeOptionPopovers() {
+      document.querySelectorAll("#mobile-popover, #desktop-popover").forEach((p) => p.classList.add("hidden"));
+    }
+
+    function setPlatform(p) {
+      platform = p;
+      platformBtns.forEach((b) => {
+        const on = b.dataset.platform === p;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      frameMobile.classList.toggle("hidden", p !== "mobile");
+      frameDesktop.classList.toggle("hidden", p !== "desktop");
+      legend.style.maxWidth = p === "mobile" ? "390px" : "360px";
+      showView(screen);
+    }
+
+    function toggleCompleted() {
+      showCompleted = !showCompleted;
+      const label = showCompleted ? "Ocultar concluídas" : "Mostrar concluídas";
+      ["mobile", "desktop"].forEach((pfx) => {
+        const section = document.getElementById(pfx + "-completed");
+        const lbl = document.getElementById("toggle-completed-label-" + pfx);
+        if (section) section.classList.toggle("hidden", !showCompleted);
+        if (lbl) lbl.textContent = label;
+      });
+      closeOptionPopovers();
+    }
+
+    buildColorGrids();
+
+    platformBtns.forEach((b) => b.addEventListener("click", () => setPlatform(b.dataset.platform)));
+    screenBtns.forEach((b) => b.addEventListener("click", () => showView(b.dataset.screen)));
+
+    document.body.addEventListener("click", (e) => {
+      const goto = e.target.closest("[data-goto]");
+      if (goto) {
+        showView(goto.dataset.goto);
+        return;
+      }
+
+      const openPopover = e.target.closest("[data-open-popover]");
+      if (openPopover) {
+        openBuilderPopoverById(openPopover.dataset.openPopover);
+        return;
+      }
+
+      const colorBtn = e.target.closest(".color-grid button");
+      if (colorBtn) {
+        const hex = colorBtn.dataset.hex;
+        const suffix = colorBtn.dataset.grid;
+        const key = suffix === "m" ? "mobile" : "desktop";
+        selectedColor[key] = hex;
+        document.querySelectorAll("#color-grid-" + suffix + " button").forEach((b) => {
+          b.classList.toggle("selected", b.dataset.hex === hex);
+        });
+        const preview = document.getElementById("swatch-preview-" + suffix);
+        if (preview) preview.style.background = hex;
+        closeBuilderPopovers();
+        return;
+      }
+
+      if (e.target.closest("[data-builder-scrim]")) {
+        closeBuilderPopovers();
+        return;
+      }
+
+      const radio = e.target.closest(".radio-item");
+      if (radio) {
+        const group = radio.closest("[data-radio-group]");
+        group.querySelectorAll(".radio-item").forEach((r) => r.classList.remove("selected"));
+        radio.classList.add("selected");
+        return;
+      }
+
+      if (e.target.closest("#mobile-menu-btn")) {
+        document.getElementById("mobile-popover").classList.toggle("hidden");
+        return;
+      }
+      if (e.target.closest("#desktop-menu-btn")) {
+        document.getElementById("desktop-popover").classList.toggle("hidden");
+        return;
+      }
+      if (e.target.closest("#toggle-completed-mobile") || e.target.closest("#toggle-completed-desktop")) {
+        toggleCompleted();
+        return;
+      }
+
+      if (!e.target.closest(".popover") && !e.target.closest("#mobile-menu-btn") && !e.target.closest("#desktop-menu-btn")) {
+        closeOptionPopovers();
+      }
+    });
+
+    setPlatform("mobile");
+  </script>
+</body>
+</html>

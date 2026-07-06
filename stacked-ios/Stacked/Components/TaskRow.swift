@@ -43,8 +43,7 @@ struct TaskRow: View {
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
-      guard task.subtasks.contains(where: { !$0.labelIds.isEmpty }), allLabels.isEmpty else { return }
-      // SUBSTITUIDO_FASE5: fetch por row — LabelRepository.shared.fetchLabels()
+      guard task.hasSubtasks, allLabels.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
   }
@@ -66,8 +65,7 @@ struct TaskRow: View {
     .onAppear { syncSubtasks() }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
     .task(id: task.id) {
-      guard task.subtasks.contains(where: { !$0.labelIds.isEmpty }), allLabels.isEmpty else { return }
-      // SUBSTITUIDO_FASE5: fetch por row — LabelRepository.shared.fetchLabels()
+      guard task.hasSubtasks, allLabels.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
   }
@@ -213,12 +211,12 @@ struct TaskRow: View {
       ForEach(Array(task.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
-        let hasExtra = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty
-        HStack(alignment: hasExtra ? .top : .center, spacing: 0) {
+        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty || sub.priority != nil
+        HStack(alignment: hasMeta ? .top : .center, spacing: 0) {
           Button { toggleSubtask(at: index, sub: sub) } label: {
             subtaskDot(sub: sub, done: done)
               .padding(.horizontal, 4)
-              .padding(.vertical, hasExtra ? 13 : 0)
+              .padding(.vertical, hasMeta ? 13 : 0)
           }
           .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
@@ -237,16 +235,17 @@ struct TaskRow: View {
                   .lineLimit(2)
                   .padding(.top, 2)
               }
-              if hasExtra {
+              if hasMeta {
                 TaskMetaLine(
                   labels: labels,
                   dueDate: sub.dueDate,
+                  priority: sub.priority,
                   dueDateLabel: sub.dueDateChipLabel,
                   dueDateColor: sub.dueDateChipColor
                 )
               }
             }
-            .padding(.vertical, hasExtra ? 9 : 12)
+            .padding(.vertical, hasMeta ? 9 : 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
           }

@@ -1,16 +1,35 @@
 # Stacked Web — Mock Fase 0
 
-Prova visual interativa do **Control Room Workbench** (sem Supabase, dados fake).
+Provas visuais interativas (sem Supabase, dados fake).
 
 ## Abrir no Chrome
+
+**Workbench (control room):**
 
 ```bash
 open stacked-web/mock/workbench.html
 ```
 
-Ou arraste `workbench.html` para o Chrome.
+**Filtros personalizados (Fase 0 — validar antes de implementar):**
+
+```bash
+open stacked-web/mock/custom-filters.html
+```
+
+Ou arraste o `.html` para o Chrome.
 
 Também existe um canvas interativo equivalente em `canvases/stacked-workbench-mock.canvas.tsx` (painel Canvas do Cursor).
+
+## Mock — Filtros personalizados
+
+| Controle | Ação |
+|----------|------|
+| **Mobile (iOS)** / **Web (desktop)** | Alterna frame Graphite (390×844) vs Slate (1120×720) |
+| **Dashboard** | Grid de stats + seção **Meus filtros** + Projetos |
+| **Construtor** | Mobile: projectChip + ícones circulares (QuickAdd) · Web: MetaChips · menus ancorados + paleta de cor |
+| **Filtro salvo** | Ícone de filtro tintado, sem fundo · drill-down com **Mostrar concluídas** |
+
+Mobile usa tokens **Graphite** (`#1A1B1E`, accent `#5FD3DC`); desktop usa **Slate** (`globals.css`). Tipografia alinhada a `AppTypography` (título 30px/800, task 15.5px/600, section label 11px/bold).
 
 ## Layout (v3)
 

@@ -47,6 +47,8 @@ enum PopoverHostRegistry {
 struct PopoverHostScope: ViewModifier {
   let coordinateSpaceName: String
   let placement: PopoverOverlayPlacement
+  /// Quick Add: true (teclado). Builder de filtro: false (abre abaixo dos chips).
+  let windowPreferAbove: Bool
 
   @State private var presenter = PopoverPresenter()
 
@@ -69,7 +71,10 @@ struct PopoverHostScope: ViewModifier {
         content
           .environment(\.popoverAnchorSpaceName, nil)
           .background {
-            QuickAddWindowPopoverHost(presenter: presenter)
+            QuickAddWindowPopoverHost(
+              presenter: presenter,
+              forcePreferAbove: windowPreferAbove
+            )
           }
       }
     }
@@ -84,8 +89,15 @@ struct PopoverHostScope: ViewModifier {
 extension View {
   func popoverHostScope(
     coordinateSpaceName: String = "popoverHostLocal",
-    placement: PopoverOverlayPlacement = .local
+    placement: PopoverOverlayPlacement = .local,
+    windowPreferAbove: Bool = true
   ) -> some View {
-    modifier(PopoverHostScope(coordinateSpaceName: coordinateSpaceName, placement: placement))
+    modifier(
+      PopoverHostScope(
+        coordinateSpaceName: coordinateSpaceName,
+        placement: placement,
+        windowPreferAbove: windowPreferAbove
+      )
+    )
   }
 }

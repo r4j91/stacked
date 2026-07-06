@@ -9,16 +9,19 @@ final class WindowPopoverOverlayManager {
   private var overlayWindow: PopoverPassthroughWindow?
   private weak var attachedPresenter: PopoverPresenter?
   private weak var attachedColorGridPresenter: ColorGridPopoverPresenter?
+  private var popoverForcePreferAbove = true
 
   private init() {}
 
-  func attach(presenter: PopoverPresenter) {
+  func attach(presenter: PopoverPresenter, forcePreferAbove: Bool = true) {
     attachedPresenter = presenter
+    popoverForcePreferAbove = forcePreferAbove
     syncWindowVisibility()
   }
 
   func detach() {
     attachedPresenter = nil
+    popoverForcePreferAbove = true
     syncWindowVisibility()
   }
 
@@ -103,7 +106,7 @@ final class WindowPopoverOverlayManager {
         PopoverOverlayHost(
           presenter: presenter,
           hostBounds: ScreenMetrics.bounds,
-          forcePreferAbove: true,
+          forcePreferAbove: popoverForcePreferAbove,
           opaquePopoverSurface: true
         )
         .environment(ThemeManager.shared)
@@ -135,12 +138,16 @@ private final class PopoverPassthroughWindow: UIWindow {
 /// Mantém overlay de popover na janela enquanto Quick Add está aberto.
 struct QuickAddWindowPopoverHost: View {
   @Bindable var presenter: PopoverPresenter
+  var forcePreferAbove: Bool = true
 
   var body: some View {
     Color.clear
       .frame(width: 0, height: 0)
       .onAppear {
-        WindowPopoverOverlayManager.shared.attach(presenter: presenter)
+        WindowPopoverOverlayManager.shared.attach(
+          presenter: presenter,
+          forcePreferAbove: forcePreferAbove
+        )
       }
       .onDisappear {
         WindowPopoverOverlayManager.shared.detach()

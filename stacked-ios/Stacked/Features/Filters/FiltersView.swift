@@ -1,4 +1,5 @@
 import SwiftUI
+import Hugeicons
 
 // Paridade lib/screens/filters_screen.dart
 struct FiltersView: View {
@@ -9,6 +10,10 @@ struct FiltersView: View {
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var selectedProject: ProjectRoute?
   @Namespace private var taskDetailZoom
+  @State private var optionsAnchor: CGRect = .zero
+  @State private var showBuilder = false
+  @State private var editingFilter: SavedFilter?
+  @AppStorage("show_completed_tasks") private var showCompleted = false
 
   var body: some View {
     NavigationStack {
@@ -17,8 +22,11 @@ struct FiltersView: View {
         case .dashboard:
           dashboardView
             .transition(.opacity.combined(with: .move(edge: .leading)))
-        case .filter(let kind):
+        case .presetFilter(let kind):
           filterListView(kind: kind)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+        case .savedFilter(let filter):
+          savedFilterListView(filter: filter)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
         }
       }
@@ -40,8 +48,10 @@ struct FiltersView: View {
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadDashboard()
-        if case .filter(let kind) = store.mode {
+        if case .presetFilter(let kind) = store.mode {
           await store.openFilter(kind)
+        } else if case .savedFilter(let filter) = store.mode {
+          await store.openSavedFilter(filter)
         }
       }
     }) { route in
@@ -54,12 +64,24 @@ struct FiltersView: View {
       SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
         await SubtaskSaveHandler.handle(snapshot, patch: store.applySubtaskPatch) {
           await store.loadDashboard()
-          if case .filter(let kind) = store.mode {
+          if case .presetFilter(let kind) = store.mode {
             await store.openFilter(kind)
+          } else if case .savedFilter(let filter) = store.mode {
+            await store.openSavedFilter(filter)
           }
         }
       }
       .environment(ThemeManager.shared)
+    }
+    .sheet(isPresented: $showBuilder) {
+      SavedFilterBuilderView(existing: editingFilter) {
+        editingFilter = nil
+        await store.loadDashboard()
+      }
+      .environment(ThemeManager.shared)
+    }
+    .onChange(of: showBuilder) { _, open in
+      if !open { editingFilter = nil }
     }
   }
 
@@ -97,6 +119,25 @@ struct FiltersView: View {
         }
 
         Section {
+          if !store.savedFilters.isEmpty {
+            ForEach(store.savedFilters) { item in
+              Button {
+                HapticService.selection()
+                _Concurrency.Task { await store.openSavedFilter(item.filter) }
+              } label: {
+                savedFilterRow(item)
+              }
+              .buttonStyle(.plain)
+              .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+            }
+          }
+        } header: {
+          savedFiltersHeader
+        }
+
+        Section {
           if store.projects.isEmpty {
             EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
             .listRowBackground(Color.clear)
@@ -109,13 +150,13 @@ struct FiltersView: View {
                 projectRow(project)
               }
               .buttonStyle(.plain)
-              .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+              .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
               .listRowSeparator(.hidden)
               .listRowBackground(Color.clear)
             }
           }
         } header: {
-          SectionLabel(text: "PROJETOS")
+          ListSectionHeader(text: "PROJETOS")
         }
       }
 
@@ -235,6 +276,189 @@ struct FiltersView: View {
     .buttonStyle(.plain)
   }
 
+  private var savedFiltersHeader: some View {
+    let c = theme.colors
+    return VStack(alignment: .leading, spacing: 6) {
+      ListSectionHeaderWithTrailing(text: "MEUS FILTROS") {
+        Button {
+          HapticService.selection()
+          editingFilter = nil
+          showBuilder = true
+        } label: {
+          StackedIcons.image(.plus)
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(c.accent)
+        }
+        .buttonStyle(.plain)
+      }
+
+      if store.savedFilters.isEmpty {
+        Text("Crie filtros para ver tarefas por etiqueta ou prioridade.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textTertiary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+    }
+  }
+
+  private func savedFilterRow(_ item: SavedFilterWithCount) -> some View {
+    let c = theme.colors
+    let tint = AppColors.parseHex(item.filter.colorHex, fallback: c.accent)
+    return HStack(spacing: 14) {
+      StackedIcons.image(.navFilters)
+        .font(.system(size: 22))
+        .foregroundStyle(tint)
+        .frame(width: 28, height: 28)
+
+      VStack(alignment: .leading, spacing: 2) {
+        Text(item.filter.name)
+          .font(AppTypography.filterRowTitle)
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
+        Text(FilterCriteriaSummary.text(item.filter.criteria, labels: store.pickerLabels, projects: store.pickerProjects))
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textTertiary)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 8)
+      Text("\(item.pendingCount)")
+        .font(AppTypography.navRowCount)
+        .foregroundStyle(c.textTertiary)
+      StackedIcons.image(.chevronRight)
+        .font(.system(size: 14))
+        .foregroundStyle(c.textTertiary.opacity(0.7))
+    }
+    .padding(.vertical, 13)
+  }
+
+  private func savedFilterListView(filter: SavedFilter) -> some View {
+    let c = theme.colors
+    let tint = AppColors.parseHex(filter.colorHex, fallback: c.accent)
+
+    return List {
+      Section {
+        HStack(spacing: 12) {
+          Button {
+            HapticService.selection()
+            store.backToDashboard()
+          } label: {
+            Image(systemName: "chevron.left")
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(c.textSecondary)
+              .frame(width: 44, height: 44)
+              .background(c.surfaceVariant)
+              .clipShape(RoundedRectangle(cornerRadius: 10))
+          }
+          .buttonStyle(.plain)
+
+          VStack(alignment: .leading, spacing: 2) {
+            Text(filter.name)
+              .font(AppTypography.drillDownTitle)
+              .foregroundStyle(tint)
+            Text(FilterResultCountLabel.text(for: store.filterResults.count))
+              .font(AppTypography.screenSubtitle)
+              .foregroundStyle(c.textSecondary)
+          }
+
+          Spacer(minLength: 0)
+
+          Button(action: openSavedFilterOptions) {
+            StackedIcons.icon(.more, size: 20, color: c.textSecondary)
+              .frame(width: 44, height: 44)
+          }
+          .buttonStyle(.plain)
+          .readAnchor($optionsAnchor)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+      }
+
+      if store.filterLoading {
+        Section {
+          ProgressView().tint(c.accent).frame(maxWidth: .infinity).listRowBackground(Color.clear)
+        }
+      } else if let err = store.filterError, store.filterResults.isEmpty {
+        Section {
+          LoadErrorView(message: err) {
+            _Concurrency.Task { await store.openSavedFilter(filter) }
+          }
+          .listRowBackground(Color.clear)
+        }
+      } else if store.filterResults.isEmpty && (!showCompleted || store.filterCompletedResults.isEmpty) {
+        Section {
+          EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
+            .listRowBackground(Color.clear)
+        }
+      } else {
+        Section {
+          ForEach(store.filterResults) { item in
+            savedFilterResultRow(item, canPostpone: true)
+          }
+        }
+        if showCompleted && !store.filterCompletedResults.isEmpty {
+          Section {
+            Text("Concluídas")
+              .font(AppTypography.completedSectionHeader)
+              .foregroundStyle(c.textSecondary)
+              .listRowInsets(rowInsets)
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+            ForEach(store.filterCompletedResults) { item in
+              savedFilterResultRow(item, canPostpone: false)
+            }
+          }
+        }
+      }
+
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .stackedListTailInset()
+    .stackedTabletCentered()
+    .background(c.background)
+    .refreshable {
+      await store.openSavedFilter(filter)
+      await store.loadDashboard()
+    }
+  }
+
+  private func openSavedFilterOptions() {
+    guard case .savedFilter(let filter) = store.mode else { return }
+    let items: [PopoverMenuItem] = [
+      PopoverMenuItem(
+        id: "toggle_completed",
+        icon: showCompleted ? Hugeicons.eyeOff : Hugeicons.eye,
+        label: showCompleted ? "Ocultar concluídas" : "Mostrar concluídas",
+        iconColor: theme.colors.textSecondary
+      ),
+      PopoverMenuItem(id: "edit", icon: Hugeicons.edit01, label: "Editar filtro"),
+      PopoverMenuItem(id: "delete", icon: Hugeicons.delete01, label: "Excluir filtro", destructive: true),
+    ]
+    presentAnchoredPopover(anchorRect: optionsAnchor, items: items) { result in
+      guard let result else { return }
+      switch result {
+      case "toggle_completed":
+        showCompleted.toggle()
+      case "edit":
+        editingFilter = filter
+        showBuilder = true
+      case "delete":
+        _Concurrency.Task {
+          try? await store.deleteSavedFilter(filter)
+        }
+      default:
+        break
+      }
+    }
+  }
+
   private func filterListView(kind: TaskFilterKind) -> some View {
     let c = theme.colors
     let tint = kind == .overdue ? AppColors.priorityHigh : c.accent
@@ -341,6 +565,26 @@ struct FiltersView: View {
   }
 
   @ViewBuilder
+  private func savedFilterResultRow(_ item: FilterResultItem, canPostpone: Bool) -> some View {
+    switch item {
+    case .task(let task):
+      filterTaskRow(task, canPostpone: canPostpone)
+    case .subtask(let sub, let parent, let index):
+      FilterSubtaskRow(
+        subtask: sub,
+        parent: parent,
+        labelCatalog: store.pickerLabels,
+        onToggle: { store.completeSubtask(parent: parent, sub: sub, at: index) },
+        onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id) }
+      )
+      .id(item.id)
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
+  }
+
+  @ViewBuilder
   private func filterTaskRow(_ task: Task, canPostpone: Bool) -> some View {
     TaskRow(task: task, onToggle: {
       store.complete(task)
@@ -362,8 +606,10 @@ struct FiltersView: View {
       onDuplicate: {
         _Concurrency.Task {
           _ = try? await TaskRepository.shared.duplicateTask(task)
-          if case .filter(let kind) = store.mode {
+          if case .presetFilter(let kind) = store.mode {
             await store.openFilter(kind)
+          } else if case .savedFilter(let filter) = store.mode {
+            await store.openSavedFilter(filter)
           }
           await store.loadDashboard()
         }
@@ -371,8 +617,10 @@ struct FiltersView: View {
       onDelete: { store.delete(task) },
       onRefresh: {
         _Concurrency.Task {
-          if case .filter(let kind) = store.mode {
+          if case .presetFilter(let kind) = store.mode {
             await store.openFilter(kind)
+          } else if case .savedFilter(let filter) = store.mode {
+            await store.openSavedFilter(filter)
           }
           await store.loadDashboard()
         }

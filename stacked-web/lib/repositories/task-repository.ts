@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { TASK_SELECT } from "@/lib/supabase/task-select";
 import { mapTaskList } from "@/lib/supabase/map-task";
 import type { Priority, Task, TodayStats, ViewMode, ViewTasks, FilterDashboardCounts, TaskFilterKind } from "@/lib/types/task";
+import type { FilterCriteria } from "@/lib/types/saved-filter";
+import type { FilterResultItem } from "@/lib/types/filter-result";
+import {
+  buildCompletedFilterResults,
+  buildPendingFilterResults,
+} from "@/lib/utils/filter-criteria";
 import { mapTaskRow, splitTodayPending } from "@/lib/supabase/map-task";
 import { addDays, parseDueDate, startOfDay, toDateStr } from "@/lib/utils/date";
 import { toDbPriority } from "@/lib/utils/priority";
@@ -237,6 +243,56 @@ export class TaskRepository {
       .order("id", { ascending: true });
     if (error) throw error;
     return mapTaskList(data);
+  }
+
+  async fetchFilterResults(
+    criteria: FilterCriteria,
+    now = new Date(),
+  ): Promise<{ pending: FilterResultItem[]; completed: FilterResultItem[] }> {
+    const tasks = await this.fetchTasksForFilterMatching(criteria, now);
+    return {
+      pending: buildPendingFilterResults(tasks, criteria, now),
+      completed: buildCompletedFilterResults(tasks, criteria, now),
+    };
+  }
+
+  /** Base fetch — critérios de etiqueta/prioridade/data aplicados em memória (inclui subtarefas). */
+  private async fetchTasksForFilterMatching(criteria: FilterCriteria, _now = new Date()) {
+    let q = this.client.from("tasks").select(TASK_SELECT);
+
+    if (criteria.projectId) {
+      q = q.eq("project_id", criteria.projectId);
+    }
+
+    const { data, error } = await q
+      .order("data_vencimento", { ascending: true, nullsFirst: false })
+      .order("ordem", { ascending: true })
+      .order("id", { ascending: true });
+    if (error) throw error;
+    return mapTaskList(data);
+  }
+
+  async fetchTasksMatchingCriteria(
+    criteria: FilterCriteria,
+    includeCompleted: boolean,
+    now = new Date(),
+  ): Promise<Task[]> {
+    const { pending, completed } = await this.fetchFilterResults(criteria, now);
+    const tasks = includeCompleted
+      ? [...pending, ...completed]
+          .map((item) => (item.kind === "task" ? item.task : null))
+          .filter((t): t is Task => Boolean(t))
+      : pending
+          .map((item) => (item.kind === "task" ? item.task : null))
+          .filter((t): t is Task => Boolean(t));
+    return tasks;
+  }
+
+  async fetchPendingAndCompletedMatchingCriteria(
+    criteria: FilterCriteria,
+    now = new Date(),
+  ): Promise<{ pending: FilterResultItem[]; completed: FilterResultItem[] }> {
+    return this.fetchFilterResults(criteria, now);
   }
 
   computeTodayStats(view: ViewTasks): TodayStats {

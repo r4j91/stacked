@@ -274,6 +274,54 @@ final class TaskRepository {
     return TaskMapper.mapList(rows)
   }
 
+  func fetchFilterResults(
+    _ criteria: FilterCriteria,
+    todayStr: String,
+    weekStr: String
+  ) async throws -> (pending: [FilterResultItem], completed: [FilterResultItem]) {
+    let tasks = try await fetchTasksForFilterMatching(criteria)
+    return (
+      FilterMatcher.buildPendingResults(tasks: tasks, criteria: criteria, todayStr: todayStr, weekStr: weekStr),
+      FilterMatcher.buildCompletedResults(tasks: tasks, criteria: criteria, todayStr: todayStr, weekStr: weekStr)
+    )
+  }
+
+  private func fetchTasksForFilterMatching(_ criteria: FilterCriteria) async throws -> [Task] {
+    var query = client.from("tasks").select(TaskSelect.unified)
+    if let projectId = criteria.projectId {
+      query = query.eq("project_id", value: projectId)
+    }
+    let rows: [TaskRowDTO] = try await query
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .order("id", ascending: true)
+      .execute()
+      .value
+    return TaskMapper.mapList(rows)
+  }
+
+  func fetchTasksMatchingCriteria(
+    _ criteria: FilterCriteria,
+    includeCompleted: Bool,
+    todayStr: String,
+    weekStr: String
+  ) async throws -> [Task] {
+    let split = try await fetchFilterResults(criteria, todayStr: todayStr, weekStr: weekStr)
+    let items = includeCompleted ? split.pending + split.completed : split.pending
+    return items.compactMap { item in
+      if case .task(let task) = item { return task }
+      return nil
+    }
+  }
+
+  func fetchPendingAndCompletedMatchingCriteria(
+    _ criteria: FilterCriteria,
+    todayStr: String,
+    weekStr: String
+  ) async throws -> (pending: [FilterResultItem], completed: [FilterResultItem]) {
+    try await fetchFilterResults(criteria, todayStr: todayStr, weekStr: weekStr)
+  }
+
   func fetchAllPendingTasks() async throws -> [Task] {
     let rows: [TaskRowDTO] = try await client
       .from("tasks")
@@ -303,20 +351,9 @@ final class TaskRepository {
     guard let userId = client.auth.currentUser?.id else {
       throw NSError(domain: "Stacked", code: 401, userInfo: [NSLocalizedDescriptionKey: "Não autenticado"])
     }
-    struct Payload: Encodable {
-      let titulo: String
-      let descricao: String?
-      let prioridade: String?
-      let project_id: String?
-      let section_id: String?
-      let data_vencimento: String?
-      let hora: String?
-      let user_id: UUID
-      let concluida: Bool
-    }
     struct IdRow: Decodable { let id: String }
     let row: IdRow = try await client.from("tasks").insert(
-      Payload(
+      CreateTaskInsertPayload(
         titulo: input.title,
         descricao: input.description,
         prioridade: input.priority?.rawValue,
@@ -379,5 +416,59 @@ final class TaskRepository {
     } else {
       try await client.from("tasks").update(["recorrencia": Optional<String>.none]).eq("id", value: id).execute()
     }
+  }
+}
+
+/// JSONEncoder padrão omite nil — sem isso o Postgres pode aplicar default em `prioridade`.
+private struct CreateTaskInsertPayload: Encodable {
+  let titulo: String
+  let descricao: String?
+  let prioridade: String?
+  let project_id: String?
+  let section_id: String?
+  let data_vencimento: String?
+  let hora: String?
+  let user_id: UUID
+  let concluida: Bool
+
+  enum CodingKeys: String, CodingKey {
+    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var c = encoder.container(keyedBy: CodingKeys.self)
+    try c.encode(titulo, forKey: .titulo)
+    if let descricao {
+      try c.encode(descricao, forKey: .descricao)
+    } else {
+      try c.encodeNil(forKey: .descricao)
+    }
+    if let prioridade {
+      try c.encode(prioridade, forKey: .prioridade)
+    } else {
+      try c.encodeNil(forKey: .prioridade)
+    }
+    if let project_id {
+      try c.encode(project_id, forKey: .project_id)
+    } else {
+      try c.encodeNil(forKey: .project_id)
+    }
+    if let section_id {
+      try c.encode(section_id, forKey: .section_id)
+    } else {
+      try c.encodeNil(forKey: .section_id)
+    }
+    if let data_vencimento {
+      try c.encode(data_vencimento, forKey: .data_vencimento)
+    } else {
+      try c.encodeNil(forKey: .data_vencimento)
+    }
+    if let hora {
+      try c.encode(hora, forKey: .hora)
+    } else {
+      try c.encodeNil(forKey: .hora)
+    }
+    try c.encode(user_id, forKey: .user_id)
+    try c.encode(concluida, forKey: .concluida)
   }
 }
