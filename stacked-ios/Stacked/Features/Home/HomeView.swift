@@ -33,17 +33,19 @@ struct HomeView: View {
       }
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
-      .stackedListTailInset()
+      .stackedDashboardListChrome()
       .stackedTabletCentered()
-      .safeAreaPadding(.top, AppLayout.headerControlSize + 14)
-      .overlay(alignment: .top) {
-        HomeHeaderBar(
+      .background(c.background)
+      .navigationTitle("")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(.hidden, for: .navigationBar)
+      .toolbar {
+        HomeHeaderToolbar(
           showProductivity: $showProductivity,
           showNotifications: $showNotifications,
           showSettings: $showSettings
         )
       }
-      .background(c.background)
       .refreshable { await store.load() }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
@@ -55,8 +57,7 @@ struct HomeView: View {
         .environment(ThemeManager.shared)
       }
     }
-    .toolbarBackground(c.background, for: .navigationBar)
-    .toolbarBackground(.visible, for: .navigationBar)
+    .toolbarBackground(.hidden, for: .navigationBar)
     .background(c.background.ignoresSafeArea(.all))
     .newProjectFloating(isPresented: $showNewProject) {
       _Concurrency.Task { await store.load() }
@@ -110,7 +111,7 @@ struct HomeView: View {
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
-      .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
+      .listRowInsets(EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }

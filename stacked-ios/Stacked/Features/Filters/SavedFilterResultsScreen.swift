@@ -86,8 +86,11 @@ struct SavedFilterResultsScreen: View {
     .stackedDrillDownListChrome()
     .background(c.background)
     .stackedDrillDownNavChrome(title: filter.name, background: c.background)
+    .stackedDrillDownGlassBackButton()
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      DrillDownBackToolbarItem()
+
+      ToolbarItem(id: "stacked-filter-toolbar", placement: .topBarTrailing) {
         AnchoredTapButton { rect in
           openOptions(anchor: rect)
         } label: {

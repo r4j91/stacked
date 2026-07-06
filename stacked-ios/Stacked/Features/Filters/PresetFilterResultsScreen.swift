@@ -69,6 +69,10 @@ struct PresetFilterResultsScreen: View {
     .stackedDrillDownListChrome()
     .background(c.background)
     .stackedDrillDownNavChrome(title: kind.title, background: c.background)
+    .stackedDrillDownGlassBackButton()
+    .toolbar {
+      DrillDownBackToolbarItem()
+    }
     .refreshable {
       await store.openFilter(kind)
       await store.loadDashboard()

@@ -22,9 +22,11 @@ struct ProjectDetailView: View {
   @State private var deleteSectionTarget: ProjectSection?
   @State private var collapsedSectionIds: Set<String> = []
   @State private var allowRowHeavyWork = false
+  @State private var revealListContent = false
   @Namespace private var taskDetailZoom
 
   let projectColorHex: String?
+  let projectName: String
   let initialSnapshot: ProjectDetailSnapshot
 
   init(
@@ -36,9 +38,16 @@ struct ProjectDetailView: View {
     let snap = initialSnapshot
       ?? ProjectDetailCache.shared.snapshot(for: projectId)
       ?? ProjectDetailSnapshot(sections: [], pending: [], completed: [])
+    self.projectName = projectName
     self.initialSnapshot = snap
     self.projectColorHex = projectColorHex
-    _store = State(initialValue: ProjectDetailStore(projectId: projectId, projectName: projectName))
+    _store = State(
+      initialValue: ProjectDetailStore(
+        projectId: projectId,
+        projectName: projectName,
+        initialSnapshot: snap
+      )
+    )
   }
 
   private var sections: [ProjectSection] { usesStore ? store.sections : initialSnapshot.sections }
@@ -68,63 +77,67 @@ struct ProjectDetailView: View {
     let c = theme.colors
 
     List {
-      if isLoading {
-        TaskListSkeleton(rowCount: 6)
-      } else if let err = loadError {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.load() }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else {
-        ForEach(sections) { section in
-          let tasks = tasks(in: section.id)
-          if !tasks.isEmpty {
-            projectSectionBlock(section: section, tasks: tasks)
-          }
-        }
-
-        let uncategorized = tasks(in: nil)
-        if !uncategorized.isEmpty {
-          projectSectionBlock(
-            id: ProjectSectionCollapse.uncategorizedId,
-            title: "SEM SEÇÃO",
-            tasks: uncategorized,
-            showsHeader: !sections.isEmpty
-          )
-        }
-
-        if pending.isEmpty && completed.isEmpty {
+      if revealListContent {
+        if isLoading {
+          TaskListSkeleton(rowCount: 6)
+        } else if let err = loadError {
           Section {
-            EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
+            LoadErrorView(message: err) {
+              _Concurrency.Task { await store.load() }
+            }
             .listRowBackground(Color.clear)
           }
-        }
+        } else {
+          ForEach(sections) { section in
+            let tasks = tasks(in: section.id)
+            if !tasks.isEmpty {
+              projectSectionBlock(section: section, tasks: tasks)
+            }
+          }
 
-        if showCompleted && !completed.isEmpty {
-          Section {
-            CollapsibleSectionHeader(
-              title: "CONCLUÍDAS",
-              count: completed.count,
-              expanded: completedExpanded,
-              onToggle: {
-                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-                  completedExpanded.toggle()
-                }
-              }
+          let uncategorized = tasks(in: nil)
+          if !uncategorized.isEmpty {
+            projectSectionBlock(
+              id: ProjectSectionCollapse.uncategorizedId,
+              title: "SEM SEÇÃO",
+              tasks: uncategorized,
+              showsHeader: !sections.isEmpty
             )
-            .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
+          }
 
-            if completedExpanded {
-              ForEach(completed) { task in
-                completedProjectTaskRow(task)
+          if pending.isEmpty && completed.isEmpty {
+            Section {
+              EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
+              .listRowBackground(Color.clear)
+            }
+          }
+
+          if showCompleted && !completed.isEmpty {
+            Section {
+              CollapsibleSectionHeader(
+                title: "CONCLUÍDAS",
+                count: completed.count,
+                expanded: completedExpanded,
+                onToggle: {
+                  AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+                    completedExpanded.toggle()
+                  }
+                }
+              )
+              .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+
+              if completedExpanded {
+                ForEach(completed) { task in
+                  completedProjectTaskRow(task)
+                }
               }
             }
           }
         }
+      } else {
+        TaskListSkeleton(rowCount: 6)
       }
 
       Section {
@@ -135,14 +148,15 @@ struct ProjectDetailView: View {
       }
     }
     .listStyle(.plain)
-    .stackedDrillDownListChrome()
-    .stackedTabletCentered()
     .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
     .background(c.background)
-    .navigationBarBackButtonHidden(false)
-    .stackedDrillDownNavChrome(title: store.projectName, background: c.background)
+    .stackedDrillDownNavChrome(title: projectName, background: c.background)
+    .stackedDrillDownGlassBackButton()
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      DrillDownBackToolbarItem()
+
+      ToolbarItem(id: "stacked-project-toolbar", placement: .topBarTrailing) {
         HStack(spacing: 6) {
           if isListMode {
             AnchoredTapButton { rect in
@@ -174,13 +188,17 @@ struct ProjectDetailView: View {
           .buttonStyle(PressableStyle(cornerRadius: 20))
         }
       }
+      .sharedBackgroundVisibility(.hidden)
     }
     .refreshable { await store.load() }
     .task(id: store.projectId) {
       await NavigationPushMotion.awaitSettle()
       guard !_Concurrency.Task.isCancelled else { return }
-      allowRowHeavyWork = true
-      await NavigationPushMotion.afterSettle {
+      var transaction = Transaction()
+      transaction.disablesAnimations = true
+      withTransaction(transaction) {
+        revealListContent = true
+        allowRowHeavyWork = true
         store.adoptSnapshot(initialSnapshot)
         usesStore = true
       }

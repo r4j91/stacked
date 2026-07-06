@@ -282,4 +282,42 @@ extension View {
       .toolbar(.visible, for: .navigationBar)
       .toolbarBackground(.hidden, for: .navigationBar)
   }
+
+  /// Esconde o voltar nativo — use com `DrillDownBackToolbarItem` na toolbar.
+  func stackedDrillDownGlassBackButton() -> some View {
+    navigationBarBackButtonHidden(true)
+  }
+}
+
+// MARK: - Drill-down toolbar (glass back — padrão projeto/filtros)
+
+struct DrillDownGlassIconButton: View {
+  @Environment(ThemeManager.self) private var theme
+  let icon: StackedIconKey
+  let action: () -> Void
+
+  var body: some View {
+    let c = theme.colors
+    Button(action: action) {
+      LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+        StackedIcons.image(icon)
+          .font(.system(size: 16, weight: .medium))
+          .foregroundStyle(c.textPrimary)
+      }
+    }
+    .buttonStyle(PressableStyle(cornerRadius: 20))
+  }
+}
+
+struct DrillDownBackToolbarItem: ToolbarContent {
+  @Environment(\.dismiss) private var dismiss
+
+  var body: some ToolbarContent {
+    ToolbarItem(id: "stacked-drilldown-back", placement: .topBarLeading) {
+      DrillDownGlassIconButton(icon: .arrowLeft) {
+        dismiss()
+      }
+    }
+    .sharedBackgroundVisibility(.hidden)
+  }
 }
