@@ -70,48 +70,6 @@ struct ListSectionHeaderWithTrailing<Trailing: View>: View {
   }
 }
 
-/// Header do drill-down em Filtros (voltar + título colorido).
-struct FilterDrillDownHeader: View {
-  @Environment(ThemeManager.self) private var theme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  let title: String
-  let taskCount: Int
-  let tint: Color
-  let onBack: () -> Void
-
-  var body: some View {
-    let c = theme.colors
-    let subtitle = "\(taskCount) \(taskCount == 1 ? "tarefa" : "tarefas")"
-
-    HStack(spacing: 12) {
-      Button {
-        HapticService.selection()
-        AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion, onBack)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(c.textSecondary)
-          .frame(width: 44, height: 44)
-          .background(c.surfaceVariant)
-          .clipShape(RoundedRectangle(cornerRadius: 10))
-      }
-      .buttonStyle(.plain)
-
-      VStack(alignment: .leading, spacing: 2) {
-        Text(title)
-          .font(AppTypography.drillDownTitle)
-          .foregroundStyle(tint)
-        Text(subtitle)
-          .font(AppTypography.screenSubtitle)
-          .foregroundStyle(c.textSecondary)
-      }
-
-      Spacer(minLength: 0)
-    }
-  }
-}
-
 enum ModalChrome {
   /// Sheets de criação/edição — barra nativa.
   static func cancelToolbar(dismiss: DismissAction) -> some ToolbarContent {

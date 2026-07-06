@@ -100,6 +100,9 @@ enum AppMotion {
   /// Permanência do check preenchido antes da saída da célula (Fase 3B).
   static let taskCompleteDwell: Duration = .milliseconds(300)
 
+  /// Push/pop do NavigationStack — adia fetch/reset até a transição terminar (~navMorphSpring + folga).
+  static let navigationPushSettle: Duration = .milliseconds(400)
+
   // MARK: - Reduce Motion (decisão centralizada)
 
   static func snappy(reduceMotion: Bool) -> Animation? {

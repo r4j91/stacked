@@ -1,48 +1,72 @@
 import SwiftUI
 import Hugeicons
 
+private struct SavedFilterRoute: Identifiable, Hashable {
+  let filter: SavedFilter
+  var id: String { filter.id }
+
+  static func == (lhs: SavedFilterRoute, rhs: SavedFilterRoute) -> Bool {
+    lhs.id == rhs.id
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+  }
+}
+
 // Paridade lib/screens/filters_screen.dart
 struct FiltersView: View {
   @Environment(ThemeManager.self) private var theme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @State private var store = FiltersStore.shared
+  @Bindable private var store = FiltersStore.shared
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var selectedProject: ProjectRoute?
+  @State private var presetFilterRoute: TaskFilterKind?
+  @State private var savedFilterRoute: SavedFilterRoute?
   @Namespace private var taskDetailZoom
-  @State private var optionsAnchor: CGRect = .zero
   @State private var showBuilder = false
   @State private var editingFilter: SavedFilter?
   @AppStorage("show_completed_tasks") private var showCompleted = false
 
   var body: some View {
     NavigationStack {
-      Group {
-        switch store.mode {
-        case .dashboard:
-          dashboardView
-            .transition(.opacity.combined(with: .move(edge: .leading)))
-        case .presetFilter(let kind):
-          filterListView(kind: kind)
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
-        case .savedFilter(let filter):
-          savedFilterListView(filter: filter)
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
+      dashboardView
+        .navigationDestination(item: $selectedProject) { route in
+          ProjectDetailView(
+            projectId: route.id,
+            projectName: route.name,
+            projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex
+          )
+          .environment(ThemeManager.shared)
         }
-      }
-      // SUBSTITUIDO_FASE2: .animation(.spring(response: 0.32, dampingFraction: 0.86), value: store.mode)
-      .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: store.mode)
-      .navigationDestination(item: $selectedProject) { route in
-        ProjectDetailView(
-          projectId: route.id,
-          projectName: route.name,
-          projectColorHex: store.projects.first(where: { $0.id == route.id })?.colorHex
-        )
-        .environment(ThemeManager.shared)
-      }
+        .navigationDestination(item: $presetFilterRoute) { kind in
+          filterListView(kind: kind)
+            .onAppear {
+              _Concurrency.Task {
+                try? await _Concurrency.Task.sleep(for: AppMotion.navigationPushSettle)
+                guard !_Concurrency.Task.isCancelled else { return }
+                await store.openFilter(kind)
+              }
+            }
+        }
+        .navigationDestination(item: $savedFilterRoute) { route in
+          SavedFilterResultsScreen(
+            filter: route.filter,
+            initialPending: store.cachedPendingResults(for: route.filter.id),
+            initialCompleted: store.cachedCompletedResults(for: route.filter.id),
+            taskDetailNamespace: taskDetailZoom,
+            onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
+            onSubtaskTap: { subtaskDetailRoute = $0 },
+            onEditFilter: { filter in
+              editingFilter = filter
+              showBuilder = true
+            }
+          )
+        }
     }
     .toolbarBackground(theme.colors.background, for: .navigationBar)
     .toolbarBackground(.hidden, for: .navigationBar)
+    .tint(theme.colors.textSecondary)
     .stackedTabletCentered()
     .background(theme.colors.background.ignoresSafeArea(.all))
     .fullScreenCover(item: $detailRoute, onDismiss: {
@@ -83,6 +107,45 @@ struct FiltersView: View {
     .onChange(of: showBuilder) { _, open in
       if !open { editingFilter = nil }
     }
+    .onChange(of: presetFilterRoute) { _, route in
+      if route == nil, case .presetFilter = store.mode {
+        deferDashboardReset()
+      }
+    }
+    .onChange(of: savedFilterRoute) { _, route in
+      if route == nil, case .savedFilter = store.mode {
+        deferDashboardReset()
+      }
+    }
+    .onAppear {
+      if let kind = store.takePendingPresetFilter() {
+        presetFilterRoute = kind
+      }
+    }
+  }
+
+  private func openPresetFilter(_ kind: TaskFilterKind) {
+    HapticService.selection()
+    presetFilterRoute = kind
+  }
+
+  private func openSavedFilter(_ filter: SavedFilter) {
+    HapticService.selection()
+    savedFilterRoute = SavedFilterRoute(filter: filter)
+  }
+
+  /// Limpa estado do drill-down após o pop do NavigationStack — evita re-layout da lista durante a animação.
+  private func deferDashboardReset() {
+    _Concurrency.Task {
+      try? await _Concurrency.Task.sleep(for: AppMotion.navigationPushSettle)
+      guard presetFilterRoute == nil, savedFilterRoute == nil else { return }
+      if case .dashboard = store.mode { return }
+      var transaction = Transaction()
+      transaction.disablesAnimations = true
+      withTransaction(transaction) {
+        store.backToDashboard()
+      }
+    }
   }
 
   private var dashboardView: some View {
@@ -122,8 +185,7 @@ struct FiltersView: View {
           if !store.savedFilters.isEmpty {
             ForEach(store.savedFilters) { item in
               Button {
-                HapticService.selection()
-                _Concurrency.Task { await store.openSavedFilter(item.filter) }
+                openSavedFilter(item.filter)
               } label: {
                 savedFilterRow(item)
               }
@@ -231,8 +293,7 @@ struct FiltersView: View {
     let iconBg = colored ? tint.opacity(0.14) : c.surfaceVariant.opacity(0.45)
 
     return Button {
-      HapticService.selection()
-      _Concurrency.Task { await store.openFilter(kind) }
+      openPresetFilter(kind)
     } label: {
       VStack(alignment: .leading, spacing: 12) {
         HStack {
@@ -331,151 +392,10 @@ struct FiltersView: View {
     .padding(.vertical, 13)
   }
 
-  private func savedFilterListView(filter: SavedFilter) -> some View {
-    let c = theme.colors
-    let tint = AppColors.parseHex(filter.colorHex, fallback: c.accent)
-
-    return List {
-      Section {
-        HStack(spacing: 12) {
-          Button {
-            HapticService.selection()
-            store.backToDashboard()
-          } label: {
-            Image(systemName: "chevron.left")
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.textSecondary)
-              .frame(width: 44, height: 44)
-              .background(c.surfaceVariant)
-              .clipShape(RoundedRectangle(cornerRadius: 10))
-          }
-          .buttonStyle(.plain)
-
-          VStack(alignment: .leading, spacing: 2) {
-            Text(filter.name)
-              .font(AppTypography.drillDownTitle)
-              .foregroundStyle(tint)
-            Text(FilterResultCountLabel.text(for: store.filterResults.count))
-              .font(AppTypography.screenSubtitle)
-              .foregroundStyle(c.textSecondary)
-          }
-
-          Spacer(minLength: 0)
-
-          Button(action: openSavedFilterOptions) {
-            StackedIcons.icon(.more, size: 20, color: c.textSecondary)
-              .frame(width: 44, height: 44)
-          }
-          .buttonStyle(.plain)
-          .readAnchor($optionsAnchor)
-        }
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-      }
-
-      if store.filterLoading {
-        Section {
-          ProgressView().tint(c.accent).frame(maxWidth: .infinity).listRowBackground(Color.clear)
-        }
-      } else if let err = store.filterError, store.filterResults.isEmpty {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.openSavedFilter(filter) }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.filterResults.isEmpty && (!showCompleted || store.filterCompletedResults.isEmpty) {
-        Section {
-          EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
-            .listRowBackground(Color.clear)
-        }
-      } else {
-        Section {
-          ForEach(store.filterResults) { item in
-            savedFilterResultRow(item, canPostpone: true)
-          }
-        }
-        if showCompleted && !store.filterCompletedResults.isEmpty {
-          Section {
-            Text("Concluídas")
-              .font(AppTypography.completedSectionHeader)
-              .foregroundStyle(c.textSecondary)
-              .listRowInsets(rowInsets)
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
-            ForEach(store.filterCompletedResults) { item in
-              savedFilterResultRow(item, canPostpone: false)
-            }
-          }
-        }
-      }
-
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-    }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedListTailInset()
-    .stackedTabletCentered()
-    .background(c.background)
-    .refreshable {
-      await store.openSavedFilter(filter)
-      await store.loadDashboard()
-    }
-  }
-
-  private func openSavedFilterOptions() {
-    guard case .savedFilter(let filter) = store.mode else { return }
-    let items: [PopoverMenuItem] = [
-      PopoverMenuItem(
-        id: "toggle_completed",
-        icon: showCompleted ? Hugeicons.eyeOff : Hugeicons.eye,
-        label: showCompleted ? "Ocultar concluídas" : "Mostrar concluídas",
-        iconColor: theme.colors.textSecondary
-      ),
-      PopoverMenuItem(id: "edit", icon: Hugeicons.edit01, label: "Editar filtro"),
-      PopoverMenuItem(id: "delete", icon: Hugeicons.delete01, label: "Excluir filtro", destructive: true),
-    ]
-    presentAnchoredPopover(anchorRect: optionsAnchor, items: items) { result in
-      guard let result else { return }
-      switch result {
-      case "toggle_completed":
-        showCompleted.toggle()
-      case "edit":
-        editingFilter = filter
-        showBuilder = true
-      case "delete":
-        _Concurrency.Task {
-          try? await store.deleteSavedFilter(filter)
-        }
-      default:
-        break
-      }
-    }
-  }
-
   private func filterListView(kind: TaskFilterKind) -> some View {
     let c = theme.colors
-    let tint = kind == .overdue ? AppColors.priorityHigh : c.accent
 
     return List {
-      Section {
-        FilterDrillDownHeader(
-          title: kind.title,
-          taskCount: store.filterTasks.count,
-          tint: tint,
-          onBack: { store.backToDashboard() }
-        )
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-      }
-
       if store.filterLoading {
         Section {
           ProgressView()
@@ -515,6 +435,8 @@ struct FiltersView: View {
     .stackedListTailInset()
     .stackedTabletCentered()
     .background(c.background)
+    .navigationTitle(kind.title)
+    .navigationBarTitleDisplayMode(.large)
     .refreshable {
       await store.openFilter(kind)
       await store.loadDashboard()
@@ -562,26 +484,6 @@ struct FiltersView: View {
 
   private var rowInsets: EdgeInsets {
     EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
-  }
-
-  @ViewBuilder
-  private func savedFilterResultRow(_ item: FilterResultItem, canPostpone: Bool) -> some View {
-    switch item {
-    case .task(let task):
-      filterTaskRow(task, canPostpone: canPostpone)
-    case .subtask(let sub, let parent, let index):
-      FilterSubtaskRow(
-        subtask: sub,
-        parent: parent,
-        labelCatalog: store.pickerLabels,
-        onToggle: { store.completeSubtask(parent: parent, sub: sub, at: index) },
-        onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id) }
-      )
-      .id(item.id)
-      .listRowInsets(rowInsets)
-      .listRowSeparator(.hidden)
-      .listRowBackground(Color.clear)
-    }
   }
 
   @ViewBuilder

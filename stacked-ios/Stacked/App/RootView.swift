@@ -104,10 +104,8 @@ struct RootTabContent: View {
         HomeView(
           onNavigateToTab: { chrome.selectTab($0) },
           onOpenFilter: { kind in
-            _Concurrency.Task {
-              await FiltersStore.shared.openFilter(kind)
-              chrome.selectTab(.filters)
-            }
+            FiltersStore.shared.requestPresetFilterNavigation(kind)
+            chrome.selectTab(.filters)
           }
         )
       }
