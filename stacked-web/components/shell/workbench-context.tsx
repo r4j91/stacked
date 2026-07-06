@@ -693,13 +693,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     (key: SubtaskKey | null = selectedSubtaskKey) => {
       if (!key) return null;
       const [taskId, indexStr] = key.split(":");
-      const task = allTasks.find((t) => t.id === taskId);
+      const task =
+        allTasks.find((t) => t.id === taskId) ??
+        (inspectorOverride?.id === taskId ? inspectorOverride : null);
       const index = Number(indexStr);
       const sub = task?.subtasks?.[index];
       if (!task || !sub) return null;
       return { task, index, sub };
     },
-    [allTasks, selectedSubtaskKey],
+    [allTasks, inspectorOverride, selectedSubtaskKey],
   );
 
   const selectedTask = useMemo(() => {

@@ -93,6 +93,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
 export function TaskRow({
   task,
   keyboardFocused,
+  embedded,
   reorderRowProps,
   reorderHolding,
   reorderDragOver,
@@ -101,17 +102,21 @@ export function TaskRow({
 }: {
   task: Task;
   keyboardFocused?: boolean;
+  /** Lista embutida (ex.: drill-down de filtros) — sem borda de seleção do inspector */
+  embedded?: boolean;
   reorderRowProps?: Record<string, unknown>;
   reorderHolding?: boolean;
   reorderDragOver?: boolean;
   reorderDragging?: boolean;
   onReorderConsumeClick?: () => boolean;
 }) {
-  const { selectedTaskId, selectTask, toggleTaskDone, deferTask, deleteTask, expandedSubtasks, toggleSubtaskExpand } =
+  const { selectedTaskId, selectTask, openTaskInspector, toggleTaskDone, deferTask, deleteTask, expandedSubtasks, toggleSubtaskExpand } =
     useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
   const subs = task.subtasks ?? [];
   const isExpanded = expandedSubtasks.has(task.id);
+  const isSelected = !embedded && selectedTaskId === task.id;
+  const isKeyboardFocused = !embedded && keyboardFocused;
 
   return (
     <>
@@ -129,7 +134,8 @@ export function TaskRow({
           {...(reorderRowProps ?? {})}
           onClick={() => {
             if (onReorderConsumeClick?.()) return;
-            selectTask(task.id);
+            if (embedded) openTaskInspector(task);
+            else selectTask(task.id);
           }}
           onContextMenu={(e) => onContextMenu(task, e)}
           onTouchStart={(e) => onTouchStart(task, e)}
@@ -139,7 +145,8 @@ export function TaskRow({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              selectTask(task.id);
+              if (embedded) openTaskInspector(task);
+              else selectTask(task.id);
             }
           }}
           className={`task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
@@ -149,14 +156,14 @@ export function TaskRow({
                 ? "reorder-holding"
                 : reorderDragOver
                   ? "reorder-drop-target border-[var(--color-border-strong)]"
-                  : selectedTaskId === task.id
+                  : isSelected
                     ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
-                    : keyboardFocused
+                    : isKeyboardFocused
                       ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
                       : "border-transparent"
           } ${task.done && !reorderDragging && !reorderHolding ? "opacity-65" : ""}`}
           data-task-id={task.id}
-          data-selected={selectedTaskId === task.id ? "" : undefined}
+          data-selected={isSelected ? "" : undefined}
         >
           <DoneCircle
             done={task.done}

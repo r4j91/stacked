@@ -139,6 +139,12 @@ textarea {
   }
 }
 
+/* Drill-down de filtros — content-visibility quebra paint de algumas linhas */
+.filter-result-list .scroll-list-item {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
+}
+
 /* Itens de lista longa — browser pula paint fora da viewport */
 .scroll-list-item {
   content-visibility: auto;

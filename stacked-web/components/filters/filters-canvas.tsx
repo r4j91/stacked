@@ -275,38 +275,40 @@ export function FiltersCanvas() {
           />
         </div>
 
-        {filterResults.map((item) =>
-          item.kind === "task" ? (
-            <TaskRow key={filterResultId(item)} task={item.task} />
-          ) : (
-            <FilterSubtaskRow
-              key={filterResultId(item)}
-              subtask={item.subtask}
-              parent={item.parent}
-              subtaskIndex={item.subtaskIndex}
-            />
-          ),
-        )}
+        <div className="filter-result-list">
+          {filterResults.map((item) =>
+            item.kind === "task" ? (
+              <TaskRow key={filterResultId(item)} task={item.task} embedded />
+            ) : (
+              <FilterSubtaskRow
+                key={filterResultId(item)}
+                subtask={item.subtask}
+                parent={item.parent}
+                subtaskIndex={item.subtaskIndex}
+              />
+            ),
+          )}
 
-        {showCompleted && completedFilterResults.length > 0 && (
-          <>
-            <h3 className="mb-1 mt-4 px-2 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Concluídas
-            </h3>
-            {completedFilterResults.map((item) =>
-              item.kind === "task" ? (
-                <TaskRow key={filterResultId(item)} task={item.task} />
-              ) : (
-                <FilterSubtaskRow
-                  key={filterResultId(item)}
-                  subtask={item.subtask}
-                  parent={item.parent}
-                  subtaskIndex={item.subtaskIndex}
-                />
-              ),
-            )}
-          </>
-        )}
+          {showCompleted && completedFilterResults.length > 0 && (
+            <>
+              <h3 className="mb-1 mt-4 px-2 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                Concluídas
+              </h3>
+              {completedFilterResults.map((item) =>
+                item.kind === "task" ? (
+                  <TaskRow key={filterResultId(item)} task={item.task} embedded />
+                ) : (
+                  <FilterSubtaskRow
+                    key={filterResultId(item)}
+                    subtask={item.subtask}
+                    parent={item.parent}
+                    subtaskIndex={item.subtaskIndex}
+                  />
+                ),
+              )}
+            </>
+          )}
+        </div>
 
         {!filterResults.length && (!showCompleted || !completedFilterResults.length) && (
           <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
@@ -347,9 +349,11 @@ export function FiltersCanvas() {
             {presetFilterTasks.length}
           </span>
         </div>
-        {presetFilterTasks.map((t) => (
-          <TaskRow key={t.id} task={t} />
-        ))}
+        <div className="filter-result-list">
+          {presetFilterTasks.map((t) => (
+            <TaskRow key={t.id} task={t} embedded />
+          ))}
+        </div>
         {!presetFilterTasks.length && (
           <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
             Nenhuma tarefa neste filtro.
