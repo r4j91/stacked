@@ -196,23 +196,25 @@ struct StackedPopoverOverlay: View {
           ProgressView().tint(c.accent).frame(height: 52)
         } else if currentPage.items.count > PopoverStyle.maxVisibleItems {
           ScrollView(showsIndicators: false) {
-            menuItemRows(currentPage.items)
+            menuItemList(currentPage.items)
           }
           .frame(height: PopoverStyle.maxScrollHeight)
         } else {
-          menuItemRows(currentPage.items)
+          menuItemList(currentPage.items)
         }
       }
       .frame(width: PopoverStyle.menuWidth)
       .clipShape(RoundedRectangle(cornerRadius: PopoverStyle.radius, style: .continuous))
-      .id(pageStack.count)
+      .id("\(pageStack.count)-\(currentPage.items.count)-\(currentPage.loading)")
       .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
   }
 
   @ViewBuilder
-  private func menuItemRows(_ items: [PopoverMenuItem]) -> some View {
-    ForEach(items) { item in
-      menuItemRow(item)
+  private func menuItemList(_ items: [PopoverMenuItem]) -> some View {
+    VStack(spacing: 0) {
+      ForEach(items) { item in
+        menuItemRow(item)
+      }
     }
   }
 
