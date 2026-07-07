@@ -60,11 +60,35 @@ final class HomeStore {
     return String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  var greeting: String {
+  var greetingPhrase: String {
     let hour = Calendar.current.component(.hour, from: Date())
-    let base = hour < 12 ? "Bom dia" : (hour < 18 ? "Boa tarde" : "Boa noite")
+    if hour < 12 { return "Bom dia," }
+    if hour < 18 { return "Boa tarde," }
+    return "Boa noite,"
+  }
+
+  var timeOfDay: HomeTimeOfDay { .current }
+
+  var greeting: String {
+    let base = greetingPhrase.dropLast() // "Bom dia," → "Bom dia"
     let name = firstName
-    return name.isEmpty ? base : "\(base), \(name)"
+    return name.isEmpty ? String(base) : "\(base), \(name)"
+  }
+
+  func statusLabel(overdueCount: Int) -> String {
+    if overdueCount == 1 { return "1 tarefa atrasada" }
+    if overdueCount > 1 { return "\(overdueCount) tarefas atrasadas" }
+    return "Tudo em dia"
+  }
+
+  func focusHeroTitle(overdueCount: Int) -> String {
+    overdueCount > 0 ? "Você tem pendências" : "Tudo certo!"
+  }
+
+  func focusHeroSubtitle(overdueCount: Int) -> String {
+    if overdueCount == 1 { return "1 tarefa atrasada precisa da sua atenção." }
+    if overdueCount > 1 { return "\(overdueCount) tarefas atrasadas precisam da sua atenção." }
+    return "Você está em dia com tudo."
   }
 
   func load() async {

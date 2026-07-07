@@ -13,14 +13,23 @@ struct HomeView: View {
   @State private var showProductivity = false
   @State private var showNotifications = false
   @State private var projectOptions: ProjectRoute?
+  @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
+
+  private var homeHeroStyle: HomeHeroStyle {
+    HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
+  }
 
   var body: some View {
     let c = theme.colors
 
     NavigationStack {
       List {
-        greetingTextSection
-        statusSection
+        HomeHeroSection(
+          style: homeHeroStyle,
+          store: store,
+          onOpenFilter: onOpenFilter,
+          onRetry: { _Concurrency.Task { await store.load() } }
+        )
         overviewSection
         projectsSection
 
@@ -99,78 +108,6 @@ struct HomeView: View {
       )
     }
     return Project(id: route.id, name: route.name, color: theme.colors.accent)
-  }
-
-  private var greetingTextSection: some View {
-    let c = theme.colors
-    return Section {
-      VStack(alignment: .leading, spacing: 6) {
-        Text(store.greeting)
-          .font(AppTypography.screenGreeting)
-          .foregroundStyle(c.textPrimary)
-        Text("Vamos focar no que realmente importa hoje.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      .listRowInsets(EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
-      .listRowSeparator(.hidden)
-      .listRowBackground(Color.clear)
-    }
-  }
-
-  @ViewBuilder
-  private var statusSection: some View {
-    if store.isLoading {
-      Section {
-        ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
-      }
-    } else if let err = store.error {
-      Section {
-        LoadErrorView(message: err) {
-          _Concurrency.Task { await store.load() }
-        }
-        .listRowBackground(Color.clear)
-      }
-    } else if store.overdueCount > 0 {
-      Section {
-        Button {
-          HapticService.selection()
-          onOpenFilter(.overdue)
-        } label: {
-          HStack(spacing: 10) {
-            StackedIcons.image(.exclamation).foregroundStyle(AppColors.overdue)
-            Text(store.overdueCount == 1 ? "1 tarefa atrasada" : "\(store.overdueCount) tarefas atrasadas")
-              .font(AppTypography.bodySemibold)
-              .foregroundStyle(AppColors.overdue)
-            Spacer()
-            StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
-              .foregroundStyle(AppColors.overdue.opacity(0.85))
-          }
-          .padding(14)
-          .background(AppColors.overdue.opacity(0.15))
-          .clipShape(RoundedRectangle(cornerRadius: 14))
-          .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.overdue.opacity(0.28)))
-        }
-        .buttonStyle(.plain)
-        .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-      }
-    } else {
-      Section {
-        HStack(spacing: AppSpacing.sm) {
-          HomeAllClearBadge()
-          Text("Tudo em dia")
-            .font(AppTypography.body.weight(.medium))
-            .foregroundStyle(AppColors.tagGreen.opacity(0.72))
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Tudo em dia")
-        .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-      }
-    }
   }
 
   private var overviewSection: some View {

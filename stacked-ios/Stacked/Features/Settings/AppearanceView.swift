@@ -7,9 +7,14 @@ struct AppearanceView: View {
   @State private var iconManager = AppIconManager.shared
   @State private var iconErrorMessage: String?
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
+  @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
 
   private var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(from: navBarStyleRaw)
+  }
+
+  private var homeHeroStyle: HomeHeroStyle {
+    HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
   }
 
   var body: some View {
@@ -17,6 +22,7 @@ struct AppearanceView: View {
     let themes = AppThemeId.allCases
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
+    let heroStyles = HomeHeroStyle.allCases
 
     List {
       Section {
@@ -47,6 +53,22 @@ struct AppearanceView: View {
         .settingsListCardRow(top: 4, bottom: 4)
       } header: {
         SettingsSectionHeader(text: "Barra de navegação")
+      }
+
+      Section {
+        SettingsCardSurface {
+          VStack(spacing: 0) {
+            ForEach(Array(heroStyles.enumerated()), id: \.element) { index, style in
+              homeHeroStyleRow(style)
+              if index < heroStyles.count - 1 {
+                SettingsCardDivider(leadingPadding: 56)
+              }
+            }
+          }
+        }
+        .settingsListCardRow(top: 4, bottom: 4)
+      } header: {
+        SettingsSectionHeader(text: "Hero da Home")
       }
 
       if iconManager.isSupported {
@@ -136,6 +158,39 @@ struct AppearanceView: View {
         Text(style.displayName)
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
+        Spacer()
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func homeHeroStyleRow(_ style: HomeHeroStyle) -> some View {
+    let c = theme.colors
+    let isSelected = homeHeroStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      homeHeroStyleRaw = style.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        HomeHeroStylePreview(style: style, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(style.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(style.subtitle)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+        }
         Spacer()
         if isSelected {
           Image(systemName: "checkmark.circle.fill")

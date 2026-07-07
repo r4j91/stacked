@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'providers/theme_provider.dart';
+import 'providers/home_hero_style_provider.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'screens/auth_screen.dart';
@@ -41,6 +42,7 @@ Future<void> _bootstrap() async {
   }
 
   await ThemeProvider.instance.loadSaved();
+  await HomeHeroStyleProvider.instance.loadSaved();
   HapticService();
 
   try {

@@ -7,7 +7,6 @@ import '../services/task_sync.dart';
 import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_radius.dart';
 import '../widgets/modal_media_query.dart' show ModalSheetRoute;
 import '../widgets/project_options_sheet.dart';
 import 'productivity_screen.dart' show showProductivitySheet;
@@ -21,6 +20,9 @@ import '../widgets/pressable.dart';
 import '../widgets/app_button.dart';
 import '../widgets/new_project_sheet.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../providers/home_hero_style_provider.dart';
+import '../theme/home_hero_style.dart';
+import '../widgets/home/home_hero_section.dart';
 import '../utils/project_icons.dart';
 
 class _HomeProject {
@@ -82,10 +84,13 @@ class HomeScreenState extends State<HomeScreen> {
   bool _loadingProjects = true;
   String? _loadError;
   final _scrollCtrl = ScrollController();
+  HomeHeroStyle _heroStyle = HomeHeroStyle.classic;
 
   @override
   void initState() {
     super.initState();
+    _heroStyle = HomeHeroStyleProvider.instance.style;
+    HomeHeroStyleProvider.instance.addListener(_onHeroStyleChanged);
     _loadUserName();
     _loadTasks();
     _loadProjects();
@@ -94,6 +99,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    HomeHeroStyleProvider.instance.removeListener(_onHeroStyleChanged);
     TaskSync.instance.removeListener(reload);
     _scrollCtrl.dispose();
     super.dispose();
@@ -102,6 +108,10 @@ class HomeScreenState extends State<HomeScreen> {
   void reload() {
     _loadTasks();
     _loadProjects();
+  }
+
+  void _onHeroStyleChanged() {
+    setState(() => _heroStyle = HomeHeroStyleProvider.instance.style);
   }
 
   int get _todayPending => (_todayTotal - _todayDone).clamp(0, _todayTotal);
@@ -282,19 +292,14 @@ class HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildHeader(),
-                          _buildGreeting(context),
-                          if (_loadingTasks)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                              child: SkeletonLoader(itemCount: 3),
-                            )
-                          else ...[
-                            if (_overdueCount > 0)
-                              _buildOverdueBanner(context)
-                            else
-                              _buildAllClearHint(),
-                            _buildNavSection(),
-                          ],
+                          HomeHeroSection(
+                            style: _heroStyle,
+                            loading: _loadingTasks,
+                            overdueCount: _overdueCount,
+                            firstName: _firstName,
+                            onOpenOverdue: () => widget.onNavigateToFilter?.call(TaskFilterKind.overdue),
+                          ),
+                          if (!_loadingTasks && _loadError == null) _buildNavSection(),
                           _buildProjectsSection(context),
                         ],
                       ),
@@ -364,39 +369,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
-  }
-
-  Widget _buildGreeting(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final name = _firstName;
-    final greetingLine = name.isNotEmpty ? '$_greeting, $name' : _greeting;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            greetingLine,
-            style: textTheme.headlineMedium?.copyWith(letterSpacing: -0.3),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Vamos focar no que realmente importa hoje.',
-            style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -409,98 +381,6 @@ class HomeScreenState extends State<HomeScreen> {
           fontWeight: FontWeight.w600,
           letterSpacing: 0.8,
           color: AppColors.textSecondary,
-        ),
-      ),
-    );
-  }
-
-  // ── ALL CLEAR HINT ─────────────────────────────────
-  Widget _buildAllClearHint() {
-    const label = 'Tudo em dia';
-    final color = AppColors.onTrackMuted;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm,
-      ),
-      child: Semantics(
-        label: label,
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedTick01,
-              size: 16,
-              color: color,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── OVERDUE BANNER ─────────────────────────────────
-  Widget _buildOverdueBanner(BuildContext context) {
-    final label = _overdueCount == 1
-        ? '1 tarefa atrasada'
-        : '$_overdueCount tarefas atrasadas';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm,
-      ),
-      child: Semantics(
-        button: true,
-        label: label,
-        child: Pressable(
-          onTap: () => widget.onNavigateToFilter?.call(TaskFilterKind.overdue),
-          child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md + 2,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.overdue.withValues(alpha: isDark ? 0.18 : 0.12),
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(
-              color: AppColors.overdue.withValues(alpha: 0.28),
-            ),
-          ),
-          child: Row(
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedAlert01,
-                size: 18,
-                color: AppColors.overdue,
-              ),
-              const SizedBox(width: AppSpacing.sm + 2),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.overdue,
-                  ),
-                ),
-              ),
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedArrowRight01,
-                size: 16,
-                color: AppColors.overdue.withValues(alpha: 0.85),
-              ),
-            ],
-          ),
-        ),
         ),
       ),
     );

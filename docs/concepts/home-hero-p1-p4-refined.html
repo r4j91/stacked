@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — P1 compacto + P4 refinado</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --tag-green: #8FD46B;
+      --pad-x: 20px;
+      --phone-w: 320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+      background: #0c0d0f;
+      color: var(--text-primary);
+      padding: 36px 20px 72px;
+      line-height: 1.35;
+    }
+
+    header { max-width: 1080px; margin: 0 auto 24px; }
+    header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+    header p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); max-width: 70ch; }
+
+    .note {
+      max-width: 1080px;
+      margin: 0 auto 20px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(95,211,220,0.08);
+      border: 1px solid rgba(95,211,220,0.18);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .note strong { color: var(--accent); }
+
+    .controls {
+      max-width: 1080px;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid rgba(242,243,245,0.06);
+    }
+
+    .control-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .control-group label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-right: 2px;
+    }
+
+    .pill {
+      padding: 6px 11px; border-radius: 999px;
+      border: 1px solid rgba(242,243,245,0.08);
+      background: transparent; color: var(--text-secondary);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .pill.active { background: rgba(95,211,220,0.12); border-color: rgba(95,211,220,0.28); color: var(--accent); }
+    .pill.overdue.active { background: rgba(239,90,95,0.12); border-color: rgba(239,90,95,0.28); color: var(--priority-high); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 18px;
+      border: 1px solid rgba(242,243,245,0.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(242,243,245,0.05);
+    }
+
+    .panel-head h2 { font-size: 13px; font-weight: 700; }
+    .panel-head p { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; line-height: 1.45; }
+
+    .dim {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      background: rgba(242,243,245,0.05);
+      padding: 3px 7px;
+      border-radius: 5px;
+    }
+
+    .phone-wrap { padding: 18px; }
+
+    .phone {
+      width: var(--phone-w);
+      max-width: 100%;
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 26px;
+      border: 1px solid rgba(242,243,245,0.08);
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px var(--pad-x) 4px;
+    }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(145deg, #3d2f4d, #5a4068);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .icons {
+      padding: 4px 8px; border-radius: 999px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12px; color: var(--text-secondary);
+    }
+
+    .hero-slot {
+      padding: 8px var(--pad-x) 4px;
+      position: relative;
+    }
+
+    .hero-slot::after {
+      content: attr(data-height);
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: rgba(95,211,220,0.5);
+      background: rgba(95,211,220,0.06);
+      padding: 2px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      margin: 12px var(--pad-x) 4px;
+    }
+
+    .nav-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px var(--pad-x);
+      font-size: 15px; font-weight: 500;
+    }
+    .nav-row .n { margin-left: auto; font-size: 14px; color: var(--text-tertiary); font-weight: 400; }
+
+    /* —— ATUAL (referência) —— */
+    .current-greet {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .current-sub {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .current-status-clear {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 500;
+      color: rgba(143,212,107,0.72);
+    }
+
+    .current-badge {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(143,212,107,0.2), transparent 70%);
+      border: 1px solid rgba(143,212,107,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--tag-green); font-weight: 800;
+    }
+
+    .current-status-overdue {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(239,90,95,0.15);
+      border: 1px solid rgba(239,90,95,0.28);
+      font-size: 15px; font-weight: 600;
+      color: var(--priority-high);
+    }
+
+    /* —— P1 COMPACT — horizontal, ~76px —— */
+    .p1 {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 13px;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid rgba(242,243,245,0.07);
+      min-height: 76px;
+      position: relative;
+      transition: border-color 0.35s;
+    }
+
+    .p1::before {
+      content: "";
+      position: absolute; inset: 0; border-radius: 16px;
+      box-shadow: inset 0 1px 0 rgba(242,243,245,0.04);
+      pointer-events: none;
+    }
+
+    .p1.overdue {
+      border-color: rgba(239,90,95,0.16);
+      cursor: pointer;
+    }
+
+    .p1-art {
+      width: 48px; height: 48px;
+      flex-shrink: 0;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .p1-halo {
+      position: absolute;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(95,211,220,0.2) 0%, transparent 68%);
+      animation: breathe 4.5s ease-in-out infinite;
+    }
+
+    .p1.overdue .p1-halo {
+      background: radial-gradient(circle, rgba(239,90,95,0.16) 0%, transparent 68%);
+    }
+
+    .p1-stack {
+      position: relative;
+      width: 36px; height: 32px;
+    }
+
+    .p1-layer {
+      position: absolute;
+      width: 30px; height: 18px;
+      border-radius: 5px;
+      border: 1px solid rgba(242,243,245,0.1);
+      background: var(--surface-variant);
+      left: 3px;
+      transition: transform 0.45s cubic-bezier(0.34, 1.15, 0.64, 1), border-color 0.35s, background 0.35s;
+    }
+
+    .p1-layer:nth-child(1) { bottom: 0; transform: rotate(-3deg); opacity: 0.5; }
+    .p1-layer:nth-child(2) { bottom: 7px; transform: rotate(2deg); opacity: 0.7; }
+    .p1-layer:nth-child(3) {
+      bottom: 14px;
+      border-color: rgba(95,211,220,0.28);
+      background: rgba(95,211,220,0.09);
+      animation: float 5s ease-in-out infinite;
+    }
+
+    .p1.overdue .p1-layer:nth-child(3) {
+      transform: rotate(7deg) translateX(2px);
+      border-color: rgba(239,90,95,0.35);
+      background: rgba(239,90,95,0.1);
+    }
+
+    .p1-mark {
+      position: absolute;
+      top: -4px; right: -6px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      font-size: 8px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .p1-mark.check {
+      background: rgba(143,212,107,0.22);
+      border: 1px solid rgba(143,212,107,0.35);
+      color: var(--tag-green);
+    }
+
+    .p1-mark.badge {
+      background: rgba(239,90,95,0.22);
+      border: 1px solid rgba(239,90,95,0.4);
+      color: var(--priority-high);
+      opacity: 0; transform: scale(0.6);
+    }
+
+    .p1.overdue .p1-mark.check { opacity: 0; transform: scale(0.6); }
+    .p1.overdue .p1-mark.badge { opacity: 1; transform: scale(1); }
+
+    .p1-text { flex: 1; min-width: 0; }
+
+    .p1-phrase {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: -0.01em;
+    }
+
+    .p1-name {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-top: 1px;
+    }
+
+    .p1-status {
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .p1-status.clear { color: var(--tag-green); }
+    .p1-status.overdue { color: var(--priority-high); }
+
+    .p1-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.85; }
+    .p1-chev { color: var(--text-tertiary); font-size: 14px; flex-shrink: 0; }
+    .p1.overdue .p1-chev { color: rgba(239,90,95,0.7); }
+
+    /* —— P4 REFINED — editorial, static frame, ~82px —— */
+    .p4 {
+      padding: 12px 14px 11px;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid rgba(242,243,245,0.07);
+      min-height: 82px;
+      transition: border-color 0.35s;
+    }
+
+    .p4.overdue { border-color: rgba(239,90,95,0.14); }
+
+    .p4-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .p4-phrase { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+    .p4-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      margin-top: 1px;
+    }
+
+    /* Static corner frame — no spin */
+    .p4-art {
+      width: 52px; height: 52px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .p4-frame {
+      position: absolute;
+      inset: 2px;
+      pointer-events: none;
+    }
+
+    .p4-frame span {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-color: rgba(95,211,220,0.35);
+      border-style: solid;
+      transition: border-color 0.4s;
+    }
+
+    .p4-frame span:nth-child(1) { top: 0; left: 0; border-width: 1.5px 0 0 1.5px; border-radius: 3px 0 0 0; }
+    .p4-frame span:nth-child(2) { top: 0; right: 0; border-width: 1.5px 1.5px 0 0; border-radius: 0 3px 0 0; }
+    .p4-frame span:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 3px; }
+    .p4-frame span:nth-child(4) { bottom: 0; right: 0; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 3px 0; }
+
+    .p4.overdue .p4-frame span { border-color: rgba(239,90,95,0.4); }
+
+    .p4-glow {
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(95,211,220,0.12) 0%, transparent 70%);
+      animation: breathe 5s ease-in-out infinite;
+    }
+
+    .p4.overdue .p4-glow {
+      background: radial-gradient(circle, rgba(239,90,95,0.1) 0%, transparent 70%);
+    }
+
+    .p4-stack {
+      position: absolute;
+      inset: 12px 10px 10px;
+    }
+
+    .p4-divider {
+      height: 1px;
+      margin: 10px 0 8px;
+      background: linear-gradient(90deg, rgba(95,211,220,0.32), rgba(242,243,245,0.05) 55%, transparent);
+      transition: background 0.4s;
+    }
+
+    .p4.overdue .p4-divider {
+      background: linear-gradient(90deg, rgba(239,90,95,0.38), rgba(242,243,245,0.05) 55%, transparent);
+    }
+
+    .p4-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .p4-status {
+      font-size: 12.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .p4-status.clear { color: var(--tag-green); }
+    .p4-status.overdue { color: var(--priority-high); }
+
+    .p4-bottom.overdue-tap {
+      padding: 6px 8px;
+      margin: 0 -8px -4px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .p4-bottom.overdue-tap:hover { background: rgba(239,90,95,0.06); }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.82; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: rotate(-1deg) translateY(0); }
+      50% { transform: rotate(-1deg) translateY(-2px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+
+    footer {
+      max-width: 1080px;
+      margin: 28px auto 0;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    footer strong { color: var(--text-primary); }
+    footer ul { margin: 8px 0 0 18px; }
+    footer li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>P1 compacto + P4 refinado</h1>
+    <p>
+      P1 reduzido para caber no espaço atual da Home (~76px, uma única row na List).
+      P4 sem círculo girando — frame estático com cantoneiras + halo que só respira.
+    </p>
+  </header>
+
+  <div class="note">
+    <strong>Mudança de layout:</strong> greeting + status viram <strong>1 única Section</strong> na List
+    (hoje são 2). Remove o subtítulo “Vamos focar…”. Altura total similar ou um pouco menor que hoje (~113px → ~88px).
+    O restante da Home (Visão geral, Projetos) não muda.
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Hora</label>
+      <button class="pill" data-time="morning">Manhã</button>
+      <button class="pill" data-time="afternoon">Tarde</button>
+      <button class="pill active" data-time="night">Noite</button>
+    </div>
+    <div class="control-group">
+      <label>Estado</label>
+      <button class="pill active" data-state="clear">Tudo em dia</button>
+      <button class="pill overdue" data-state="overdue">3 atrasadas</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- ATUAL -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Hoje — referência</h2>
+        <p>Duas sections separadas: saudação 28pt + subtítulo + status abaixo</p>
+        <span class="dim">~113px total</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar">
+            <div class="avatar">RO</div>
+            <div class="icons">🔔 ⚙</div>
+          </div>
+          <div class="hero-slot" data-height="~113px" style="padding-top:8px">
+            <div class="current-greet greet-full">Boa noite, Rodrigo</div>
+            <div class="current-sub">Vamos focar no que realmente importa hoje.</div>
+            <div class="current-status clear-only">
+              <div class="current-status-clear">
+                <div class="current-badge">✓</div>
+                Tudo em dia
+              </div>
+            </div>
+            <div class="current-status overdue-only" style="display:none">
+              <div class="current-status-overdue">
+                <span>⚠</span>
+                <span class="overdue-label">3 tarefas atrasadas</span>
+                <span style="margin-left:auto;font-size:12px">›</span>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+          <div class="nav-row">☀️ Hoje <span class="n">5</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- P1 COMPACT -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>P1 — Orbital Stack (compacto)</h2>
+        <p>Horizontal: arte 48px + saudação + status. Mesma arte orbital, card único.</p>
+        <span class="dim">~76px · 1 section</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar">
+            <div class="avatar">RO</div>
+            <div class="icons">🔔 ⚙</div>
+          </div>
+          <div class="hero-slot" data-height="~76px">
+            <div class="p1 hero-p1">
+              <div class="p1-art">
+                <div class="p1-halo"></div>
+                <div class="p1-stack">
+                  <div class="p1-layer"></div>
+                  <div class="p1-layer"></div>
+                  <div class="p1-layer"></div>
+                  <div class="p1-mark check">✓</div>
+                  <div class="p1-mark badge">3</div>
+                </div>
+              </div>
+              <div class="p1-text">
+                <div class="p1-phrase greet-phrase">Boa noite,</div>
+                <div class="p1-name">Rodrigo</div>
+                <div class="p1-status clear status-p1">
+                  <span class="p1-dot"></span>
+                  <span>Tudo em dia</span>
+                </div>
+              </div>
+              <span class="p1-chev chev-p1" style="display:none">›</span>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+          <div class="nav-row">☀️ Hoje <span class="n">5</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- P4 REFINED -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>P4 — Editorial (refinado)</h2>
+        <p>Cantoneiras estáticas no lugar do círculo girando. Halo respira só no centro.</p>
+        <span class="dim">~82px · 1 section</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar">
+            <div class="avatar">RO</div>
+            <div class="icons">🔔 ⚙</div>
+          </div>
+          <div class="hero-slot" data-height="~82px">
+            <div class="p4 hero-p4">
+              <div class="p4-top">
+                <div>
+                  <div class="p4-phrase greet-phrase">Boa noite,</div>
+                  <div class="p4-name">Rodrigo</div>
+                </div>
+                <div class="p4-art">
+                  <div class="p4-glow"></div>
+                  <div class="p4-frame">
+                    <span></span><span></span><span></span><span></span>
+                  </div>
+                  <svg class="p4-stack" viewBox="0 0 32 32" aria-hidden="true">
+                    <rect x="4" y="18" width="24" height="12" rx="3" fill="#2C2D33" stroke="rgba(242,243,245,0.1)"/>
+                    <rect x="6" y="12" width="20" height="10" rx="2.5" fill="#2C2D33" stroke="rgba(242,243,245,0.12)"/>
+                    <rect class="p4-top-layer" x="8" y="6" width="16" height="9" rx="2.5"
+                      fill="rgba(95,211,220,0.12)" stroke="rgba(95,211,220,0.3)" stroke-width="0.8"/>
+                    <circle class="p4-badge-clear" cx="22" cy="9" r="5" fill="rgba(143,212,107,0.25)" stroke="rgba(143,212,107,0.4)" stroke-width="0.6"/>
+                    <text class="p4-badge-clear" x="22" y="11" text-anchor="middle" fill="#8FD46B" font-size="6" font-weight="800">✓</text>
+                    <circle class="p4-badge-overdue" cx="22" cy="9" r="5" fill="rgba(239,90,95,0.25)" stroke="rgba(239,90,95,0.4)" stroke-width="0.6" opacity="0"/>
+                    <text class="p4-badge-overdue" x="22" y="11" text-anchor="middle" fill="#EF5A5F" font-size="6" font-weight="800" opacity="0">3</text>
+                  </svg>
+                </div>
+              </div>
+              <div class="p4-divider"></div>
+              <div class="p4-bottom bottom-p4">
+                <div class="p4-status clear status-p4">
+                  <span class="p1-dot"></span>
+                  <span>Tudo em dia</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+          <div class="nav-row">☀️ Hoje <span class="n">5</span></div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <footer>
+    <strong>Resumo das mudanças de layout</strong>
+    <ul>
+      <li><strong>Antes:</strong> <code>greetingTextSection</code> + <code>statusSection</code> = 2 rows na List</li>
+      <li><strong>Depois:</strong> <code>homeHeroSection</code> = 1 row (~76–82px), insets iguais (<code>AppSpacing.xl</code>)</li>
+      <li><strong>Remove:</strong> subtítulo “Vamos focar no que realmente importa hoje.”</li>
+      <li><strong>Overdue:</strong> card inteiro vira <code>Button</code> (P1) ou faixa inferior tappable (P4)</li>
+      <li><strong>Animações:</strong> só halo respira + camada superior flutua levemente — sem rotação contínua</li>
+    </ul>
+  </footer>
+
+  <script>
+    const greetings = { morning: 'Bom dia,', afternoon: 'Boa tarde,', night: 'Boa noite,' };
+    const greetingsFull = { morning: 'Bom dia, Rodrigo', afternoon: 'Boa tarde, Rodrigo', night: 'Boa noite, Rodrigo' };
+
+    let time = 'night';
+    let state = 'clear';
+
+    function apply() {
+      document.querySelectorAll('.greet-phrase').forEach(el => el.textContent = greetings[time]);
+      document.querySelectorAll('.greet-full').forEach(el => el.textContent = greetingsFull[time]);
+
+      const overdue = state === 'overdue';
+      const statusText = overdue ? '3 tarefas atrasadas' : 'Tudo em dia';
+
+      // Current reference
+      document.querySelectorAll('.clear-only').forEach(el => el.style.display = overdue ? 'none' : 'block');
+      document.querySelectorAll('.overdue-only').forEach(el => el.style.display = overdue ? 'block' : 'none');
+
+      // P1
+      document.querySelectorAll('.hero-p1').forEach(el => el.classList.toggle('overdue', overdue));
+      document.querySelectorAll('.status-p1').forEach(el => {
+        el.className = 'p1-status ' + (overdue ? 'overdue' : 'clear') + ' status-p1';
+        el.innerHTML = '<span class="p1-dot"></span><span>' + statusText + '</span>';
+      });
+      document.querySelectorAll('.chev-p1').forEach(el => el.style.display = overdue ? 'block' : 'none');
+
+      // P4
+      document.querySelectorAll('.hero-p4').forEach(el => el.classList.toggle('overdue', overdue));
+      document.querySelectorAll('.status-p4').forEach(el => {
+        el.className = 'p4-status ' + (overdue ? 'overdue' : 'clear') + ' status-p4';
+        el.innerHTML = '<span class="p1-dot"></span><span>' + statusText + '</span>';
+      });
+      document.querySelectorAll('.bottom-p4').forEach(el => {
+        el.className = 'p4-bottom bottom-p4' + (overdue ? ' overdue-tap' : '');
+        if (overdue) {
+          el.innerHTML = '<div class="p4-status overdue status-p4"><span class="p1-dot"></span><span>' + statusText + '</span></div><span style="color:rgba(239,90,95,0.7);font-size:13px">›</span>';
+        }
+      });
+
+      document.querySelectorAll('.p4-top-layer').forEach(rect => {
+        rect.setAttribute('fill', overdue ? 'rgba(239,90,95,0.12)' : 'rgba(95,211,220,0.12)');
+        rect.setAttribute('stroke', overdue ? 'rgba(239,90,95,0.35)' : 'rgba(95,211,220,0.3)');
+        rect.setAttribute('transform', overdue ? 'rotate(5 16 10.5)' : '');
+      });
+      document.querySelectorAll('.p4-badge-clear').forEach(el => el.setAttribute('opacity', overdue ? '0' : '1'));
+      document.querySelectorAll('.p4-badge-overdue').forEach(el => el.setAttribute('opacity', overdue ? '1' : '0'));
+    }
+
+    document.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-time]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        time = btn.dataset.time;
+        apply();
+      });
+    });
+
+    document.querySelectorAll('[data-state]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-state]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state = btn.dataset.state;
+        apply();
+      });
+    });
+
+    apply();
+  </script>
+</body>
+</html>

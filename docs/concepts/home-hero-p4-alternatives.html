@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — P4 alternativas editoriais</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --tag-green: #8FD46B;
+      --pad-x: 20px;
+      --phone-w: 320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+      background: #0c0d0f;
+      color: var(--text-primary);
+      padding: 36px 20px 72px;
+      line-height: 1.35;
+    }
+
+    header { max-width: 1120px; margin: 0 auto 20px; }
+    header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+    header p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); max-width: 72ch; }
+
+    .note {
+      max-width: 1120px; margin: 0 auto 20px;
+      padding: 14px 16px; border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12px; color: var(--text-secondary); line-height: 1.55;
+    }
+    .note strong { color: var(--text-primary); }
+    .note code { color: var(--accent); font-size: 11px; }
+
+    .controls {
+      max-width: 1120px; margin: 0 auto 22px;
+      display: flex; flex-wrap: wrap; gap: 14px;
+      padding: 12px 16px; background: var(--surface);
+      border-radius: 14px; border: 1px solid rgba(242,243,245,0.06);
+    }
+
+    .control-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .control-group label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-tertiary);
+    }
+
+    .pill {
+      padding: 6px 11px; border-radius: 999px;
+      border: 1px solid rgba(242,243,245,0.08);
+      background: transparent; color: var(--text-secondary);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .pill.active { background: rgba(95,211,220,0.12); border-color: rgba(95,211,220,0.28); color: var(--accent); }
+    .pill.overdue.active { background: rgba(239,90,95,0.12); border-color: rgba(239,90,95,0.28); color: var(--priority-high); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 22px;
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 18px;
+      border: 1px solid rgba(242,243,245,0.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(242,243,245,0.05);
+    }
+
+    .panel-head h2 { font-size: 13px; font-weight: 700; }
+    .panel-head p { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; line-height: 1.45; }
+
+    .tag {
+      display: inline-block; margin-top: 6px;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 3px 7px; border-radius: 5px;
+    }
+    .tag-ref { color: var(--accent); background: rgba(95,211,220,0.1); border: 1px solid rgba(95,211,220,0.2); }
+
+    .phone-wrap { padding: 16px; }
+
+    .phone {
+      width: var(--phone-w); max-width: 100%; margin: 0 auto;
+      background: var(--bg); border-radius: 26px;
+      border: 1px solid rgba(242,243,245,0.08); overflow: hidden;
+    }
+
+    .toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px var(--pad-x) 4px;
+    }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(145deg, #3d2f4d, #5a4068);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .icons {
+      padding: 4px 8px; border-radius: 999px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12px; color: var(--text-secondary);
+    }
+
+    .hero-slot { padding: 8px var(--pad-x) 4px; }
+
+    .section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--text-secondary); margin: 12px var(--pad-x) 4px;
+    }
+
+    .nav-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px var(--pad-x); font-size: 15px; font-weight: 500;
+    }
+    .nav-row .n { margin-left: auto; font-size: 14px; color: var(--text-tertiary); font-weight: 400; }
+
+    /* Shared */
+    .phrase { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+    .name { font-size: 22px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; }
+    .status { font-size: 12.5px; font-weight: 600; }
+    .status.clear { color: var(--tag-green); }
+    .status.overdue { color: var(--priority-high); }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; margin-right: 5px; vertical-align: 1px; }
+    .chev { font-size: 13px; color: var(--text-tertiary); }
+    .hero.overdue-tap { cursor: pointer; }
+
+    /* P1 reference (locked) */
+    .p1 {
+      display: flex; align-items: center; gap: 14px;
+      padding: 11px 13px; border-radius: 16px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.07);
+      min-height: 76px;
+    }
+    .p1.overdue { border-color: rgba(239,90,95,0.16); }
+    .p1-art { width: 48px; height: 48px; position: relative; flex-shrink: 0; }
+    .p1-halo {
+      position: absolute; inset: -2px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(95,211,220,0.2), transparent 68%);
+      animation: breathe 4.5s ease-in-out infinite;
+    }
+    .p1.overdue .p1-halo { background: radial-gradient(circle, rgba(239,90,95,0.16), transparent 68%); }
+    .p1-stack { position: relative; width: 36px; height: 32px; margin: 8px auto; }
+    .p1-layer {
+      position: absolute; width: 30px; height: 18px; border-radius: 5px;
+      border: 1px solid rgba(242,243,245,0.1); background: var(--surface-variant); left: 3px;
+      transition: transform 0.4s, border-color 0.35s, background 0.35s;
+    }
+    .p1-layer:nth-child(1) { bottom: 0; transform: rotate(-3deg); opacity: 0.5; }
+    .p1-layer:nth-child(2) { bottom: 7px; transform: rotate(2deg); opacity: 0.7; }
+    .p1-layer:nth-child(3) { bottom: 14px; border-color: rgba(95,211,220,0.28); background: rgba(95,211,220,0.09); }
+    .p1.overdue .p1-layer:nth-child(3) { transform: rotate(7deg) translateX(2px); border-color: rgba(239,90,95,0.35); background: rgba(239,90,95,0.1); }
+    .p1-text { flex: 1; }
+    .p1-status { margin-top: 4px; }
+
+    /* E1 — Accent Rail */
+    .e1 {
+      display: flex; align-items: stretch;
+      min-height: 74px; border-radius: 16px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.06);
+      overflow: hidden; transition: border-color 0.35s;
+    }
+    .e1.overdue { border-color: rgba(239,90,95,0.14); }
+    .e1-rail {
+      width: 3px; flex-shrink: 0;
+      background: linear-gradient(180deg, var(--tag-green), rgba(143,212,107,0.3));
+      transition: background 0.4s;
+    }
+    .e1.overdue .e1-rail { background: linear-gradient(180deg, var(--priority-high), rgba(239,90,95,0.25)); }
+    .e1-body {
+      flex: 1; padding: 12px 14px 11px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .e1-row {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      margin-top: 2px;
+    }
+    .e1-row .name { font-size: 21px; }
+
+    /* E2 — Capsule Status */
+    .e2 {
+      padding: 12px 14px; border-radius: 16px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.07);
+      min-height: 78px; transition: border-color 0.35s;
+    }
+    .e2.overdue { border-color: rgba(239,90,95,0.14); }
+    .e2-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 4px;
+    }
+    .e2-pill {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+      padding: 4px 9px; border-radius: 999px;
+      background: rgba(143,212,107,0.12);
+      border: 1px solid rgba(143,212,107,0.22);
+      color: var(--tag-green);
+      transition: background 0.35s, border-color 0.35s, color 0.35s;
+      white-space: nowrap;
+    }
+    .e2.overdue .e2-pill {
+      background: rgba(239,90,95,0.12);
+      border-color: rgba(239,90,95,0.25);
+      color: var(--priority-high);
+    }
+    .e2-bottom {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .e2-bottom .name { font-size: 23px; }
+
+    /* E3 — Open Type (no card) */
+    .e3 {
+      padding: 10px 2px 8px;
+      min-height: 72px;
+      border-bottom: 1px solid rgba(242,243,245,0.06);
+      transition: border-color 0.35s;
+    }
+    .e3.overdue { border-bottom-color: rgba(239,90,95,0.15); }
+    .e3-name-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+    .e3-name-row .name { font-size: 24px; }
+    .e3-underline {
+      height: 2px; margin-top: 8px; border-radius: 1px;
+      background: linear-gradient(90deg, rgba(95,211,220,0.45) 0%, rgba(95,211,220,0.08) 55%, transparent 100%);
+      transition: background 0.4s;
+      animation: line-grow 6s ease-in-out infinite;
+    }
+    .e3.overdue .e3-underline {
+      background: linear-gradient(90deg, rgba(239,90,95,0.5) 0%, rgba(239,90,95,0.08) 55%, transparent 100%);
+    }
+    .e3-status { margin-top: 8px; }
+
+    /* E4 — Horizon Glyph */
+    .e4 {
+      display: flex; align-items: center; gap: 14px;
+      padding: 11px 13px; border-radius: 16px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.07);
+      min-height: 76px; transition: border-color 0.35s;
+    }
+    .e4.overdue { border-color: rgba(239,90,95,0.14); }
+    .e4-text { flex: 1; min-width: 0; }
+    .e4-glyph {
+      width: 44px; height: 44px; flex-shrink: 0;
+      position: relative;
+    }
+    .e4-glow {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(circle, rgba(95,211,220,0.14), transparent 70%);
+      animation: breathe 5s ease-in-out infinite;
+    }
+    .e4.overdue .e4-glow { background: radial-gradient(circle, rgba(239,90,95,0.12), transparent 70%); }
+    .e4-horizon {
+      position: absolute; left: 6px; right: 6px; bottom: 12px;
+      height: 1px; background: rgba(242,243,245,0.12);
+    }
+    .e4-sun {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); opacity: 0.55;
+      transition: top 0.5s, background 0.4s, box-shadow 0.4s;
+    }
+    .e4.time-morning .e4-sun { top: 18px; }
+    .e4.time-afternoon .e4-sun { top: 8px; background: #F5A623; box-shadow: 0 0 8px rgba(245,166,35,0.3); }
+    .e4.time-night .e4-sun { top: 22px; width: 6px; height: 6px; background: #B18CF5; box-shadow: 0 0 6px rgba(177,140,245,0.25); }
+    .e4.overdue .e4-sun { background: var(--priority-high); box-shadow: 0 0 8px rgba(239,90,95,0.35); }
+    .e4-hill {
+      position: absolute; bottom: 8px; left: 8px;
+      width: 28px; height: 10px; border-radius: 50% 50% 0 0;
+      background: var(--surface-variant); opacity: 0.7;
+    }
+    .e4-flag {
+      position: absolute; top: 10px; right: 8px;
+      width: 14px; height: 14px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 800;
+      background: rgba(143,212,107,0.2); border: 1px solid rgba(143,212,107,0.35);
+      color: var(--tag-green);
+      transition: opacity 0.3s, transform 0.3s, background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .e4.overdue .e4-flag {
+      background: rgba(239,90,95,0.2); border-color: rgba(239,90,95,0.4);
+      color: var(--priority-high);
+    }
+    .e4-badge-num { display: none; }
+    .e4.overdue .e4-flag-check { display: none; }
+    .e4.overdue .e4-badge-num { display: block; }
+    .e4-status { margin-top: 4px; }
+
+    /* E5 — Split Ledger */
+    .e5 {
+      padding: 11px 14px; border-radius: 16px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.07);
+      min-height: 80px; transition: border-color 0.35s;
+    }
+    .e5.overdue { border-color: rgba(239,90,95,0.14); }
+    .e5-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 2px 12px;
+      align-items: center;
+    }
+    .e5-phrase { grid-column: 1; }
+    .e5-status-cell { grid-column: 2; grid-row: 1; text-align: right; }
+    .e5-name { grid-column: 1; grid-row: 2; font-size: 22px; font-weight: 800; letter-spacing: -0.035em; }
+    .e5-chev { grid-column: 2; grid-row: 2; opacity: 0; transition: opacity 0.3s; }
+    .e5.overdue .e5-chev { opacity: 1; color: rgba(239,90,95,0.7); }
+    .e5-rule {
+      grid-column: 1 / -1;
+      height: 1px; margin-top: 8px;
+      background: rgba(242,243,245,0.06);
+    }
+    .e5-meta {
+      grid-column: 1 / -1;
+      font-size: 11px; color: var(--text-tertiary);
+      margin-top: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .e5-stack-icon {
+      display: inline-flex; flex-direction: column; gap: 2px;
+    }
+    .e5-stack-icon span {
+      display: block; height: 2px; border-radius: 1px;
+      background: var(--text-tertiary); opacity: 0.5;
+    }
+    .e5-stack-icon span:nth-child(1) { width: 10px; }
+    .e5-stack-icon span:nth-child(2) { width: 8px; opacity: 0.35; }
+    .e5-stack-icon span:nth-child(3) { width: 6px; opacity: 0.25; }
+    .e5.overdue .e5-stack-icon span { background: var(--priority-high); opacity: 0.6; }
+    .e5.overdue .e5-stack-icon span:nth-child(2) { opacity: 0.45; }
+    .e5.overdue .e5-stack-icon span:nth-child(3) { opacity: 0.3; }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.85; }
+    }
+
+    @keyframes line-grow {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+
+    footer {
+      max-width: 1120px; margin: 28px auto 0;
+      padding: 16px 18px; border-radius: 14px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12px; color: var(--text-secondary); line-height: 1.55;
+    }
+    footer strong { color: var(--text-primary); }
+    footer ul { margin: 8px 0 0 18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>P4 reformulada — 5 direções editoriais</h1>
+    <p>
+      P1 (Orbital Stack) fica como está — aprovada. Abaixo, cinco alternativas para o estilo
+      <strong>editorial</strong> (sem círculo girando, sem cantoneiras). Todas no mesmo footprint (~74–80px).
+    </p>
+  </header>
+
+  <div class="note">
+    <strong>Seletor em Aparência — sim, dá para fazer.</strong>
+    O app já tem padrão parecido com <code>NavBarStyle</code> em
+    <code>AppearanceView</code> (via <code>@AppStorage</code>).
+    Podemos adicionar <code>HomeHeroStyle</code>: <em>Clássico</em> (hoje) · <em>Orbital</em> (P1) · <em>Editorial</em> (uma das E abaixo).
+    Cada estilo = uma view SwiftUI; <code>HomeView</code> lê a preferência e renderiza o bloco certo.
+    Implementamos depois que você escolher a variante editorial.
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Hora</label>
+      <button class="pill" data-time="morning">Manhã</button>
+      <button class="pill" data-time="afternoon">Tarde</button>
+      <button class="pill active" data-time="night">Noite</button>
+    </div>
+    <div class="control-group">
+      <label>Estado</label>
+      <button class="pill active" data-state="clear">Tudo em dia</button>
+      <button class="pill overdue" data-state="overdue">3 atrasadas</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- P1 locked -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>P1 — Orbital Stack</h2>
+        <p>Aprovada · referência de escala</p>
+        <span class="tag tag-ref">Implementar</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="p1 hero" data-style="p1">
+              <div class="p1-art"><div class="p1-halo"></div>
+                <div class="p1-stack"><div class="p1-layer"></div><div class="p1-layer"></div><div class="p1-layer"></div></div>
+              </div>
+              <div class="p1-text">
+                <div class="phrase greet-phrase">Boa noite,</div>
+                <div class="name" style="font-size:20px">Rodrigo</div>
+                <div class="p1-status status clear status-text"><span class="dot"></span>Tudo em dia</div>
+              </div>
+              <span class="chev chev-extra" style="display:none">›</span>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- E1 -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>E1 — Accent Rail</h2>
+        <p>Barra vertical semântica · tipografia pura · status alinhado à direita do nome</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="e1 hero overdue-tap" data-style="e1">
+              <div class="e1-rail"></div>
+              <div class="e1-body">
+                <div class="phrase greet-phrase">Boa noite,</div>
+                <div class="e1-row">
+                  <div class="name">Rodrigo</div>
+                  <div class="status clear status-text"><span class="dot"></span>Tudo em dia</div>
+                </div>
+              </div>
+              <span class="chev chev-extra" style="display:none;padding:0 12px;align-self:center">›</span>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- E2 -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>E2 — Capsule Status</h2>
+        <p>Status em cápsula no topo · nome grande embaixo · grid editorial limpo</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="e2 hero overdue-tap" data-style="e2">
+              <div class="e2-top">
+                <div class="phrase greet-phrase">Boa noite,</div>
+                <div class="e2-pill status-pill">Tudo em dia</div>
+              </div>
+              <div class="e2-bottom">
+                <div class="name">Rodrigo</div>
+                <span class="chev chev-extra" style="display:none">›</span>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- E3 -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>E3 — Open Type</h2>
+        <p>Sem card — texto direto no fundo · linha accent animada · mais arejado</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="e3 hero overdue-tap time-night" data-style="e3">
+              <div class="phrase greet-phrase">Boa noite,</div>
+              <div class="e3-name-row">
+                <div class="name">Rodrigo</div>
+                <span class="chev chev-extra" style="display:none">›</span>
+              </div>
+              <div class="e3-underline"></div>
+              <div class="e3-status status clear status-text"><span class="dot"></span>Tudo em dia</div>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- E4 -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>E4 — Horizon Glyph</h2>
+        <p>Mini horizonte (DNA do Today Clear) · sol/lua muda com hora · badge estático</p>
+        <span class="tag tag-ref">Favorita editorial</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="e4 hero overdue-tap time-night" data-style="e4">
+              <div class="e4-text">
+                <div class="phrase greet-phrase">Boa noite,</div>
+                <div class="name" style="font-size:20px">Rodrigo</div>
+                <div class="e4-status status clear status-text"><span class="dot"></span>Tudo em dia</div>
+              </div>
+              <div class="e4-glyph">
+                <div class="e4-glow"></div>
+                <div class="e4-hill"></div>
+                <div class="e4-horizon"></div>
+                <div class="e4-sun"></div>
+                <div class="e4-flag">
+                  <span class="e4-flag-check">✓</span>
+                  <span class="e4-badge-num">3</span>
+                </div>
+              </div>
+              <span class="chev chev-extra" style="display:none">›</span>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- E5 -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>E5 — Split Ledger</h2>
+        <p>Grid 2×2 tipográfico · ícone stack mínimo na meta linha · chevron só no overdue</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="toolbar"><div class="avatar">RO</div><div class="icons">🔔 ⚙</div></div>
+          <div class="hero-slot">
+            <div class="e5 hero overdue-tap" data-style="e5">
+              <div class="e5-grid">
+                <div class="phrase e5-phrase greet-phrase">Boa noite,</div>
+                <div class="e5-status-cell status clear status-text"><span class="dot"></span>Tudo em dia</div>
+                <div class="e5-name">Rodrigo</div>
+                <span class="e5-chev chev-extra">›</span>
+                <div class="e5-rule"></div>
+                <div class="e5-meta">
+                  <span class="e5-stack-icon"><span></span><span></span><span></span></span>
+                  <span class="meta-text">Visão do dia</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">VISÃO GERAL</div>
+          <div class="nav-row">📥 Inbox <span class="n">2</span></div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <footer>
+    <strong>Próximo passo</strong>
+    <ul>
+      <li><strong>P1</strong> — implementar como estilo <em>Orbital</em></li>
+      <li><strong>P4 editorial</strong> — escolher E1, E2, E3, E4 ou E5 (ou combinar: ex. rail da E1 + glyph da E4)</li>
+      <li><strong>Clássico</strong> — manter layout atual como opção em Aparência</li>
+      <li>Depois: <code>HomeHeroStyle</code> + seção em <code>AppearanceView</code> + paridade Flutter</li>
+    </ul>
+  </footer>
+
+  <script>
+    const greetings = { morning: 'Bom dia,', afternoon: 'Boa tarde,', night: 'Boa noite,' };
+    let time = 'night', state = 'clear';
+
+    function apply() {
+      const overdue = state === 'overdue';
+      const statusText = overdue ? '3 tarefas atrasadas' : 'Tudo em dia';
+
+      document.querySelectorAll('.greet-phrase').forEach(el => el.textContent = greetings[time]);
+
+      document.querySelectorAll('.hero').forEach(el => {
+        el.classList.toggle('overdue', overdue);
+        el.classList.remove('time-morning', 'time-afternoon', 'time-night');
+        el.classList.add('time-' + time);
+        el.classList.toggle('overdue-tap', overdue && el.dataset.style !== 'p1');
+      });
+
+      document.querySelectorAll('.status-text').forEach(el => {
+        el.className = 'status ' + (overdue ? 'overdue' : 'clear') + ' status-text';
+        el.innerHTML = '<span class="dot"></span>' + statusText;
+      });
+
+      document.querySelectorAll('.status-pill').forEach(el => {
+        el.textContent = statusText;
+      });
+
+      document.querySelectorAll('.chev-extra').forEach(el => {
+        el.style.display = overdue ? 'block' : 'none';
+      });
+
+      document.querySelectorAll('.e5-chev').forEach(el => {
+        el.style.opacity = overdue ? '1' : '0';
+      });
+    }
+
+    document.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-time]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        time = btn.dataset.time;
+        apply();
+      });
+    });
+
+    document.querySelectorAll('[data-state]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-state]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state = btn.dataset.state;
+        apply();
+      });
+    });
+
+    apply();
+  </script>
+</body>
+</html>

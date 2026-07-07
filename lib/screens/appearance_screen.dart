@@ -8,6 +8,9 @@ import 'debug_anchored_menu_screen.dart';
 import 'project_row_preview_screen.dart';
 import 'task_meta_preview_screen.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../providers/home_hero_style_provider.dart';
+import '../theme/home_hero_style.dart';
+import '../widgets/home/home_hero_style_preview.dart';
 
 class AppearanceScreen extends StatefulWidget {
   const AppearanceScreen({super.key});
@@ -18,12 +21,20 @@ class AppearanceScreen extends StatefulWidget {
 
 class _AppearanceScreenState extends State<AppearanceScreen> {
   AppThemeId _selected = ThemeProvider.instance.themeId;
+  HomeHeroStyle _heroStyle = HomeHeroStyleProvider.instance.style;
 
   Future<void> _pick(AppThemeId id) async {
     if (_selected == id) return;
     HapticService().selectionClick();
     setState(() => _selected = id);
     await ThemeProvider.instance.setTheme(id);
+  }
+
+  Future<void> _pickHero(HomeHeroStyle style) async {
+    if (_heroStyle == style) return;
+    HapticService().selectionClick();
+    setState(() => _heroStyle = style);
+    await HomeHeroStyleProvider.instance.setStyle(style);
   }
 
   @override
@@ -48,6 +59,10 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
           _SectionLabel('Tema'),
           const SizedBox(height: 10),
           _buildThemeList(),
+          const SizedBox(height: 28),
+          _SectionLabel('Hero da Home'),
+          const SizedBox(height: 10),
+          _buildHeroStyleList(),
           const SizedBox(height: 28),
           _SectionLabel('Ícone do app'),
           const SizedBox(height: 10),
@@ -83,6 +98,69 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
             selected: isSelected,
             showDivider: !isLast,
             onTap: () => _pick(id),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildHeroStyleList() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: HomeHeroStyle.values.indexed.map((entry) {
+          final (i, style) = entry;
+          final isLast = i == HomeHeroStyle.values.length - 1;
+          final isSelected = _heroStyle == style;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: () => _pickHero(style),
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                  child: Row(
+                    children: [
+                      HomeHeroStylePreview(style: style, selected: isSelected),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              style.displayName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              style.subtitle,
+                              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      HugeIcon(
+                        icon: isSelected
+                            ? HugeIcons.strokeRoundedCheckmarkCircle01
+                            : HugeIcons.strokeRoundedCircle,
+                        size: 20,
+                        color: isSelected ? AppColors.accent : AppColors.textTertiary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Divider(height: 1, indent: 16 + 56 + 14, color: AppColors.surfaceVariant),
+            ],
           );
         }).toList(),
       ),
