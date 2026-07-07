@@ -55,6 +55,10 @@ final class TaskDetailViewModel {
     self.taskId = taskId
   }
 
+  func reloadLabels() async {
+    allLabels = (try? await LabelRepository.shared.fetchLabels()) ?? []
+  }
+
   func load() async {
     loadGeneration += 1
     let generation = loadGeneration

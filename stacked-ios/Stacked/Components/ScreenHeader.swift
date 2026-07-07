@@ -30,27 +30,80 @@ struct SectionLabel: View {
 
 struct EmptyStateView: View {
   @Environment(ThemeManager.self) private var theme
-  let icon: StackedIconKey
+  var illustration: EmptyStateIllustrationKind?
+  var icon: StackedIconKey?
   let title: String
   let subtitle: String
 
+  init(
+    illustration: EmptyStateIllustrationKind,
+    title: String,
+    subtitle: String
+  ) {
+    self.illustration = illustration
+    self.icon = nil
+    self.title = title
+    self.subtitle = subtitle
+  }
+
+  init(icon: StackedIconKey, title: String, subtitle: String) {
+    self.illustration = nil
+    self.icon = icon
+    self.title = title
+    self.subtitle = subtitle
+  }
+
   var body: some View {
     let c = theme.colors
-    VStack(spacing: 10) {
-      StackedIcons.image(icon)
-        .font(.system(size: 36))
-        .foregroundStyle(c.textTertiary)
-      Text(title)
-        .font(AppTypography.emptyStateTitle)
-        .foregroundStyle(c.textPrimary)
-      Text(subtitle)
-        .font(AppTypography.emptyStateSubtitle)
-        .foregroundStyle(c.textSecondary)
-        .multilineTextAlignment(.center)
+    VStack(spacing: illustration != nil ? 18 : 10) {
+      if let illustration {
+        EmptyStateIllustration(kind: illustration)
+      } else if let icon {
+        ZStack {
+          Circle()
+            .fill(c.surfaceVariant.opacity(c.isDark ? 0.55 : 0.85))
+            .frame(width: 80, height: 80)
+          StackedIcons.image(icon)
+            .font(.system(size: 32, weight: .regular))
+            .foregroundStyle(c.textTertiary.opacity(0.85))
+        }
+      }
+
+      VStack(spacing: 6) {
+        Text(title)
+          .font(AppTypography.emptyStateTitle)
+          .foregroundStyle(c.textPrimary)
+          .multilineTextAlignment(.center)
+        Text(subtitle)
+          .font(AppTypography.emptyStateSubtitle)
+          .foregroundStyle(c.textSecondary)
+          .multilineTextAlignment(.center)
+          .lineSpacing(2)
+          .frame(maxWidth: 280)
+      }
     }
     .padding(.horizontal, 32)
-    .padding(.vertical, 48)
+    .padding(.vertical, 24)
     .frame(maxWidth: .infinity)
+  }
+}
+
+extension View {
+  /// Centraliza empty state dentro de `List` — evita texto colado no topo.
+  func stackedListEmptyStateRow() -> some View {
+    self
+      .listRowInsets(EdgeInsets())
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+      .frame(maxWidth: .infinity, alignment: .center)
+      .containerRelativeFrame(.vertical) { length, _ in
+        max(length * 0.50, 280)
+      }
+  }
+
+  /// Empty state fora de lista (ex.: Logbook) — ocupa área visível.
+  func stackedStandaloneEmptyState() -> some View {
+    frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
   }
 }
 

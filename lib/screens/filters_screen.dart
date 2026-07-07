@@ -376,8 +376,8 @@ class FiltersScreenState extends State<FiltersScreen> {
             ),
           ),
           if (_projects.isEmpty)
-            SliverToBoxAdapter(
-              child: EmptyState(
+            const EmptyStateSliver(
+              child: EmptyState.icon(
                 hugeIcon: HugeIcons.strokeRoundedFolder01,
                 title: 'Nenhum projeto',
                 subtitle: 'Organize suas tarefas por contexto',
@@ -474,8 +474,8 @@ class FiltersScreenState extends State<FiltersScreen> {
             child: SizedBox(height: 280, child: SkeletonLoader(itemCount: 4)),
           )
         else if (_filterTasks.isEmpty)
-          SliverToBoxAdapter(
-            child: EmptyState(
+          const EmptyStateSliver(
+            child: EmptyState.icon(
               hugeIcon: HugeIcons.strokeRoundedCheckmarkCircle02,
               title: 'Nenhuma tarefa aqui',
               subtitle: 'Tudo em dia nesta categoria',

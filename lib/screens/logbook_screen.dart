@@ -93,7 +93,13 @@ class _LogbookScreenState extends State<LogbookScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2))
           : _tasks.isEmpty
-              ? const Center(child: EmptyState(hugeIcon: HugeIcons.strokeRoundedClock02, title: 'Nenhuma tarefa concluída', subtitle: 'As tarefas concluídas aparecerão aqui'))
+              ? const Center(
+                  child: EmptyState.icon(
+                    hugeIcon: HugeIcons.strokeRoundedClock02,
+                    title: 'Nenhuma tarefa concluída',
+                    subtitle: 'As tarefas concluídas aparecerão aqui',
+                  ),
+                )
               : RefreshIndicator(
                   color: AppColors.accent,
                   backgroundColor: AppColors.surface,

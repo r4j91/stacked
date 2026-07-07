@@ -18,6 +18,7 @@ struct NotificationsPreviewSheet: View {
             .frame(maxWidth: .infinity, minHeight: 220)
         } else if tasks.isEmpty {
           EmptyStateView(icon: .notifications, title: "Nenhuma notificação agendada", subtitle: "Tarefas com data futura aparecem aqui")
+            .stackedStandaloneEmptyState()
         } else {
           List {
             ForEach(tasks) { task in

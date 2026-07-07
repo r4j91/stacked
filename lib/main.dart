@@ -186,6 +186,7 @@ class _RootScreenState extends State<RootScreen> {
   final _todayKey = GlobalKey<TodayScreenState>();
   final _inboxKey = GlobalKey<InboxScreenState>();
   final _filtersKey = GlobalKey<FiltersScreenState>();
+  TaskFilterKind? _pendingFilterKind;
 
   // Lazy — monta aba só na primeira visita; evita rajada de queries no boot.
   final List<Widget?> _screens = List<Widget?>.filled(5, null);
@@ -261,9 +262,28 @@ class _RootScreenState extends State<RootScreen> {
   }
 
   void _openFilter(TaskFilterKind kind) {
-    _onTabSelected(4);
+    _pendingFilterKind = kind;
+    if (_index != 4) {
+      _onTabSelected(4);
+    }
+    _deliverPendingFilter();
+  }
+
+  /// Paridade iOS FiltersStore.requestPresetFilterNavigation — garante
+  /// drill-down mesmo quando FiltersScreen ainda não montou (lazy tab).
+  void _deliverPendingFilter({int attemptsLeft = 20}) {
+    final kind = _pendingFilterKind;
+    if (kind == null || attemptsLeft <= 0) return;
+
+    final state = _filtersKey.currentState;
+    if (state != null) {
+      _pendingFilterKind = null;
+      state.openFilter(kind);
+      return;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _filtersKey.currentState?.openFilter(kind);
+      _deliverPendingFilter(attemptsLeft: attemptsLeft - 1);
     });
   }
 

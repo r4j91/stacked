@@ -24,7 +24,12 @@ struct LogbookView: View {
       if loading {
         ProgressView().tint(c.accent)
       } else if tasks.isEmpty {
-        EmptyStateView(icon: .logbook, title: "Nenhuma tarefa concluída", subtitle: "As tarefas concluídas aparecerão aqui")
+        EmptyStateView(
+          icon: .logbook,
+          title: "Nenhuma tarefa concluída",
+          subtitle: "As tarefas concluídas aparecerão aqui"
+        )
+        .stackedStandaloneEmptyState()
       } else {
         List {
           ForEach(keys, id: \.self) { key in

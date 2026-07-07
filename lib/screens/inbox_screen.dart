@@ -11,6 +11,7 @@ import '../theme/app_colors.dart';
 import '../widgets/anchored_select_menu.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/empty_state_illustration.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
 import '../widgets/load_error_view.dart';
@@ -240,11 +241,12 @@ class InboxScreenState extends State<InboxScreen> {
             ),
           )
         else if (_tasks.isEmpty && _completedTasks.isEmpty)
-          const SliverToBoxAdapter(
-            child: EmptyState(
-              hugeIcon: HugeIcons.strokeRoundedInbox,
-              title: 'Inbox limpo',
-              subtitle: 'Nenhuma tarefa sem data ou projeto',
+          const EmptyStateSliver(
+            child: EmptyState.illustrated(
+              illustration: EmptyStateIllustrationKind.inboxZero,
+              title: 'Tudo certo',
+              subtitle:
+                  'Sua caixa de entrada está vazia — sem pendências soltas por aqui.',
             ),
           )
         else

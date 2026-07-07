@@ -105,7 +105,7 @@ struct ProjectDetailView: View {
           if pending.isEmpty && completed.isEmpty && sections.isEmpty {
             Section {
               EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
-              .listRowBackground(Color.clear)
+              .stackedListEmptyStateRow()
             }
           }
 

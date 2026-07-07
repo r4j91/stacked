@@ -93,12 +93,12 @@ struct TaskRow: View {
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
     let expandReserve: CGFloat = task.hasSubtasks ? 40 : 0
+    let centerTitle = centersTitleInRow
 
-    return ZStack(alignment: .topLeading) {
+    return ZStack(alignment: centerTitle ? .leading : .topLeading) {
       taskContentTapArea(expandReserve: expandReserve)
 
-      HStack(alignment: .top, spacing: 0) {
-        // SUBSTITUIDO_FASE3C: onTapGesture na VStack de conteúdo
+      HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
         Button(action: onToggle) {
           PriorityDot(priority: task.priority, done: task.done)
             .padding(12)
@@ -121,16 +121,18 @@ struct TaskRow: View {
 
   @ViewBuilder
   private func taskContentTapArea(expandReserve: CGFloat) -> some View {
-    let content = HStack(alignment: .top, spacing: 0) {
+    let centerTitle = centersTitleInRow
+    let content = HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
       Color.clear.frame(width: 46)
       rowTextContent
-        .padding(.vertical, 10)
+        .padding(.vertical, centerTitle ? 4 : 10)
         .padding(.trailing, task.hasSubtasks ? 4 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
       if task.hasSubtasks {
         Color.clear.frame(width: expandReserve)
       }
     }
+    .frame(maxWidth: .infinity, minHeight: AppLayout.taskRowHeight)
     .contentShape(Rectangle())
 
     if let onTap, let openTaskContextMenu {
@@ -179,6 +181,17 @@ struct TaskRow: View {
         projectName: showProject ? task.project : nil
       )
     }
+  }
+
+  private var centersTitleInRow: Bool {
+    guard !task.hasSubtasks else { return false }
+    if style == .card, let desc = task.description, !desc.isEmpty { return false }
+    if task.timeDisplay != nil { return false }
+    if !task.labels.isEmpty { return false }
+    if task.dueDate != nil { return false }
+    if task.commentCount > 0 { return false }
+    if showProject, !task.project.isEmpty, task.project != "Sem projeto" { return false }
+    return true
   }
 
   private var titleRow: some View {
@@ -232,7 +245,7 @@ struct TaskRow: View {
       ForEach(Array(task.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
-        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty || sub.priority != nil
+        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty
         HStack(alignment: hasMeta ? .top : .center, spacing: 0) {
           Button { toggleSubtask(at: index, sub: sub) } label: {
             subtaskDot(sub: sub, done: done)
@@ -260,7 +273,6 @@ struct TaskRow: View {
                 TaskMetaLine(
                   labels: labels,
                   dueDate: sub.dueDate,
-                  priority: sub.priority,
                   dueDateLabel: sub.dueDateChipLabel,
                   dueDateColor: sub.dueDateChipColor
                 )

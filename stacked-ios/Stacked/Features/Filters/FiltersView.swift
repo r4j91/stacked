@@ -114,12 +114,18 @@ struct FiltersView: View {
         deferDashboardReset()
       }
     }
-    .onAppear {
-      if let kind = store.takePendingPresetFilter() {
-        store.preparePresetFilterSession(kind)
-        presetFilterRoute = kind
-      }
+    .onAppear { consumePendingPresetNavigation() }
+    .onChange(of: store.pendingPresetFilterToken) { _, _ in
+      consumePendingPresetNavigation()
     }
+  }
+
+  /// Paridade lib/main.dart `_deliverPendingFilter` — Home pode pedir drill-down
+  /// com a aba Filtros já visitada; onAppear sozinho não dispara de novo.
+  private func consumePendingPresetNavigation() {
+    guard let kind = store.takePendingPresetFilter() else { return }
+    store.preparePresetFilterSession(kind)
+    presetFilterRoute = kind
   }
 
   private func openPresetFilter(_ kind: TaskFilterKind) {
@@ -192,7 +198,7 @@ struct FiltersView: View {
         Section {
           if store.projects.isEmpty {
             EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
-            .listRowBackground(Color.clear)
+            .stackedListEmptyStateRow()
           } else {
             ForEach(store.projects) { project in
               Button {

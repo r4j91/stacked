@@ -34,6 +34,9 @@ final class FiltersStore {
 
   private var filterLoadGeneration = 0
   private var pendingPresetFilter: TaskFilterKind?
+  /// Incrementa a cada `requestPresetFilterNavigation` — FiltersView observa
+  /// para abrir drill-down mesmo quando a aba já estava montada (onAppear não repete).
+  private(set) var pendingPresetFilterToken = 0
   private var savedFilterResultsCache: [String: (pending: [FilterResultItem], completed: [FilterResultItem])] = [:]
   private var presetFilterTasksCache: [TaskFilterKind: [Task]] = [:]
 
@@ -46,6 +49,7 @@ final class FiltersStore {
 
   func requestPresetFilterNavigation(_ kind: TaskFilterKind) {
     pendingPresetFilter = kind
+    pendingPresetFilterToken &+= 1
   }
 
   func loadDashboard() async {

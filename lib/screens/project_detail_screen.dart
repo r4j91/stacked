@@ -1291,7 +1291,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   _loadTasks();
                 })
               : isEmpty
-              ? const Center(child: EmptyState(hugeIcon: HugeIcons.strokeRoundedTaskDone01, title: 'Nenhuma tarefa', subtitle: 'Adicione tarefas usando o botão +'))
+              ? const Center(
+                  child: EmptyState.icon(
+                    hugeIcon: HugeIcons.strokeRoundedTaskDone01,
+                    title: 'Nenhuma tarefa',
+                    subtitle: 'Adicione tarefas usando o botão +',
+                  ),
+                )
               : _buildTaskListView(bottomInset),
     );
   }

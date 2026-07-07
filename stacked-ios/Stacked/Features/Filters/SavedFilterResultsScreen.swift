@@ -51,7 +51,7 @@ struct SavedFilterResultsScreen: View {
       } else if pendingResults.isEmpty && (!showCompleted || completedResults.isEmpty) {
         Section {
           EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
-            .listRowBackground(Color.clear)
+            .stackedListEmptyStateRow()
         }
       } else {
         Section {

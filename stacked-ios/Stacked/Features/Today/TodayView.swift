@@ -40,8 +40,12 @@ struct TodayView: View {
         }
       } else if overdue.isEmpty && timeline.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
         Section {
-          EmptyStateView(icon: .sun, title: "Tudo em dia", subtitle: "Nenhuma tarefa para hoje")
-          .listRowBackground(Color.clear)
+          EmptyStateView(
+            illustration: .todayClear,
+            title: "Dia livre",
+            subtitle: "Nada agendado para hoje. Aproveite o momento."
+          )
+          .stackedListEmptyStateRow()
         }
       } else {
         if !overdue.isEmpty {

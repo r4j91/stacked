@@ -33,7 +33,6 @@ struct ProjectOptionsSheet: View {
     let c = theme.colors
 
     VStack(spacing: 0) {
-      handle
       header
       Divider().overlay(c.textTertiary.opacity(0.12))
       Group {
@@ -61,41 +60,36 @@ struct ProjectOptionsSheet: View {
     return t.isEmpty ? project.name : t
   }
 
-  private var handle: some View {
-    Capsule()
-      .fill(theme.colors.textTertiary.opacity(0.3))
-      .frame(width: 36, height: 4)
-      .padding(.top, 10)
-      .padding(.bottom, 6)
-  }
-
   private var header: some View {
     let c = theme.colors
     return HStack(spacing: 8) {
       if page != .menu {
-        // SUBSTITUIDO_FASE2: Button { withAnimation { page = .menu } }
         Button { AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { page = .menu } } label: {
           StackedIcons.image(.arrowLeft).foregroundStyle(c.textSecondary)
         }
         .buttonStyle(.plain)
+
+        Text(pageTitle)
+          .font(AppTypography.sheetPageTitle)
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
       }
-      Text(pageTitle)
-        .font(AppTypography.sheetPageTitle)
-        .foregroundStyle(c.textPrimary)
-        .lineLimit(1)
+
       Spacer()
+
       Button { dismiss() } label: {
         StackedIcons.image(.close).foregroundStyle(c.textTertiary)
       }
       .buttonStyle(.plain)
     }
     .padding(.horizontal, 16)
-    .padding(.bottom, 10)
+    .padding(.top, 4)
+    .padding(.bottom, page == .menu ? 4 : 10)
   }
 
   private var pageTitle: String {
     switch page {
-    case .menu: displayName
+    case .menu: ""
     case .name: "Nome"
     case .icon: "Ícone"
     case .color: "Cor"
@@ -104,44 +98,41 @@ struct ProjectOptionsSheet: View {
 
   private var menuPage: some View {
     let c = theme.colors
+    let projectColor = AppColors.parseHex(selectedHex)
     return ScrollView {
       VStack(spacing: 0) {
         HStack(spacing: 14) {
-          Circle()
-            .fill(AppColors.parseHex(selectedHex))
+          projectColoredIcon(iconKey: selectedIcon, size: 22, color: projectColor)
             .frame(width: 44, height: 44)
-            .overlay {
-              StackedIcons.image(ProjectIcons.asset(for: selectedIcon))
-                .font(.system(size: 18))
-                .foregroundStyle(c.textSecondary)
-            }
           VStack(alignment: .leading, spacing: 4) {
-            Text(displayName).font(AppTypography.bodySemibold).foregroundStyle(c.textPrimary)
-            Text("Toque abaixo para editar").font(AppTypography.meta).foregroundStyle(c.textTertiary)
+            Text(displayName)
+              .font(AppTypography.bodySemibold)
+              .foregroundStyle(c.textPrimary)
+              .lineLimit(2)
+            Text("Toque abaixo para editar")
+              .font(AppTypography.meta)
+              .foregroundStyle(c.textTertiary)
           }
-          Spacer()
+          Spacer(minLength: 0)
         }
         .padding(14)
         .background(c.surfaceVariant.opacity(0.45))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.textTertiary.opacity(0.1), lineWidth: 1))
         .padding(.horizontal, 20)
+        .padding(.top, 12)
         .padding(.bottom, 16)
 
         menuRow(icon: .text, label: "Nome", value: displayName) { page = .name }
         divider
         menuRow(icon: .grid, label: "Ícone", trailing: {
-          RoundedRectangle(cornerRadius: 8)
-            .fill(c.surfaceVariant.opacity(0.5))
-            .frame(width: 32, height: 32)
-            .overlay {
-              StackedIcons.image(ProjectIcons.asset(for: selectedIcon))
-                .font(.system(size: 14))
-                .foregroundStyle(c.textSecondary)
-            }
+          projectColoredIcon(iconKey: selectedIcon, size: 18, color: projectColor)
         }) { page = .icon }
         divider
         menuRow(icon: .paintbrush, label: "Cor", trailing: {
-          Circle().fill(AppColors.parseHex(selectedHex)).frame(width: 22, height: 22)
+          Circle()
+            .fill(AppColors.parseHex(selectedHex))
+            .frame(width: 22, height: 22)
             .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1.5))
         }) { page = .color }
         divider
@@ -237,11 +228,12 @@ struct ProjectOptionsSheet: View {
     Rectangle().fill(theme.colors.surfaceVariant).frame(height: 1).padding(.leading, 52)
   }
 
-  private func menuRow<Trailing: View>(
+  private let menuTrailingSlotSize: CGFloat = 32
+
+  private func menuRow(
     icon: StackedIconKey,
     label: String,
     value: String? = nil,
-    @ViewBuilder trailing: () -> Trailing = { EmptyView() },
     action: @escaping () -> Void
   ) -> some View {
     let c = theme.colors
@@ -253,13 +245,46 @@ struct ProjectOptionsSheet: View {
         if let value {
           Text(value).font(AppTypography.body).foregroundStyle(c.textTertiary).lineLimit(1)
         }
-        trailing()
-        StackedIcons.image(.chevronRight).font(.system(size: 11, weight: .semibold)).foregroundStyle(c.textTertiary)
+        StackedIcons.image(.chevronRight)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+          .frame(width: 12, alignment: .center)
       }
       .padding(.horizontal, 20)
       .padding(.vertical, 14)
     }
     .buttonStyle(.plain)
+  }
+
+  private func menuRow<Trailing: View>(
+    icon: StackedIconKey,
+    label: String,
+    @ViewBuilder trailing: () -> Trailing,
+    action: @escaping () -> Void
+  ) -> some View {
+    let c = theme.colors
+    return Button(action: action) {
+      HStack(spacing: 12) {
+        StackedIcons.image(icon).font(.system(size: 18)).foregroundStyle(c.textSecondary).frame(width: 20)
+        Text(label).font(AppTypography.popoverRowLabel).foregroundStyle(c.textPrimary)
+        Spacer()
+        trailing()
+          .frame(width: menuTrailingSlotSize, height: menuTrailingSlotSize)
+        StackedIcons.image(.chevronRight)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+          .frame(width: 12, alignment: .center)
+      }
+      .padding(.horizontal, 20)
+      .padding(.vertical, 14)
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func projectColoredIcon(iconKey: String, size: CGFloat, color: Color) -> some View {
+    StackedIcons.image(ProjectIcons.asset(for: iconKey))
+      .font(.system(size: size))
+      .foregroundStyle(color)
   }
 
   private func loadDetails() async {

@@ -140,6 +140,7 @@ struct SearchView: View {
           .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.results.isEmpty {
           EmptyStateView(icon: .search, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
+            .stackedStandaloneEmptyState()
         } else {
           List {
             ForEach(store.groupedResults, id: \.title) { group in

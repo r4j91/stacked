@@ -81,7 +81,7 @@ class NotificationsSheetState extends State<NotificationsSheet> {
     if (_upcoming.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-        child: EmptyState(
+        child: EmptyState.icon(
           hugeIcon: HugeIcons.strokeRoundedNotification01,
           title: 'Nenhuma notificação agendada',
           subtitle: 'Tarefas com data futura aparecem aqui',

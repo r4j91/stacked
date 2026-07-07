@@ -139,7 +139,10 @@ struct SubtaskDetailView: View {
         }
       }
       .popoverHostScope()
-      .task { labels = (try? await LabelRepository.shared.fetchLabels()) ?? [] }
+      .task { await reloadLabels() }
+      .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
+        _Concurrency.Task { await reloadLabels() }
+      }
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
         initialDate: dueDate,
@@ -214,6 +217,10 @@ struct SubtaskDetailView: View {
     return "\(names[0]) +\(names.count - 1)"
   }
 
+  private func reloadLabels() async {
+    labels = (try? await LabelRepository.shared.fetchLabels()) ?? []
+  }
+
   private func metaRow(
     icon: StackedIconKey,
     title: String,
@@ -274,23 +281,26 @@ struct SubtaskDetailView: View {
   }
 
   private func showLabelsMenu() {
-    let items = labels.map { label in
-      PopoverMenuItem(
-        id: label.id,
-        icon: Hugeicons.tag01,
-        label: label.name,
-        selected: selectedLabelIds.contains(label.id),
-        iconColor: label.color
-      )
-    }
-    presentAnchoredPopover(anchorRect: labelsAnchor, items: items, allowsToggle: true) { result in
-      guard let result else { return }
-      if selectedLabelIds.contains(result) {
-        selectedLabelIds.remove(result)
-      } else {
-        selectedLabelIds.insert(result)
+    _Concurrency.Task {
+      await reloadLabels()
+      let items = labels.map { label in
+        PopoverMenuItem(
+          id: label.id,
+          icon: Hugeicons.tag01,
+          label: label.name,
+          selected: selectedLabelIds.contains(label.id),
+          iconColor: label.color
+        )
       }
-      _Concurrency.Task { await flushPending() }
+      presentAnchoredPopover(anchorRect: labelsAnchor, items: items, allowsToggle: true) { result in
+        guard let result else { return }
+        if selectedLabelIds.contains(result) {
+          selectedLabelIds.remove(result)
+        } else {
+          selectedLabelIds.insert(result)
+        }
+        _Concurrency.Task { await flushPending() }
+      }
     }
   }
 

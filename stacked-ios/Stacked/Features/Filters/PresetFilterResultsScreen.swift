@@ -47,7 +47,7 @@ struct PresetFilterResultsScreen: View {
             title: "Nenhuma tarefa",
             subtitle: "Nada neste filtro por enquanto."
           )
-          .listRowBackground(Color.clear)
+          .stackedListEmptyStateRow()
         }
       } else {
         Section {

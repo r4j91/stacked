@@ -1,6 +1,10 @@
 import Foundation
 import Supabase
 
+extension Notification.Name {
+  static let labelsCatalogDidChange = Notification.Name("labelsCatalogDidChange")
+}
+
 @MainActor
 final class LabelRepository {
   static let shared = LabelRepository()
@@ -8,6 +12,12 @@ final class LabelRepository {
   private init() {}
 
   private(set) var cachedLabels: [TaskLabel] = []
+
+  func invalidateCache() {
+    cachedLabels = []
+    LabelCatalogCache.invalidate()
+    NotificationCenter.default.post(name: .labelsCatalogDidChange, object: nil)
+  }
 
   func fetchLabels(force: Bool = false) async throws -> [TaskLabel] {
     if !force, !cachedLabels.isEmpty { return cachedLabels }
@@ -41,14 +51,17 @@ final class LabelRepository {
     try await client.from("labels").insert(
       Payload(nome: name, cor: colorHex, user_id: userId)
     ).execute()
+    invalidateCache()
   }
 
   func updateLabel(id: String, name: String, colorHex: String) async throws {
     try await client.from("labels").update(["nome": name, "cor": colorHex]).eq("id", value: id).execute()
+    invalidateCache()
   }
 
   func deleteLabel(id: String) async throws {
     try await client.from("labels").delete().eq("id", value: id).execute()
+    invalidateCache()
   }
 }
 

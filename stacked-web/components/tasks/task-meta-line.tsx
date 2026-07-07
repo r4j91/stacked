@@ -3,10 +3,9 @@
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { isOverdueDate, parseDueDate } from "@/lib/utils/date";
-import { priorityColor, priorityLabel } from "@/lib/utils/priority";
 import { TagChip } from "@/components/ui/tag-chip";
 import { AppIcon } from "@/components/ui/app-icon";
-import { TaskDone01Icon, Calendar03Icon, Flag01Icon } from "@/lib/icons/nav-icons";
+import { TaskDone01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
 
 type TaskMetaLineProps = {
   task: Task;
@@ -114,17 +113,6 @@ export function SubtaskMetaLine({ sub }: { sub: Subtask }) {
         label={sub.date}
         color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
         icon={Calendar03Icon}
-      />,
-    );
-  }
-
-  if (sub.priority) {
-    items.push(
-      <TagChip
-        key="p"
-        label={priorityLabel(sub.priority)}
-        color={priorityColor(sub.priority)}
-        icon={Flag01Icon}
       />,
     );
   }

@@ -40,8 +40,12 @@ struct InboxView: View {
         }
       } else if store.inboxPending.isEmpty && (store.inboxCompleted.isEmpty || !showCompleted) {
         Section {
-          EmptyStateView(icon: .navInbox, title: "Inbox limpo", subtitle: "Nenhuma tarefa sem data ou projeto")
-          .listRowBackground(Color.clear)
+          EmptyStateView(
+            illustration: .inboxZero,
+            title: "Tudo certo",
+            subtitle: "Sua caixa de entrada está vazia — sem pendências soltas por aqui."
+          )
+          .stackedListEmptyStateRow()
         }
       } else {
         Section {

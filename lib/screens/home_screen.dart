@@ -636,7 +636,7 @@ class HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const EmptyState(
+                const EmptyState.icon(
                   hugeIcon: HugeIcons.strokeRoundedFolder01,
                   title: 'Nenhum projeto ainda',
                   subtitle: 'Organize suas tarefas por contexto',

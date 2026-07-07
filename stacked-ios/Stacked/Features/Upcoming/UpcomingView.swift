@@ -66,8 +66,12 @@ struct UpcomingView: View {
           }
         } else if store.groupedSchedule.isEmpty {
           Section {
-            EmptyStateView(icon: .navUpcoming, title: "Nenhuma tarefa", subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento.")
-              .listRowBackground(Color.clear)
+            EmptyStateView(
+              icon: .navUpcoming,
+              title: "Nenhuma tarefa",
+              subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento."
+            )
+            .stackedListEmptyStateRow()
           }
         } else {
           ForEach(store.groupedSchedule, id: \.day) { group in

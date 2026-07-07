@@ -9,6 +9,7 @@ import '../theme/app_spacing.dart';
 import '../widgets/anchored_select_menu.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/empty_state_illustration.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/swipeable_task_tile.dart';
 import '../widgets/task_tile.dart';
@@ -382,11 +383,11 @@ class TodayScreenState extends State<TodayScreen> {
 
         // ── Empty state ───────────────────────────────────────────────────────
         if (_tasks.isEmpty && _completedTasks.isEmpty)
-          const SliverToBoxAdapter(
-            child: EmptyState(
-              hugeIcon: HugeIcons.strokeRoundedSun01,
-              title: 'Nenhuma tarefa para hoje',
-              subtitle: 'Aproveite o dia livre',
+          const EmptyStateSliver(
+            child: EmptyState.illustrated(
+              illustration: EmptyStateIllustrationKind.todayClear,
+              title: 'Dia livre',
+              subtitle: 'Nada agendado para hoje. Aproveite o momento.',
             ),
           ),
 

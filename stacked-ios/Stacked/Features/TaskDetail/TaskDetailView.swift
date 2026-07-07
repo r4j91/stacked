@@ -110,6 +110,9 @@ struct TaskDetailView: View {
         .presentationDragIndicator(.visible)
       }
       .task { await vm.load() }
+      .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
+        _Concurrency.Task { await vm.reloadLabels() }
+      }
       .popoverHostScope()
     }
   }
@@ -485,20 +488,23 @@ struct TaskDetailView: View {
   }
 
   private func showLabelsMenu(anchor: CGRect) {
-    let items = vm.allLabels.map { label in
-      PopoverMenuItem(
-        id: label.id,
-        icon: Hugeicons.tag01,
-        label: label.name,
-        selected: vm.selectedLabelIds.contains(label.id),
-        iconColor: label.color
-      )
-    }
-    presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
-      guard let result else { return }
-      var ids = vm.selectedLabelIds
-      if ids.contains(result) { ids.remove(result) } else { ids.insert(result) }
-      vm.setLabels(ids)
+    _Concurrency.Task {
+      await vm.reloadLabels()
+      let items = vm.allLabels.map { label in
+        PopoverMenuItem(
+          id: label.id,
+          icon: Hugeicons.tag01,
+          label: label.name,
+          selected: vm.selectedLabelIds.contains(label.id),
+          iconColor: label.color
+        )
+      }
+      presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
+        guard let result else { return }
+        var ids = vm.selectedLabelIds
+        if ids.contains(result) { ids.remove(result) } else { ids.insert(result) }
+        vm.setLabels(ids)
+      }
     }
   }
 

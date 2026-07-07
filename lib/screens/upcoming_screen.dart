@@ -336,8 +336,8 @@ class _UpcomingScreenState extends State<UpcomingScreen>
 
         // ── Task list ────────────────────────────────────────────────────────
         if (_filtered.isEmpty)
-          const SliverFillRemaining(
-            child: EmptyState(
+          const EmptyStateSliver(
+            child: EmptyState.icon(
               hugeIcon: HugeIcons.strokeRoundedCalendar03,
               title: 'Nenhuma tarefa',
               subtitle:

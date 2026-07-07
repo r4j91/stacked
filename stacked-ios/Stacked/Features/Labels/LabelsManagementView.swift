@@ -7,7 +7,6 @@ struct LabelsManagementView: View {
   @State private var labels: [TaskLabel] = []
   @State private var loading = true
   @State private var editorLabel: EditableLabel?
-  @State private var showEditor = false
 
   var body: some View {
     let c = theme.colors
@@ -17,6 +16,7 @@ struct LabelsManagementView: View {
           ProgressView().tint(c.accent)
         } else if labels.isEmpty {
           EmptyStateView(icon: .tag, title: "Nenhuma etiqueta ainda", subtitle: "Toque em + para criar sua primeira etiqueta.")
+            .stackedStandaloneEmptyState()
         } else {
           List {
             Section {
@@ -54,13 +54,15 @@ struct LabelsManagementView: View {
       }
       .refreshable { await load() }
       .task { await load() }
-      .sheet(isPresented: $showEditor) {
-        if let editorLabel {
-          LabelEditorSheet(label: editorLabel) {
-            _Concurrency.Task { await load() }
-          }
-          .environment(theme)
+      .sheet(item: $editorLabel) { item in
+        LabelEditorSheet(label: item) {
+          _Concurrency.Task { await load() }
         }
+        .environment(theme)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(theme.colors.background)
+        .presentationCornerRadius(20)
       }
   }
 
@@ -104,11 +106,18 @@ struct LabelsManagementView: View {
 
   private func openEditor(_ label: TaskLabel?) {
     if let label {
-      editorLabel = EditableLabel(id: label.id, name: label.name, colorHex: hexForColor(label.color))
+      editorLabel = EditableLabel(
+        recordId: label.id,
+        name: label.name,
+        colorHex: hexForColor(label.color)
+      )
     } else {
-      editorLabel = EditableLabel(id: nil, name: "", colorHex: PaletteColors.defaultHex)
+      editorLabel = EditableLabel(
+        recordId: nil,
+        name: "",
+        colorHex: PaletteColors.defaultHex
+      )
     }
-    showEditor = true
   }
 
   private func load() async {
@@ -133,10 +142,11 @@ struct LabelsManagementView: View {
 }
 
 private struct EditableLabel: Identifiable {
-  let id: String?
+  let id = UUID()
+  let recordId: String?
   var name: String
   var colorHex: String
-  var isNew: Bool { id == nil }
+  var isNew: Bool { recordId == nil }
 }
 
 private struct LabelEditorSheet: View {
@@ -163,74 +173,118 @@ private struct LabelEditorSheet: View {
   var body: some View {
     let c = theme.colors
 
-    NavigationStack {
-      VStack(alignment: .leading, spacing: 16) {
-        HStack(spacing: 10) {
-          StackedIcons.image(.tag)
-            .font(.system(size: 18))
-            .foregroundStyle(AppColors.parseHex(selectedHex))
-          Text(name.isEmpty ? "Nova etiqueta" : name)
-            .font(AppTypography.profileName)
-            .foregroundStyle(AppColors.parseHex(selectedHex))
-        }
+    VStack(spacing: 0) {
+      sheetHandle
+      sheetHeader
+      Divider().overlay(c.textTertiary.opacity(0.12))
 
-        TextField("Nome da etiqueta", text: $name)
+      ScrollView {
+        VStack(alignment: .leading, spacing: 16) {
+          HStack(spacing: 10) {
+            StackedIcons.image(.tag)
+              .font(.system(size: 20))
+              .foregroundStyle(AppColors.parseHex(selectedHex))
+            Text(name.trimmingCharacters(in: .whitespaces).isEmpty ? "Nova etiqueta" : name)
+              .font(AppTypography.bodySemibold)
+              .foregroundStyle(AppColors.parseHex(selectedHex))
+              .lineLimit(1)
+          }
+
+          TextField(
+            "Nome da etiqueta",
+            text: $name,
+            prompt: Text("Ex.: Importante").foregroundStyle(c.textTertiary)
+          )
           .textFieldStyle(.plain)
+          .font(AppTypography.fieldInput)
+          .foregroundStyle(c.textPrimary)
+          .tint(c.accent)
           .padding(14)
           .background(c.surfaceVariant)
-          .clipShape(RoundedRectangle(cornerRadius: 10))
+          .clipShape(RoundedRectangle(cornerRadius: 12))
 
-        Text("Cor")
-          .font(AppTypography.sectionLabel)
-          .foregroundStyle(c.textTertiary)
+          Text("Cor")
+            .font(AppTypography.sectionLabel)
+            .foregroundStyle(c.textTertiary)
 
-        LazyVGrid(columns: columns, spacing: 10) {
-          ForEach(PaletteColors.projectHex, id: \.self) { hex in
-            let color = AppColors.parseHex(hex)
-            Button {
-              HapticService.selection()
-              selectedHex = hex
-            } label: {
-              Circle()
-                .fill(color)
-                .frame(height: 30)
-                .overlay {
-                  if selectedHex == hex {
-                    Image(systemName: "checkmark")
-                      .font(.system(size: 12, weight: .bold))
-                      .foregroundStyle(AppColors.onColoredFill)
+          LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(PaletteColors.projectHex, id: \.self) { hex in
+              let color = AppColors.parseHex(hex)
+              Button {
+                HapticService.selection()
+                selectedHex = hex
+              } label: {
+                Circle()
+                  .fill(color)
+                  .frame(height: 32)
+                  .overlay {
+                    if selectedHex == hex {
+                      StackedIcons.image(.check)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(AppColors.onColoredFill)
+                    }
                   }
-                }
+              }
+              .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+          }
+
+          if let error {
+            Text(error)
+              .font(AppTypography.meta)
+              .foregroundStyle(AppColors.priorityHigh)
           }
         }
-
-        if let error {
-          Text(error).font(.caption).foregroundStyle(AppColors.priorityHigh)
-        }
-
-        Spacer()
-
-        PrimaryButton(
-          title: label.isNew ? "Criar etiqueta" : "Salvar",
-          action: { _Concurrency.Task { await save() } },
-          isLoading: saving,
-          isEnabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && !saving,
-          height: 48
-        )
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
       }
-      .padding(20)
-      .background(c.background)
-      .navigationTitle(label.isNew ? "Nova etiqueta" : "Editar etiqueta")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Cancelar") { dismiss() }
-        }
-      }
+
+      PrimaryButton(
+        title: label.isNew ? "Criar etiqueta" : "Salvar",
+        action: { _Concurrency.Task { await save() } },
+        isLoading: saving,
+        isEnabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && !saving,
+        height: 48,
+        cornerRadius: 14,
+        font: AppTypography.bodySemibold
+      )
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 12)
     }
-    .presentationDetents([.medium, .large])
+    .background(c.background.ignoresSafeArea())
+  }
+
+  private var sheetHandle: some View {
+    Capsule()
+      .fill(theme.colors.textTertiary.opacity(0.35))
+      .frame(width: 36, height: 4)
+      .padding(.top, 8)
+      .padding(.bottom, 10)
+  }
+
+  private var sheetHeader: some View {
+    let c = theme.colors
+    return HStack(spacing: 8) {
+      Button("Cancelar") { dismiss() }
+        .font(AppTypography.body)
+        .foregroundStyle(c.textSecondary)
+        .buttonStyle(.plain)
+
+      Spacer()
+
+      Text(label.isNew ? "Nova etiqueta" : "Editar etiqueta")
+        .font(AppTypography.sheetPageTitle)
+        .foregroundStyle(c.textPrimary)
+        .lineLimit(1)
+
+      Spacer()
+
+      Color.clear.frame(width: 72, height: 1)
+    }
+    .padding(.horizontal, 14)
+    .padding(.bottom, 8)
   }
 
   private func save() async {
@@ -239,7 +293,7 @@ private struct LabelEditorSheet: View {
     saving = true
     defer { saving = false }
     do {
-      if let id = label.id {
+      if let id = label.recordId {
         try await LabelRepository.shared.updateLabel(id: id, name: trimmed, colorHex: selectedHex)
       } else {
         try await LabelRepository.shared.createLabel(name: trimmed, colorHex: selectedHex)

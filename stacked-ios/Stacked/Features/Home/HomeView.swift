@@ -86,6 +86,7 @@ struct HomeView: View {
       )
       .environment(ThemeManager.shared)
       .presentationDetents([.medium, .large])
+      .presentationDragIndicator(.visible)
     }
   }
 
@@ -158,12 +159,13 @@ struct HomeView: View {
     } else {
       Section {
         HStack(spacing: AppSpacing.sm) {
-          StackedIcons.image(.checkCircle)
-            .foregroundStyle(AppColors.tagGreen.opacity(0.72))
+          HomeAllClearBadge()
           Text("Tudo em dia")
-            .font(AppTypography.body)
+            .font(AppTypography.body.weight(.medium))
             .foregroundStyle(AppColors.tagGreen.opacity(0.72))
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Tudo em dia")
         .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
@@ -190,7 +192,7 @@ struct HomeView: View {
             .font(AppTypography.bodySemibold)
             .foregroundStyle(theme.colors.accent)
         }
-        .listRowBackground(Color.clear)
+        .stackedListEmptyStateRow()
       } else {
         ForEach(store.projects) { project in
           Button {
