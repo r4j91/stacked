@@ -34,6 +34,7 @@ class HomeHeroStylePreview extends StatelessWidget {
     return switch (style) {
       HomeHeroStyle.classic => _classic(),
       HomeHeroStyle.orbital => _orbital(),
+      HomeHeroStyle.orbitalOpen => _orbitalOpen(),
       HomeHeroStyle.horizon => _horizon(),
       HomeHeroStyle.capsule => _capsule(),
       HomeHeroStyle.openType => _open(),
@@ -112,6 +113,62 @@ class HomeHeroStylePreview extends StatelessWidget {
               _line(14, 2, AppColors.tagGreen.withValues(alpha: 0.6)),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _orbitalOpen() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 12,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(0, -2),
+                    child: Container(
+                      width: 9,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _line(16, 2, AppColors.textSecondary.withValues(alpha: 0.5)),
+                    const SizedBox(height: 2),
+                    _line(22, 3, AppColors.textPrimary.withValues(alpha: 0.8)),
+                    const SizedBox(height: 2),
+                    _line(14, 2, AppColors.tagGreen.withValues(alpha: 0.6)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          height: 1,
+          color: AppColors.textPrimary.withValues(alpha: 0.08),
         ),
       ],
     );

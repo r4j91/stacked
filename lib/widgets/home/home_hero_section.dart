@@ -49,6 +49,7 @@ class HomeHeroSection extends StatelessWidget {
       child: switch (style) {
         HomeHeroStyle.classic => _classic(context),
         HomeHeroStyle.orbital => _wrapOverdue(_orbital(context)),
+        HomeHeroStyle.orbitalOpen => _wrapOverdue(_orbitalOpen(context)),
         HomeHeroStyle.horizon => _wrapOverdue(_horizon(context)),
         HomeHeroStyle.capsule => _wrapOverdue(_capsule(context)),
         HomeHeroStyle.openType => _wrapOverdue(_openType(context)),
@@ -62,7 +63,9 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   EdgeInsets get _outerPadding {
-    if (style == HomeHeroStyle.classic || style == HomeHeroStyle.openType) {
+    if (style == HomeHeroStyle.classic ||
+        style == HomeHeroStyle.openType ||
+        style == HomeHeroStyle.orbitalOpen) {
       return const EdgeInsets.fromLTRB(
         AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm,
       );
@@ -186,6 +189,35 @@ class HomeHeroSection extends StatelessWidget {
             HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: AppColors.overdue.withValues(alpha: 0.7)),
         ],
       ),
+    );
+  }
+
+  Widget _orbitalOpen(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            HomeOrbitalStackIllustration(isOverdue: _isOverdue, overdueCount: overdueCount),
+            const SizedBox(width: 12),
+            Expanded(child: _greetingColumn(nameSize: 22)),
+            if (_isOverdue)
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                size: 14,
+                color: AppColors.overdue.withValues(alpha: 0.7),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          height: 1,
+          color: _isOverdue
+              ? AppColors.overdue.withValues(alpha: 0.12)
+              : AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
+      ],
     );
   }
 

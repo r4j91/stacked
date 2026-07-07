@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum HomeHeroStyle {
   classic,
   orbital,
+  orbitalOpen,
   horizon,
   capsule,
   openType,
@@ -13,6 +14,7 @@ enum HomeHeroStyle {
   String get displayName => switch (this) {
     HomeHeroStyle.classic => 'Clássico',
     HomeHeroStyle.orbital => 'Orbital',
+    HomeHeroStyle.orbitalOpen => 'Orbital aberto',
     HomeHeroStyle.horizon => 'Horizonte',
     HomeHeroStyle.capsule => 'Cápsula',
     HomeHeroStyle.openType => 'Aberto',
@@ -22,6 +24,7 @@ enum HomeHeroStyle {
   String get subtitle => switch (this) {
     HomeHeroStyle.classic => 'Saudação e status como hoje',
     HomeHeroStyle.orbital => 'Stack com halo animado',
+    HomeHeroStyle.orbitalOpen => 'Mesma arte, sem o card',
     HomeHeroStyle.horizon => 'Mini horizonte por hora do dia',
     HomeHeroStyle.capsule => 'Status em cápsula no topo',
     HomeHeroStyle.openType => 'Tipografia direta no fundo',

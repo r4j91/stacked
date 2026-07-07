@@ -32,7 +32,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType:
+    case .openType, .orbitalOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -46,6 +46,8 @@ struct HomeHeroSection: View {
       classicHero
     case .orbital:
       overdueButton { orbitalHero }
+    case .orbitalOpen:
+      overdueButton { orbitalOpenHero }
     case .horizon:
       overdueButton { horizonHero }
     case .capsule:
@@ -184,6 +186,43 @@ struct HomeHeroSection: View {
         .strokeBorder(c.textPrimary.opacity(c.isDark ? 0.04 : 0.03), lineWidth: 0.5)
         .padding(0.5)
         .allowsHitTesting(false)
+    }
+  }
+
+  // MARK: - Orbital aberto (sem card)
+
+  private var orbitalOpenHero: some View {
+    let c = theme.colors
+    return VStack(alignment: .leading, spacing: 0) {
+      HStack(alignment: .center, spacing: 12) {
+        HomeOrbitalStackIllustration(isOverdue: isOverdue, overdueCount: store.overdueCount)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(store.greetingPhrase)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(c.textSecondary)
+          if !store.firstName.isEmpty {
+            Text(store.firstName)
+              .font(.system(size: 22, weight: .heavy))
+              .foregroundStyle(c.textPrimary)
+              .tracking(-0.5)
+          }
+          HomeHeroStatusLine(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        if isOverdue {
+          StackedIcons.image(.chevronRight)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(AppColors.overdue.opacity(0.7))
+        }
+      }
+
+      Rectangle()
+        .fill(isOverdue ? AppColors.overdue.opacity(0.12) : c.textPrimary.opacity(c.isDark ? 0.06 : 0.05))
+        .frame(height: 1)
+        .padding(.top, 10)
     }
   }
 

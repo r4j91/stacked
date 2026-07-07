@@ -31,6 +31,8 @@ struct HomeHeroStylePreview: View {
       classicPreview
     case .orbital:
       orbitalPreview
+    case .orbitalOpen:
+      orbitalOpenPreview
     case .horizon:
       horizonPreview
     case .capsule:
@@ -76,6 +78,32 @@ struct HomeHeroStylePreview: View {
         RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 22, height: 3)
         RoundedRectangle(cornerRadius: 1).fill(AppColors.tagGreen.opacity(0.6)).frame(width: 14, height: 2)
       }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var orbitalOpenPreview: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 4) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 2)
+            .fill(colors.accent.opacity(0.2))
+            .frame(width: 12, height: 10)
+          RoundedRectangle(cornerRadius: 1)
+            .fill(colors.accent.opacity(0.35))
+            .frame(width: 9, height: 5)
+            .offset(y: -2)
+        }
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 16, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 22, height: 3)
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagGreen.opacity(0.6)).frame(width: 14, height: 2)
+        }
+      }
+      Rectangle()
+        .fill(colors.textPrimary.opacity(0.08))
+        .frame(height: 1)
+        .padding(.top, 4)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }

@@ -3,6 +3,7 @@ import SwiftUI
 enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case classic
   case orbital
+  case orbitalOpen
   case horizon
   case capsule
   case openType
@@ -14,6 +15,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     switch self {
     case .classic: "Clássico"
     case .orbital: "Orbital"
+    case .orbitalOpen: "Orbital aberto"
     case .horizon: "Horizonte"
     case .capsule: "Cápsula"
     case .openType: "Aberto"
@@ -25,6 +27,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     switch self {
     case .classic: "Saudação e status como hoje"
     case .orbital: "Stack com halo animado"
+    case .orbitalOpen: "Mesma arte, sem o card"
     case .horizon: "Mini horizonte por hora do dia"
     case .capsule: "Status em cápsula no topo"
     case .openType: "Tipografia direta no fundo"
