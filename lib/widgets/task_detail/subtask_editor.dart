@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/subtask.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
 import '../done_circle.dart';
 import '../task_tile.dart' show TagChip;
 import './subtask_item.dart';
@@ -115,9 +116,9 @@ class _SubtaskEditorRowState extends State<SubtaskEditorRow> {
               child: Center(
                 child: DoneCircle(
                   done: widget.item.done,
-                  size: 22,
-                  borderWidth: 1.6,
-                  tickSize: 12,
+                  size: AppTypography.subtaskCircleSize,
+                  borderWidth: AppTypography.subtaskCircleBorderWidth,
+                  tickSize: AppTypography.subtaskCircleTickSize,
                   ringColor: priColor,
                   ringFillAlpha: 0.08,
                 ),
@@ -137,18 +138,13 @@ class _SubtaskEditorRowState extends State<SubtaskEditorRow> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       title.isEmpty ? 'Nova subtarefa' : title,
-                      style: TextStyle(
-                        fontSize: 15,
+                      style: AppTypography.subtaskTitle(done: widget.item.done).copyWith(
+                        fontStyle: title.isEmpty ? FontStyle.italic : null,
                         color: title.isEmpty
                             ? AppColors.textTertiary
                             : (widget.item.done
                                 ? AppColors.textTertiary
                                 : AppColors.textPrimary),
-                        decoration:
-                            widget.item.done ? TextDecoration.lineThrough : TextDecoration.none,
-                        decorationColor: AppColors.textTertiary,
-                        height: 1.35,
-                        fontStyle: title.isEmpty ? FontStyle.italic : null,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -159,11 +155,7 @@ class _SubtaskEditorRowState extends State<SubtaskEditorRow> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         desc,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.textSecondary,
-                          height: 1.45,
-                        ),
+                        style: AppTypography.taskDescription(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

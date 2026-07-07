@@ -16,6 +16,7 @@ import '../services/task_repository.dart';
 import '../services/task_sync.dart';
 import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/swipeable_task_tile.dart';
@@ -773,12 +774,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     // ),
                     AnimatedDefaultTextStyle(
                       duration: const Duration(milliseconds: 250),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: done ? AppColors.textTertiary : AppColors.textPrimary,
-                        decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
-                        decorationColor: AppColors.textTertiary,
+                      style: AppTypography.taskTitle(
+                        done: done,
+                        strikethrough: done,
                       ),
                       child: Text(
                         // Sem style: aqui — herda do AnimatedDefaultTextStyle
@@ -797,7 +795,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           softWrap: false,
-                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          style: AppTypography.taskDescription(),
                         ),
                       ),
                     TaskMetaLine(
@@ -984,9 +982,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 padding: EdgeInsets.only(top: centerTitle ? 0 : 1, right: 8),
                 child: DoneCircle(
                   done: sub.done,
-                  size: 18,
-                  borderWidth: 2,
-                  tickSize: 10,
+                  size: AppTypography.subtaskCircleSize,
+                  borderWidth: AppTypography.subtaskCircleBorderWidth,
+                  tickSize: AppTypography.subtaskCircleTickSize,
                   ringColor: priColor,
                   ringFillAlpha: 0.08,
                 ),
@@ -1000,16 +998,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                      color: sub.done
-                          ? AppColors.textTertiary
-                          : AppColors.textPrimary.withValues(alpha: 0.88),
-                      decoration:
-                          sub.done ? TextDecoration.lineThrough : TextDecoration.none,
-                      decorationColor: AppColors.textTertiary,
-                    ),
+                    style: AppTypography.subtaskTitle(done: sub.done),
                     child: Text(
                       sub.title,
                       maxLines: 1,
@@ -1023,12 +1012,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         sub.description!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary.withValues(
-                            alpha: sub.done ? 0.55 : 0.85,
-                          ),
-                        ),
+                        style: AppTypography.subtaskDescription(done: sub.done),
                       ),
                     ),
                   if (hasMeta)

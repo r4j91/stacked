@@ -260,7 +260,7 @@ struct TaskRow: View {
             VStack(alignment: .leading, spacing: 0) {
               Text(sub.title)
                 .font(AppTypography.subtaskRowTitle)
-                .foregroundStyle(done ? c.textTertiary : c.textPrimary.opacity(0.88))
+                .foregroundStyle(done ? c.textTertiary : c.textPrimary)
                 .strikethrough(done)
               if let desc = sub.description, !desc.isEmpty {
                 Text(desc)
@@ -300,9 +300,9 @@ struct TaskRow: View {
   private func subtaskDot(sub: Subtask, done: Bool) -> some View {
     DoneCircle(
       done: done,
-      size: 18,
+      size: DoneCircle.listRowCircleSize,
       borderWidth: DoneCircle.RingStyle.borderWidth,
-      tickSize: 10,
+      tickSize: 13,
       ringColor: sub.priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )
@@ -381,9 +381,9 @@ struct PriorityDot: View {
   var body: some View {
     DoneCircle(
       done: done,
-      size: 22,
+      size: DoneCircle.listRowCircleSize,
       borderWidth: DoneCircle.RingStyle.borderWidth,
-      tickSize: 10,
+      tickSize: 13,
       ringColor: priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )

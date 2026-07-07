@@ -17,9 +17,9 @@ struct FilterSubtaskRow: View {
       Button(action: onToggle) {
         DoneCircle(
           done: subtask.done,
-          size: 20,
+          size: DoneCircle.listRowCircleSize,
           borderWidth: DoneCircle.RingStyle.borderWidth,
-          tickSize: 11,
+          tickSize: 13,
           ringColor: subtask.priority?.color ?? c.textTertiary,
           ringFillAlpha: subtask.done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
         )

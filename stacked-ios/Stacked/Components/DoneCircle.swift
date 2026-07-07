@@ -2,6 +2,9 @@ import SwiftUI
 
 // Paridade lib/widgets/done_circle.dart — check verde padrão global
 struct DoneCircle: View {
+  /// Tamanho do anel de conclusão em linhas de tarefa e subtarefa.
+  static let listRowCircleSize: CGFloat = 22
+
   /// Espessura e preenchimento compartilhados entre tarefa e subtarefa na lista.
   enum RingStyle {
     static let borderWidth: CGFloat = 2

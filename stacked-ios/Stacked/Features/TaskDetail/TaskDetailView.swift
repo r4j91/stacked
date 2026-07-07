@@ -250,9 +250,9 @@ struct TaskDetailView: View {
       } label: {
         DoneCircle(
           done: sub.done,
-          size: 20,
-          borderWidth: 1.5,
-          tickSize: 11,
+          size: DoneCircle.listRowCircleSize,
+          borderWidth: DoneCircle.RingStyle.borderWidth,
+          tickSize: 13,
           ringColor: c.textTertiary.opacity(0.4)
         )
         .frame(width: 32, height: 32)
@@ -260,7 +260,7 @@ struct TaskDetailView: View {
       .buttonStyle(.plain)
 
       Text(sub.title)
-        .font(AppTypography.subtaskRowTitle.weight(.medium))
+        .font(AppTypography.taskTitle)
         .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
         .strikethrough(sub.done)
         .frame(maxWidth: .infinity, alignment: .leading)

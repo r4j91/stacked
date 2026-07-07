@@ -8,6 +8,7 @@ import '../services/label_repository.dart';
 import '../services/supabase_client.dart';
 import '../services/task_sync.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
@@ -451,18 +452,9 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
             Expanded(
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 180),
-                style: TextStyle(
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w600,
-                  color: _strikethrough
-                      ? AppColors.textTertiary
-                      : AppColors.textPrimary,
-                  decoration: _strikethrough
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                  decorationColor: AppColors.textTertiary,
-                  height: 1.3,
-                  letterSpacing: -0.2,
+                style: AppTypography.taskTitle(
+                  done: task.done,
+                  strikethrough: _strikethrough,
                 ),
                 child: Text(
                   task.title,
@@ -497,10 +489,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
             padding: const EdgeInsets.only(left: 30),
             child: Text(
               task.description!,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  height: 1.4),
+              style: AppTypography.taskDescription(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -751,9 +740,9 @@ class SubtaskList extends StatelessWidget {
     };
     return DoneCircle(
       done: done,
-      size: 18,
-      borderWidth: 2,
-      tickSize: 10,
+      size: AppTypography.subtaskCircleSize,
+      borderWidth: AppTypography.subtaskCircleBorderWidth,
+      tickSize: AppTypography.subtaskCircleTickSize,
       ringColor: priColor,
       ringFillAlpha: 0.08,
     );
@@ -764,15 +753,7 @@ class SubtaskList extends StatelessWidget {
     return AnimatedDefaultTextStyle(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        color: done
-            ? AppColors.textTertiary
-            : AppColors.textPrimary.withValues(alpha: 0.88),
-        decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
-        decorationColor: AppColors.textTertiary,
-      ),
+      style: AppTypography.subtaskTitle(done: done),
       child: Text(sub.title),
     );
   }
@@ -783,10 +764,7 @@ class SubtaskList extends StatelessWidget {
       padding: const EdgeInsets.only(top: 2),
       child: Text(
         sub.description!,
-        style: TextStyle(
-          fontSize: 12,
-          color: AppColors.textSecondary.withValues(alpha: done ? 0.55 : 0.85),
-        ),
+        style: AppTypography.subtaskDescription(done: done),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -855,9 +833,9 @@ class PriorityDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return DoneCircle(
       done: done,
-      size: 20,
-      borderWidth: 2.5,
-      tickSize: 13,
+      size: AppTypography.taskCircleSize,
+      borderWidth: AppTypography.taskCircleBorderWidth,
+      tickSize: AppTypography.taskCircleTickSize,
       ringColor: _color,
       ringFillAlpha: 0.12,
     );
