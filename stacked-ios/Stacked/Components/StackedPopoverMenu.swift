@@ -100,7 +100,9 @@ struct StackedPopoverOverlay: View {
   private var menuHeight: CGFloat {
     let header: CGFloat = pageStack.count > 1 ? 49 : 0
     let loading: CGFloat = currentPage.loading ? 52 : 0
-    let rows = currentPage.loading ? 0 : CGFloat(currentPage.items.count) * PopoverStyle.itemHeight
+    let itemCount = currentPage.loading ? 0 : currentPage.items.count
+    let visibleRows = min(CGFloat(itemCount), CGFloat(PopoverStyle.maxVisibleItems))
+    let rows = visibleRows * PopoverStyle.itemHeight
     return header + loading + rows
   }
 
@@ -192,45 +194,60 @@ struct StackedPopoverOverlay: View {
 
         if currentPage.loading {
           ProgressView().tint(c.accent).frame(height: 52)
-        } else {
-          ForEach(currentPage.items) { item in
-            let isSelected = allowsToggle
-              ? toggleSelections.contains(item.id)
-              : item.selected
-            Button { _Concurrency.Task { await tap(item) } } label: {
-              HStack(spacing: 12) {
-                StackedIcons.image(item.icon)
-                  .font(.system(size: 16))
-                  .foregroundStyle(item.iconColor ?? (item.destructive ? AppColors.priorityHigh : c.textSecondary))
-                  .frame(width: 20)
-                Text(item.label)
-                  .font(AppTypography.popoverRowLabel)
-                  .fontWeight(isSelected ? .semibold : .regular)
-                  .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
-                Spacer()
-                if item.hasArrow {
-                  StackedIcons.image(.chevronRight)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(c.textTertiary)
-                } else if isSelected {
-                  StackedIcons.image(.check)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(c.accent)
-                }
-              }
-              .padding(.horizontal, 14)
-              .frame(height: PopoverStyle.itemHeight)
-              .background(rowSelectionBackground(isSelected: isSelected, item: item))
-              .contentShape(Rectangle())
-            }
-            .buttonStyle(PopoverRowButtonStyle())
+        } else if currentPage.items.count > PopoverStyle.maxVisibleItems {
+          ScrollView(showsIndicators: false) {
+            menuItemRows(currentPage.items)
           }
+          .frame(height: PopoverStyle.maxScrollHeight)
+        } else {
+          menuItemRows(currentPage.items)
         }
       }
       .frame(width: PopoverStyle.menuWidth)
       .clipShape(RoundedRectangle(cornerRadius: PopoverStyle.radius, style: .continuous))
       .id(pageStack.count)
       .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .leading)))
+  }
+
+  @ViewBuilder
+  private func menuItemRows(_ items: [PopoverMenuItem]) -> some View {
+    ForEach(items) { item in
+      menuItemRow(item)
+    }
+  }
+
+  private func menuItemRow(_ item: PopoverMenuItem) -> some View {
+    let c = theme.colors
+    let isSelected = allowsToggle
+      ? toggleSelections.contains(item.id)
+      : item.selected
+    return Button { _Concurrency.Task { await tap(item) } } label: {
+      HStack(spacing: 12) {
+        StackedIcons.image(item.icon)
+          .font(.system(size: 16))
+          .foregroundStyle(item.iconColor ?? (item.destructive ? AppColors.priorityHigh : c.textSecondary))
+          .frame(width: 20)
+        Text(item.label)
+          .font(AppTypography.popoverRowLabel)
+          .fontWeight(isSelected ? .semibold : .regular)
+          .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
+        Spacer()
+        if item.hasArrow {
+          StackedIcons.image(.chevronRight)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(c.textTertiary)
+        } else if isSelected {
+          StackedIcons.image(.check)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(c.accent)
+        }
+      }
+      .padding(.horizontal, 14)
+      .frame(height: PopoverStyle.itemHeight)
+      .background(rowSelectionBackground(isSelected: isSelected, item: item))
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(PopoverRowButtonStyle())
   }
 
   /// Fundo da linha selecionada — paridade anchored_select_menu.dart (single + multi).
