@@ -56,11 +56,6 @@ import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { profileFromUser } from "@/lib/services/profile-service";
 import { projectDetailCache } from "@/lib/services/project-detail-cache";
 import type { ReorderDropKind } from "@/lib/hooks/use-hold-to-reorder";
-import type { ProjectDisplayMode } from "@/lib/theme/project-display-mode";
-import {
-  PROJECT_DISPLAY_MODE_KEY,
-  projectDisplayModeFromStorage,
-} from "@/lib/theme/project-display-mode";
 export type QuickAddOptions = { projectId?: string | null; sectionId?: string | null };
 
 const MOCK_LABELS: Label[] = [
@@ -182,8 +177,6 @@ type WorkbenchContextValue = {
   refreshGoogleCalendar: () => Promise<void>;
   toggleShowCompleted: (mode?: ViewMode) => void;
   isShowCompleted: (mode?: ViewMode) => boolean;
-  projectDisplayMode: ProjectDisplayMode;
-  setProjectDisplayMode: (mode: ProjectDisplayMode) => void;
   createTask: (input: {
     title: string;
     description?: string;
@@ -311,7 +304,6 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   });
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Partial<Record<ViewMode, boolean>>>({});
-  const [projectDisplayMode, setProjectDisplayModeState] = useState<ProjectDisplayMode>("cards");
   const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [projectSheetMode, setProjectSheetMode] = useState<"create" | "edit">("create");
   const [projectSheetProject, setProjectSheetProject] = useState<Project | null>(null);
@@ -611,14 +603,6 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    setProjectDisplayModeState(
-      projectDisplayModeFromStorage(localStorage.getItem(PROJECT_DISPLAY_MODE_KEY)),
-    );
-  }, []);
-
-  const setProjectDisplayMode = useCallback((mode: ProjectDisplayMode) => {
-    setProjectDisplayModeState(mode);
-    localStorage.setItem(PROJECT_DISPLAY_MODE_KEY, mode);
   }, []);
 
   useEffect(() => {
@@ -1904,8 +1888,6 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     refreshGoogleCalendar,
     toggleShowCompleted,
     isShowCompleted,
-    projectDisplayMode,
-    setProjectDisplayMode,
     createTask,
     deleteTask,
     deferTask,

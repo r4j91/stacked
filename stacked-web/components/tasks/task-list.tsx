@@ -21,70 +21,36 @@ import {
   Calendar03Icon,
   ArrowDown01Icon,
 } from "@/lib/icons/nav-icons";
-import type { ProjectDisplayMode } from "@/lib/theme/project-display-mode";
-import { flatSubtaskPanel, usesCardStyle } from "@/lib/theme/project-display-mode";
 
-export function InlineSubtasks({
-  task,
-  open,
-  flatPanel = false,
-  listStyle = false,
-}: {
-  task: Task;
-  open: boolean;
-  flatPanel?: boolean;
-  listStyle?: boolean;
-}) {
+export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone } = useWorkbench();
   if (!open || !task.subtasks?.length) return null;
 
   const subs = task.subtasks;
 
   return (
-    <div
-      className={`relative space-y-0.5 ${
-        listStyle
-          ? "pb-0"
-          : flatPanel
-            ? "ml-[22px] mr-2 mt-0.5 pb-1.5"
-            : "border-t border-[var(--color-border)]/40 bg-[var(--color-surface-variant)]/45 px-2 py-1.5"
-      }`}
-    >
-      {!listStyle && !flatPanel && (
-        <div
-          className="pointer-events-none absolute left-[31px] top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
-          style={{ height: `calc(100% - 10px)` }}
-          aria-hidden
-        />
-      )}
-      {!listStyle && flatPanel && (
-        <div
-          className="pointer-events-none absolute left-[9px] top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
-          style={{ height: `calc(100% - 10px)` }}
-          aria-hidden
-        />
-      )}
+    <div className="relative ml-[22px] mr-2 mt-0.5 space-y-0.5 pb-1.5">
+      <div
+        className="pointer-events-none absolute left-[9px] top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
+        style={{ height: `calc(100% - 10px)` }}
+        aria-hidden
+      />
       {subs.map((s, i) => {
         const key = `${task.id}:${i}` as SubtaskKey;
         const selected = selectedSubtaskKey === key;
         const isLast = i === subs.length - 1;
         return (
-          <div key={key} className={listStyle ? "relative" : "relative pl-5"}>
-            {!listStyle && (
-              <div
-                className="pointer-events-none absolute left-0 top-[17px] h-px w-4 rounded-full bg-[var(--color-border)]/90"
-                aria-hidden
-              />
-            )}
-            {!listStyle && !isLast && (
+          <div key={key} className="relative pl-5">
+            <div
+              className="pointer-events-none absolute left-0 top-[17px] h-px w-4 rounded-full bg-[var(--color-border)]/90"
+              aria-hidden
+            />
+            {!isLast && (
               <div
                 className="pointer-events-none absolute left-0 top-[17px] w-px bg-[var(--color-border)]/70"
                 style={{ height: "calc(100% + 2px)" }}
                 aria-hidden
               />
-            )}
-            {listStyle && (
-              <div className="mx-[18px] h-px bg-[var(--color-border)]/60" aria-hidden />
             )}
             <div
               role="button"
@@ -96,10 +62,8 @@ export function InlineSubtasks({
                   selectSubtask(task.id, i);
                 }
               }}
-              className={`flex min-h-9 cursor-pointer items-start gap-2.5 transition-colors ${
-                listStyle
-                  ? `px-[18px] py-1.5 ${selected ? "bg-[var(--color-hover-overlay)]" : "hover:bg-[var(--color-hover-overlay)]/70"}`
-                  : `rounded-[var(--radius-sm)] px-2 py-1 ${selected ? "bg-[var(--color-hover-overlay)]" : "hover:bg-[var(--color-hover-overlay)]/70"}`
+              className={`flex min-h-9 cursor-pointer items-start gap-2.5 rounded-[var(--radius-sm)] px-2 py-1 transition-colors ${
+                selected ? "bg-[var(--color-hover-overlay)]" : "hover:bg-[var(--color-hover-overlay)]/70"
               }`}
             >
               <DoneCircle
@@ -130,7 +94,6 @@ export function TaskRow({
   task,
   keyboardFocused,
   embedded,
-  projectDisplayMode,
   reorderRowProps,
   reorderHolding,
   reorderDragOver,
@@ -141,8 +104,6 @@ export function TaskRow({
   keyboardFocused?: boolean;
   /** Lista embutida (ex.: drill-down de filtros) — sem borda de seleção do inspector */
   embedded?: boolean;
-  /** Modo de visualização em telas de projeto (Balões / Balões+ / Lista) */
-  projectDisplayMode?: ProjectDisplayMode;
   reorderRowProps?: Record<string, unknown>;
   reorderHolding?: boolean;
   reorderDragOver?: boolean;
@@ -156,11 +117,8 @@ export function TaskRow({
   const isExpanded = expandedSubtasks.has(task.id);
   const isSelected = !embedded && selectedTaskId === task.id;
   const isKeyboardFocused = !embedded && keyboardFocused;
-  const cardStyle = projectDisplayMode != null && usesCardStyle(projectDisplayMode);
-  const listStyle = projectDisplayMode === "list";
-  const subFlat = projectDisplayMode != null && flatSubtaskPanel(projectDisplayMode);
 
-  const rowContent = (
+  return (
     <>
       <SwipeableTaskRow
         onComplete={() => toggleTaskDone(task.id)}
@@ -191,24 +149,18 @@ export function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`task-row scroll-list-item flex min-h-[52px] cursor-pointer items-start gap-2 py-2 pl-1 pr-0.5 ${
-            listStyle
-              ? `border-b border-[var(--color-border)]/60 px-[14px] ${
-                  isSelected || isKeyboardFocused ? "bg-[var(--color-hover-overlay)]" : ""
-                }`
-              : `mb-0.5 rounded-[var(--radius-md)] border ${
-                  reorderDragging
-                    ? "reorder-dragging"
-                    : reorderHolding
-                      ? "reorder-holding"
-                      : reorderDragOver
-                        ? "reorder-drop-target border-[var(--color-border-strong)]"
-                        : isSelected
-                          ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
-                          : isKeyboardFocused
-                            ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
-                            : "border-transparent"
-                }`
+          className={`task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
+            reorderDragging
+              ? "reorder-dragging"
+              : reorderHolding
+                ? "reorder-holding"
+                : reorderDragOver
+                  ? "reorder-drop-target border-[var(--color-border-strong)]"
+                  : isSelected
+                    ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
+                    : isKeyboardFocused
+                      ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
+                      : "border-transparent"
           } ${task.done && !reorderDragging && !reorderHolding ? "opacity-65" : ""}`}
           data-task-id={task.id}
           data-selected={isSelected ? "" : undefined}
@@ -256,26 +208,9 @@ export function TaskRow({
       {subs.length > 0 && (
         <div className="expand-panel" data-open={isExpanded ? "true" : "false"}>
           <div>
-            <InlineSubtasks
-              task={task}
-              open={isExpanded}
-              flatPanel={subFlat}
-              listStyle={listStyle}
-            />
+            <InlineSubtasks task={task} open={isExpanded} />
           </div>
         </div>
-      )}
-    </>
-  );
-
-  return (
-    <>
-      {cardStyle ? (
-        <div className="mx-2 my-1 overflow-hidden rounded-[12px] bg-[var(--color-surface)] shadow-sm shadow-black/5">
-          {rowContent}
-        </div>
-      ) : (
-        rowContent
       )}
       {menu}
     </>

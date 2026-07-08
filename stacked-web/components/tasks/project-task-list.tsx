@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { useHoldToReorder } from "@/lib/hooks/use-hold-to-reorder";
 import { Add01Icon } from "@/lib/icons/nav-icons";
-import { usesCardStyle } from "@/lib/theme/project-display-mode";
 
 function CollapsibleSectionHeader({
   section,
@@ -104,7 +103,6 @@ export function ProjectTaskList() {
     isShowCompleted,
     currentProject,
     openQuickAdd,
-    projectDisplayMode,
   } = useWorkbench();
 
   const [dialog, setDialog] = useState<{ mode: "rename"; section: Section } | null>(null);
@@ -167,8 +165,6 @@ export function ProjectTaskList() {
 
   const { focusedTaskId } = useTaskListKeyboard(visibleTaskIds, currentProject?.id);
 
-  const cardLayout = usesCardStyle(projectDisplayMode);
-
   if (loading) return <TaskListSkeleton />;
 
   if (!viewTasks.pending.length && !viewTasks.completed.length && !sections.length) {
@@ -189,7 +185,6 @@ export function ProjectTaskList() {
     <>
       {items.map((item, i) => {
         if (item.kind === "separator") {
-          if (!cardLayout) return null;
           return <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[var(--color-border)]/60" />;
         }
         if (item.kind === "task") {
@@ -197,7 +192,6 @@ export function ProjectTaskList() {
             <TaskRow
               key={item.task.id}
               task={item.task}
-              projectDisplayMode={projectDisplayMode}
               keyboardFocused={focusedTaskId === item.task.id}
               reorderRowProps={taskDrag.getProps(item.task.id, true)}
               reorderHolding={taskDrag.holdingId === item.task.id}
@@ -213,12 +207,7 @@ export function ProjectTaskList() {
         }
         if (item.kind === "completedTask") {
           return (
-            <TaskRow
-              key={item.task.id}
-              task={item.task}
-              projectDisplayMode={projectDisplayMode}
-              keyboardFocused={focusedTaskId === item.task.id}
-            />
+            <TaskRow key={item.task.id} task={item.task} keyboardFocused={focusedTaskId === item.task.id} />
           );
         }
         if (item.kind === "sectionHeader") {
