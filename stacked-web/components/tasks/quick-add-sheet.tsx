@@ -5,6 +5,7 @@ import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { TagChip } from "@/components/ui/tag-chip";
+import { InstallmentGeneratorSheet } from "@/components/tasks/installment-generator-sheet";
 import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 import {
   Cancel01Icon,
@@ -13,6 +14,7 @@ import {
   Folder01Icon,
   Tag01Icon,
 } from "@/lib/icons/nav-icons";
+import { Money01Icon } from "@hugeicons/core-free-icons";
 import {
   DatePicker,
   PriorityPicker,
@@ -37,7 +39,7 @@ export function QuickAddSheet({
   initialProjectId,
   initialSectionId,
 }: QuickAddSheetProps) {
-  const { createTask, projects, labels } = useWorkbench();
+  const { createTask, projects, labels, refreshTasks } = useWorkbench();
   const titleRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLFormElement>(null);
   const [description, setDescription] = useState("");
@@ -50,6 +52,9 @@ export function QuickAddSheet({
   const [projectOpen, setProjectOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [installmentOpen, setInstallmentOpen] = useState(false);
+  const [installmentTaskId, setInstallmentTaskId] = useState<string | null>(null);
+  const [installmentTitle, setInstallmentTitle] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -86,6 +91,29 @@ export function QuickAddSheet({
         labelIds: labelIds.length ? labelIds : undefined,
       });
       onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function openInstallmentGenerator() {
+    const title = titleRef.current?.value.trim() ?? "";
+    if (!title || submitting) return;
+    setSubmitting(true);
+    try {
+      const taskId = await createTask({
+        title,
+        description: description.trim() || undefined,
+        priority: priority ?? undefined,
+        projectId,
+        sectionId: initialSectionId ?? null,
+        dueDate,
+        labelIds: labelIds.length ? labelIds : undefined,
+      });
+      if (!taskId) return;
+      setInstallmentTaskId(taskId);
+      setInstallmentTitle(title);
+      setInstallmentOpen(true);
     } finally {
       setSubmitting(false);
     }
@@ -176,6 +204,12 @@ export function QuickAddSheet({
               activeColor={selectedLabels[0]?.color}
               onClick={() => setLabelsOpen(true)}
             />
+            <MetaChip
+              icon={Money01Icon}
+              label="Parcelas"
+              active={false}
+              onClick={() => void openInstallmentGenerator()}
+            />
           </div>
 
           {selectedLabels.length > 1 && (
@@ -211,6 +245,18 @@ export function QuickAddSheet({
         onChange={setProjectId}
       />
       <LabelsPicker open={labelsOpen} onClose={() => setLabelsOpen(false)} labels={labels} value={labelIds} onChange={setLabelIds} />
+      {installmentTaskId && (
+        <InstallmentGeneratorSheet
+          open={installmentOpen}
+          onClose={() => setInstallmentOpen(false)}
+          taskId={installmentTaskId}
+          taskTitle={installmentTitle}
+          onGenerated={() => {
+            void refreshTasks();
+            onClose();
+          }}
+        />
+      )}
     </>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { mapTaskRow, splitTodayPending } from "@/lib/supabase/map-task";
 import { addDays, parseDueDate, startOfDay, toDateStr } from "@/lib/utils/date";
 import { toDbPriority } from "@/lib/utils/priority";
+import { computeNextRecurrenceDate, parseRecurrence } from "@/lib/utils/recurrence";
 
 export class TaskRepository {
   constructor(private client: SupabaseClient) {}
@@ -121,6 +122,59 @@ export class TaskRepository {
   async toggleTaskDone(id: string, done: boolean): Promise<void> {
     const { error } = await this.client.from("tasks").update({ concluida: done }).eq("id", id);
     if (error) throw error;
+  }
+
+  /** Marca concluída e cria próxima ocorrência quando aplicável. */
+  async completeTask(task: Task): Promise<string | null> {
+    await this.toggleTaskDone(task.id, true);
+    return this.createNextOccurrence(task);
+  }
+
+  async createNextOccurrence(task: Task): Promise<string | null> {
+    if (!task.recurrence || !task.dueDate) return null;
+    const recurrence = parseRecurrence(task.recurrence);
+    if (!recurrence) return null;
+    const due = parseDueDate(task.dueDate);
+    if (!due) return null;
+    const next = computeNextRecurrenceDate(due, recurrence);
+    if (!next) return null;
+
+    const userId = await this.getUserId();
+
+    const { data: ordemRow } = await this.client
+      .from("tasks")
+      .select("ordem")
+      .eq("id", task.id)
+      .maybeSingle();
+    const ordem = ordemRow?.ordem != null ? Number(ordemRow.ordem) : null;
+
+    const { data: inserted, error } = await this.client
+      .from("tasks")
+      .insert({
+        titulo: task.title,
+        descricao: task.notes ?? null,
+        prioridade: toDbPriority(task.priority),
+        project_id: task.projectId ?? null,
+        section_id: task.sectionId ?? null,
+        data_vencimento: toDateStr(next),
+        hora: task.time ?? null,
+        recorrencia: task.recurrence,
+        concluida: false,
+        ...(ordem != null ? { ordem } : {}),
+        ...(userId ? { user_id: userId } : {}),
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    const newId = String(inserted.id);
+    if (task.labelIds?.length) {
+      const { error: labelError } = await this.client.from("task_labels").insert(
+        task.labelIds.map((labelId) => ({ task_id: newId, label_id: labelId })),
+      );
+      if (labelError) throw labelError;
+    }
+    return newId;
   }
 
   async toggleSubtaskDone(id: string, done: boolean): Promise<void> {
@@ -447,6 +501,21 @@ export class TaskRepository {
       .limit(limit);
     if (error) throw error;
     return mapTaskList(data);
+  }
+
+  async createSubtasksBatch(
+    rows: {
+      task_id: string;
+      titulo: string;
+      data_vencimento: string;
+      valor?: number;
+      concluida: boolean;
+      ordem: number;
+    }[],
+  ): Promise<void> {
+    if (!rows.length) return;
+    const { error } = await this.client.from("subtasks").insert(rows);
+    if (error) throw error;
   }
 
   async createSubtask(taskId: string, title: string): Promise<string> {

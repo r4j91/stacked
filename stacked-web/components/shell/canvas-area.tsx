@@ -15,7 +15,7 @@ import { ViewOptionsMenu } from "@/components/shell/view-options-menu";
 export function CanvasArea() {
   const pathname = usePathname();
   const meta = canvasTitles[pathname] ?? canvasTitles["/today"];
-  const { view, currentProject, todayStats, usingMock, createSection, loading, error, openPalette, openProjectEdit, isShowCompleted, toggleShowCompleted } =
+  const { view, projectId, currentProject, projects, todayStats, usingMock, createSection, loading, error, openPalette, openProjectEdit, isShowCompleted, toggleShowCompleted, projectDisplayMode, setProjectDisplayMode } =
     useWorkbench();
   const [showNewSection, setShowNewSection] = useState(false);
 
@@ -30,7 +30,13 @@ export function CanvasArea() {
         ? formatTodaySubtitle()
         : meta.subtitle;
 
-  const title = view === "project" ? (currentProject?.name ?? "Projeto") : meta.title;
+  const sidebarProject =
+    view === "project" && projectId ? projects.find((p) => p.id === projectId) : null;
+
+  const title =
+    view === "project"
+      ? (currentProject?.name ?? sidebarProject?.name ?? "Projeto")
+      : meta.title;
 
   return (
     <main
@@ -53,6 +59,8 @@ export function CanvasArea() {
                 <ViewOptionsMenu
                   showCompleted={showCompleted}
                   onToggleCompleted={() => toggleShowCompleted()}
+                  displayMode={view === "project" ? projectDisplayMode : undefined}
+                  onDisplayModeChange={view === "project" ? setProjectDisplayMode : undefined}
                   extraItems={
                     view === "project" && currentProject
                       ? [{ label: "Editar projeto", onClick: () => openProjectEdit(currentProject.id) }]

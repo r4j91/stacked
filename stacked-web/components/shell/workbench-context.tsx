@@ -25,7 +25,6 @@ import type {
 import { useToast } from "@/components/ui/toast-provider";
 import { LabelRepository } from "@/lib/repositories/label-repository";
 import { CommentRepository } from "@/lib/repositories/comment-repository";
-import { computeNextRecurrenceDate, parseRecurrence } from "@/lib/utils/recurrence";
 import { toDateStr, parseDueDate, formatTaskDate, startOfDay } from "@/lib/utils/date";
 import {
   MOCK_TASKS,
@@ -55,7 +54,13 @@ import {
 } from "@/lib/services/google-calendar-client";
 import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { profileFromUser } from "@/lib/services/profile-service";
+import { projectDetailCache } from "@/lib/services/project-detail-cache";
 import type { ReorderDropKind } from "@/lib/hooks/use-hold-to-reorder";
+import type { ProjectDisplayMode } from "@/lib/theme/project-display-mode";
+import {
+  PROJECT_DISPLAY_MODE_KEY,
+  projectDisplayModeFromStorage,
+} from "@/lib/theme/project-display-mode";
 export type QuickAddOptions = { projectId?: string | null; sectionId?: string | null };
 
 const MOCK_LABELS: Label[] = [
@@ -105,6 +110,7 @@ type WorkbenchContextValue = {
   closePalette: () => void;
   openTaskInspector: (task: Task) => void;
   refreshTasks: () => Promise<void>;
+  prefetchProject: (projectId: string) => void;
   selectTask: (id: string | null) => void;
   selectSubtask: (taskId: string, index: number) => void;
   clearSubtaskSelection: () => void;
@@ -176,6 +182,8 @@ type WorkbenchContextValue = {
   refreshGoogleCalendar: () => Promise<void>;
   toggleShowCompleted: (mode?: ViewMode) => void;
   isShowCompleted: (mode?: ViewMode) => boolean;
+  projectDisplayMode: ProjectDisplayMode;
+  setProjectDisplayMode: (mode: ProjectDisplayMode) => void;
   createTask: (input: {
     title: string;
     description?: string;
@@ -184,7 +192,7 @@ type WorkbenchContextValue = {
     sectionId?: string | null;
     dueDate?: string | null;
     labelIds?: string[];
-  }) => Promise<void>;
+  }) => Promise<string | undefined>;
   deleteTask: (id: string) => Promise<void>;
   deferTask: (id: string) => Promise<void>;
   duplicateTask: (id: string) => Promise<void>;
@@ -303,6 +311,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   });
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Partial<Record<ViewMode, boolean>>>({});
+  const [projectDisplayMode, setProjectDisplayModeState] = useState<ProjectDisplayMode>("cards");
   const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [projectSheetMode, setProjectSheetMode] = useState<"create" | "edit">("create");
   const [projectSheetProject, setProjectSheetProject] = useState<Project | null>(null);
@@ -312,6 +321,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const viewCacheRef = useRef<Map<string, ViewTasks>>(new Map());
   const globalDataLoadedRef = useRef(false);
   const searchTasksLoadedRef = useRef(false);
+  const realtimeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const viewCacheKey = useCallback(
     (mode: ViewMode = view, pid: string | null = projectId) => `${mode}:${pid ?? ""}`,
@@ -389,6 +399,11 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       setCalendarError(e instanceof Error ? e.message : "Erro ao carregar calendário");
     }
   }, []);
+
+  const prefetchProject = useCallback((id: string) => {
+    if (usingMock || !isSupabaseConfigured()) return;
+    projectDetailCache.prefetch(id);
+  }, [usingMock]);
 
   const refreshTasks = useCallback(
     async (options?: { showLoading?: boolean; refreshGlobal?: boolean }) => {
@@ -490,8 +505,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         }
 
         if (view === "project" && projectId) {
-          setCurrentProject((results[nextIndex] as Project | null) ?? null);
-          setSections((results[nextIndex + 1] as Section[]) ?? []);
+          const proj = (results[nextIndex] as Project | null) ?? null;
+          const secs = (results[nextIndex + 1] as Section[]) ?? [];
+          setCurrentProject(proj);
+          setSections(secs);
+          projectDetailCache.upsert(projectId, {
+            project: proj,
+            sections: secs,
+            viewTasks: data,
+          });
         } else {
           setCurrentProject(null);
           setSections([]);
@@ -553,7 +575,17 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     setSelectedSubtaskKey(null);
     const cacheKey = viewCacheKey();
     const cached = viewCacheRef.current.get(cacheKey);
-    if (cached) {
+    const projectSnapshot =
+      view === "project" && projectId ? projectDetailCache.snapshot(projectId) : null;
+
+    if (projectSnapshot) {
+      setViewTasks(projectSnapshot.viewTasks);
+      setCurrentProject(projectSnapshot.project);
+      setSections(projectSnapshot.sections);
+      viewCacheRef.current.set(cacheKey, projectSnapshot.viewTasks);
+      setLoading(false);
+      void refreshTasksRef.current({ refreshGlobal: !globalDataLoadedRef.current });
+    } else if (cached) {
       setViewTasks(cached);
       setLoading(false);
       void refreshTasksRef.current({ refreshGlobal: !globalDataLoadedRef.current });
@@ -579,6 +611,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    setProjectDisplayModeState(
+      projectDisplayModeFromStorage(localStorage.getItem(PROJECT_DISPLAY_MODE_KEY)),
+    );
+  }, []);
+
+  const setProjectDisplayMode = useCallback((mode: ProjectDisplayMode) => {
+    setProjectDisplayModeState(mode);
+    localStorage.setItem(PROJECT_DISPLAY_MODE_KEY, mode);
   }, []);
 
   useEffect(() => {
@@ -595,7 +635,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     const channel = client
       .channel("tasks-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-        void refreshTasksRef.current({ refreshGlobal: true });
+        if (realtimeRefreshTimerRef.current) clearTimeout(realtimeRefreshTimerRef.current);
+        realtimeRefreshTimerRef.current = setTimeout(() => {
+          void refreshTasksRef.current({ refreshGlobal: false });
+        }, 400);
       })
       .subscribe();
     return () => {
@@ -743,54 +786,6 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       return { ...prev, completed: [...prev.completed, task] };
     });
   }, []);
-
-  const handleRecurrenceOnComplete = useCallback(
-    async (task: Task) => {
-      if (!task.recurrence || !task.dueDate) return;
-      const recurrence = parseRecurrence(task.recurrence);
-      if (!recurrence) return;
-      const due = new Date(`${task.dueDate}T12:00:00`);
-      const next = computeNextRecurrenceDate(due, recurrence);
-      if (!next) return;
-
-      if (usingMock || !isSupabaseConfigured()) {
-        showToast("Próxima ocorrência criada");
-        return;
-      }
-
-      try {
-        const client = createClient();
-        const taskRepo = new TaskRepository(client);
-        const userId = (await client.auth.getUser()).data.user?.id;
-        const { data: inserted, error } = await client
-          .from("tasks")
-          .insert({
-            titulo: task.title,
-            descricao: task.notes ?? null,
-            prioridade: task.priority === "P1" ? "high" : task.priority === "P2" ? "medium" : task.priority === "P3" ? "low" : null,
-            project_id: task.projectId ?? null,
-            section_id: task.sectionId ?? null,
-            data_vencimento: toDateStr(next),
-            hora: task.time ?? null,
-            recorrencia: task.recurrence,
-            concluida: false,
-            ...(userId ? { user_id: userId } : {}),
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        const newId = String(inserted.id);
-        if (task.labelIds?.length) {
-          await new LabelRepository(client).setTaskLabels(newId, task.labelIds);
-        }
-        showToast("Próxima ocorrência criada");
-        await refreshTasks();
-      } catch {
-        showToast("Erro ao criar próxima ocorrência");
-      }
-    },
-    [refreshTasks, showToast, usingMock],
-  );
 
   const selectTask = useCallback((id: string | null) => {
     setSelectedTaskId(id);
@@ -1047,25 +1042,24 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
       if (!usingMock && isSupabaseConfigured()) {
         try {
-          await new TaskRepository(createClient()).toggleTaskDone(id, newDone);
-          if (newDone && view === "today" && task.recurrence) {
-            await handleRecurrenceOnComplete(task);
+          const repo = new TaskRepository(createClient());
+          if (newDone) {
+            await repo.completeTask(task);
           } else {
-            await refreshTasks();
+            await repo.toggleTaskDone(id, false);
           }
+          if (task.projectId) projectDetailCache.invalidate(task.projectId);
+          await refreshTasks();
           showToast(newDone ? "Tarefa concluída" : "Tarefa reaberta");
         } catch {
           patchTaskInView(id, { done: task.done });
           showToast("Erro ao atualizar tarefa");
         }
       } else {
-        if (newDone && view === "today" && task.recurrence) {
-          await handleRecurrenceOnComplete(task);
-        }
         if (newDone) showToast("Tarefa concluída");
       }
     },
-    [allTasks, patchTaskInView, refreshTasks, usingMock, view, handleRecurrenceOnComplete, showToast],
+    [allTasks, patchTaskInView, refreshTasks, usingMock, showToast],
   );
 
   const toggleSubtaskDone = useCallback(
@@ -1346,7 +1340,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       labelIds?: string[];
     }) => {
       const trimmed = input.title.trim();
-      if (!trimmed) return;
+      if (!trimmed) return undefined;
 
       if (usingMock || !isSupabaseConfigured()) {
         const task: Task = {
@@ -1363,15 +1357,18 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         setViewTasks((prev) => ({ ...prev, pending: [...prev.pending, task] }));
         showToast("Tarefa criada");
         await refreshTasks();
-        return;
+        return task.id;
       }
 
       try {
-        await new TaskRepository(createClient()).createTask(input);
+        const taskId = await new TaskRepository(createClient()).createTask(input);
+        if (input.projectId) projectDetailCache.invalidate(input.projectId);
         showToast("Tarefa criada");
         await refreshTasks();
+        return taskId;
       } catch {
         showToast("Erro ao criar tarefa");
+        return undefined;
       }
     },
     [refreshTasks, showToast, usingMock],
@@ -1839,6 +1836,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     closePalette,
     openTaskInspector,
     refreshTasks,
+    prefetchProject,
     selectTask,
     selectSubtask,
     clearSubtaskSelection,
@@ -1906,6 +1904,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     refreshGoogleCalendar,
     toggleShowCompleted,
     isShowCompleted,
+    projectDisplayMode,
+    setProjectDisplayMode,
     createTask,
     deleteTask,
     deferTask,

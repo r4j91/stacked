@@ -5,6 +5,7 @@ import { useWorkbench, type SubtaskKey } from "./workbench-context";
 import type { Subtask, Task } from "@/lib/types/task";
 import { parseDueDate, isOverdueDate } from "@/lib/utils/date";
 import { AutosaveTextarea } from "@/components/tasks/autosave-textarea";
+import { InstallmentGeneratorSheet } from "@/components/tasks/installment-generator-sheet";
 import { AppIcon } from "@/components/ui/app-icon";
 import {
   Cancel01Icon,
@@ -301,15 +302,26 @@ function MetaRow({
 }
 
 function SubtasksCard({ task }: { task: Task }) {
-  const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone, createSubtask, deleteSubtask } =
+  const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone, createSubtask, deleteSubtask, refreshTasks } =
     useWorkbench();
   const subs = task.subtasks ?? [];
   const [newSub, setNewSub] = useState("");
+  const [installmentOpen, setInstallmentOpen] = useState(false);
 
   if (!subs.length) {
     return (
-      <div className="overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-surface-variant)] p-4">
-        <p className="mb-2 text-sm font-semibold">Subtarefas</p>
+      <>
+        <div className="overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-surface-variant)] p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Subtarefas</p>
+            <button
+              type="button"
+              onClick={() => setInstallmentOpen(true)}
+              className="rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)]"
+            >
+              Parcelas
+            </button>
+          </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -330,7 +342,15 @@ function SubtasksCard({ task }: { task: Task }) {
             <AppIcon icon={Add01Icon} size={16} />
           </button>
         </form>
-      </div>
+        </div>
+        <InstallmentGeneratorSheet
+          open={installmentOpen}
+          onClose={() => setInstallmentOpen(false)}
+          taskId={task.id}
+          taskTitle={task.title}
+          onGenerated={() => void refreshTasks()}
+        />
+      </>
     );
   }
 
@@ -338,9 +358,17 @@ function SubtasksCard({ task }: { task: Task }) {
   const pct = Math.round((done / subs.length) * 100);
 
   return (
+    <>
     <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]/60">
       <div className="flex items-center gap-2.5 px-4 py-3.5">
         <span className="flex-1 text-sm font-semibold">Subtarefas</span>
+        <button
+          type="button"
+          onClick={() => setInstallmentOpen(true)}
+          className="rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)]"
+        >
+          Parcelas
+        </button>
         <div className="h-0.5 max-w-20 flex-1 overflow-hidden rounded bg-white/10">
           <div className="h-full rounded bg-[var(--color-done)]" style={{ width: `${pct}%` }} />
         </div>
@@ -406,6 +434,14 @@ function SubtasksCard({ task }: { task: Task }) {
         </button>
       </form>
     </div>
+    <InstallmentGeneratorSheet
+      open={installmentOpen}
+      onClose={() => setInstallmentOpen(false)}
+      taskId={task.id}
+      taskTitle={task.title}
+      onGenerated={() => void refreshTasks()}
+    />
+    </>
   );
 }
 

@@ -22,7 +22,7 @@ function greeting(name: string): string {
 }
 
 export function HomeCanvas() {
-  const { userProfile, navCounts, filterCounts, projects } = useWorkbench();
+  const { userProfile, navCounts, filterCounts, projects, prefetchProject } = useWorkbench();
   const displayName = userProfile.name || "você";
 
   return (
@@ -97,6 +97,8 @@ export function HomeCanvas() {
                   <Link
                     key={p.id}
                     href={`/projects/${p.id}`}
+                    onMouseEnter={() => prefetchProject(p.id)}
+                    onFocus={() => prefetchProject(p.id)}
                     className="flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
                   >
                     <ProjectIcon iconKey={p.icon} color={p.color} size={20} />
