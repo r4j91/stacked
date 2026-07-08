@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked iOS — Task Detail (Atual vs Proposto)</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --priority-medium: #F5A623;
+      --priority-low: #4D9FEC;
+      --tag-green: #8FD46B;
+      --tag-purple: #B18CF5;
+      --tag-yellow: #F5A623;
+      --date-today: #7ECC49;
+      --radius-card: 14px;
+      --radius-field: 10px;
+      --phone-w: 320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text-primary);
+      line-height: 1.45;
+      padding: 32px 20px 80px;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 28px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      text-wrap: balance;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 70ch;
+    }
+
+    .analysis {
+      max-width: 1200px;
+      margin: 0 auto 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .analysis-card {
+      background: var(--surface);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      border-radius: 16px;
+      padding: 16px 18px;
+    }
+
+    .analysis-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    .analysis-card ul {
+      list-style: none;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .analysis-card li {
+      padding: 5px 0;
+      padding-left: 14px;
+      position: relative;
+    }
+
+    .analysis-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+
+    .analysis-card li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 28px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .concept {
+      background: var(--surface);
+      border-radius: 20px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .concept-head {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .concept-head h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .concept-head p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .badge-current { background: rgba(107, 110, 118, 0.25); color: var(--text-secondary); }
+    .badge-new { background: rgba(95, 211, 220, 0.15); color: var(--accent); }
+
+    .phone-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 20px 16px 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    }
+
+    .phone {
+      width: var(--phone-w);
+      background: var(--bg);
+      border-radius: 28px;
+      border: 1px solid rgba(242, 243, 245, 0.08);
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .phone-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .phone-scroll {
+      max-height: 580px;
+      overflow-y: auto;
+      padding-bottom: 16px;
+    }
+
+    .title-row {
+      display: flex;
+      gap: 8px;
+      padding: 4px 20px 0;
+      align-items: flex-start;
+    }
+
+    .prio-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--priority-high);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .task-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      color: var(--text-primary);
+    }
+
+    /* ATUAL: description in mini-card */
+    .desc-box-current {
+      margin: 8px 20px 14px;
+      padding: 9px 12px;
+      background: rgba(44, 45, 51, 0.45);
+      border: 1px solid rgba(107, 110, 118, 0.12);
+      border-radius: var(--radius-field);
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* PROPOSTO: description inline */
+    .desc-inline {
+      padding: 6px 20px 14px 50px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .card {
+      margin: 0 16px;
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      font-size: 13px;
+    }
+
+    .meta-row + .meta-row { border-top: 1px solid rgba(107, 110, 118, 0.12); }
+
+    .meta-icon {
+      width: 22px;
+      text-align: center;
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+
+    .meta-label { color: var(--text-tertiary); flex: 1; }
+
+    .meta-value { color: var(--text-primary); font-weight: 500; }
+
+    .meta-value.muted { color: var(--text-tertiary); }
+
+    .meta-value.blue { color: var(--priority-low); }
+
+    .meta-value.red { color: var(--priority-high); }
+
+    .meta-value.green { color: var(--tag-green); }
+
+    .meta-chevron { color: var(--text-tertiary); font-size: 11px; }
+
+    .pills {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px 12px;
+      overflow-x: auto;
+      border-top: 1px solid rgba(107, 110, 118, 0.12);
+    }
+
+    .pill {
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--surface-variant);
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    .section-gap { height: 16px; }
+
+    /* Section headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px 10px;
+    }
+
+    .section-header h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .section-header.legacy h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .count-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(95, 211, 220, 0.12);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .section-header .chevron {
+      margin-left: auto;
+      color: var(--text-tertiary);
+      font-size: 14px;
+      transform: rotate(90deg);
+    }
+
+    /* Subtask rows */
+    .subtask-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+
+    .subtask-row + .sub-divider { border-top: none; }
+
+    .sub-divider {
+      height: 1px;
+      background: rgba(107, 110, 118, 0.1);
+      margin-left: 52px;
+      margin-right: 16px;
+    }
+
+    .circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      margin-top: 2px;
+      opacity: 0.5;
+    }
+
+    .circle.done {
+      border-color: var(--tag-green);
+      background: var(--tag-green);
+      opacity: 1;
+    }
+
+    .circle.prio-high { border-color: var(--priority-high); opacity: 0.85; }
+
+    .subtask-body { flex: 1; min-width: 0; }
+
+    .subtask-title {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    .subtask-title.done {
+      color: var(--text-tertiary);
+      text-decoration: line-through;
+    }
+
+    .subtask-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .chip {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip-date { background: rgba(240, 168, 48, 0.15); color: var(--date-today); }
+    .chip-tag { background: rgba(245, 166, 35, 0.15); color: var(--tag-yellow); }
+    .chip-tag.blue { background: rgba(77, 159, 236, 0.15); color: var(--priority-low); }
+
+    .sub-action {
+      color: var(--text-tertiary);
+      font-size: 14px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+
+    .add-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .add-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(95, 211, 220, 0.12);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* Comments - current scattered */
+    .comment-card {
+      margin: 0 16px 8px;
+      padding: 12px;
+      background: rgba(44, 45, 51, 0.45);
+      border-radius: var(--radius-field);
+      font-size: 14px;
+    }
+
+    .comment-time {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .comment-input-scattered {
+      margin: 0 16px;
+      padding: 10px 12px;
+      background: rgba(44, 45, 51, 0.5);
+      border-radius: var(--radius-field);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-tertiary);
+    }
+
+    .send-btn { color: var(--accent); margin-left: auto; }
+
+    /* Proposed: comments in card */
+    .comment-in-card {
+      padding: 12px 16px;
+    }
+
+    .comment-in-card + .sub-divider { margin-left: 16px; }
+
+    .footnote {
+      max-width: 1200px;
+      margin: 32px auto 0;
+      padding: 16px 18px;
+      background: rgba(95, 211, 220, 0.06);
+      border: 1px solid rgba(95, 211, 220, 0.12);
+      border-radius: 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .footnote strong { color: var(--text-primary); }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Task Detail iOS — Atual vs Proposto</h1>
+    <p>
+      Comparação visual da tela de detalhe de tarefa (<code>TaskDetailView.swift</code>).
+      A coluna da esquerda reflete o layout após a mudança recente das subtarefas.
+      A direita propõe refinamentos de hierarquia, consistência e densidade, sem alterar funcionalidades.
+    </p>
+  </header>
+
+  <section class="analysis" aria-label="Análise de melhorias">
+    <article class="analysis-card">
+      <h2>Problemas no atual</h2>
+      <ul>
+        <li><strong>Cabeçalhos inconsistentes:</strong> Subtarefas em 15px bold; Comentários em 12px cinza.</li>
+        <li><strong>Notas em mini-card:</strong> caixa separada que compete visualmente com o card de metadados.</li>
+        <li><strong>Metadados redundantes:</strong> linhas "Nenhuma" + pílulas vazias duplicam o mesmo affordance.</li>
+        <li><strong>Subtarefas pobres:</strong> só título + lixeira; sem chips de data/etiqueta já disponíveis no modelo.</li>
+        <li><strong>Lixeira sempre visível:</strong> ação destrutiva em destaque; context menu já existe.</li>
+        <li><strong>Comentários fragmentados:</strong> cada item é um card solto; input fora do grupo.</li>
+      </ul>
+    </article>
+    <article class="analysis-card">
+      <h2>Melhorias propostas</h2>
+      <ul>
+        <li><strong>Sistema de seção único:</strong> mesmo header (título + badge + chevron) para Subtarefas e Comentários.</li>
+        <li><strong>Notas inline:</strong> texto secundário abaixo do título, sem caixa até haver foco/conteúdo longo.</li>
+        <li><strong>Metadados enxutos:</strong> só linhas preenchidas; campos vazios só nas pílulas.</li>
+        <li><strong>Rows de subtarefa ricas:</strong> anel com cor de prioridade + chips de vencimento/etiqueta.</li>
+        <li><strong>⋮ no lugar da lixeira:</strong> menos ruído visual; excluir continua no menu de contexto.</li>
+        <li><strong>Comentários em card:</strong> lista + composer no mesmo container, espelhando subtarefas.</li>
+      </ul>
+    </article>
+    <article class="analysis-card">
+      <h2>Princípios (Impeccable / product)</h2>
+      <ul>
+        <li><strong>Consistência:</strong> mesmo vocabulário visual entre seções (cards + headers).</li>
+        <li><strong>Accent só para ação:</strong> ciano reservado a botões, foco e adicionar.</li>
+        <li><strong>Densidade controlada:</strong> metadados compactos; subtarefas com 2ª linha só quando há dados.</li>
+        <li><strong>Sem cards aninhados:</strong> um nível de surface por bloco, não caixa dentro de caixa.</li>
+        <li><strong>Contraste legível:</strong> corpo secundário ≥4.5:1 sobre fundo escuro.</li>
+      </ul>
+    </article>
+  </section>
+
+  <div class="grid">
+    <!-- ATUAL -->
+    <article class="concept">
+      <div class="concept-head">
+        <span class="badge badge-current">Atual</span>
+        <h3>Como está hoje no iPhone</h3>
+        <p>Subtarefas já no card; resto da página ainda heterogêneo.</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>✕</span>
+            <span>···</span>
+          </div>
+          <div class="phone-scroll">
+            <div class="title-row">
+              <div class="prio-dot"></div>
+              <div class="task-title">Julho 2026</div>
+            </div>
+            <div class="desc-box-current">Apenas um teste de descrição da tarefa.</div>
+
+            <div class="card">
+              <div class="meta-row">
+                <span class="meta-icon">📁</span>
+                <span class="meta-label">Projeto</span>
+                <span class="meta-value blue">Rodrigo</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-icon">📅</span>
+                <span class="meta-label">Data</span>
+                <span class="meta-value muted">Sem data</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-icon">🚩</span>
+                <span class="meta-label">Prioridade</span>
+                <span class="meta-value red">P1</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-icon">🏷</span>
+                <span class="meta-label">Etiquetas</span>
+                <span class="meta-value green">Em Andamento</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="pills">
+                <span class="pill">Data</span>
+                <span class="pill">Recorrência</span>
+                <span class="pill">Parcelas</span>
+              </div>
+            </div>
+
+            <div class="section-gap"></div>
+
+            <div class="section-header">
+              <h4>Subtarefas</h4>
+              <span class="count-badge">2/5</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="card">
+              <div class="subtask-row">
+                <div class="circle prio-high"></div>
+                <div class="subtask-body">
+                  <div class="subtask-title">Bressanone Unifique</div>
+                </div>
+                <span class="sub-action">🗑</span>
+              </div>
+              <div class="sub-divider"></div>
+              <div class="subtask-row">
+                <div class="circle done"></div>
+                <div class="subtask-body">
+                  <div class="subtask-title done">Pagamento confirmado</div>
+                </div>
+                <span class="sub-action">🗑</span>
+              </div>
+              <div class="sub-divider"></div>
+              <div class="add-row">
+                <span class="add-icon">+</span>
+                Adicionar subtarefa
+              </div>
+            </div>
+
+            <div class="section-gap"></div>
+
+            <div class="section-header legacy">
+              <h4>Comentários</h4>
+            </div>
+            <div class="comment-card">
+              Lembrar de revisar valores.
+              <div class="comment-time">2h atrás</div>
+            </div>
+            <div class="comment-input-scattered">
+              Adicionar comentário…
+              <span class="send-btn">➤</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- PROPOSTO -->
+    <article class="concept">
+      <div class="concept-head">
+        <span class="badge badge-new">Proposto</span>
+        <h3>Refino de hierarquia e consistência</h3>
+        <p>Mesmas funções; layout alinhado ao padrão Todoist/Stacked.</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>✕</span>
+            <span>···</span>
+          </div>
+          <div class="phone-scroll">
+            <div class="title-row">
+              <div class="prio-dot"></div>
+              <div class="task-title">Julho 2026</div>
+            </div>
+            <div class="desc-inline">Apenas um teste de descrição da tarefa.</div>
+
+            <div class="card">
+              <div class="meta-row">
+                <span class="meta-icon">📁</span>
+                <span class="meta-label">Projeto</span>
+                <span class="meta-value blue">Rodrigo</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-icon">🚩</span>
+                <span class="meta-label">Prioridade</span>
+                <span class="meta-value red">P1</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-icon">🏷</span>
+                <span class="meta-label">Etiquetas</span>
+                <span class="meta-value green">Em Andamento</span>
+                <span class="meta-chevron">›</span>
+              </div>
+              <div class="pills">
+                <span class="pill">Data</span>
+                <span class="pill">Recorrência</span>
+                <span class="pill">Parcelas</span>
+              </div>
+            </div>
+
+            <div class="section-gap"></div>
+
+            <div class="section-header">
+              <h4>Subtarefas</h4>
+              <span class="count-badge">2/5</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="card">
+              <div class="subtask-row">
+                <div class="circle prio-high"></div>
+                <div class="subtask-body">
+                  <div class="subtask-title">Bressanone Unifique</div>
+                  <div class="subtask-meta">
+                    <span class="chip chip-date">📅 25 jul. 14:00</span>
+                    <span class="chip chip-tag">Pendente Pgto</span>
+                    <span class="chip chip-tag blue">Julho</span>
+                  </div>
+                </div>
+                <span class="sub-action">⋮</span>
+              </div>
+              <div class="sub-divider"></div>
+              <div class="subtask-row">
+                <div class="circle done"></div>
+                <div class="subtask-body">
+                  <div class="subtask-title done">Pagamento confirmado</div>
+                </div>
+                <span class="sub-action">⋮</span>
+              </div>
+              <div class="sub-divider"></div>
+              <div class="add-row">
+                <span class="add-icon">+</span>
+                Adicionar subtarefa
+              </div>
+            </div>
+
+            <div class="section-gap"></div>
+
+            <div class="section-header">
+              <h4>Comentários</h4>
+              <span class="count-badge">1</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="card">
+              <div class="comment-in-card">
+                Lembrar de revisar valores.
+                <div class="comment-time">2h atrás</div>
+              </div>
+              <div class="sub-divider" style="margin-left:16px"></div>
+              <div class="comment-input-scattered" style="margin:0;background:transparent;border-radius:0">
+                Adicionar comentário…
+                <span class="send-btn">➤</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <p class="footnote">
+    <strong>Próximo passo:</strong> abra este arquivo no navegador
+    (<code>docs/concepts/task-detail-ios-mockup.html</code>).
+    Se aprovar a coluna "Proposto", implemento só layout/design no Swift, sem mudar fluxos de dados.
+    Prioridade sugerida: (1) unificar headers, (2) comentários em card, (3) chips nas subtarefas, (4) metadados enxutos, (5) notas inline.
+  </p>
+</body>
+</html>

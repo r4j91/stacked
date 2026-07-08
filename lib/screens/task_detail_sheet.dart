@@ -1858,89 +1858,75 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
 
         const SizedBox(height: 12),
 
-        // ── Card de subtarefas ───────────────────────────────────────────
+        // ── Subtarefas (header fora + lista no card, estilo Todoist) ─────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: CustomPaint(
-            foregroundPainter: const _SubtleCardBorderPainter(radius: 17),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _isLightAccent
-                    ? AppColors.surfaceVariant
-                    : AppColors.surfaceVariant.withValues(alpha: 0.5),
-                borderRadius: const BorderRadius.all(Radius.circular(17)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header com chevron
-                  // GESTURE-OLD: GestureDetector sem feedback visual
-                  Pressable(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => setState(() => _subtasksExpanded = !_subtasksExpanded),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                      child: Row(
-                        children: [
-                          // CORRIGIDO_REDESIGN_ICONE_SUBTAREFAS
-                          // HugeIcon(icon: HugeIcons.strokeRoundedSquare, size: 17, color: AppColors.textSecondary),
-                          HugeIcon(icon: HugeIcons.strokeRoundedTaskDone01, size: 17, color: AppColors.textSecondary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Subtarefas',
-                              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                            ),
-                          ),
-                          if (_subtasks.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${_subtasks.where((s) => s.done).length}/${_subtasks.length}',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              ),
-                            ),
-                          const SizedBox(width: 4),
-                          AnimatedRotation(
-                            turns: _subtasksExpanded ? 0.25 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 18, color: AppColors.textTertiary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // CORRIGIDO_SHEET_ALTURA: lista expandível agora dentro de
-                  // AnimatedSize — o colapso instantâneo (if simples) mudava
-                  // o maxScrollExtent do ListView de _buildBody de uma vez,
-                  // e o DraggableScrollableSheet (que reusa esse mesmo
-                  // scrollCtrl para acoplar scroll+resize) interpretava a
-                  // correção de offset resultante como um drag para baixo,
-                  // encolhendo o sheet para o snapSize menor e escondendo o
-                  // próprio botão de Subtarefas. Só o conteúdo expansível é
-                  // envolvido — não o card inteiro, não o header/botão.
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: _subtasksExpanded ? [
-                        if (_subtasks.isNotEmpty)
-                          Divider(height: 1, thickness: 0.5, color: AppColors.textTertiary.withValues(alpha: 0.1)),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                          child: _buildSubtasksSection(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Pressable(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _subtasksExpanded = !_subtasksExpanded),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 0, 10),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Subtarefas',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.2,
                         ),
-                      ] : const [],
-                    ),
+                      ),
+                      if (_subtasks.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${_subtasks.where((s) => s.done).length}/${_subtasks.length}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                      AnimatedRotation(
+                        turns: _subtasksExpanded ? 0.25 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          size: 18,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+              // CORRIGIDO_SHEET_ALTURA: só o card expansível entra no
+              // AnimatedSize — evita o DraggableScrollableSheet interpretar
+              // mudança de altura como drag e encolher o sheet.
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: _subtasksExpanded
+                    ? Container(
+                        decoration: _cardDecoration,
+                        child: _buildSubtasksSection(inCard: true),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
         ),
 
@@ -2623,9 +2609,10 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
     );
   }
 
-  Widget _buildSubtasksSection() {
+  Widget _buildSubtasksSection({bool inCard = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         TaskDetailSubtasksList(
           subtasks: _subtasks,
@@ -2657,13 +2644,17 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
             setState(() => _subtasks.removeAt(i));
           },
         ),
-        // Botão de adição
-        // GESTURE-OLD: GestureDetector sem feedback visual
+        if (inCard && _subtasks.isNotEmpty) _cardDivider,
         Pressable(
           onTap: _addSubtask,
           behavior: HitTestBehavior.opaque,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
+            padding: EdgeInsets.fromLTRB(
+              inCard ? 16 : 4,
+              inCard ? 12 : 10,
+              inCard ? 16 : 4,
+              inCard ? 14 : 12,
+            ),
             child: Row(
               children: [
                 Container(
@@ -2680,7 +2671,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
                   'Adicionar subtarefa',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.accent.withValues(alpha: 0.75),
+                    color: AppColors.accent.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -3053,38 +3044,5 @@ class _AttrPanelDivider extends StatelessWidget {
       color: AppColors.surfaceVariant.withValues(alpha: 0.7),
     );
   }
-}
-
-/// Borda gradiente quase imperceptível para cards internos (ex: card de
-/// Subtarefas) — mesma linguagem do PopoverBorderPainter/LiquidPanel
-/// (mais forte no topo, mais discreta nas laterais/base), mas com
-/// intensidade bem mais sutil já que é um card interno, não o "vidro"
-/// externo do sheet.
-class _SubtleCardBorderPainter extends CustomPainter {
-  final double radius;
-  const _SubtleCardBorderPainter({required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x14FFFFFF), // topo ~8%
-          Color(0x0AFFFFFF), // meio ~4%
-          Color(0x08FFFFFF), // base ~3%
-        ],
-        stops: [0.0, 0.45, 1.0],
-      ).createShader(rect);
-    canvas.drawRRect(rrect, paint);
-  }
-
-  @override
-  bool shouldRepaint(_SubtleCardBorderPainter old) => old.radius != radius;
 }
 

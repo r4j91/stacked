@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Modos de exibição de tarefas</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --tag-green: #8FD46B;
+      --tag-purple: #B18CF5;
+      --tag-pink: #E879A8;
+      --success: #22C55E;
+      --radius-lg: 16px;
+      --phone-w: 320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text-primary);
+      line-height: 1.4;
+      padding: 32px 24px 64px;
+    }
+
+    header { max-width: 1200px; margin: 0 auto 28px; }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    header p { font-size: 14px; color: var(--text-secondary); max-width: 70ch; }
+    header .open-hint {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: rgba(95, 211, 220, 0.08);
+      border: 1px solid rgba(95, 211, 220, 0.2);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    header code {
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(95, 211, 220, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .panel-head h2 { font-size: 14px; font-weight: 700; }
+    .panel-head p { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(242, 243, 245, 0.08);
+      color: var(--text-tertiary);
+    }
+    .badge.rec { background: rgba(95, 211, 220, 0.15); color: var(--accent); }
+    .badge.base { background: rgba(242, 243, 245, 0.06); color: var(--text-secondary); }
+
+    .phone-wrap { padding: 18px; }
+
+    .phone {
+      width: var(--phone-w);
+      background: var(--bg);
+      border-radius: 24px;
+      border: 1px solid rgba(242, 243, 245, 0.08);
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .appbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 10px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .appbar .back { color: var(--text-secondary); font-size: 16px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      padding: 8px 16px 4px;
+    }
+
+    .list-area { padding: 0 0 16px; }
+
+    .circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .circle.red { border-color: var(--priority-high); background: rgba(239, 90, 95, 0.1); }
+    .circle.gray { border-color: var(--text-tertiary); }
+    .circle.done {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.15);
+      position: relative;
+    }
+    .circle.done::after {
+      content: "✓";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .title.done { color: var(--text-tertiary); text-decoration: line-through; }
+
+    .desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      line-height: 1.35;
+    }
+    .desc.done { opacity: 0.55; }
+
+    .chip {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 999px;
+      margin-top: 6px;
+      margin-right: 5px;
+    }
+    .chip.green { background: rgba(143, 212, 107, 0.15); color: var(--tag-green); }
+    .chip.pink { background: rgba(232, 121, 168, 0.15); color: var(--tag-pink); }
+    .chip.purple { background: rgba(177, 140, 245, 0.15); color: var(--tag-purple); }
+
+    .meta {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 5px;
+    }
+
+    .chev {
+      color: var(--text-tertiary);
+      font-size: 14px;
+      flex-shrink: 0;
+      opacity: 0.75;
+    }
+
+    .card {
+      margin: 0 16px 10px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .card-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 12px 8px 12px 4px;
+    }
+
+    .card-row .check-wrap { padding: 8px 4px 8px 8px; }
+    .card-row .content { flex: 1; min-width: 0; padding-top: 2px; }
+    .card-row .chev-wrap { padding: 10px 10px 10px 4px; }
+
+    .card-sub-panel {
+      background: rgba(44, 45, 51, 0.55);
+      border-top: 1px solid var(--surface-variant);
+      padding: 4px 0 6px;
+    }
+
+    .card-sub-panel .sub-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 9px 12px 9px 36px;
+      gap: 10px;
+    }
+
+    .card-sub-panel .sub-row + .sub-row {
+      border-top: 1px solid rgba(107, 110, 118, 0.12);
+    }
+
+    .list-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px 16px;
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.2);
+    }
+
+    .list-row .check-wrap { padding: 8px 10px 8px 0; }
+    .list-row .content { flex: 1; min-width: 0; }
+    .list-row .chev-wrap { padding: 6px 0 6px 4px; }
+
+    .list-sub-strip {
+      background: rgba(107, 110, 118, 0.06);
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.15);
+    }
+
+    .list-sub-strip .sub-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px 18px 8px 36px;
+      gap: 10px;
+    }
+
+    .flat-sub .sub-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 9px 16px 9px 52px;
+      gap: 10px;
+      position: relative;
+    }
+
+    .flat-sub .sub-row::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(242, 243, 245, 0.06);
+    }
+
+    .flat-sub .sub-row:first-child::before { top: -4px; }
+    .flat-sub .sub-row:last-child::before { bottom: 8px; }
+
+    .continuous .parent-block { border-bottom: 0.5px solid rgba(107, 110, 118, 0.2); }
+    .continuous .parent-block:last-child { border-bottom: none; }
+
+    .grouped-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      gap: 10px;
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.15);
+    }
+
+    .grouped-header .title { font-size: 14px; font-weight: 700; }
+
+    .progress-ring {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(95, 211, 220, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .grouped-body .sub-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px 16px 10px 20px;
+      gap: 10px;
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.1);
+    }
+
+    /* ── PASTAS: pai = barra de seção ── */
+    .folder-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      margin-top: 6px;
+      background: var(--surface-variant);
+      border-top: 0.5px solid rgba(107, 110, 118, 0.18);
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.12);
+    }
+
+    .folder-bar .folder-icon {
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    .folder-bar .title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: none;
+    }
+
+    .folder-bar .count {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+
+    .folder-sub .list-row {
+      padding-left: 16px;
+    }
+
+    .folder-gap { height: 10px; }
+
+    /* ── HÍBRIDO: card colapsado, filhos derramam fora ── */
+    .hybrid-group {
+      margin-bottom: 14px;
+    }
+
+    .hybrid-card {
+      margin: 0 16px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .hybrid-spill {
+      margin: 6px 16px 0;
+      padding-left: 12px;
+      border-left: 2px solid rgba(95, 211, 220, 0.22);
+    }
+
+    .hybrid-spill .list-row {
+      border-bottom: 0.5px solid rgba(107, 110, 118, 0.12);
+      padding-left: 4px;
+    }
+
+    .hybrid-spill .list-row:last-child {
+      border-bottom: none;
+    }
+
+    .hybrid-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      padding: 4px 16px 0;
+      margin-bottom: -4px;
+    }
+
+    .pros {
+      padding: 0 18px 16px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .pros strong { color: var(--text-secondary); }
+
+    footer.note {
+      max-width: 1200px;
+      margin: 28px auto 0;
+      padding: 16px 18px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    footer.note h3 { font-size: 14px; color: var(--text-primary); margin-bottom: 8px; }
+    footer.note ul { padding-left: 18px; margin-top: 8px; }
+    footer.note li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Modos de exibição — tarefas e subtarefas</h1>
+    <p>
+      Comparação visual para o detalhe de projeto (Financeiro). Baseline = o que temos hoje.
+      Candidatos a 3º modo: <strong>Pastas</strong> e <strong>Híbrido</strong>.
+    </p>
+    <div class="open-hint">
+      Arquivo: <code>docs/concepts/task-display-modes.html</code><br />
+      Terminal: <code>open docs/concepts/task-display-modes.html</code>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Balões — atual</h2>
+        <p>Card por tarefa + painel escuro para subtarefas expandidas</p>
+        <span class="badge base">baseline</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="card">
+              <div class="card-row">
+                <div class="check-wrap"><div class="circle red"></div></div>
+                <div class="content">
+                  <div class="title">Teste 4</div>
+                  <div class="desc">Apenas um teste</div>
+                  <span class="chip green">Em Andamento</span>
+                  <div class="meta">0/2 subtarefas</div>
+                </div>
+                <div class="chev-wrap"><span class="chev">⌄</span></div>
+              </div>
+              <div class="card-sub-panel">
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div>
+                    <div class="title">Kksndndksj</div>
+                    <span class="chip pink">Urgente</span>
+                  </div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div>
+                    <div class="title">Hggg</div>
+                    <span class="chip green">Concluido</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-row">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content">
+                  <div class="title">Agosto 2026</div>
+                  <div class="meta">0/2 · 1 comentário</div>
+                </div>
+                <div class="chev-wrap"><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Prós:</strong> separação clara · bom para poucas tarefas<br /><strong>Contras:</strong> “caixa dentro de caixa” ao expandir</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Lista — atual</h2>
+        <p>Linha plana + faixa cinza em cada subtarefa</p>
+        <span class="badge base">baseline</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="list-row">
+              <div class="check-wrap"><div class="circle red"></div></div>
+              <div class="content">
+                <div class="title">Teste 4</div>
+                <div class="desc">Apenas um teste</div>
+                <span class="chip green">Em Andamento</span>
+                <div class="meta">0/2</div>
+              </div>
+              <div class="chev-wrap"><span class="chev">⌄</span></div>
+            </div>
+            <div class="list-sub-strip">
+              <div class="sub-row">
+                <div class="circle gray"></div>
+                <div>
+                  <div class="title">Kksndndksj</div>
+                  <span class="chip pink">Urgente</span>
+                </div>
+              </div>
+              <div class="sub-row">
+                <div class="circle gray"></div>
+                <div>
+                  <div class="title">Hggg</div>
+                  <span class="chip green">Concluido</span>
+                </div>
+              </div>
+            </div>
+            <div class="list-row">
+              <div class="check-wrap"><div class="circle gray"></div></div>
+              <div class="content">
+                <div class="title">Agosto 2026</div>
+                <div class="meta">0/2</div>
+              </div>
+              <div class="chev-wrap"><span class="chev">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Prós:</strong> mais compacto<br /><strong>Contras:</strong> faixa cinza repete · distante do Todoist</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Balões — refinado</h2>
+        <p>Mesmo card; subtarefas no mesmo fundo (só divisor + indent)</p>
+        <span class="badge">refinamento</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="card">
+              <div class="card-row">
+                <div class="check-wrap"><div class="circle red"></div></div>
+                <div class="content">
+                  <div class="title">Teste 4</div>
+                  <div class="desc">Apenas um teste</div>
+                  <span class="chip green">Em Andamento</span>
+                </div>
+                <div class="chev-wrap"><span class="chev">⌄</span></div>
+              </div>
+              <div style="border-top:1px solid rgba(107,110,118,0.15); padding: 2px 0 6px;" class="flat-sub">
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div>
+                    <div class="title">Kksndndksj</div>
+                    <span class="chip pink">Urgente</span>
+                  </div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div>
+                    <div class="title">Hggg</div>
+                    <span class="chip green">Concluido</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Ideia:</strong> remove o painel escuro do rodapé — hierarquia mais leve.</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Lista — refinada</h2>
+        <p>Sem faixa cinza; indent + rail fino (estilo Todoist)</p>
+        <span class="badge">refinamento</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area continuous">
+            <div class="parent-block">
+              <div class="list-row" style="border-bottom:none">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content">
+                  <div class="title">Julho 2026</div>
+                  <div class="meta">3/5</div>
+                </div>
+                <div class="chev-wrap"><span class="chev">⌄</span></div>
+              </div>
+              <div class="flat-sub">
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div><div class="title">Bressanone Unifique</div></div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle done"></div>
+                  <div>
+                    <div class="title done">Fatura Vivo</div>
+                    <div class="desc done">PAGO / Dia 29-06 na conta Itaú.</div>
+                    <span class="chip green">Concluído</span>
+                    <span class="chip purple">Julho</span>
+                  </div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div><div class="title">Aluguel</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="parent-block">
+              <div class="list-row" style="border-bottom:none">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content">
+                  <div class="title">Agosto 2026</div>
+                  <div class="meta">0/2</div>
+                </div>
+                <div class="chev-wrap"><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Ideia:</strong> pode bastar como evolução do modo Lista — talvez nem precise de 3º modo.</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Pastas — 3º modo</h2>
+        <p>Pai vira barra de seção; subtarefas são linhas normais abaixo</p>
+        <span class="badge rec">candidato</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="folder-bar">
+              <span class="folder-icon">📁</span>
+              <div class="title">Julho 2026</div>
+              <span class="count">3/5</span>
+              <span class="chev">⌄</span>
+            </div>
+            <div class="folder-sub">
+              <div class="list-row">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content"><div class="title">Bressanone Unifique</div></div>
+              </div>
+              <div class="list-row">
+                <div class="check-wrap"><div class="circle done"></div></div>
+                <div class="content">
+                  <div class="title done">Fatura Vivo</div>
+                  <div class="desc done">PAGO / Dia 29-06 na conta Itaú.</div>
+                  <span class="chip green">Concluído</span>
+                  <span class="chip purple">Julho</span>
+                </div>
+              </div>
+              <div class="list-row">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content"><div class="title">Aluguel</div></div>
+              </div>
+            </div>
+            <div class="folder-gap"></div>
+            <div class="folder-bar">
+              <span class="folder-icon">📁</span>
+              <div class="title">Agosto 2026</div>
+              <span class="count">0/2</span>
+              <span class="chev">›</span>
+            </div>
+            <div class="folder-bar" style="opacity:0.85">
+              <span class="folder-icon">📁</span>
+              <div class="title">Setembro 2026</div>
+              <span class="count">0/0</span>
+              <span class="chev">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Prós:</strong> hierarquia clara (seção ≠ tarefa) · ideal Financeiro<br /><strong>Contras:</strong> pai perde checkbox/descrição visível na barra</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Híbrido — 3º modo</h2>
+        <p>Colapsado = card; expandido = subtarefas derramam para lista plana</p>
+        <span class="badge rec">candidato</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="hybrid-group">
+              <div class="hybrid-card">
+                <div class="card-row">
+                  <div class="check-wrap"><div class="circle gray"></div></div>
+                  <div class="content">
+                    <div class="title">Julho 2026</div>
+                    <div class="meta">3/5 subtarefas</div>
+                  </div>
+                  <div class="chev-wrap"><span class="chev">⌄</span></div>
+                </div>
+              </div>
+              <div class="hybrid-label">Subtarefas</div>
+              <div class="hybrid-spill">
+                <div class="list-row">
+                  <div class="check-wrap"><div class="circle gray"></div></div>
+                  <div class="content"><div class="title">Bressanone Unifique</div></div>
+                </div>
+                <div class="list-row">
+                  <div class="check-wrap"><div class="circle done"></div></div>
+                  <div class="content">
+                    <div class="title done">Fatura Vivo</div>
+                    <div class="desc done">PAGO / Dia 29-06 na conta Itaú.</div>
+                    <span class="chip green">Concluído</span>
+                  </div>
+                </div>
+                <div class="list-row">
+                  <div class="check-wrap"><div class="circle gray"></div></div>
+                  <div class="content"><div class="title">Aluguel</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="hybrid-group">
+              <div class="hybrid-card">
+                <div class="card-row">
+                  <div class="check-wrap"><div class="circle gray"></div></div>
+                  <div class="content">
+                    <div class="title">Agosto 2026</div>
+                    <div class="meta">0/2</div>
+                  </div>
+                  <div class="chev-wrap"><span class="chev">›</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="hybrid-group">
+              <div class="hybrid-card">
+                <div class="card-row">
+                  <div class="check-wrap"><div class="circle red"></div></div>
+                  <div class="content">
+                    <div class="title">Teste 4</div>
+                    <div class="desc">Apenas um teste</div>
+                    <span class="chip green">Em Andamento</span>
+                  </div>
+                  <div class="chev-wrap"><span class="chev">›</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Prós:</strong> respiro do card + lista limpa ao expandir · melhor dos dois mundos<br /><strong>Contras:</strong> transição card→lista precisa animar bem</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Contínuo — descartado</h2>
+        <p>Lista plana demais; sem personalidade visual</p>
+        <span class="badge base">arquivado</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area continuous">
+            <div class="parent-block">
+              <div class="list-row" style="border-bottom:none; padding-bottom: 6px;">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content"><div class="title">Julho 2026</div></div>
+                <div class="chev-wrap"><span class="chev">⌄</span></div>
+              </div>
+              <div class="flat-sub">
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div><div class="title">Bressanone Unifique</div></div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle done"></div>
+                  <div>
+                    <div class="title done">Fatura Vivo</div>
+                    <div class="desc done">PAGO / Dia 29-06 na conta Itaú.</div>
+                    <span class="chip green">Concluído</span>
+                  </div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle gray"></div>
+                  <div><div class="title">Aluguel</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="parent-block">
+              <div class="list-row" style="border-bottom:none">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content">
+                  <div class="title">Agosto 2026</div>
+                  <div class="meta">0/2</div>
+                </div>
+                <div class="chev-wrap"><span class="chev">›</span></div>
+              </div>
+            </div>
+            <div class="parent-block">
+              <div class="list-row" style="border-bottom:none">
+                <div class="check-wrap"><div class="circle gray"></div></div>
+                <div class="content"><div class="title">Setembro 2026</div></div>
+                <div class="chev-wrap"><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Status:</strong> feedback negativo — substituído por Pastas e Híbrido.</p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Agrupado — alternativa</h2>
+        <p>Pai vira header compacto; subtarefas dominam ao expandir</p>
+        <span class="badge">alternativa</span>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="appbar"><span class="back">‹</span> 💰 Financeiro</div>
+          <div class="section-label">DESPESAS FIXAS</div>
+          <div class="list-area">
+            <div class="grouped-header">
+              <div class="progress-ring">3/5</div>
+              <div class="content" style="flex:1"><div class="title">Julho 2026</div></div>
+              <span class="chev">⌄</span>
+            </div>
+            <div class="grouped-body">
+              <div class="sub-row">
+                <div class="circle gray"></div>
+                <div class="title">Bressanone Unifique</div>
+              </div>
+              <div class="sub-row">
+                <div class="circle done"></div>
+                <div>
+                  <div class="title done">Fatura Vivo</div>
+                  <div class="desc done">PAGO / Dia 29-06…</div>
+                </div>
+              </div>
+            </div>
+            <div class="grouped-header">
+              <div class="progress-ring" style="border-color:rgba(107,110,118,0.4);color:var(--text-tertiary)">0/2</div>
+              <div class="content" style="flex:1"><div class="title">Agosto 2026</div></div>
+              <span class="chev">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pros"><strong>Quando usar:</strong> tarefa-pai é só container · progresso em destaque</p>
+    </article>
+
+  </div>
+
+  <footer class="note">
+    <h3>Recomendação</h3>
+    <ul>
+      <li><strong>Curto prazo:</strong> refinar <em>Lista</em> (sem faixa cinza) e <em>Balões</em> (sem painel escuro).</li>
+      <li><strong>3º modo — favoritos:</strong> <em>Pastas</em> (projetos tipo Financeiro) ou <em>Híbrido</em> (quem gosta de cards mas odeia caixa-dentro-de-caixa).</li>
+      <li><strong>Descartado:</strong> <em>Contínuo</em> — muito plano, pouca identidade Stacked.</li>
+      <li>Escopo: toggle no <strong>detalhe de projeto</strong> (<code>display_mode</code>).</li>
+    </ul>
+    <p style="margin-top:12px">Nada aqui está no app ainda — só conceito visual.</p>
+  </footer>
+</body>
+</html>

@@ -71,7 +71,7 @@ struct ProjectDetailView: View {
     !initialSnapshot.pending.isEmpty || !initialSnapshot.completed.isEmpty
   }
 
-  private var isListMode: Bool { displayMode == "list" }
+  private var displayModeEnum: ProjectDisplayMode { ProjectDisplayMode.from(displayMode) }
 
   var body: some View {
     let c = theme.colors
@@ -155,23 +155,23 @@ struct ProjectDetailView: View {
 
       ToolbarItem(id: "stacked-project-toolbar", placement: .topBarTrailing) {
         HStack(spacing: 6) {
-          if isListMode {
-            AnchoredTapButton { rect in
-              openToolbarMenu(anchor: rect)
-            } label: {
-              LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
-                HStack(spacing: 5) {
-                  StackedIcons.image(.list)
-                    .font(.system(size: 16))
-                    .foregroundStyle(c.accent)
-                  Text("Lista")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(c.accent)
-                }
+          AnchoredTapButton { rect in
+            openToolbarMenu(anchor: rect)
+          } label: {
+            LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+              HStack(spacing: 5) {
+                StackedIcons.image(displayModeEnum.menuIcon)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 16, height: 16)
+                  .foregroundStyle(c.accent)
+                Text(displayModeEnum.label)
+                  .font(.system(size: 12, weight: .semibold))
+                  .foregroundStyle(c.accent)
               }
             }
-            .buttonStyle(PressableStyle(cornerRadius: 20))
           }
+          .buttonStyle(PressableStyle(cornerRadius: 20))
 
           AnchoredTapButton { rect in
             openToolbarMenu(anchor: rect)
@@ -324,9 +324,11 @@ struct ProjectDetailView: View {
         label: showCompleted ? "Ocultar concluídas" : "Mostrar concluídas"
       ),
       PopoverMenuItem(id: "mode_cards", icon: Hugeicons.grid, label: "Balões",
-                      selected: displayMode == "cards"),
+                      selected: displayModeEnum == .cards),
+      PopoverMenuItem(id: "mode_cards_refined", icon: Hugeicons.grid, label: "Balões+",
+                      selected: displayModeEnum == .cardsRefined),
       PopoverMenuItem(id: "mode_list", icon: Hugeicons.listView, label: "Lista",
-                      selected: displayMode == "list"),
+                      selected: displayModeEnum == .list),
       PopoverMenuItem(id: "add_task", icon: Hugeicons.add01, label: "Nova tarefa"),
       PopoverMenuItem(id: "add_section", icon: Hugeicons.add01, label: "Nova seção"),
       PopoverMenuItem(id: "project_options", icon: Hugeicons.settings01, label: "Opções do projeto"),
@@ -337,8 +339,9 @@ struct ProjectDetailView: View {
     guard let value else { return }
     switch value {
     case "toggle_completed": showCompleted.toggle()
-    case "mode_cards": displayMode = "cards"
-    case "mode_list": displayMode = "list"
+    case "mode_cards": displayMode = ProjectDisplayMode.cards.rawValue
+    case "mode_cards_refined": displayMode = ProjectDisplayMode.cardsRefined.rawValue
+    case "mode_list": displayMode = ProjectDisplayMode.list.rawValue
     case "add_task": showQuickAdd = true
     case "add_section": showNewSection = true
     case "project_options": showProjectOptions = true
@@ -347,9 +350,9 @@ struct ProjectDetailView: View {
   }
 
   private var rowInsets: EdgeInsets {
-    isListMode
-      ? EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
-      : EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    displayModeEnum.usesCardStyle
+      ? EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+      : EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
   }
 
   private func isSectionExpanded(_ id: String) -> Bool {
@@ -422,9 +425,69 @@ struct ProjectDetailView: View {
 
   @ViewBuilder
   private func projectTaskRow(_ task: Task) -> some View {
+    projectTaskRowBody(task)
+      .id(task.id)
+      .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+      .taskCompleteRemovalTransition()
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+      .taskContextMenu(
+        task: task,
+        onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+        onComplete: {
+          ensureStoreLinked()
+          store.complete(task)
+        },
+        onDuplicate: {
+          ensureStoreLinked()
+          store.duplicate(task)
+        },
+        onDelete: {
+          ensureStoreLinked()
+          store.delete(task)
+        },
+        onRefresh: {
+          ensureStoreLinked()
+          _Concurrency.Task { await store.load() }
+        }
+      )
+      .swipeActions(edge: .leading, allowsFullSwipe: true) {
+        Button {
+          ensureStoreLinked()
+          store.complete(task)
+        } label: {
+          Label("Concluir", systemImage: "checkmark")
+        }
+        .tint(AppColors.dateDueToday)
+      }
+      .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+        Button {
+          HapticService.light()
+          ensureStoreLinked()
+          _Concurrency.Task { await store.postpone(task) }
+        } label: {
+          Label("Adiar", systemImage: "clock")
+        }
+        .tint(AppColors.priorityMedium)
+
+        Button(role: .destructive) {
+          HapticService.warning()
+          ensureStoreLinked()
+          store.delete(task)
+        } label: {
+          Label("Excluir", systemImage: "trash")
+        }
+      }
+  }
+
+  @ViewBuilder
+  private func projectTaskRowBody(_ task: Task) -> some View {
+    let mode = displayModeEnum
     TaskRow(
       task: task,
-      style: isListMode ? .list : .card,
+      style: mode.usesCardStyle ? .card : .list,
+      flatSubtaskPanel: mode.flatSubtaskPanel,
       showProject: false,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {
@@ -441,66 +504,15 @@ struct ProjectDetailView: View {
         _Concurrency.Task { await store.load() }
       }
     )
-    .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-    .taskCompleteRemovalTransition()
-    .listRowInsets(rowInsets)
-    .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
-    .taskContextMenu(
-      task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-      onComplete: {
-        ensureStoreLinked()
-        store.complete(task)
-      },
-      onDuplicate: {
-        ensureStoreLinked()
-        store.duplicate(task)
-      },
-      onDelete: {
-        ensureStoreLinked()
-        store.delete(task)
-      },
-      onRefresh: {
-        ensureStoreLinked()
-        _Concurrency.Task { await store.load() }
-      }
-    )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        ensureStoreLinked()
-        store.complete(task)
-      } label: {
-        Label("Concluir", systemImage: "checkmark")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button {
-        HapticService.light()
-        ensureStoreLinked()
-        _Concurrency.Task { await store.postpone(task) }
-      } label: {
-        Label("Adiar", systemImage: "clock")
-      }
-      .tint(AppColors.priorityMedium)
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        ensureStoreLinked()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 
   @ViewBuilder
   private func completedProjectTaskRow(_ task: Task) -> some View {
+    let mode = displayModeEnum
     TaskRow(
       task: task,
-      style: isListMode ? .list : .card,
+      style: mode.usesCardStyle ? .card : .list,
+      flatSubtaskPanel: mode.flatSubtaskPanel,
       showProject: false,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {

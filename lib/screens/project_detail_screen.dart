@@ -17,6 +17,7 @@ import '../services/task_sync.dart';
 import '../theme/app_layout.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../theme/project_display_mode.dart';
 import '../widgets/app_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/swipeable_task_tile.dart';
@@ -24,8 +25,10 @@ import '../widgets/task_detail/subtask_item.dart';
 import '../widgets/task_detail/sheets/subtask_detail_sheet.dart';
 import '../widgets/task_detail/sheets/task_labels_picker_sheet.dart' show LabelOption;
 import '../widgets/project_detail/project_list_models.dart';
+import '../widgets/project_detail/project_display_mode_picker.dart';
 import '../widgets/done_circle.dart';
 import '../widgets/task_tile.dart';
+import '../widgets/task_expand_divider.dart';
 import 'quick_add_task_sheet.dart';
 import 'task_detail_sheet.dart';
 import '../widgets/load_error_view.dart';
@@ -61,8 +64,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   bool _showCompleted = true;
   bool _completedExpanded = false;
 
-  // M4: modo de display — 'cards' (padrão atual) ou 'list'
+  // M4: modo de display — ver ProjectDisplayMode
   String _displayMode = 'cards';
+
+  ProjectDisplayMode get _mode => ProjectDisplayMode.fromStorage(_displayMode);
 
   // M5-EXPAND: estado de expansão exclusivo do modo Lista. O modo cards
   // guarda isso dentro do State privado de TaskTile — não há nada a
@@ -105,17 +110,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _loadDisplayMode() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _displayMode = prefs.getString('display_mode') ?? 'cards';
-      });
-    }
+    final mode = ProjectDisplayMode.fromStorage(prefs.getString('display_mode'));
+    if (mounted) setState(() => _displayMode = mode.storageValue);
   }
 
-  Future<void> _setDisplayMode(String mode) async {
+  Future<void> _setDisplayMode(ProjectDisplayMode mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('display_mode', mode);
-    if (mounted) setState(() => _displayMode = mode);
+    await prefs.setString('display_mode', mode.storageValue);
+    if (mounted) setState(() => _displayMode = mode.storageValue);
+  }
+
+  void _toggleListExpand(String taskId) {
+    setState(() {
+      if (_expandedListIds.contains(taskId)) {
+        _expandedListIds.remove(taskId);
+      } else {
+        _expandedListIds.add(taskId);
+      }
+    });
   }
 
   Future<void> _loadTasks() async {
@@ -362,102 +374,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         PopupMenuItem<String>(
           enabled: false,
           padding: EdgeInsets.zero,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            decoration: BoxDecoration(
-              color: AppColors.textTertiary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.15)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Pressable(
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _setDisplayMode('cards');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _displayMode == 'cards'
-                            ? AppColors.accent.withValues(alpha: 0.18)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          HugeIcon(
-                            icon: HugeIcons.strokeRoundedGrid,
-                            size: 18,
-                            color: _displayMode == 'cards'
-                                ? AppColors.accent
-                                : AppColors.textTertiary,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Balões',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: _displayMode == 'cards'
-                                  ? AppColors.accent
-                                  : AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 36,
-                  color: AppColors.textTertiary.withValues(alpha: 0.15),
-                ),
-                Expanded(
-                  child: Pressable(
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _setDisplayMode('list');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _displayMode == 'list'
-                            ? AppColors.accent.withValues(alpha: 0.18)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          HugeIcon(
-                            icon: HugeIcons.strokeRoundedListView,
-                            size: 18,
-                            color: _displayMode == 'list'
-                                ? AppColors.accent
-                                : AppColors.textTertiary,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Lista',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: _displayMode == 'list'
-                                  ? AppColors.accent
-                                  : AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: ProjectDisplayModePicker(
+            selected: _mode,
+            onSelected: (mode) {
+              Navigator.of(ctx).pop();
+              _setDisplayMode(mode);
+            },
           ),
         ),
         PopupMenuItem(
@@ -654,6 +576,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final subtaskTotal = task.subtasks.length;
 
     final expanded = _expandedListIds.contains(task.id);
+    const subLeading = 28.0;
 
     // PERF-REPAINT-OLD: row inteira (cabeçalho + subtarefas expandidas)
     // sem RepaintBoundary — qualquer repaint local podia se propagar.
@@ -671,10 +594,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTaskListRowContent(task, done, subtaskDone, subtaskTotal, expanded),
-          if (expanded)
-            for (var si = 0; si < task.subtasks.length; si++)
+          _buildTaskListRowContent(
+            task,
+            done,
+            subtaskDone,
+            subtaskTotal,
+            expanded,
+            showBottomBorder: !expanded,
+          ),
+          if (expanded) ...[
+            TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset),
+            for (var si = 0; si < task.subtasks.length; si++) ...[
               _buildTaskListSubtaskRow(task, task.subtasks[si]),
+              if (si < task.subtasks.length - 1)
+                TaskExpandDivider(
+                  indent: TaskExpandDividerStyle.listSubtaskInset(subLeading),
+                ),
+            ],
+          ],
         ],
       ),
     );
@@ -700,18 +637,30 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
   }
 
-  Widget _buildTaskListRowContent(Task task, bool done, int subtaskDone, int subtaskTotal, bool expanded) {
+  Widget _buildTaskListRowContent(
+    Task task,
+    bool done,
+    int subtaskDone,
+    int subtaskTotal,
+    bool expanded, {
+    required bool showBottomBorder,
+  }) {
     // LONGPRESS-OLD: return Container(...) direto, sem GestureDetector.
     return GestureDetector(
       onLongPressStart: (d) => _openTaskListContextMenu(context, task, d.globalPosition),
       onSecondaryTapDown: (d) => _openTaskListContextMenu(context, task, d.globalPosition),
       child: Container(
       constraints: const BoxConstraints(minHeight: 48),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.12), width: 0.5),
-        ),
-      ),
+      decoration: showBottomBorder
+          ? BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.textTertiary.withValues(alpha: 0.12),
+                  width: TaskExpandDividerStyle.thickness,
+                ),
+              ),
+            )
+          : null,
       child: InkWell(
         // RIPPLE-OLD: sem splashColor/highlightColor/splashFactory —
         // onLongPressStart do GestureDetector wrapper disparava o ripple
@@ -847,13 +796,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   // HAPTIC-OLD: onTap sem HapticService().selectionClick().
                   onTap: () {
                     HapticService().selectionClick();
-                    setState(() {
-                      if (_expandedListIds.contains(task.id)) {
-                        _expandedListIds.remove(task.id);
-                      } else {
-                        _expandedListIds.add(task.id);
-                      }
-                    });
+                    _toggleListExpand(task.id);
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -964,11 +907,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       borderRadius: BorderRadius.circular(8),
       onTap: () => _openSubtaskDetail(task, sub),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(36, 8, 18, 8),
+        padding: const EdgeInsets.fromLTRB(28, 8, 18, 8),
         decoration: BoxDecoration(
-          color: AppColors.textTertiary.withValues(alpha: 0.06),
           border: Border(
-            bottom: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.1), width: 0.5),
+            left: BorderSide(
+              color: AppColors.accent.withValues(alpha: 0.22),
+              width: 2,
+            ),
           ),
         ),
         child: Row(
@@ -1030,10 +975,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
   }
 
-  Widget _buildTaskRow(int i) {
-    if (_displayMode == 'list') {
-      return _buildTaskListRow(_tasks[i]);
-    }
+  Widget _buildCardTaskRow(int i, {required bool flatSubtasks}) {
     return RepaintBoundary(
       key: ValueKey('rb_${_tasks[i].id}'),
       child: SwipeableTaskTile(
@@ -1046,8 +988,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         child: TaskTile(
           task: _tasks[i],
           showProject: false,
-          // CORRIGIDO_ETAPA3B
           allLabels: _allLabels,
+          flatSubtaskPanel: flatSubtasks,
           onSubtaskChanged: _loadTasks,
           onSubtaskToggled: (_) {},
           onCompleted: () => _toggleDone(i),
@@ -1065,6 +1007,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildTaskRow(int i) {
+    switch (_mode) {
+      case ProjectDisplayMode.cards:
+        return _buildCardTaskRow(i, flatSubtasks: false);
+      case ProjectDisplayMode.cardsRefined:
+        return _buildCardTaskRow(i, flatSubtasks: true);
+      case ProjectDisplayMode.list:
+        return _buildTaskListRow(_tasks[i]);
+    }
   }
 
   Widget _buildAddTaskRow(String? sectionId) {
@@ -1169,54 +1122,51 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           //       ],
           //     ),
           //   ),
-          // M4/BUG3: indicador do modo 'list', mesmo estilo Liquid Glass da
-          // pílula ··· (ClipRRect + BackdropFilter), e agora tocável — abre
-          // o mesmo menu de opções.
-          if (_displayMode == 'list')
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Builder(
-                    // GESTURE-OLD: GestureDetector sem feedback visual
-                    builder: (ctx) => Pressable(
-                      onTap: () => _showOptionsMenu(ctx),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.textTertiary.withValues(alpha: 0.2),
-                            width: 1,
-                          ),
+          // Indicador do modo de exibição — abre o mesmo menu de opções.
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Builder(
+                  builder: (ctx) => Pressable(
+                    onTap: () => _showOptionsMenu(ctx),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.textTertiary.withValues(alpha: 0.2),
+                          width: 1,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            HugeIcon(icon: HugeIcons.strokeRoundedListView,
-                              size: 16,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          HugeIcon(
+                            icon: _displayModeIcon(_mode),
+                            size: 16,
+                            color: AppColors.accent,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            _mode.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.accent,
                             ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Lista',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+          ),
           // CORRIGIDO_VISUAL_A: Padding adicionado para afastar a pílula do
           // canto direito do AppBar.
           Padding(
@@ -1391,3 +1341,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     ));
   }
 }
+
+List<List<dynamic>> _displayModeIcon(ProjectDisplayMode mode) => switch (mode) {
+  ProjectDisplayMode.cards => HugeIcons.strokeRoundedGrid,
+  ProjectDisplayMode.cardsRefined => HugeIcons.strokeRoundedLayoutGrid,
+  ProjectDisplayMode.list => HugeIcons.strokeRoundedListView,
+};

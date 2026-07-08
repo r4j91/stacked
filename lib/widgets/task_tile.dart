@@ -14,6 +14,7 @@ import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
 import 'pressable.dart';
 import 'done_circle.dart';
+import 'task_expand_divider.dart';
 import 'package:hugeicons/hugeicons.dart';
 // ADICIONADO_ETAPA3B
 import 'task_detail/subtask_item.dart';
@@ -38,6 +39,8 @@ class TaskTile extends StatefulWidget {
   final List<TaskLabel>? allLabels;
   /// Recarrega a lista após editar metadados de subtarefa inline.
   final VoidCallback? onSubtaskChanged;
+  /// Sem painel `surfaceVariant` ao expandir subtarefas (Balões+).
+  final bool flatSubtaskPanel;
 
   const TaskTile({
     super.key,
@@ -49,6 +52,7 @@ class TaskTile extends StatefulWidget {
     this.showProject = true,
     this.allLabels,
     this.onSubtaskChanged,
+    this.flatSubtaskPanel = false,
   });
 
   @override
@@ -368,6 +372,7 @@ class _TaskTileState extends State<TaskTile> with TickerProviderStateMixin {
                     alignment: Alignment.topCenter,
                     child: SubtaskList(
                       subtasks: task.subtasks,
+                      flatPanel: widget.flatSubtaskPanel,
                       doneStates: _subtasksDone,
                       // CORRIGIDO_ETAPA3B: antes usava task.labels (só as
                       // labels da tarefa pai, não resolvia labelIds de
@@ -530,6 +535,7 @@ class SubtaskList extends StatelessWidget {
   final String? parentTaskTitle;
   final String? parentTaskId;
   final VoidCallback? onSubtaskChanged;
+  final bool flatPanel;
 
   const SubtaskList(
       {super.key,
@@ -539,7 +545,8 @@ class SubtaskList extends StatelessWidget {
       this.projectLabels,
       this.parentTaskTitle,
       this.parentTaskId,
-      this.onSubtaskChanged});
+      this.onSubtaskChanged,
+      this.flatPanel = false});
 
   @override
   Widget build(BuildContext context) {
@@ -657,26 +664,40 @@ class SubtaskList extends StatelessWidget {
 
   // ADICIONADO_ETAPA3B
   Widget _buildList(BuildContext context) {
+    final betweenColor = flatPanel
+        ? TaskExpandDividerStyle.color()
+        : TaskExpandDividerStyle.color(0.08);
+
+    final rows = Column(
+      children: [
+        if (flatPanel)
+          TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
+        else
+          Divider(height: 1, thickness: 1, color: AppColors.surfaceVariant),
+        for (int i = 0; i < subtasks.length; i++) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(36, 9, 12, 9),
+            child: _buildSubtaskRow(context, subtasks[i], i),
+          ),
+          if (i < subtasks.length - 1)
+            TaskExpandDivider(
+              indent: TaskExpandDividerStyle.cardSubtaskInset,
+              color: betweenColor,
+            ),
+        ],
+        const SizedBox(height: 4),
+      ],
+    );
+
+    if (flatPanel) return rows;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant.withValues(alpha: 0.45),
         borderRadius:
             BorderRadius.vertical(bottom: Radius.circular(AppRadius.md + 2)),
       ),
-      child: Column(
-        children: [
-          Divider(height: 1, thickness: 1, color: AppColors.surfaceVariant),
-          for (int i = 0; i < subtasks.length; i++) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(36, 9, 12, 9),
-              child: _buildSubtaskRow(context, subtasks[i], i),
-            ),
-            if (i < subtasks.length - 1)
-              Divider(height: 1, thickness: 1, color: AppColors.textTertiary.withValues(alpha: 0.08)),
-          ],
-          const SizedBox(height: 4),
-        ],
-      ),
+      child: rows,
     );
   }
 

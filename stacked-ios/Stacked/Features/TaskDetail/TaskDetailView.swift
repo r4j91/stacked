@@ -4,6 +4,7 @@ import Hugeicons
 // Paridade lib/screens/task_detail_sheet.dart (mobile)
 struct TaskDetailView: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(ThemeManager.self) private var theme
 
   @State private var vm: TaskDetailViewModel
@@ -13,6 +14,11 @@ struct TaskDetailView: View {
   @State private var showDatePicker = false
   @State private var showDeleteConfirm = false
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
+  @State private var subtasksExpanded = false
+  @State private var didInitSubtasksExpanded = false
+  @State private var commentsExpanded = false
+  @State private var didInitCommentsExpanded = false
+  @State private var isClosing = false
 
   @State private var projectAnchor: CGRect = .zero
   @State private var dateAnchor: CGRect = .zero
@@ -110,11 +116,25 @@ struct TaskDetailView: View {
         .presentationDragIndicator(.visible)
       }
       .task { await vm.load() }
+      .onChange(of: vm.isLoading) { wasLoading, isLoading in
+        guard wasLoading, !isLoading else { return }
+        if !didInitSubtasksExpanded {
+          subtasksExpanded = !vm.subtasks.isEmpty
+          didInitSubtasksExpanded = true
+        }
+        if !didInitCommentsExpanded {
+          commentsExpanded = true
+          didInitCommentsExpanded = true
+        }
+      }
       .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
         _Concurrency.Task { await vm.reloadLabels() }
       }
       .popoverHostScope()
     }
+    .opacity(isClosing ? 0 : 1)
+    .animation(isClosing ? .easeOut(duration: 0.22) : nil, value: isClosing)
+    .allowsHitTesting(!isClosing)
   }
 
   private var scrollContent: some View {
@@ -138,8 +158,9 @@ struct TaskDetailView: View {
         .padding(.top, 14)
 
         descriptionNotesField
-          .padding(.horizontal, 20)
-          .padding(.top, 8)
+          .padding(.leading, 50)
+          .padding(.trailing, 20)
+          .padding(.top, 6)
           .padding(.bottom, 14)
 
         metadataCard
@@ -147,11 +168,11 @@ struct TaskDetailView: View {
 
         subtasksSection
           .padding(.horizontal, 16)
-          .padding(.top, 20)
+          .padding(.top, 16)
 
         commentsSection
           .padding(.horizontal, 16)
-          .padding(.top, 20)
+          .padding(.top, 16)
           .padding(.bottom, 40)
       }
     }
@@ -166,23 +187,30 @@ struct TaskDetailView: View {
               anchor: $projectAnchor) {
         showProjectMenu(anchor: projectAnchor)
       }
-      divider
-      metaRow(icon: .calendar, title: "Data", value: vm.dueDateLabel, active: vm.dueDate != nil,
-              valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0) },
-              anchor: $dateAnchor) {
-        showDatePicker = true
+
+      if vm.dueDate != nil {
+        divider
+        metaRow(icon: .calendar, title: "Data", value: vm.dueDateLabel, active: true,
+                valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0) },
+                anchor: $dateAnchor) {
+          showDatePicker = true
+        }
       }
-      divider
-      metaRow(icon: .flag, title: "Prioridade", value: vm.priority?.label ?? "Nenhuma",
-              active: vm.priority != nil, valueColor: vm.priority?.color,
-              anchor: $priorityAnchor) {
-        showPriorityMenu(anchor: priorityAnchor)
+      if vm.priority != nil {
+        divider
+        metaRow(icon: .flag, title: "Prioridade", value: vm.priority!.label, active: true,
+                valueColor: vm.priority?.color,
+                anchor: $priorityAnchor) {
+          showPriorityMenu(anchor: priorityAnchor)
+        }
       }
-      divider
-      metaRow(icon: .tag, title: "Etiquetas", value: labelsSummary, active: !vm.selectedLabels.isEmpty,
-              valueColor: vm.selectedLabels.first?.color,
-              anchor: $labelsAnchor) {
-        showLabelsMenu(anchor: labelsAnchor)
+      if !vm.selectedLabels.isEmpty {
+        divider
+        metaRow(icon: .tag, title: "Etiquetas", value: labelsSummary, active: true,
+                valueColor: vm.selectedLabels.first?.color,
+                anchor: $labelsAnchor) {
+          showLabelsMenu(anchor: labelsAnchor)
+        }
       }
       if vm.recurrence != nil {
         divider
@@ -191,6 +219,8 @@ struct TaskDetailView: View {
           showRecurrenceMenu(anchor: recurrenceAnchor)
         }
       }
+
+      divider
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
@@ -220,31 +250,58 @@ struct TaskDetailView: View {
   }
 
   private var subtasksSection: some View {
-    let c = theme.colors
+    let doneCount = vm.subtasks.filter(\.done).count
+    let totalCount = vm.subtasks.count
 
-    return VStack(alignment: .leading, spacing: 8) {
-      Text("Subtarefas")
-        .font(AppTypography.detailSectionLabel)
-        .foregroundStyle(c.textSecondary)
-
-      VStack(spacing: 0) {
-        ForEach(Array(vm.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
-          subtaskEditorRow(sub)
-          if index < vm.subtasks.count - 1 {
-            Divider()
-              .overlay(c.textTertiary.opacity(0.08))
-              .padding(.leading, 34)
-          }
+    return VStack(alignment: .leading, spacing: 10) {
+      detailSectionHeader(
+        title: "Subtarefas",
+        badge: totalCount > 0 ? "\(doneCount)/\(totalCount)" : nil,
+        expanded: subtasksExpanded
+      ) {
+        HapticService.selection()
+        withAnimation(AppMotion.subtaskExpand(reduceMotion: reduceMotion)) {
+          subtasksExpanded.toggle()
         }
       }
+      .accessibilityLabel(subtasksExpanded ? "Recolher subtarefas" : "Expandir subtarefas")
 
-      newSubtaskField
+      if subtasksExpanded {
+        detailSurfaceCard {
+          ForEach(Array(vm.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
+            subtaskEditorRow(sub)
+              .padding(.horizontal, 12)
+            if index < vm.subtasks.count - 1 {
+              subtaskDivider
+            }
+          }
+
+          if !vm.subtasks.isEmpty {
+            subtaskDivider
+          }
+
+          newSubtaskField
+        }
+      }
     }
+  }
+
+  private var subtaskDivider: some View {
+    Rectangle()
+      .fill(theme.colors.textTertiary.opacity(0.1))
+      .frame(height: 1)
+      .padding(.leading, 52)
+      .padding(.trailing, 16)
   }
 
   private func subtaskEditorRow(_ sub: Subtask) -> some View {
     let c = theme.colors
-    return HStack(alignment: .center, spacing: 8) {
+    let labels = subtaskLabels(for: sub)
+    let hasDescription = sub.description?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    let hasMeta = sub.dueDate != nil || !labels.isEmpty || hasDescription
+    let ringColor = sub.priority?.color ?? c.textTertiary.opacity(0.4)
+
+    return HStack(alignment: hasMeta ? .top : .center, spacing: 8) {
       Button {
         vm.toggleSubtask(sub)
       } label: {
@@ -253,35 +310,45 @@ struct TaskDetailView: View {
           size: DoneCircle.listRowCircleSize,
           borderWidth: DoneCircle.RingStyle.borderWidth,
           tickSize: 13,
-          ringColor: c.textTertiary.opacity(0.4)
+          ringColor: ringColor,
+          ringFillAlpha: sub.done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
         )
         .frame(width: 32, height: 32)
+        .padding(.top, hasMeta ? 2 : 0)
       }
       .buttonStyle(.plain)
 
-      Text(sub.title)
-        .font(AppTypography.taskTitle)
-        .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
-        .strikethrough(sub.done)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture {
-          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: vm.taskId)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(sub.title)
+          .font(AppTypography.taskTitle)
+          .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
+          .strikethrough(sub.done)
+          .frame(maxWidth: .infinity, alignment: .leading)
+
+        if hasDescription, let desc = sub.description {
+          Text(desc)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textTertiary)
+            .lineLimit(2)
         }
 
-      Button {
-        HapticService.warning()
-        _Concurrency.Task { await vm.deleteSubtask(sub) }
-      } label: {
-        Image(systemName: "trash")
-          .font(AppTypography.meta)
-          .foregroundStyle(c.textTertiary)
-          .frame(width: 44, height: 36)
-          .contentShape(Rectangle())
+        if sub.dueDate != nil || !labels.isEmpty {
+          TaskMetaLine(
+            labels: labels,
+            dueDate: sub.dueDate,
+            dueDateLabel: sub.dueDateChipLabel,
+            dueDateColor: sub.dueDateChipColor,
+            maxLabels: 4
+          )
+        }
       }
-      .buttonStyle(.plain)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Rectangle())
+      .onTapGesture {
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: vm.taskId)
+      }
     }
-    .padding(.vertical, 2)
+    .padding(.vertical, hasMeta ? 8 : 2)
     .contextMenu {
       Button(role: .destructive) {
         HapticService.warning()
@@ -292,11 +359,15 @@ struct TaskDetailView: View {
     }
   }
 
+  private func subtaskLabels(for sub: Subtask) -> [TaskLabel] {
+    sub.labelIds.compactMap { id in vm.allLabels.first(where: { $0.id == id }) }
+  }
+
   private var newSubtaskField: some View {
     let c = theme.colors
     let canSubmit = !newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-    return HStack(spacing: 8) {
+    return HStack(spacing: 10) {
       Button {
         if canSubmit {
           _Concurrency.Task { await submitNewSubtask() }
@@ -305,17 +376,22 @@ struct TaskDetailView: View {
           newSubtaskFocused = true
         }
       } label: {
-        StackedIcons.image(.plus)
-          .font(AppTypography.body)
-          .foregroundStyle(c.accent)
-          .frame(width: 32, height: 32)
-          .contentShape(Rectangle())
+        ZStack {
+          Circle()
+            .fill(c.accent.opacity(0.12))
+            .frame(width: 20, height: 20)
+          StackedIcons.image(.plus)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(c.accent)
+        }
+        .frame(width: 32, height: 32)
+        .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
       .accessibilityLabel(canSubmit ? "Adicionar subtarefa" : "Focar campo de nova subtarefa")
 
-      TextField("Nova subtarefa", text: $newSubtaskTitle)
-        .font(AppTypography.commentBody)
+      TextField("Adicionar subtarefa", text: $newSubtaskTitle)
+        .font(.system(size: 14, weight: .medium))
         .foregroundStyle(c.textPrimary)
         .focused($newSubtaskFocused)
         .submitLabel(.done)
@@ -323,18 +399,9 @@ struct TaskDetailView: View {
           _Concurrency.Task { await submitNewSubtask() }
         }
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 9)
-    .background(c.surfaceVariant.opacity(0.45))
-    .clipShape(RoundedRectangle(cornerRadius: 10))
-    .overlay(
-      RoundedRectangle(cornerRadius: 10)
-        .stroke(
-          newSubtaskFocused ? c.accent.opacity(0.5) : c.textTertiary.opacity(0.12),
-          lineWidth: 1
-        )
-    )
-    .contentShape(RoundedRectangle(cornerRadius: 10))
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+    .contentShape(Rectangle())
     .onTapGesture {
       newSubtaskFocused = true
     }
@@ -346,61 +413,135 @@ struct TaskDetailView: View {
       .font(AppTypography.commentBody)
       .foregroundStyle(c.textSecondary)
       .lineLimit(2...8)
-      .padding(.horizontal, 12)
-      .padding(.vertical, 9)
-      .background(c.surfaceVariant.opacity(0.45))
-      .clipShape(RoundedRectangle(cornerRadius: 10))
-      .overlay(
-        RoundedRectangle(cornerRadius: 10)
-          .stroke(
-            descriptionFocused ? c.accent.opacity(0.5) : c.textTertiary.opacity(0.12),
-            lineWidth: 1
-          )
-      )
       .focused($descriptionFocused)
       .onChange(of: vm.descriptionText) { _, _ in vm.onDescriptionChanged() }
   }
 
   private var commentsSection: some View {
-    let c = theme.colors
+    let count = vm.comments.count
 
     return VStack(alignment: .leading, spacing: 10) {
-      Text("Comentários")
-        .font(AppTypography.detailSectionLabel)
-        .foregroundStyle(c.textSecondary)
-
-      ForEach(vm.comments) { comment in
-        VStack(alignment: .leading, spacing: 4) {
-          Text(comment.content)
-            .font(AppTypography.commentBody)
-            .foregroundStyle(c.textPrimary)
-          Text(comment.createdAt, style: .relative)
-            .font(.caption2)
-            .foregroundStyle(c.textTertiary)
+      detailSectionHeader(
+        title: "Comentários",
+        badge: count > 0 ? "\(count)" : nil,
+        expanded: commentsExpanded
+      ) {
+        HapticService.selection()
+        withAnimation(AppMotion.subtaskExpand(reduceMotion: reduceMotion)) {
+          commentsExpanded.toggle()
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(c.surfaceVariant.opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
       }
+      .accessibilityLabel(commentsExpanded ? "Recolher comentários" : "Expandir comentários")
 
-      HStack(spacing: 8) {
-        TextField("Adicionar comentário…", text: $vm.newCommentText, axis: .vertical)
-          .font(AppTypography.commentBody)
-          .lineLimit(1...3)
-        Button {
-          _Concurrency.Task { await vm.sendComment() }
-        } label: {
-          Image(systemName: "paperplane.fill")
-            .foregroundStyle(c.accent)
+      if commentsExpanded {
+        detailSurfaceCard {
+          ForEach(Array(vm.comments.enumerated()), id: \.element.id) { index, comment in
+            commentRow(comment)
+            if index < vm.comments.count - 1 {
+              cardDivider(leadingInset: 16)
+            }
+          }
+
+          if !vm.comments.isEmpty {
+            cardDivider(leadingInset: 16)
+          }
+
+          commentComposerRow
         }
-        .disabled(vm.newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
       }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 10)
-      .background(c.surfaceVariant.opacity(0.5))
-      .clipShape(RoundedRectangle(cornerRadius: 10))
     }
+  }
+
+  private func commentRow(_ comment: TaskComment) -> some View {
+    let c = theme.colors
+    return VStack(alignment: .leading, spacing: 4) {
+      Text(comment.content)
+        .font(AppTypography.commentBody)
+        .foregroundStyle(c.textPrimary)
+      Text(comment.createdAt, style: .relative)
+        .font(.caption2)
+        .foregroundStyle(c.textTertiary)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var commentComposerRow: some View {
+    let c = theme.colors
+    let canSend = !vm.newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    return HStack(spacing: 8) {
+      TextField("Adicionar comentário…", text: $vm.newCommentText, axis: .vertical)
+        .font(AppTypography.commentBody)
+        .foregroundStyle(c.textPrimary)
+        .lineLimit(1...3)
+      Button {
+        _Concurrency.Task { await vm.sendComment() }
+      } label: {
+        Image(systemName: "paperplane.fill")
+          .foregroundStyle(canSend ? c.accent : c.textTertiary)
+      }
+      .disabled(!canSend)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+  }
+
+  private func detailSectionHeader(
+    title: String,
+    badge: String?,
+    expanded: Bool,
+    onToggle: @escaping () -> Void
+  ) -> some View {
+    let c = theme.colors
+    return Button(action: onToggle) {
+      HStack(spacing: 8) {
+        Text(title)
+          .font(.system(size: 15, weight: .bold))
+          .foregroundStyle(c.textPrimary)
+
+        if let badge {
+          Text(badge)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(c.textSecondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(c.accent.opacity(0.12))
+            .clipShape(Capsule())
+        }
+
+        Spacer(minLength: 0)
+
+        StackedIcons.image(.chevronRight)
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+          .rotationEffect(.degrees(expanded ? 90 : 0))
+          .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
+      }
+      .padding(.horizontal, 4)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  @ViewBuilder
+  private func detailSurfaceCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    let c = theme.colors
+    VStack(spacing: 0) {
+      content()
+    }
+    .background(c.surface)
+    .clipShape(RoundedRectangle(cornerRadius: 14))
+    .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.textPrimary.opacity(0.06)))
+  }
+
+  private func cardDivider(leadingInset: CGFloat) -> some View {
+    Rectangle()
+      .fill(theme.colors.textTertiary.opacity(0.1))
+      .frame(height: 1)
+      .padding(.leading, leadingInset)
+      .padding(.trailing, 16)
   }
 
   private var labelsSummary: String {
@@ -563,7 +704,15 @@ struct TaskDetailView: View {
   }
 
   private func close() {
-    dismiss()
+    guard !isClosing else { return }
+    isClosing = true
+    if reduceMotion {
+      dismiss()
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+      dismiss()
+    }
   }
 
   private func submitNewSubtask() async {

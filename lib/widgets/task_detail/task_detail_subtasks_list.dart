@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'sheets/task_labels_picker_sheet.dart' show LabelOption;
 import 'subtask_editor.dart';
 import 'subtask_item.dart';
@@ -38,7 +39,7 @@ class _TaskDetailSubtasksListState extends State<TaskDetailSubtasksList> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: 2),
       itemCount: widget.subtasks.length,
       onReorderItem: (oldIndex, newIndex) {
         widget.onReorder(oldIndex, newIndex);
@@ -46,14 +47,28 @@ class _TaskDetailSubtasksListState extends State<TaskDetailSubtasksList> {
       },
       itemBuilder: (context, i) {
         final s = widget.subtasks[i];
-        return SubtaskEditorRow(
+        final isLast = i == widget.subtasks.length - 1;
+        return Column(
           key: ValueKey(s.uid),
-          item: s,
-          index: i,
-          labels: widget.labels,
-          onToggle: () => widget.onToggle(s),
-          onRemove: () => widget.onRemove(i),
-          onChanged: _localRefresh,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SubtaskEditorRow(
+              item: s,
+              index: i,
+              labels: widget.labels,
+              onToggle: () => widget.onToggle(s),
+              onRemove: () => widget.onRemove(i),
+              onChanged: _localRefresh,
+            ),
+            if (!isLast)
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                indent: 52,
+                endIndent: 16,
+                color: AppColors.textTertiary.withValues(alpha: 0.1),
+              ),
+          ],
         );
       },
     );

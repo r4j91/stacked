@@ -8,6 +8,7 @@ struct TaskRow: View {
 
   let task: Task
   var style: TaskRowStyle = .card
+  var flatSubtaskPanel: Bool = false
   var showProject: Bool = true
   var allLabels: [TaskLabel] = []
   var deferHeavyWork: Bool = false
@@ -68,7 +69,9 @@ struct TaskRow: View {
 
       subtasksExpansion
 
-      Divider().overlay(c.textTertiary.opacity(0.12))
+      if !(task.hasSubtasks && expanded) {
+        TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
+      }
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
@@ -240,8 +243,20 @@ struct TaskRow: View {
 
   private var subtaskList: some View {
     let c = theme.colors
+    let subtaskLeading: CGFloat = style == .card ? 36 : 36
+    let betweenAlpha: CGFloat = (style == .card && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
+
     return VStack(spacing: 0) {
-      Divider().overlay(c.surfaceVariant)
+      if flatSubtaskPanel || style == .list {
+        TaskExpandDivider(
+          indent: style == .card
+            ? TaskExpandDividerStyle.cardSubtaskInset
+            : TaskExpandDividerStyle.listParentInset
+        )
+      } else {
+        Divider().overlay(c.surfaceVariant)
+      }
+
       ForEach(Array(task.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
@@ -285,16 +300,21 @@ struct TaskRow: View {
           .buttonStyle(PressableStyle())
           .disabled(onSubtaskTap == nil)
         }
-        .padding(.leading, 36)
+        .padding(.leading, subtaskLeading)
         .padding(.trailing, 12)
 
         if index < task.subtasks.count - 1 {
-          Divider().overlay(c.textTertiary.opacity(0.08)).padding(.leading, 36)
+          TaskExpandDivider(
+            indent: style == .card
+              ? TaskExpandDividerStyle.cardSubtaskInset
+              : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
+            colorAlpha: betweenAlpha
+          )
         }
       }
       Color.clear.frame(height: 4)
     }
-    .background(c.surfaceVariant.opacity(style == .card ? 0.45 : 0))
+    .background(c.surfaceVariant.opacity(flatSubtaskPanel ? 0 : (style == .card ? 0.45 : 0)))
   }
 
   private func subtaskDot(sub: Subtask, done: Bool) -> some View {

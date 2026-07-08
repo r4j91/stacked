@@ -90,15 +90,13 @@ struct SubtaskDetailView: View {
           }
 
           TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)
-            .font(.system(size: 14))
+            .font(AppTypography.commentBody)
             .foregroundStyle(c.textSecondary)
-            .lineLimit(2...6)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(c.surfaceVariant.opacity(0.45))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(c.textTertiary.opacity(0.12)))
-            .padding(.horizontal, 20)
+            .lineLimit(2...8)
+            .padding(.leading, 54)
+            .padding(.trailing, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 14)
             .onSubmit { _Concurrency.Task { await flushPending() } }
 
           if let saveError {
