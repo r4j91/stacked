@@ -365,46 +365,52 @@ struct TaskDetailView: View {
 
   private var newSubtaskField: some View {
     let c = theme.colors
-    let canSubmit = !newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-    return HStack(spacing: 10) {
-      Button {
-        if canSubmit {
-          _Concurrency.Task { await submitNewSubtask() }
-        } else {
-          HapticService.selection()
-          newSubtaskFocused = true
-        }
-      } label: {
-        ZStack {
-          Circle()
-            .fill(c.accent.opacity(0.12))
-            .frame(width: 20, height: 20)
-          StackedIcons.image(.plus)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(c.accent)
-        }
-        .frame(width: 32, height: 32)
-        .contentShape(Rectangle())
+    return HStack(alignment: .center, spacing: 8) {
+      newSubtaskPlusIcon
+
+      TextField(
+        "",
+        text: $newSubtaskTitle,
+        prompt: Text("Adicionar subtarefa")
+          .font(AppTypography.taskTitle)
+          .foregroundStyle(c.textTertiary)
+      )
+      .font(AppTypography.taskTitle)
+      .foregroundStyle(c.textPrimary)
+      .focused($newSubtaskFocused)
+      .submitLabel(.done)
+      .onSubmit {
+        _Concurrency.Task { await submitNewSubtask() }
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel(canSubmit ? "Adicionar subtarefa" : "Focar campo de nova subtarefa")
-
-      TextField("Adicionar subtarefa", text: $newSubtaskTitle)
-        .font(.system(size: 14, weight: .medium))
-        .foregroundStyle(c.textPrimary)
-        .focused($newSubtaskFocused)
-        .submitLabel(.done)
-        .onSubmit {
-          _Concurrency.Task { await submitNewSubtask() }
-        }
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 12)
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
     .contentShape(Rectangle())
     .onTapGesture {
+      HapticService.selection()
       newSubtaskFocused = true
     }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Adicionar subtarefa")
+    .accessibilityHint("Toque para digitar uma nova subtarefa")
+  }
+
+  private var newSubtaskPlusIcon: some View {
+    let c = theme.colors
+    return ZStack {
+      Circle()
+        .fill(c.accent.opacity(DoneCircle.RingStyle.inactiveFillAlpha))
+        .overlay(
+          Circle().strokeBorder(c.accent.opacity(0.45), lineWidth: DoneCircle.RingStyle.borderWidth)
+        )
+        .frame(width: DoneCircle.listRowCircleSize, height: DoneCircle.listRowCircleSize)
+      StackedIcons.image(.plus)
+        .font(.system(size: 11, weight: .bold))
+        .foregroundStyle(c.accent)
+    }
+    .frame(width: 32, height: 32)
+    .accessibilityHidden(true)
   }
 
   private var descriptionNotesField: some View {
@@ -454,17 +460,12 @@ struct TaskDetailView: View {
 
   private func commentRow(_ comment: TaskComment) -> some View {
     let c = theme.colors
-    return VStack(alignment: .leading, spacing: 4) {
-      Text(comment.content)
-        .font(AppTypography.commentBody)
-        .foregroundStyle(c.textPrimary)
-      Text(comment.createdAt, style: .relative)
-        .font(.caption2)
-        .foregroundStyle(c.textTertiary)
-    }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 12)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    return Text(comment.content)
+      .font(AppTypography.commentBody)
+      .foregroundStyle(c.textPrimary)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var commentComposerRow: some View {

@@ -26,7 +26,6 @@ struct FiltersView: View {
   @Namespace private var taskDetailZoom
   @State private var showBuilder = false
   @State private var editingFilter: SavedFilter?
-  @AppStorage("show_completed_tasks") private var showCompleted = false
 
   var body: some View {
     NavigationStack {

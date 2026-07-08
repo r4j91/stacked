@@ -13,9 +13,31 @@ struct SavedFilterResultsScreen: View {
 
   @Environment(ThemeManager.self) private var theme
   @Bindable private var store = FiltersStore.shared
-  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @AppStorage private var showCompleted: Bool
   @State private var usesStore = false
   @State private var allowRowHeavyWork = false
+
+  init(
+    filter: SavedFilter,
+    initialPending: [FilterResultItem],
+    initialCompleted: [FilterResultItem],
+    taskDetailNamespace: Namespace.ID,
+    onTaskTap: @escaping (String) -> Void,
+    onSubtaskTap: @escaping (SubtaskDetailRoute) -> Void,
+    onEditFilter: @escaping (SavedFilter) -> Void
+  ) {
+    self.filter = filter
+    self.initialPending = initialPending
+    self.initialCompleted = initialCompleted
+    self.taskDetailNamespace = taskDetailNamespace
+    self.onTaskTap = onTaskTap
+    self.onSubtaskTap = onSubtaskTap
+    self.onEditFilter = onEditFilter
+    _showCompleted = AppStorage(
+      wrappedValue: false,
+      ShowCompletedPreferences.savedFilterKey(filterId: filter.id)
+    )
+  }
 
   private let rowInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
 
@@ -233,39 +255,6 @@ struct SavedFilterResultsScreen: View {
         }
       }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      if !task.done {
-        Button {
-          ensureStoreLinked()
-          store.complete(task)
-        } label: {
-          Label("Concluir", systemImage: "checkmark")
-        }
-        .tint(AppColors.dateDueToday)
-      }
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      if canPostpone {
-        Button {
-          HapticService.light()
-          _Concurrency.Task {
-            ensureStoreLinked()
-            await store.postpone(task)
-          }
-        } label: {
-          Label("Adiar", systemImage: "clock")
-        }
-        .tint(AppColors.priorityMedium)
-      }
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        ensureStoreLinked()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 
   private func ensureStoreLinked() {

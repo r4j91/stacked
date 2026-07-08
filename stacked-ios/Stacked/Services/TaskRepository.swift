@@ -84,6 +84,11 @@ final class TaskRepository {
       .update(["concluida": done])
       .eq("id", value: id)
       .execute()
+    if done {
+      await NotificationService.shared.cancelTaskNotification(id: id)
+    } else if let task = try await fetchTaskById(id) {
+      await NotificationService.shared.syncTaskNotification(task: task)
+    }
   }
 
   func updateTaskDate(id: String, isoDate: String) async throws {
@@ -92,9 +97,13 @@ final class TaskRepository {
       .update(["data_vencimento": isoDate])
       .eq("id", value: id)
       .execute()
+    if let task = try await fetchTaskById(id) {
+      await NotificationService.shared.syncTaskNotification(task: task)
+    }
   }
 
   func deleteTask(id: String) async throws {
+    await NotificationService.shared.cancelTaskNotification(id: id)
     try await client
       .from("tasks")
       .delete()
@@ -369,6 +378,17 @@ final class TaskRepository {
     if !input.labelIds.isEmpty {
       let links = input.labelIds.map { ["task_id": row.id, "label_id": $0] }
       try await client.from("task_labels").insert(links).execute()
+    }
+    if let dueISO = input.dueDateISO,
+       let due = TaskMapper.parseDueDate(dueISO),
+       let time = input.time,
+       !time.isEmpty {
+      await NotificationService.shared.syncTaskNotification(
+        id: row.id,
+        title: input.title,
+        dueDate: due,
+        time: time
+      )
     }
     return row.id
   }

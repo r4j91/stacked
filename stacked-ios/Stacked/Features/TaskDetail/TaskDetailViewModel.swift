@@ -164,6 +164,12 @@ final class TaskDetailViewModel {
         time: savedTime,
         done: done
       )
+      await NotificationService.shared.syncTaskNotification(
+        id: taskId,
+        title: title,
+        dueDate: dueDate,
+        time: savedTime
+      )
     }
   }
 

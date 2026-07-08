@@ -102,22 +102,6 @@ struct LogbookView: View {
       onDelete: { delete(task) },
       onRefresh: { _Concurrency.Task { await load() } }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        uncomplete(task)
-      } label: {
-        Label("Reabrir", systemImage: "arrow.uturn.backward")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-      Button(role: .destructive) {
-        HapticService.warning()
-        delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 
   private func patchLogbookSubtask(_ snapshot: SubtaskSaveSnapshot) {

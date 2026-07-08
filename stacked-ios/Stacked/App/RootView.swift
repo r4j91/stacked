@@ -66,6 +66,7 @@ struct RootView: View {
     await TabDataLoader.load(tab)
     TabBootstrapCoordinator.schedulePrefetch(excluding: tab)
     await EventKitCalendarService.shared.syncExportIfNeeded()
+    await NotificationService.shared.rescheduleAllPending()
   }
 
   private func reloadData(for tab: NavTab, force: Bool = false) {

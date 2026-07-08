@@ -150,39 +150,6 @@ struct PresetFilterResultsScreen: View {
         }
       }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      if !task.done {
-        Button {
-          ensureStoreLinked()
-          store.complete(task)
-        } label: {
-          Label("Concluir", systemImage: "checkmark")
-        }
-        .tint(AppColors.dateDueToday)
-      }
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      if canPostpone {
-        Button {
-          HapticService.light()
-          _Concurrency.Task {
-            ensureStoreLinked()
-            await store.postpone(task)
-          }
-        } label: {
-          Label("Adiar", systemImage: "clock")
-        }
-        .tint(AppColors.priorityMedium)
-      }
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        ensureStoreLinked()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 
   private func ensureStoreLinked() {

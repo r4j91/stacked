@@ -1,5 +1,4 @@
 import SwiftUI
-import UserNotifications
 
 // Paridade lib/screens/notifications_settings_screen.dart
 enum NotificationPreferences {
@@ -48,9 +47,7 @@ struct NotificationsSettingsView: View {
                     isOn: Binding(
                       get: { dailySummary },
                       set: { newValue in
-                        NotificationPreferences.dailySummary = newValue
-                        dailySummary = newValue
-                        HapticService.selection()
+                        _Concurrency.Task { await toggleDailySummary(newValue) }
                       }
                     ),
                     icon: "sun.max",
@@ -125,7 +122,15 @@ struct NotificationsSettingsView: View {
   }
 
   private func load() async {
-    enabled = NotificationPreferences.enabled
+    let userWants = NotificationPreferences.enabled
+    if userWants {
+      enabled = await NotificationService.shared.hasSystemPermission()
+      if !enabled {
+        NotificationPreferences.enabled = false
+      }
+    } else {
+      enabled = false
+    }
     dailySummary = NotificationPreferences.dailySummary
     loading = false
     togglesReady = true
@@ -133,21 +138,24 @@ struct NotificationsSettingsView: View {
 
   private func toggleEnabled(_ value: Bool) async {
     if value {
-      let granted = await requestPermission()
+      let granted = await NotificationService.shared.requestPermission()
       NotificationPreferences.enabled = granted
-      if !granted { enabled = false }
-      if granted { HapticService.success() }
+      if !granted {
+        enabled = false
+      } else {
+        await NotificationService.shared.rescheduleAllPending()
+        HapticService.success()
+      }
     } else {
-      NotificationPreferences.enabled = false
+      await NotificationService.shared.setEnabled(false)
       HapticService.selection()
     }
   }
 
-  private func requestPermission() async -> Bool {
-    await withCheckedContinuation { continuation in
-      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-        continuation.resume(returning: granted)
-      }
-    }
+  private func toggleDailySummary(_ value: Bool) async {
+    NotificationPreferences.dailySummary = value
+    dailySummary = value
+    HapticService.selection()
+    await NotificationService.shared.setDailySummaryEnabled(value)
   }
 }

@@ -4,7 +4,7 @@ import SwiftUI
 struct InboxView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @AppStorage(ShowCompletedPreferences.inboxKey) private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
   @State private var detailRoute: TaskDetailRoute?
@@ -18,7 +18,12 @@ struct InboxView: View {
 
     List {
       Section {
-        TaskListScreenHeader(title: "Caixa de entrada", subtitle: subtitle)
+        TaskListScreenHeader(
+          title: "Caixa de entrada",
+          subtitle: subtitle,
+          showCompletedKey: ShowCompletedPreferences.inboxKey,
+          showCompletedDefault: false
+        )
           .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
@@ -146,29 +151,5 @@ struct InboxView: View {
       onDelete: { store.deleteInbox(task) },
       onRefresh: { _Concurrency.Task { await store.loadInbox() } }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        store.completeInbox(task)
-      } label: {
-        Label("Concluir", systemImage: "checkmark")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button {
-        HapticService.light()
-        _Concurrency.Task { try? await store.postponeInbox(task) }
-      } label: {
-        Label("Adiar", systemImage: "clock")
-      }
-      .tint(AppColors.priorityMedium)
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        store.deleteInbox(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 }

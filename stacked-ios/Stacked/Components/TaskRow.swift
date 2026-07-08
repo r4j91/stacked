@@ -166,11 +166,11 @@ struct TaskRow: View {
     let c = theme.colors
     VStack(alignment: .leading, spacing: 0) {
       titleRow
-      if style == .card, let desc = task.description, !desc.isEmpty {
+      if let desc = task.description, !desc.isEmpty {
         Text(desc)
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textTertiary)
-          .lineLimit(1)
+          .lineLimit(2)
           .padding(.top, 4)
       }
       TaskMetaLine(
@@ -188,7 +188,7 @@ struct TaskRow: View {
 
   private var centersTitleInRow: Bool {
     guard !task.hasSubtasks else { return false }
-    if style == .card, let desc = task.description, !desc.isEmpty { return false }
+    if let desc = task.description, !desc.isEmpty { return false }
     if task.timeDisplay != nil { return false }
     if !task.labels.isEmpty { return false }
     if task.dueDate != nil { return false }

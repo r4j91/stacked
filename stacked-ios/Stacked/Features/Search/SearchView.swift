@@ -221,29 +221,5 @@ struct SearchView: View {
       onDelete: { store.delete(task) },
       onRefresh: { _Concurrency.Task { await store.load() } }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        store.complete(task)
-      } label: {
-        Label("Concluir", systemImage: "checkmark")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button {
-        HapticService.light()
-        _Concurrency.Task { await store.postpone(task) }
-      } label: {
-        Label("Adiar", systemImage: "clock")
-      }
-      .tint(AppColors.priorityMedium)
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 }

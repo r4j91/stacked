@@ -8,7 +8,7 @@ struct ProjectDetailView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @AppStorage("display_mode") private var displayMode = "cards"
-  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @AppStorage private var showCompleted: Bool
   @State private var store: ProjectDetailStore
   @State private var completedExpanded = false
   @State private var detailRoute: TaskDetailRoute?
@@ -25,6 +25,7 @@ struct ProjectDetailView: View {
   @State private var revealListContent = false
   @Namespace private var taskDetailZoom
 
+  let projectId: String
   let projectColorHex: String?
   let projectName: String
   let initialSnapshot: ProjectDetailSnapshot
@@ -38,9 +39,16 @@ struct ProjectDetailView: View {
     let snap = initialSnapshot
       ?? ProjectDetailCache.shared.snapshot(for: projectId)
       ?? ProjectDetailSnapshot(sections: [], pending: [], completed: [])
+    self.projectId = projectId
     self.projectName = projectName
     self.initialSnapshot = snap
     self.projectColorHex = projectColorHex
+    let completedKey = ShowCompletedPreferences.projectKey(projectId: projectId)
+    if UserDefaults.standard.object(forKey: completedKey) == nil,
+       UserDefaults.standard.bool(forKey: "show_completed_tasks") {
+      UserDefaults.standard.set(true, forKey: completedKey)
+    }
+    _showCompleted = AppStorage(wrappedValue: true, completedKey)
     _store = State(
       initialValue: ProjectDetailStore(
         projectId: projectId,
@@ -452,33 +460,6 @@ struct ProjectDetailView: View {
           _Concurrency.Task { await store.load() }
         }
       )
-      .swipeActions(edge: .leading, allowsFullSwipe: true) {
-        Button {
-          ensureStoreLinked()
-          store.complete(task)
-        } label: {
-          Label("Concluir", systemImage: "checkmark")
-        }
-        .tint(AppColors.dateDueToday)
-      }
-      .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-        Button {
-          HapticService.light()
-          ensureStoreLinked()
-          _Concurrency.Task { await store.postpone(task) }
-        } label: {
-          Label("Adiar", systemImage: "clock")
-        }
-        .tint(AppColors.priorityMedium)
-
-        Button(role: .destructive) {
-          HapticService.warning()
-          ensureStoreLinked()
-          store.delete(task)
-        } label: {
-          Label("Excluir", systemImage: "trash")
-        }
-      }
   }
 
   @ViewBuilder
@@ -553,32 +534,5 @@ struct ProjectDetailView: View {
         _Concurrency.Task { await store.load() }
       }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        ensureStoreLinked()
-        store.uncomplete(task)
-      } label: {
-        Label("Reabrir", systemImage: "arrow.uturn.backward")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button {
-        HapticService.light()
-        ensureStoreLinked()
-        _Concurrency.Task { await store.postpone(task) }
-      } label: {
-        Label("Adiar", systemImage: "clock")
-      }
-      .tint(AppColors.priorityMedium)
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        ensureStoreLinked()
-        store.delete(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 }

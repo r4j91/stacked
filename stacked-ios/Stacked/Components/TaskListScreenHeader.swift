@@ -4,12 +4,23 @@ import Hugeicons
 // Paridade ScreenHeader + trailing options (today_screen.dart _showOptionsMenu)
 struct TaskListScreenHeader: View {
   @Environment(ThemeManager.self) private var theme
-  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @AppStorage private var showCompleted: Bool
 
   let title: String
   var subtitle: String?
 
   @State private var optionsAnchor: CGRect = .zero
+
+  init(
+    title: String,
+    subtitle: String? = nil,
+    showCompletedKey: String,
+    showCompletedDefault: Bool = false
+  ) {
+    self.title = title
+    self.subtitle = subtitle
+    _showCompleted = AppStorage(wrappedValue: showCompletedDefault, showCompletedKey)
+  }
 
   var body: some View {
     ScreenHeaderChrome(title: title, subtitle: subtitle) {

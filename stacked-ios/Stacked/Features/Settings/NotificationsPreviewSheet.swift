@@ -17,7 +17,7 @@ struct NotificationsPreviewSheet: View {
           ProgressView().tint(c.accent)
             .frame(maxWidth: .infinity, minHeight: 220)
         } else if tasks.isEmpty {
-          EmptyStateView(icon: .notifications, title: "Nenhuma notificação agendada", subtitle: "Tarefas com data futura aparecem aqui")
+          EmptyStateView(icon: .notifications, title: "Nenhuma notificação agendada", subtitle: "Tarefas com data e hora futuras aparecem aqui")
             .stackedStandaloneEmptyState()
         } else {
           List {
@@ -30,7 +30,7 @@ struct NotificationsPreviewSheet: View {
                   Text(task.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(c.textPrimary)
-                  if let label = dueLabel(task.dueDate), !label.isEmpty {
+                  if let label = dueLabel(task.dueDate, time: task.time), !label.isEmpty {
                     Text(label)
                       .font(.system(size: 13))
                       .foregroundStyle(c.textSecondary)
@@ -64,22 +64,23 @@ struct NotificationsPreviewSheet: View {
     .presentationDragIndicator(.visible)
   }
 
-  private func dueLabel(_ date: Date?) -> String? {
-    guard let date else { return nil }
+  private func dueLabel(_ date: Date?, time: String?) -> String? {
+    guard let date, let time, !time.isEmpty else { return nil }
+    guard TaskMapper.combinedDateTime(dueDate: date, time: time) != nil else { return nil }
     let today = Calendar.current.startOfDay(for: Date())
     let due = Calendar.current.startOfDay(for: date)
     let diff = Calendar.current.dateComponents([.day], from: today, to: due).day ?? 0
+    let timeLabel = TaskMapper.formatTimeDisplay(time)
     switch diff {
-    case 0: return "Hoje"
-    case 1: return "Amanhã"
-    default: return "Em \(diff) dias"
+    case 0: return "Hoje às \(timeLabel)"
+    case 1: return "Amanhã às \(timeLabel)"
+    default: return "Em \(diff) dias às \(timeLabel)"
     }
   }
 
   private func load() async {
     loading = true
     defer { loading = false }
-    let all = (try? await TaskRepository.shared.fetchDatedPendingTasks()) ?? []
-    tasks = Array(all.prefix(20))
+    tasks = await NotificationService.shared.fetchSchedulableTasks(limit: 20)
   }
 }

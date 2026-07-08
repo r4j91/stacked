@@ -6,15 +6,6 @@ import '../../services/supabase_client.dart';
 import '../../theme/app_colors.dart';
 import '../pressable.dart';
 
-String formatTaskCommentDate(DateTime dt) {
-  final now = DateTime.now();
-  final diff = now.difference(dt);
-  if (diff.inMinutes < 1) return 'agora';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}min atrás';
-  if (diff.inHours < 24) return '${diff.inHours}h atrás';
-  return '${dt.day}/${dt.month}/${dt.year}';
-}
-
 /// Carrega e envia comentários de tarefa (extraído de TaskDetailSheet).
 class TaskDetailCommentsService {
   TaskDetailCommentsService._();
@@ -69,8 +60,6 @@ class TaskDetailCommentsList extends StatelessWidget {
       itemBuilder: (_, i) {
         final c = comments[i];
         final texto = c['conteudo'] as String? ?? '';
-        final createdAt =
-            c['created_at'] != null ? DateTime.tryParse(c['created_at'] as String) : null;
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
           child: Row(
@@ -108,14 +97,6 @@ class TaskDetailCommentsList extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (createdAt != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 4),
-                        child: Text(
-                          formatTaskCommentDate(createdAt),
-                          style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                        ),
-                      ),
                   ],
                 ),
               ),

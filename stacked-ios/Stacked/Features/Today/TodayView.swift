@@ -4,7 +4,7 @@ import SwiftUI
 struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage("show_completed_tasks") private var showCompleted = false
+  @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
   @State private var detailRoute: TaskDetailRoute?
@@ -18,7 +18,12 @@ struct TodayView: View {
 
     List {
       Section {
-        TaskListScreenHeader(title: "Hoje", subtitle: NavTab.today.subtitle)
+        TaskListScreenHeader(
+          title: "Hoje",
+          subtitle: NavTab.today.subtitle,
+          showCompletedKey: ShowCompletedPreferences.todayKey,
+          showCompletedDefault: false
+        )
           .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
@@ -175,29 +180,5 @@ struct TodayView: View {
       onDelete: { store.deleteToday(task) },
       onRefresh: { _Concurrency.Task { await store.loadToday() } }
     )
-    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-      Button {
-        store.completeToday(task)
-      } label: {
-        Label("Concluir", systemImage: "checkmark")
-      }
-      .tint(AppColors.dateDueToday)
-    }
-    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button {
-        HapticService.light()
-        _Concurrency.Task { try? await store.postponeToday(task) }
-      } label: {
-        Label("Adiar", systemImage: "clock")
-      }
-      .tint(AppColors.priorityMedium)
-
-      Button(role: .destructive) {
-        HapticService.warning()
-        store.deleteToday(task)
-      } label: {
-        Label("Excluir", systemImage: "trash")
-      }
-    }
   }
 }
