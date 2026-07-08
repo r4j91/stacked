@@ -8,6 +8,7 @@ struct HomeOrbitalStackIllustration: View {
 
   let isOverdue: Bool
   let overdueCount: Int
+  var artSize: CGFloat = 48
 
   @State private var breathe = false
   @State private var floatUp = false
@@ -46,6 +47,8 @@ struct HomeOrbitalStackIllustration: View {
       }
     }
     .frame(width: 48, height: 48)
+    .scaleEffect(artSize / 48, anchor: .center)
+    .frame(width: artSize, height: artSize)
     .onAppear { startAnimations() }
     .onChange(of: isOverdue) { _, _ in startAnimations() }
     .accessibilityHidden(true)

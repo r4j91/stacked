@@ -5,11 +5,13 @@ import '../../theme/home_hero_style.dart';
 class HomeOrbitalStackIllustration extends StatefulWidget {
   final bool isOverdue;
   final int overdueCount;
+  final double artSize;
 
   const HomeOrbitalStackIllustration({
     super.key,
     required this.isOverdue,
     required this.overdueCount,
+    this.artSize = 48,
   });
 
   @override
@@ -63,9 +65,14 @@ class _HomeOrbitalStackIllustrationState extends State<HomeOrbitalStackIllustrat
     final haloColor = widget.isOverdue ? AppColors.overdue : AppColors.accent;
 
     return SizedBox(
-      width: 48,
-      height: 48,
-      child: AnimatedBuilder(
+      width: widget.artSize,
+      height: widget.artSize,
+      child: Transform.scale(
+        scale: widget.artSize / 48,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           final t = _controller.value;
@@ -100,6 +107,8 @@ class _HomeOrbitalStackIllustrationState extends State<HomeOrbitalStackIllustrat
             ],
           );
         },
+          ),
+        ),
       ),
     );
   }

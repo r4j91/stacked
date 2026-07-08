@@ -31,6 +31,7 @@ class HomeHeroSection extends StatelessWidget {
 
   bool get _isOverdue => overdueCount > 0;
   String get _statusLabel => homeStatusLabel(overdueCount);
+  HomeHeroMetrics get _metrics => HomeHeroMetrics.forStyle(style);
 
   @override
   Widget build(BuildContext context) {
@@ -169,8 +170,9 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   Widget _orbital(BuildContext context) {
+    final m = _metrics;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      padding: EdgeInsets.symmetric(horizontal: m.cardPaddingH, vertical: m.cardPaddingV),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -182,9 +184,13 @@ class HomeHeroSection extends StatelessWidget {
       ),
       child: Row(
         children: [
-          HomeOrbitalStackIllustration(isOverdue: _isOverdue, overdueCount: overdueCount),
-          const SizedBox(width: 14),
-          Expanded(child: _greetingColumn(nameSize: 20)),
+          HomeOrbitalStackIllustration(
+            isOverdue: _isOverdue,
+            overdueCount: overdueCount,
+            artSize: m.orbitalArtSize,
+          ),
+          SizedBox(width: m.rowSpacing),
+          Expanded(child: _greetingColumn(metrics: m)),
           if (_isOverdue)
             HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: AppColors.overdue.withValues(alpha: 0.7)),
         ],
@@ -193,37 +199,46 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   Widget _orbitalOpen(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            HomeOrbitalStackIllustration(isOverdue: _isOverdue, overdueCount: overdueCount),
-            const SizedBox(width: 12),
-            Expanded(child: _greetingColumn(nameSize: 22)),
-            if (_isOverdue)
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedArrowRight01,
-                size: 14,
-                color: AppColors.overdue.withValues(alpha: 0.7),
+    final m = _metrics;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: m.openVerticalPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              HomeOrbitalStackIllustration(
+                isOverdue: _isOverdue,
+                overdueCount: overdueCount,
+                artSize: m.orbitalArtSize,
               ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: 1,
-          color: _isOverdue
-              ? AppColors.overdue.withValues(alpha: 0.12)
-              : AppColors.textPrimary.withValues(alpha: 0.06),
-        ),
-      ],
+              SizedBox(width: m.rowSpacing),
+              Expanded(child: _greetingColumn(metrics: m)),
+              if (_isOverdue)
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowRight01,
+                  size: 14,
+                  color: AppColors.overdue.withValues(alpha: 0.7),
+                ),
+            ],
+          ),
+          SizedBox(height: m.dividerTopPadding),
+          Container(
+            height: 1,
+            color: _isOverdue
+                ? AppColors.overdue.withValues(alpha: 0.12)
+                : AppColors.textPrimary.withValues(alpha: 0.06),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _horizon(BuildContext context) {
+    final m = _metrics;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      padding: EdgeInsets.symmetric(horizontal: m.cardPaddingH, vertical: m.cardPaddingV),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -235,7 +250,7 @@ class HomeHeroSection extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _greetingColumn(nameSize: 20)),
+          Expanded(child: _greetingColumn(metrics: m)),
           HomeHorizonGlyphIllustration(
             timeOfDay: homeTimeOfDayNow(),
             isOverdue: _isOverdue,
@@ -251,8 +266,9 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   Widget _capsule(BuildContext context) {
+    final m = _metrics;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: m.cardPaddingH, vertical: m.cardPaddingV),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -267,9 +283,9 @@ class HomeHeroSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(homeGreetingPhrase(), style: _phraseStyle),
+              Text(homeGreetingPhrase(), style: _phraseStyle(m.phraseSize)),
               const Spacer(),
-              _statusCapsule(),
+              _statusCapsule(fontSize: m.capsuleStatusSize),
             ],
           ),
           const SizedBox(height: 6),
@@ -279,7 +295,7 @@ class HomeHeroSection extends StatelessWidget {
                 Text(
                   firstName,
                   style: TextStyle(
-                    fontSize: 23,
+                    fontSize: m.nameSize,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.6,
                     color: AppColors.textPrimary,
@@ -297,10 +313,11 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   Widget _focus(BuildContext context) {
+    final m = _metrics;
     final title = homeFocusHeroTitle(overdueCount);
     final subtitle = homeFocusHeroSubtitle(overdueCount);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: m.cardPaddingH, vertical: m.cardPaddingV),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
@@ -313,7 +330,7 @@ class HomeHeroSection extends StatelessWidget {
       child: Row(
         children: [
           HomeFocusInboxIllustration(isOverdue: _isOverdue, overdueCount: overdueCount),
-          const SizedBox(width: 12),
+          SizedBox(width: m.rowSpacing),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +340,7 @@ class HomeHeroSection extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: m.focusTitleSize,
                     fontWeight: FontWeight.w700,
                     color: _isOverdue ? AppColors.overdue : AppColors.textPrimary,
                     height: 1.2,
@@ -335,7 +352,7 @@ class HomeHeroSection extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: m.focusSubtitleSize,
                     color: AppColors.textTertiary,
                     height: 1.25,
                   ),
@@ -355,54 +372,58 @@ class HomeHeroSection extends StatelessWidget {
   }
 
   Widget _openType(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(homeGreetingPhrase(), style: _phraseStyle),
-        Row(
-          children: [
-            if (firstName.isNotEmpty)
-              Expanded(
-                child: Text(
-                  firstName,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.7,
-                    color: AppColors.textPrimary,
-                    height: 1.1,
+    final m = _metrics;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: m.openVerticalPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(homeGreetingPhrase(), style: _phraseStyle(m.phraseSize)),
+          Row(
+            children: [
+              if (firstName.isNotEmpty)
+                Expanded(
+                  child: Text(
+                    firstName,
+                    style: TextStyle(
+                      fontSize: m.nameSize,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.7,
+                      color: AppColors.textPrimary,
+                      height: 1.1,
+                    ),
                   ),
                 ),
-              ),
-            if (_isOverdue)
-              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: AppColors.overdue.withValues(alpha: 0.7)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _AccentLine(isOverdue: _isOverdue),
-        const SizedBox(height: 8),
-        _statusLine(),
-        const SizedBox(height: 8),
-        Container(
-          height: 1,
-          color: _isOverdue
-              ? AppColors.overdue.withValues(alpha: 0.15)
-              : AppColors.textPrimary.withValues(alpha: 0.06),
-        ),
-      ],
+              if (_isOverdue)
+                HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: AppColors.overdue.withValues(alpha: 0.7)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _AccentLine(isOverdue: _isOverdue),
+          const SizedBox(height: 8),
+          _statusLine(fontSize: m.statusSize),
+          const SizedBox(height: 8),
+          Container(
+            height: 1,
+            color: _isOverdue
+                ? AppColors.overdue.withValues(alpha: 0.15)
+                : AppColors.textPrimary.withValues(alpha: 0.06),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _greetingColumn({required double nameSize}) {
+  Widget _greetingColumn({required HomeHeroMetrics metrics}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(homeGreetingPhrase(), style: _phraseStyle),
+        Text(homeGreetingPhrase(), style: _phraseStyle(metrics.phraseSize)),
         if (firstName.isNotEmpty)
           Text(
             firstName,
             style: TextStyle(
-              fontSize: nameSize,
+              fontSize: metrics.nameSize,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
               color: AppColors.textPrimary,
@@ -410,12 +431,12 @@ class HomeHeroSection extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 2),
-        _statusLine(),
+        _statusLine(fontSize: metrics.statusSize),
       ],
     );
   }
 
-  Widget _statusLine() {
+  Widget _statusLine({double fontSize = 12.5}) {
     final color = _isOverdue ? AppColors.overdue : AppColors.tagGreen;
     return Row(
       children: [
@@ -427,13 +448,13 @@ class HomeHeroSection extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           _statusLabel,
-          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: color),
         ),
       ],
     );
   }
 
-  Widget _statusCapsule() {
+  Widget _statusCapsule({double fontSize = 10}) {
     final color = _isOverdue ? AppColors.overdue : AppColors.tagGreen;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -444,13 +465,13 @@ class HomeHeroSection extends StatelessWidget {
       ),
       child: Text(
         _statusLabel,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+        style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
 
-  TextStyle get _phraseStyle => TextStyle(
-    fontSize: 12,
+  TextStyle _phraseStyle(double size) => TextStyle(
+    fontSize: size,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
     letterSpacing: -0.1,

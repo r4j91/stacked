@@ -11,6 +11,8 @@ struct HomeHeroSection: View {
 
   private var isOverdue: Bool { store.overdueCount > 0 }
 
+  private var metrics: HomeHeroMetrics { HomeHeroMetrics.forStyle(style) }
+
   var body: some View {
     Section {
       Group {
@@ -146,23 +148,16 @@ struct HomeHeroSection: View {
 
   private var orbitalHero: some View {
     let c = theme.colors
-    return HStack(alignment: .center, spacing: 14) {
-      HomeOrbitalStackIllustration(isOverdue: isOverdue, overdueCount: store.overdueCount)
+    let m = metrics
+    return HStack(alignment: .center, spacing: m.rowSpacing) {
+      HomeOrbitalStackIllustration(
+        isOverdue: isOverdue,
+        overdueCount: store.overdueCount,
+        artSize: m.orbitalArtSize
+      )
 
-      VStack(alignment: .leading, spacing: 2) {
-        Text(store.greetingPhrase)
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(c.textSecondary)
-        if !store.firstName.isEmpty {
-          Text(store.firstName)
-            .font(.system(size: 20, weight: .heavy))
-            .foregroundStyle(c.textPrimary)
-            .tracking(-0.5)
-        }
-        HomeHeroStatusLine(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
-          .padding(.top, 2)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
+      greetingTextBlock(metrics: m)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
       if isOverdue {
         StackedIcons.image(.chevronRight)
@@ -170,8 +165,8 @@ struct HomeHeroSection: View {
           .foregroundStyle(AppColors.overdue.opacity(0.7))
       }
     }
-    .padding(.horizontal, 13)
-    .padding(.vertical, 11)
+    .padding(.horizontal, m.cardPaddingH)
+    .padding(.vertical, m.cardPaddingV)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     .overlay {
@@ -193,24 +188,17 @@ struct HomeHeroSection: View {
 
   private var orbitalOpenHero: some View {
     let c = theme.colors
+    let m = metrics
     return VStack(alignment: .leading, spacing: 0) {
-      HStack(alignment: .center, spacing: 12) {
-        HomeOrbitalStackIllustration(isOverdue: isOverdue, overdueCount: store.overdueCount)
+      HStack(alignment: .center, spacing: m.rowSpacing) {
+        HomeOrbitalStackIllustration(
+          isOverdue: isOverdue,
+          overdueCount: store.overdueCount,
+          artSize: m.orbitalArtSize
+        )
 
-        VStack(alignment: .leading, spacing: 2) {
-          Text(store.greetingPhrase)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(c.textSecondary)
-          if !store.firstName.isEmpty {
-            Text(store.firstName)
-              .font(.system(size: 22, weight: .heavy))
-              .foregroundStyle(c.textPrimary)
-              .tracking(-0.5)
-          }
-          HomeHeroStatusLine(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
-            .padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        greetingTextBlock(metrics: m)
+          .frame(maxWidth: .infinity, alignment: .leading)
 
         if isOverdue {
           StackedIcons.image(.chevronRight)
@@ -222,29 +210,19 @@ struct HomeHeroSection: View {
       Rectangle()
         .fill(isOverdue ? AppColors.overdue.opacity(0.12) : c.textPrimary.opacity(c.isDark ? 0.06 : 0.05))
         .frame(height: 1)
-        .padding(.top, 10)
+        .padding(.top, m.dividerTopPadding)
     }
+    .padding(.vertical, m.openVerticalPadding)
   }
 
   // MARK: - Horizon (E4)
 
   private var horizonHero: some View {
     let c = theme.colors
-    return HStack(alignment: .center, spacing: 14) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(store.greetingPhrase)
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(c.textSecondary)
-        if !store.firstName.isEmpty {
-          Text(store.firstName)
-            .font(.system(size: 20, weight: .heavy))
-            .foregroundStyle(c.textPrimary)
-            .tracking(-0.5)
-        }
-        HomeHeroStatusLine(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
-          .padding(.top, 2)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
+    let m = metrics
+    return HStack(alignment: .center, spacing: m.rowSpacing) {
+      greetingTextBlock(metrics: m)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
       HomeHorizonGlyphIllustration(
         timeOfDay: store.timeOfDay,
@@ -258,8 +236,8 @@ struct HomeHeroSection: View {
           .foregroundStyle(AppColors.overdue.opacity(0.7))
       }
     }
-    .padding(.horizontal, 13)
-    .padding(.vertical, 11)
+    .padding(.horizontal, m.cardPaddingH)
+    .padding(.vertical, m.cardPaddingV)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     .overlay {
@@ -275,19 +253,24 @@ struct HomeHeroSection: View {
 
   private var capsuleHero: some View {
     let c = theme.colors
+    let m = metrics
     return VStack(alignment: .leading, spacing: 6) {
       HStack(alignment: .top) {
         Text(store.greetingPhrase)
-          .font(.system(size: 12, weight: .medium))
+          .font(.system(size: m.phraseSize, weight: .medium))
           .foregroundStyle(c.textSecondary)
         Spacer(minLength: 8)
-        HomeHeroStatusCapsule(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
+        HomeHeroStatusCapsule(
+          isOverdue: isOverdue,
+          label: store.statusLabel(overdueCount: store.overdueCount),
+          fontSize: m.capsuleStatusSize
+        )
       }
 
       HStack(alignment: .center) {
         if !store.firstName.isEmpty {
           Text(store.firstName)
-            .font(.system(size: 23, weight: .heavy))
+            .font(.system(size: m.nameSize, weight: .heavy))
             .foregroundStyle(c.textPrimary)
             .tracking(-0.6)
         }
@@ -299,8 +282,8 @@ struct HomeHeroSection: View {
         }
       }
     }
-    .padding(.horizontal, 14)
-    .padding(.vertical, 12)
+    .padding(.horizontal, m.cardPaddingH)
+    .padding(.vertical, m.cardPaddingV)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     .overlay {
@@ -316,17 +299,18 @@ struct HomeHeroSection: View {
 
   private var focusHero: some View {
     let c = theme.colors
-    return HStack(alignment: .center, spacing: 12) {
+    let m = metrics
+    return HStack(alignment: .center, spacing: m.rowSpacing) {
       HomeFocusInboxIllustration(isOverdue: isOverdue, overdueCount: store.overdueCount)
 
       VStack(alignment: .leading, spacing: 2) {
         Text(store.focusHeroTitle(overdueCount: store.overdueCount))
-          .font(.system(size: 15, weight: .bold))
+          .font(.system(size: m.focusTitleSize, weight: .bold))
           .foregroundStyle(isOverdue ? AppColors.overdue : c.textPrimary)
           .lineLimit(1)
 
         Text(store.focusHeroSubtitle(overdueCount: store.overdueCount))
-          .font(.system(size: 12))
+          .font(.system(size: m.focusSubtitleSize))
           .foregroundStyle(c.textTertiary)
           .lineLimit(2)
           .fixedSize(horizontal: false, vertical: true)
@@ -339,8 +323,8 @@ struct HomeHeroSection: View {
           .foregroundStyle(AppColors.overdue.opacity(0.75))
       }
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 10)
+    .padding(.horizontal, m.cardPaddingH)
+    .padding(.vertical, m.cardPaddingV)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     .overlay {
@@ -356,15 +340,16 @@ struct HomeHeroSection: View {
 
   private var openTypeHero: some View {
     let c = theme.colors
+    let m = metrics
     return VStack(alignment: .leading, spacing: 0) {
       Text(store.greetingPhrase)
-        .font(.system(size: 12, weight: .medium))
+        .font(.system(size: m.phraseSize, weight: .medium))
         .foregroundStyle(c.textSecondary)
 
       HStack(alignment: .firstTextBaseline) {
         if !store.firstName.isEmpty {
           Text(store.firstName)
-            .font(.system(size: 24, weight: .heavy))
+            .font(.system(size: m.nameSize, weight: .heavy))
             .foregroundStyle(c.textPrimary)
             .tracking(-0.7)
         }
@@ -380,15 +365,41 @@ struct HomeHeroSection: View {
       HomeHeroAccentLine(isOverdue: isOverdue, reduceMotion: reduceMotion)
         .padding(.top, 8)
 
-      HomeHeroStatusLine(isOverdue: isOverdue, label: store.statusLabel(overdueCount: store.overdueCount))
-        .padding(.top, 8)
+      HomeHeroStatusLine(
+        isOverdue: isOverdue,
+        label: store.statusLabel(overdueCount: store.overdueCount),
+        fontSize: m.statusSize
+      )
+      .padding(.top, 8)
     }
-    .padding(.vertical, 4)
+    .padding(.vertical, m.openVerticalPadding)
     .overlay(alignment: .bottom) {
       Rectangle()
         .fill(isOverdue ? AppColors.overdue.opacity(0.15) : c.textPrimary.opacity(c.isDark ? 0.06 : 0.05))
         .frame(height: 1)
         .offset(y: 8)
+    }
+  }
+
+  @ViewBuilder
+  private func greetingTextBlock(metrics: HomeHeroMetrics) -> some View {
+    let c = theme.colors
+    VStack(alignment: .leading, spacing: 3) {
+      Text(store.greetingPhrase)
+        .font(.system(size: metrics.phraseSize, weight: .medium))
+        .foregroundStyle(c.textSecondary)
+      if !store.firstName.isEmpty {
+        Text(store.firstName)
+          .font(.system(size: metrics.nameSize, weight: .heavy))
+          .foregroundStyle(c.textPrimary)
+          .tracking(-0.5)
+      }
+      HomeHeroStatusLine(
+        isOverdue: isOverdue,
+        label: store.statusLabel(overdueCount: store.overdueCount),
+        fontSize: metrics.statusSize
+      )
+      .padding(.top, 2)
     }
   }
 }
@@ -398,6 +409,7 @@ struct HomeHeroSection: View {
 private struct HomeHeroStatusLine: View {
   let isOverdue: Bool
   let label: String
+  var fontSize: CGFloat = 12.5
 
   var body: some View {
     HStack(spacing: 5) {
@@ -405,7 +417,7 @@ private struct HomeHeroStatusLine: View {
         .fill(isOverdue ? AppColors.overdue : AppColors.tagGreen)
         .frame(width: 5, height: 5)
       Text(label)
-        .font(.system(size: 12.5, weight: .semibold))
+        .font(.system(size: fontSize, weight: .semibold))
         .foregroundStyle(isOverdue ? AppColors.overdue : AppColors.tagGreen)
     }
   }
@@ -414,10 +426,11 @@ private struct HomeHeroStatusLine: View {
 private struct HomeHeroStatusCapsule: View {
   let isOverdue: Bool
   let label: String
+  var fontSize: CGFloat = 10
 
   var body: some View {
     Text(label)
-      .font(.system(size: 10, weight: .bold))
+      .font(.system(size: fontSize, weight: .bold))
       .foregroundStyle(isOverdue ? AppColors.overdue : AppColors.tagGreen)
       .padding(.horizontal, 9)
       .padding(.vertical, 4)

@@ -39,6 +39,126 @@ enum HomeHeroStyle {
   }
 }
 
+/// Escala tipográfica e de arte do hero — clássico não usa (mantém tokens próprios).
+class HomeHeroMetrics {
+  final double phraseSize;
+  final double nameSize;
+  final double statusSize;
+  final double orbitalArtSize;
+  final double cardPaddingH;
+  final double cardPaddingV;
+  final double rowSpacing;
+  final double focusTitleSize;
+  final double focusSubtitleSize;
+  final double capsuleStatusSize;
+  final double openVerticalPadding;
+  final double dividerTopPadding;
+
+  const HomeHeroMetrics({
+    required this.phraseSize,
+    required this.nameSize,
+    required this.statusSize,
+    required this.orbitalArtSize,
+    required this.cardPaddingH,
+    required this.cardPaddingV,
+    required this.rowSpacing,
+    required this.focusTitleSize,
+    required this.focusSubtitleSize,
+    required this.capsuleStatusSize,
+    required this.openVerticalPadding,
+    required this.dividerTopPadding,
+  });
+
+  static HomeHeroMetrics forStyle(HomeHeroStyle style) {
+    return switch (style) {
+      HomeHeroStyle.orbitalOpen => const HomeHeroMetrics(
+        phraseSize: 14,
+        nameSize: 26,
+        statusSize: 14,
+        orbitalArtSize: 56,
+        cardPaddingH: 14,
+        cardPaddingV: 12,
+        rowSpacing: 14,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 6,
+        dividerTopPadding: 12,
+      ),
+      HomeHeroStyle.orbital || HomeHeroStyle.horizon => const HomeHeroMetrics(
+        phraseSize: 13,
+        nameSize: 22,
+        statusSize: 13.5,
+        orbitalArtSize: 52,
+        cardPaddingH: 14,
+        cardPaddingV: 12,
+        rowSpacing: 14,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 4,
+        dividerTopPadding: 10,
+      ),
+      HomeHeroStyle.capsule => const HomeHeroMetrics(
+        phraseSize: 13,
+        nameSize: 25,
+        statusSize: 13.5,
+        orbitalArtSize: 48,
+        cardPaddingH: 15,
+        cardPaddingV: 13,
+        rowSpacing: 14,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 4,
+        dividerTopPadding: 10,
+      ),
+      HomeHeroStyle.openType => const HomeHeroMetrics(
+        phraseSize: 13,
+        nameSize: 26,
+        statusSize: 13.5,
+        orbitalArtSize: 48,
+        cardPaddingH: 14,
+        cardPaddingV: 12,
+        rowSpacing: 14,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 6,
+        dividerTopPadding: 10,
+      ),
+      HomeHeroStyle.focus => const HomeHeroMetrics(
+        phraseSize: 13,
+        nameSize: 22,
+        statusSize: 13.5,
+        orbitalArtSize: 48,
+        cardPaddingH: 13,
+        cardPaddingV: 11,
+        rowSpacing: 12,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 4,
+        dividerTopPadding: 10,
+      ),
+      HomeHeroStyle.classic => const HomeHeroMetrics(
+        phraseSize: 12,
+        nameSize: 20,
+        statusSize: 12.5,
+        orbitalArtSize: 48,
+        cardPaddingH: 13,
+        cardPaddingV: 11,
+        rowSpacing: 12,
+        focusTitleSize: 15,
+        focusSubtitleSize: 12,
+        capsuleStatusSize: 10,
+        openVerticalPadding: 4,
+        dividerTopPadding: 10,
+      ),
+    };
+  }
+}
+
 enum HomeTimeOfDay { morning, afternoon, night }
 
 HomeTimeOfDay homeTimeOfDayNow() {
