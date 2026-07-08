@@ -5,6 +5,7 @@ struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var store = UpcomingStore.shared
+  @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
@@ -99,6 +100,7 @@ struct UpcomingView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.load() }
+    .stackedListRowWorkGate($allowRowHeavyWork)
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task { await store.load() }
     }) { route in
@@ -200,7 +202,10 @@ struct UpcomingView: View {
 
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
-    TaskRow(task: task, onToggle: {
+    TaskRow(
+      task: task,
+      deferHeavyWork: !allowRowHeavyWork,
+      onToggle: {
       store.complete(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

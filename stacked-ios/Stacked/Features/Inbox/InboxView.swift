@@ -7,6 +7,7 @@ struct InboxView: View {
   @AppStorage(ShowCompletedPreferences.inboxKey) private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
+  @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
@@ -79,7 +80,7 @@ struct InboxView: View {
 
             if completedExpanded {
               ForEach(store.inboxCompleted) { task in
-                TaskRow(task: task) { }
+                TaskRow(task: task, deferHeavyWork: !allowRowHeavyWork) { }
                   .opacity(0.7)
                   .listRowInsets(rowInsets)
                   .listRowSeparator(.hidden)
@@ -103,6 +104,7 @@ struct InboxView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadInbox() }
+    .stackedListRowWorkGate($allowRowHeavyWork)
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadInbox()
@@ -128,7 +130,10 @@ struct InboxView: View {
 
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
-    TaskRow(task: task, onToggle: {
+    TaskRow(
+      task: task,
+      deferHeavyWork: !allowRowHeavyWork,
+      onToggle: {
       store.completeInbox(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)

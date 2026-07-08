@@ -112,6 +112,7 @@ struct SearchView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
   @State private var store = SearchStore.shared
+  @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @FocusState private var searchFocused: Bool
@@ -170,6 +171,9 @@ struct SearchView: View {
         }
       }
       .task {
+        await NavigationPushMotion.awaitSettle()
+        guard !_Concurrency.Task.isCancelled else { return }
+        allowRowHeavyWork = true
         await store.load()
         searchFocused = true
       }
@@ -198,6 +202,7 @@ struct SearchView: View {
   private func searchTaskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      deferHeavyWork: !allowRowHeavyWork,
       onToggle: { store.complete(task) },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
       onSubtaskTap: { sub in

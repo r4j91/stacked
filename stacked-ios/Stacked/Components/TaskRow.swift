@@ -18,6 +18,7 @@ struct TaskRow: View {
   var onSubtaskChanged: (() -> Void)?
 
   @State private var expanded = false
+  @State private var subtaskRevealActive = false
   @State private var subtasksDone: [Bool] = []
   @State private var labelCatalog: [TaskLabel] = []
 
@@ -42,21 +43,17 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear {
-      guard !deferHeavyWork else { return }
-      syncSubtasks()
-    }
-    .onChange(of: task.subtasks) { _, _ in
-      guard !deferHeavyWork else { return }
-      syncSubtasks()
+    .onAppear { syncSubtasks() }
+    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .task(id: expanded) {
+      guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      labelCatalog = await LabelCatalogCache.labels()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred else { return }
-      syncSubtasks()
-    }
-    .task(id: task.id) {
-      guard !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty else { return }
-      labelCatalog = await LabelCatalogCache.labels()
+      guard !deferred, expanded, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      _Concurrency.Task {
+        labelCatalog = await LabelCatalogCache.labels()
+      }
     }
   }
 
@@ -69,28 +66,27 @@ struct TaskRow: View {
 
       subtasksExpansion
 
-      if !(task.hasSubtasks && expanded) {
+      if !(task.hasSubtasks && (expanded || subtaskRevealActive)) {
         TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
       }
+    }
+    .onChange(of: expanded) { _, isExpanded in
+      scheduleSubtaskRevealTeardown(afterCollapse: !isExpanded)
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear {
-      guard !deferHeavyWork else { return }
-      syncSubtasks()
-    }
-    .onChange(of: task.subtasks) { _, _ in
-      guard !deferHeavyWork else { return }
-      syncSubtasks()
+    .onAppear { syncSubtasks() }
+    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .task(id: expanded) {
+      guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      labelCatalog = await LabelCatalogCache.labels()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred else { return }
-      syncSubtasks()
-    }
-    .task(id: task.id) {
-      guard !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty else { return }
-      labelCatalog = await LabelCatalogCache.labels()
+      guard !deferred, expanded, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      _Concurrency.Task {
+        labelCatalog = await LabelCatalogCache.labels()
+      }
     }
   }
 
@@ -154,7 +150,7 @@ struct TaskRow: View {
 
   @ViewBuilder
   private var subtasksExpansion: some View {
-    if task.hasSubtasks {
+    if task.hasSubtasks, subtaskRevealActive {
       SubtaskExpandReveal(expanded: expanded, reduceMotion: reduceMotion) {
         subtaskList
       }
@@ -178,8 +174,8 @@ struct TaskRow: View {
         dueDate: task.dueDate,
         dueDateLabel: task.dueDateChipLabel,
         dueDateColor: task.dueDateChipColor,
-        subtasksDone: subtasksDone.filter { $0 }.count,
-        subtasksTotal: subtasksDone.count,
+        subtasksDone: displayedSubtasksDone,
+        subtasksTotal: displayedSubtasksTotal,
         commentCount: task.commentCount,
         projectName: showProject ? task.project : nil
       )
@@ -226,7 +222,7 @@ struct TaskRow: View {
     let c = theme.colors
     return Button {
       HapticService.selection()
-      expanded.toggle()
+      toggleSubtaskExpansion()
     } label: {
       StackedIcons.image(.chevronDown)
         .font(.system(size: 12, weight: .semibold))
@@ -238,7 +234,7 @@ struct TaskRow: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel(expanded ? "Recolher subtarefas" : "Expandir subtarefas")
-    .accessibilityValue("\(subtasksDone.filter { $0 }.count) de \(subtasksDone.count) concluídas")
+    .accessibilityValue("\(displayedSubtasksDone) de \(displayedSubtasksTotal) concluídas")
   }
 
   private var subtaskList: some View {
@@ -333,6 +329,38 @@ struct TaskRow: View {
     return sub.labelIds.compactMap { id in source.first(where: { $0.id == id }) }
   }
 
+  private var displayedSubtasksDone: Int {
+    subtasksDone.isEmpty ? task.subtasks.filter(\.done).count : subtasksDone.filter { $0 }.count
+  }
+
+  private var displayedSubtasksTotal: Int {
+    subtasksDone.isEmpty ? task.subtasks.count : subtasksDone.count
+  }
+
+  private func toggleSubtaskExpansion() {
+    if !subtaskRevealActive {
+      subtaskRevealActive = true
+      expanded = false
+      _Concurrency.Task { @MainActor in
+        await _Concurrency.Task.yield()
+        guard subtaskRevealActive else { return }
+        expanded = true
+      }
+      return
+    }
+    expanded.toggle()
+  }
+
+  private func scheduleSubtaskRevealTeardown(afterCollapse collapsed: Bool) {
+    guard collapsed, subtaskRevealActive else { return }
+    let delayMs = reduceMotion ? 0 : 230
+    _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
+      guard !expanded else { return }
+      subtaskRevealActive = false
+    }
+  }
+
   private func syncSubtasks() {
     subtasksDone = task.subtasks.map(\.done)
   }
@@ -366,8 +394,7 @@ struct TaskRow: View {
     }
     if let due = task.dueDateChipLabel { parts.append("vencimento \(due)") }
     if task.hasSubtasks {
-      let done = subtasksDone.filter { $0 }.count
-      parts.append("\(done) de \(subtasksDone.count) subtarefas concluídas")
+      parts.append("\(displayedSubtasksDone) de \(displayedSubtasksTotal) subtarefas concluídas")
     }
     return parts.joined(separator: ", ")
   }

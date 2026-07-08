@@ -6,6 +6,7 @@ struct LogbookView: View {
 
   @State private var tasks: [Task] = []
   @State private var loading = true
+  @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
@@ -54,7 +55,12 @@ struct LogbookView: View {
     .navigationTitle("Registro")
     .navigationBarTitleDisplayMode(.large)
     .refreshable { await load() }
-    .task { await load() }
+    .task {
+      await NavigationPushMotion.awaitSettle()
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowRowHeavyWork = true
+      await load()
+    }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task { await load() }
     }) { route in
@@ -79,6 +85,7 @@ struct LogbookView: View {
   private func logbookTaskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      deferHeavyWork: !allowRowHeavyWork,
       onToggle: { uncomplete(task) },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
       onSubtaskTap: { sub in

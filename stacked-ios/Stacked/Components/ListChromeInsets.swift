@@ -62,6 +62,16 @@ extension View {
     .scrollEdgeEffectStyle(.hard, for: .bottom)
   }
 
+  /// Adia labels/async pesados nas TaskRows até após o primeiro frame — scroll inicial mais leve.
+  func stackedListRowWorkGate(_ allowHeavyWork: Binding<Bool>) -> some View {
+    task {
+      guard !allowHeavyWork.wrappedValue else { return }
+      try? await _Concurrency.Task.sleep(for: .milliseconds(150))
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowHeavyWork.wrappedValue = true
+    }
+  }
+
   /// Drill-down — corte limpo no topo (iOS 26 scroll edge) + inset inferior do dock.
   func stackedDrillDownListChrome() -> some View {
     safeAreaPadding(

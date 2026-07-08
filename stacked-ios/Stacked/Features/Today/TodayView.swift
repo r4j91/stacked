@@ -7,6 +7,7 @@ struct TodayView: View {
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
+  @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
@@ -93,7 +94,7 @@ struct TodayView: View {
 
             if completedExpanded {
               ForEach(store.todayCompleted) { task in
-                TaskRow(task: task) { }
+                TaskRow(task: task, deferHeavyWork: !allowRowHeavyWork) { }
                   .opacity(0.7)
                   .listRowInsets(rowInsets)
                   .listRowSeparator(.hidden)
@@ -117,6 +118,7 @@ struct TodayView: View {
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.loadToday() }
+    .stackedListRowWorkGate($allowRowHeavyWork)
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadToday()
@@ -157,7 +159,10 @@ struct TodayView: View {
 
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
-    TaskRow(task: task, onToggle: {
+    TaskRow(
+      task: task,
+      deferHeavyWork: !allowRowHeavyWork,
+      onToggle: {
       store.completeToday(task)
     }, onTap: {
       detailRoute = TaskDetailRoute(taskId: task.id)
