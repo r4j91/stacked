@@ -362,10 +362,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
                     key: ValueKey(t.id),
                     task: t,
                     onCompleted: () async {
-                      await supabase
-                          .from('tasks')
-                          .update({'concluida': true})
-                          .eq('id', t.id);
+                      await _repo.completeTask(t);
                       _loadTasks();
                     },
                     onDeleteRequested: () => _deleteTask(t),
@@ -377,10 +374,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
                       allLabels: _allLabels,
                       onSubtaskToggled: (_) {},
                       onCompleted: () async {
-                        await supabase
-                            .from('tasks')
-                            .update({'concluida': true})
-                            .eq('id', t.id);
+                        await _repo.completeTask(t);
                         _loadTasks();
                       },
                       onTap: () =>

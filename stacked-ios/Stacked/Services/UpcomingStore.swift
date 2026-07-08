@@ -120,7 +120,9 @@ final class UpcomingStore {
         tasks.removeAll { $0.id == taskId }
       },
       persist: {
-        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        if let newId = try await self.repo.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+        }
         TaskCalendarSync.remove(taskId: taskId)
       },
       rollback: { [self] in

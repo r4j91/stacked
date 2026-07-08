@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/task.dart';
 import 'supabase_client.dart';
 import 'task_sync.dart';
@@ -170,6 +172,72 @@ class TaskRepository {
 
   Future<void> toggleTaskDone(String id, bool done) async {
     await supabase.from('tasks').update({'concluida': done}).eq('id', id);
+  }
+
+  /// Marca concluída e cria próxima ocorrência quando aplicável.
+  Future<String?> completeTask(Task task) async {
+    await toggleTaskDone(task.id, true);
+    final newId = await createNextOccurrence(task);
+    TaskSync.instance.notifyChanged();
+    return newId;
+  }
+
+  Future<String?> createNextOccurrence(Task task) async {
+    if (task.recurrence == null || task.dueDate == null) return null;
+    final nextDate = task.recurrence!.nextDate(task.dueDate!);
+    if (nextDate == null) return null;
+
+    final userId = supabase.auth.currentUser?.id;
+    final dateStr = _dateStr(nextDate);
+    final prioStr = switch (task.priority) {
+      Priority.high => 'high',
+      Priority.medium => 'medium',
+      Priority.low => 'low',
+      null => null,
+    };
+
+    int? ordem;
+    try {
+      final row = await supabase
+          .from('tasks')
+          .select('ordem')
+          .eq('id', task.id)
+          .maybeSingle();
+      ordem = row?['ordem'] as int?;
+    } catch (_) {}
+
+    try {
+      final inserted = await supabase
+          .from('tasks')
+          .insert({
+            'titulo': task.title,
+            'descricao': task.description,
+            'prioridade': prioStr,
+            'hora': task.time,
+            'concluida': false,
+            'data_vencimento': dateStr,
+            'recorrencia': task.recurrence!.toJsonString(),
+            if (task.projectId != null) 'project_id': task.projectId,
+            if (task.sectionId != null) 'section_id': task.sectionId,
+            if (ordem != null) 'ordem': ordem,
+            if (userId != null) 'user_id': userId,
+          })
+          .select('id')
+          .single();
+
+      final newId = inserted['id'].toString();
+
+      if (task.labels.isNotEmpty) {
+        await supabase.from('task_labels').insert(
+          task.labels.map((l) => {'task_id': newId, 'label_id': l.id}).toList(),
+        );
+      }
+
+      return newId;
+    } catch (e) {
+      debugPrint('[Recurrence] erro ao criar próxima ocorrência: $e');
+      return null;
+    }
   }
 
   Future<void> updateTaskPriority(String id, Priority priority) async {

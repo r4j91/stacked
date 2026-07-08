@@ -227,7 +227,12 @@ final class ProjectDetailStore {
         pending.remove(at: idx)
         completed.insert(updated, at: 0)
       },
-      persist: { try await TaskRepository.shared.toggleTaskDone(id: taskId, done: true) },
+      persist: {
+        if let newId = try await TaskRepository.shared.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+          await self.load()
+        }
+      },
       rollback: { [self] in
         completed.removeAll { $0.id == taskId }
         var restored = snapshot

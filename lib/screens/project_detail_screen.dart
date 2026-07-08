@@ -305,7 +305,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (task.done) return;
     final updated = task.copyWith(done: true);
     setState(() => _tasks[i] = updated);
-    supabase.from('tasks').update({'concluida': true}).eq('id', task.id).catchError((_) {
+    _repo.completeTask(task).then((_) => _loadTasks()).catchError((_) {
       if (mounted) setState(() => _tasks[i] = task);
     });
   }

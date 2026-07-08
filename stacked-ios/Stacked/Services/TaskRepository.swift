@@ -91,6 +91,67 @@ final class TaskRepository {
     }
   }
 
+  /// Marca concluída e cria próxima ocorrência quando aplicável.
+  /// Retorna o id da nova tarefa, se criada.
+  func completeTask(_ task: Task) async throws -> String? {
+    try await toggleTaskDone(id: task.id, done: true)
+    return try await createNextOccurrence(for: task)
+  }
+
+  func createNextOccurrence(for task: Task) async throws -> String? {
+    guard let recurrence = task.recurrence, !recurrence.isEmpty,
+          let due = task.dueDate,
+          let nextDate = RecurrenceCodec.nextDate(from: due, json: recurrence)
+    else { return nil }
+
+    guard let userId = client.auth.currentUser?.id else {
+      throw NSError(domain: "Stacked", code: 401, userInfo: [NSLocalizedDescriptionKey: "Não autenticado"])
+    }
+
+    struct OrdRow: Decodable { let ordem: Int? }
+    let ordRow: OrdRow? = try? await client
+      .from("tasks")
+      .select("ordem")
+      .eq("id", value: task.id)
+      .single()
+      .execute()
+      .value
+    let ordem = ordRow?.ordem
+
+    struct IdRow: Decodable { let id: String }
+    let row: IdRow = try await client.from("tasks").insert(
+      NextOccurrenceInsertPayload(
+        titulo: task.title,
+        descricao: task.description,
+        prioridade: task.priority?.rawValue,
+        project_id: task.projectId,
+        section_id: task.sectionId,
+        data_vencimento: TaskMapper.dateString(nextDate),
+        hora: task.time,
+        user_id: userId,
+        concluida: false,
+        recorrencia: recurrence,
+        ordem: ordem
+      )
+    ).select("id").single().execute().value
+
+    if !task.labels.isEmpty {
+      let links = task.labels.map { ["task_id": row.id, "label_id": $0.id] }
+      try await client.from("task_labels").insert(links).execute()
+    }
+
+    if let time = task.time, !time.isEmpty {
+      await NotificationService.shared.syncTaskNotification(
+        id: row.id,
+        title: task.title,
+        dueDate: nextDate,
+        time: time
+      )
+    }
+
+    return row.id
+  }
+
   func updateTaskDate(id: String, isoDate: String) async throws {
     try await client
       .from("tasks")
@@ -440,6 +501,63 @@ final class TaskRepository {
 }
 
 /// JSONEncoder padrão omite nil — sem isso o Postgres pode aplicar default em `prioridade`.
+private struct NextOccurrenceInsertPayload: Encodable {
+  let titulo: String
+  let descricao: String?
+  let prioridade: String?
+  let project_id: String?
+  let section_id: String?
+  let data_vencimento: String
+  let hora: String?
+  let user_id: UUID
+  let concluida: Bool
+  let recorrencia: String
+  let ordem: Int?
+
+  enum CodingKeys: String, CodingKey {
+    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida, recorrencia, ordem
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var c = encoder.container(keyedBy: CodingKeys.self)
+    try c.encode(titulo, forKey: .titulo)
+    if let descricao {
+      try c.encode(descricao, forKey: .descricao)
+    } else {
+      try c.encodeNil(forKey: .descricao)
+    }
+    if let prioridade {
+      try c.encode(prioridade, forKey: .prioridade)
+    } else {
+      try c.encodeNil(forKey: .prioridade)
+    }
+    if let project_id {
+      try c.encode(project_id, forKey: .project_id)
+    } else {
+      try c.encodeNil(forKey: .project_id)
+    }
+    if let section_id {
+      try c.encode(section_id, forKey: .section_id)
+    } else {
+      try c.encodeNil(forKey: .section_id)
+    }
+    try c.encode(data_vencimento, forKey: .data_vencimento)
+    if let hora {
+      try c.encode(hora, forKey: .hora)
+    } else {
+      try c.encodeNil(forKey: .hora)
+    }
+    try c.encode(user_id, forKey: .user_id)
+    try c.encode(concluida, forKey: .concluida)
+    try c.encode(recorrencia, forKey: .recorrencia)
+    if let ordem {
+      try c.encode(ordem, forKey: .ordem)
+    } else {
+      try c.encodeNil(forKey: .ordem)
+    }
+  }
+}
+
 private struct CreateTaskInsertPayload: Encodable {
   let titulo: String
   let descricao: String?

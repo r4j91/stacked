@@ -9,6 +9,7 @@ import '../models/task.dart';
 import '../services/haptic_service.dart';
 import '../services/subtask_repository.dart';
 import '../services/task_detail_persistence.dart';
+import '../services/task_repository.dart';
 import '../services/section_repository.dart';
 import '../services/supabase_client.dart';
 import '../theme/app_colors.dart';
@@ -533,11 +534,33 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> with WidgetsBindingO
     } else {
       HapticService().selectionClick();
     }
+    const repo = TaskRepository();
     try {
-      await supabase
-          .from('tasks')
-          .update({'concluida': next})
-          .eq('id', widget.task!.id);
+      if (next) {
+        final base = widget.task!;
+        final timeStr = _dueTime != null
+            ? '${_dueTime!.hour.toString().padLeft(2, '0')}:${_dueTime!.minute.toString().padLeft(2, '0')}'
+            : base.time;
+        final snapshot = Task(
+          id: base.id,
+          title: _titleCtrl.text.trim().isEmpty ? base.title : _titleCtrl.text.trim(),
+          description: _descCtrl.text.isEmpty ? null : _descCtrl.text,
+          project: _project?.name ?? base.project,
+          projectId: _project?.id ?? base.projectId,
+          sectionId: _sectionId ?? base.sectionId,
+          priority: _priority,
+          time: timeStr,
+          labels: _labels
+              .where((l) => _labelIds.contains(l.id))
+              .map((l) => TaskLabel(id: l.id, name: l.name, color: l.color))
+              .toList(),
+          dueDate: _dueDate ?? base.dueDate,
+          recurrence: _recurrence ?? base.recurrence,
+        );
+        await repo.completeTask(snapshot);
+      } else {
+        await repo.toggleTaskDone(widget.task!.id, false);
+      }
       widget.onSaved?.call();
     } catch (_) {
       if (mounted) setState(() => _taskDone = !next);

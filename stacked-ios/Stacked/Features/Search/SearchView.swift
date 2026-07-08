@@ -76,7 +76,9 @@ final class SearchStore {
       animatedRemoval: { [self] in
         allTasks.removeAll { $0.id == taskId }
       },
-      persist: { try await TaskRepository.shared.toggleTaskDone(id: taskId, done: true) },
+      persist: {
+        _ = try await TaskRepository.shared.completeTask(snapshot)
+      },
       rollback: { [self] in
         var restored = snapshot
         restored.done = false

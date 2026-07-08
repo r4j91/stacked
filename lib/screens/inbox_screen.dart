@@ -108,8 +108,9 @@ class InboxScreenState extends State<InboxScreen> {
     if (task.done) return;
     final updated = task.copyWith(done: true);
     setState(() => _tasks[i] = updated);
-    supabase.from('tasks').update({'concluida': true}).eq('id', task.id).catchError((_) {
+    _repo.completeTask(task).catchError((_) {
       if (mounted) setState(() => _tasks[i] = task);
+      return null;
     });
     NotificationService().cancelTaskNotification(task.id);
   }

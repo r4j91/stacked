@@ -207,7 +207,11 @@ class FiltersScreenState extends State<FiltersScreen> {
 
   Future<void> _toggleDone(int i) async {
     final t = _filterTasks[i];
-    await _repo.toggleTaskDoneById(t.id, !t.done);
+    if (!t.done) {
+      await _repo.completeTask(t);
+    } else {
+      await _repo.toggleTaskDoneById(t.id, false);
+    }
     _loadFilter(_view);
     _loadStats();
   }

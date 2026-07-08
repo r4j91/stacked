@@ -64,4 +64,31 @@ enum RecurrenceCodec {
     else { return nil }
     return str
   }
+
+  /// Paridade lib/models/recurrence.dart `nextDate`
+  static func nextDate(from date: Date, json: String) -> Date? {
+    guard let data = json.data(using: .utf8),
+          let map = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let tipo = map["tipo"] as? String,
+          let type = RecurrenceType.fromJsonTipo(tipo)
+    else { return nil }
+
+    let cal = Calendar.current
+    let from = cal.startOfDay(for: date)
+
+    switch type {
+    case .daily:
+      return cal.date(byAdding: .day, value: 1, to: from)
+    case .weekly:
+      return cal.date(byAdding: .day, value: 7, to: from)
+    case .monthly:
+      var comps = cal.dateComponents([.year, .month, .day], from: from)
+      comps.month = (comps.month ?? 1) + 1
+      return cal.date(from: comps)
+    case .yearly:
+      var comps = cal.dateComponents([.year, .month, .day], from: from)
+      comps.year = (comps.year ?? 0) + 1
+      return cal.date(from: comps)
+    }
+  }
 }

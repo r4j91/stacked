@@ -34,6 +34,7 @@ final class TaskDetailViewModel {
   var dueDate: Date?
   var time: String?
   var projectId: String?
+  var sectionId: String?
   var projectName = "Sem projeto"
   var selectedLabelIds: Set<String> = []
   var subtasks: [Subtask] = []
@@ -105,6 +106,7 @@ final class TaskDetailViewModel {
     dueDate = task.dueDate
     time = task.time
     projectId = task.projectId
+    sectionId = task.sectionId
     projectName = task.project
     subtasks = task.subtasks
     recurrence = task.recurrence
@@ -189,13 +191,33 @@ final class TaskDetailViewModel {
   }
 
   func toggleDone() {
+    let becomingDone = !done
     done.toggle()
     HapticService.success()
     _Concurrency.Task {
-      try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: done)
-      if done {
+      if becomingDone {
+        let snapshot = Task(
+          id: taskId,
+          title: title,
+          description: descriptionText.isEmpty ? nil : descriptionText,
+          project: projectName,
+          projectId: projectId,
+          sectionId: sectionId,
+          priority: priority,
+          time: time,
+          labels: allLabels.filter { selectedLabelIds.contains($0.id) },
+          subtasks: subtasks,
+          dueDate: dueDate,
+          done: false,
+          commentCount: comments.count,
+          recurrence: recurrence
+        )
+        if let newId = try? await TaskRepository.shared.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+        }
         TaskCalendarSync.remove(taskId: taskId)
       } else {
+        try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
         TaskCalendarSync.syncAfterMutation(
           taskId: taskId,
           title: title,

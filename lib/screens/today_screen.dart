@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
@@ -123,60 +122,13 @@ class TodayScreenState extends State<TodayScreen> {
     if (task.done) return; // already completing via animation, ignore
     final newDone = !task.done;
     setState(() => _tasks[taskIndex] = task.copyWith(done: newDone));
-    supabase.from('tasks').update({'concluida': newDone}).eq('id', task.id).catchError((_) {
+    _repo.completeTask(task).catchError((_) {
       if (mounted) setState(() => _tasks[taskIndex] = task);
+      return null;
     });
     if (newDone) {
       NotificationService().cancelTaskNotification(task.id);
-      if (task.recurrence != null && task.dueDate != null) {
-        _createNextOccurrence(task);
-      }
       // Removal is handled by TaskTile.onDismissed after animation completes.
-    }
-  }
-
-  Future<void> _createNextOccurrence(Task task) async {
-    final nextDate = task.recurrence!.nextDate(task.dueDate!);
-    if (nextDate == null) return;
-
-    final userId = supabase.auth.currentUser?.id;
-    final dateStr =
-        '${nextDate.year}-${nextDate.month.toString().padLeft(2, '0')}-${nextDate.day.toString().padLeft(2, '0')}';
-
-    final prioStr = switch (task.priority) {
-      Priority.high => 'high',
-      Priority.medium => 'medium',
-      Priority.low => 'low',
-      null => null,
-    };
-
-    try {
-      final inserted = await supabase
-          .from('tasks')
-          .insert({
-            'titulo': task.title,
-            'descricao': task.description,
-            'prioridade': prioStr,
-            'hora': task.time,
-            'concluida': false,
-            'data_vencimento': dateStr,
-            'recorrencia': jsonEncode(task.recurrence!.toJson()),
-            if (userId != null) 'user_id': userId,
-          })
-          .select('id')
-          .single();
-
-      final newId = inserted['id'].toString();
-
-      if (task.labels.isNotEmpty) {
-        await supabase.from('task_labels').insert(
-          task.labels.map((l) => {'task_id': newId, 'label_id': l.id}).toList(),
-        );
-      }
-
-      if (mounted) _loadTasks();
-    } catch (e) {
-      debugPrint('[Recurrence] erro ao criar próxima ocorrência: $e');
     }
   }
 

@@ -410,7 +410,9 @@ final class FiltersStore {
           syncSavedFilterCache()
         },
         persist: {
-          try await self.taskRepo.toggleTaskDone(id: taskId, done: true)
+          if let newId = try await self.taskRepo.completeTask(snapshot) {
+            await TaskCalendarSync.syncTaskId(newId)
+          }
           await self.loadDashboard()
         },
         rollback: { [self] in
@@ -448,7 +450,9 @@ final class FiltersStore {
         syncPresetFilterCache()
       },
       persist: {
-        try await self.taskRepo.toggleTaskDone(id: taskId, done: true)
+        if let newId = try await self.taskRepo.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+        }
         await self.loadDashboard()
       },
       rollback: { [self] in

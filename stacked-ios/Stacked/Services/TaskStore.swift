@@ -108,7 +108,9 @@ final class TaskStore {
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
       },
       persist: {
-        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        if let newId = try await self.repo.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+        }
         TaskCalendarSync.remove(taskId: taskId)
       },
       rollback: { [self] in
@@ -143,7 +145,9 @@ final class TaskStore {
         }
       },
       persist: {
-        try await self.repo.toggleTaskDone(id: taskId, done: true)
+        if let newId = try await self.repo.completeTask(snapshot) {
+          await TaskCalendarSync.syncTaskId(newId)
+        }
         TaskCalendarSync.remove(taskId: taskId)
       },
       rollback: { [self] in
