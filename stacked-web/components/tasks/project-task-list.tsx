@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { useHoldToReorder } from "@/lib/hooks/use-hold-to-reorder";
 import { Add01Icon } from "@/lib/icons/nav-icons";
+import { ListSectionHeader } from "@/components/tasks/list-section-header";
 
 function CollapsibleSectionHeader({
   section,
@@ -34,56 +35,18 @@ function CollapsibleSectionHeader({
   reorderDragging?: boolean;
 }) {
   return (
-    <div
-      {...(reorderRowProps ?? {})}
-      data-task-drop-section={section.id}
-      className={`flex items-center gap-2 px-2 pb-2 pt-4 ${
-        reorderDragging
-          ? "reorder-dragging rounded-[var(--radius-sm)]"
-          : reorderHolding
-            ? "reorder-holding rounded-[var(--radius-sm)]"
-            : reorderDragOver
-              ? "reorder-drop-target rounded-[var(--radius-sm)]"
-              : ""
-      }`}
-      data-reorder-dragging={reorderDragging ? "" : undefined}
-    >
-      <button
-        type="button"
-        data-no-reorder
-        onClick={onToggle}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-text-secondary)]"
-        aria-expanded={expanded}
-        aria-label={expanded ? "Recolher seção" : "Expandir seção"}
-      >
-        <svg
-          className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path d="m9 18 6-6-6-6" strokeLinecap="round" />
-        </svg>
-      </button>
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <h2 className="truncate text-[13px] font-semibold text-[var(--color-text-secondary)]">
-          {section.name}
-        </h2>
-        {count > 0 && (
-          <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">{count}</span>
-        )}
-      </div>
-      <button
-        type="button"
-        data-no-reorder
-        onClick={(e) => onMenu(e.currentTarget.getBoundingClientRect())}
-        className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-text-secondary)]"
-        aria-label={`Opções da seção ${section.name}`}
-      >
-        ···
-      </button>
-    </div>
+    <ListSectionHeader
+      title={section.name}
+      count={count}
+      expanded={expanded}
+      onToggle={onToggle}
+      onMenu={onMenu}
+      dropSectionId={section.id}
+      reorderRowProps={reorderRowProps}
+      reorderHolding={reorderHolding}
+      reorderDragOver={reorderDragOver}
+      reorderDragging={reorderDragging}
+    />
   );
 }
 
@@ -236,26 +199,13 @@ export function ProjectTaskList() {
           );
         }
         return (
-          <button
+          <ListSectionHeader
             key="completed-header"
-            type="button"
-            onClick={toggleProjectCompletedExpanded}
-            className="flex w-full items-center gap-2 px-2 pb-2 pt-4 text-left"
-          >
-            <svg
-              className={`h-3.5 w-3.5 text-[var(--color-text-tertiary)] transition-transform ${projectCompletedExpanded ? "rotate-90" : ""}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path d="m9 18 6-6-6-6" strokeLinecap="round" />
-            </svg>
-            <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)]">
-              Concluídas
-            </h2>
-            <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">{item.count}</span>
-          </button>
+            title="Concluídas"
+            count={item.count}
+            expanded={projectCompletedExpanded}
+            onToggle={toggleProjectCompletedExpanded}
+          />
         );
       })}
 

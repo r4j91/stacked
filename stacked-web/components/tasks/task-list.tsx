@@ -14,6 +14,7 @@ import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
+import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import {
   Sun01Icon,
   InboxIcon,
@@ -233,16 +234,7 @@ function Section({
   if (!tasks.length) return null;
   return (
     <section className="mt-2">
-      <div className="flex items-center gap-2 px-2 pb-2 pt-4">
-        <h2 className={`text-[13px] font-semibold ${overdue ? "text-[var(--color-overdue)]" : "text-[var(--color-text-secondary)]"}`}>
-          {title}
-        </h2>
-        {count != null && (
-          <span className="rounded-full bg-[var(--color-overdue)]/15 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--color-overdue)]">
-            {count}
-          </span>
-        )}
-      </div>
+      <ListSectionHeader title={title} count={count} overdue={overdue} />
       {tasks.map((t) => (
         <TaskRow key={t.id} task={t} keyboardFocused={focusedTaskId === t.id} />
       ))}
@@ -365,9 +357,7 @@ export function TaskList() {
           {(todayTimeline.length > 0 || (viewTasks.today ?? viewTasks.pending).length > 0) && (
             <section>
               {(viewTasks.overdue?.length ?? 0) > 0 && (
-                <div className="flex items-center gap-2 px-2 pb-2 pt-4">
-                  <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)]">Hoje</h2>
-                </div>
+                <ListSectionHeader title="Hoje" />
               )}
               {todayTimeline.map((item) =>
                 item.kind === "calendar" ? (

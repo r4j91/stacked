@@ -275,6 +275,29 @@ textarea:focus:not(:focus-visible) {
   color: var(--color-text-secondary);
 }
 
+.type-list-section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.type-list-section-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+@media (min-width: 1024px) {
+  .type-list-section-title {
+    font-size: 0.9375rem;
+  }
+
+  .type-list-section-count {
+    font-size: 0.8125rem;
+  }
+}
+
 .chip-selected {
   background-color: var(--color-selected-bg);
   color: var(--color-selected-fg);

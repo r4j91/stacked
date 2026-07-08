@@ -7,6 +7,7 @@ import { TaskRow, TaskListSkeleton } from "@/components/tasks/task-list";
 import { SavedFilterBuilder } from "@/components/filters/saved-filter-builder";
 import { FilterSubtaskRow } from "@/components/filters/filter-subtask-row";
 import { ViewOptionsMenu } from "@/components/shell/view-options-menu";
+import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import type { TaskFilterKind } from "@/lib/types/task";
@@ -291,9 +292,7 @@ export function FiltersCanvas() {
 
           {showCompleted && completedFilterResults.length > 0 && (
             <>
-              <h3 className="mb-1 mt-4 px-2 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-                Concluídas
-              </h3>
+              <ListSectionHeader title="Concluídas" count={completedFilterResults.length} />
               {completedFilterResults.map((item) =>
                 item.kind === "task" ? (
                   <TaskRow key={filterResultId(item)} task={item.task} embedded />
