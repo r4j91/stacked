@@ -286,6 +286,7 @@ extension View {
   /// Esconde o voltar nativo — use com `DrillDownBackToolbarItem` na toolbar.
   func stackedDrillDownGlassBackButton() -> some View {
     navigationBarBackButtonHidden(true)
+      .background(InteractivePopGestureEnabler())
   }
 }
 

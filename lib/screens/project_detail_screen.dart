@@ -10,6 +10,7 @@ import '../widgets/task_context_menu.dart';
 import 'package:hugeicons/hugeicons.dart';
 // CORRIGIDO_ETAPA3B
 import '../services/label_repository.dart';
+import '../services/project_detail_preferences.dart';
 import '../services/section_repository.dart';
 import '../services/supabase_client.dart';
 import '../services/task_repository.dart';
@@ -99,7 +100,28 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _showCompleted = prefs.getBool(_prefsKey) ?? true);
+    final collapsed = await ProjectDetailPreferences.collapsedSectionIds(widget.projectId);
+    final completedExpanded = await ProjectDetailPreferences.completedExpanded(widget.projectId);
+    if (!mounted) return;
+    setState(() {
+      _showCompleted = prefs.getBool(_prefsKey) ?? true;
+      _completedExpanded = completedExpanded;
+      _collapsedSectionIds
+        ..clear()
+        ..addAll(collapsed);
+    });
+  }
+
+  Future<void> _persistCollapsedSections() async {
+    await ProjectDetailPreferences.setCollapsedSectionIds(
+      _collapsedSectionIds,
+      widget.projectId,
+    );
+  }
+
+  Future<void> _setCompletedExpanded(bool value) async {
+    await ProjectDetailPreferences.setCompletedExpanded(value, widget.projectId);
+    if (mounted) setState(() => _completedExpanded = value);
   }
 
   Future<void> _setShowCompleted(bool value) async {
@@ -1279,13 +1301,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           name: section.name,
           count: count,
           expanded: expanded,
-          onTap: () => setState(() {
-            if (expanded) {
-              _collapsedSectionIds.add(section.id);
-            } else {
-              _collapsedSectionIds.remove(section.id);
-            }
-          }),
+          onTap: () {
+            setState(() {
+              if (expanded) {
+                _collapsedSectionIds.add(section.id);
+              } else {
+                _collapsedSectionIds.remove(section.id);
+              }
+            });
+            _persistCollapsedSections();
+          },
           onMenu: (ctx) => _showSectionMenu(ctx, section),
         );
       case ProjectListItemKind.addTask:
@@ -1296,7 +1321,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           expanded: _completedExpanded,
           onTap: () {
             HapticService().selectionClick();
-            setState(() => _completedExpanded = !_completedExpanded);
+            _setCompletedExpanded(!_completedExpanded);
           },
         );
       case ProjectListItemKind.completedTask:

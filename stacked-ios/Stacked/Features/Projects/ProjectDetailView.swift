@@ -10,7 +10,7 @@ struct ProjectDetailView: View {
   @AppStorage("display_mode") private var displayMode = "cards"
   @AppStorage private var showCompleted: Bool
   @State private var store: ProjectDetailStore
-  @State private var completedExpanded = false
+  @State private var completedExpanded: Bool
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var showQuickAdd = false
@@ -20,7 +20,7 @@ struct ProjectDetailView: View {
   @State private var renameSectionTarget: ProjectSection?
   @State private var renameSectionName = ""
   @State private var deleteSectionTarget: ProjectSection?
-  @State private var collapsedSectionIds: Set<String> = []
+  @State private var collapsedSectionIds: Set<String>
   @State private var allowRowHeavyWork = false
   @State private var revealListContent = false
   @Namespace private var taskDetailZoom
@@ -49,6 +49,12 @@ struct ProjectDetailView: View {
       UserDefaults.standard.set(true, forKey: completedKey)
     }
     _showCompleted = AppStorage(wrappedValue: true, completedKey)
+    _completedExpanded = State(
+      initialValue: ProjectDetailPreferences.completedExpanded(projectId: projectId)
+    )
+    _collapsedSectionIds = State(
+      initialValue: ProjectDetailPreferences.collapsedSectionIds(projectId: projectId)
+    )
     _store = State(
       initialValue: ProjectDetailStore(
         projectId: projectId,
@@ -126,6 +132,10 @@ struct ProjectDetailView: View {
                 onToggle: {
                   AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
                     completedExpanded.toggle()
+                    ProjectDetailPreferences.setCompletedExpanded(
+                      completedExpanded,
+                      projectId: projectId
+                    )
                   }
                 }
               )
@@ -373,6 +383,7 @@ struct ProjectDetailView: View {
     } else {
       collapsedSectionIds.insert(id)
     }
+    ProjectDetailPreferences.setCollapsedSectionIds(collapsedSectionIds, projectId: projectId)
   }
 
   @ViewBuilder
