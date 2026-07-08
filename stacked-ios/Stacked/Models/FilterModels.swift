@@ -39,6 +39,7 @@ struct ProjectTaskStats: Identifiable, Equatable {
   let id: String
   let name: String
   let colorHex: String?
+  let iconKey: String?
   let pending: Int
   let total: Int
 }

@@ -33,6 +33,7 @@ struct ProjectOptionsSheet: View {
     let c = theme.colors
 
     VStack(spacing: 0) {
+      SheetDragHandle()
       header
       Divider().overlay(c.textTertiary.opacity(0.12))
       Group {
@@ -62,34 +63,40 @@ struct ProjectOptionsSheet: View {
 
   private var header: some View {
     let c = theme.colors
-    return HStack(spacing: 8) {
+    return HStack(spacing: 4) {
       if page != .menu {
         Button { AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) { page = .menu } } label: {
-          StackedIcons.image(.arrowLeft).foregroundStyle(c.textSecondary)
+          StackedIcons.image(.arrowLeft)
+            .font(.system(size: 18, weight: .medium))
+            .foregroundStyle(c.textSecondary)
+            .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
-
-        Text(pageTitle)
-          .font(AppTypography.sheetPageTitle)
-          .foregroundStyle(c.textPrimary)
-          .lineLimit(1)
+      } else {
+        Color.clear.frame(width: 44, height: 44)
       }
 
-      Spacer()
+      Text(headerTitle)
+        .font(AppTypography.sheetPageTitle)
+        .foregroundStyle(c.textPrimary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity)
 
       Button { dismiss() } label: {
-        StackedIcons.image(.close).foregroundStyle(c.textTertiary)
+        StackedIcons.image(.close)
+          .font(.system(size: 16, weight: .medium))
+          .foregroundStyle(c.textTertiary)
+          .frame(width: 44, height: 44)
       }
       .buttonStyle(.plain)
     }
-    .padding(.horizontal, 16)
-    .padding(.top, 4)
-    .padding(.bottom, page == .menu ? 4 : 10)
+    .padding(.horizontal, 8)
+    .padding(.bottom, 8)
   }
 
-  private var pageTitle: String {
+  private var headerTitle: String {
     switch page {
-    case .menu: ""
+    case .menu: displayName
     case .name: "Nome"
     case .icon: "Ícone"
     case .color: "Cor"

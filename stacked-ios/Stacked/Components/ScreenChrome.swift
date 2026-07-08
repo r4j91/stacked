@@ -123,6 +123,31 @@ enum ModalChrome {
   }
 }
 
+// MARK: - Form / editor sheets (handle + presentation)
+
+struct SheetDragHandle: View {
+  @Environment(ThemeManager.self) private var theme
+
+  var body: some View {
+    Capsule()
+      .fill(theme.colors.textTertiary.opacity(0.35))
+      .frame(width: 36, height: 4)
+      .padding(.top, 10)
+      .padding(.bottom, 6)
+      .frame(maxWidth: .infinity)
+      .accessibilityHidden(true)
+  }
+}
+
+extension View {
+  /// Fundo sólido, cantos arredondados e handle próprio (esconde o indicador nativo duplicado).
+  func stackedEditableSheetPresentation(background: Color) -> some View {
+    presentationDragIndicator(.hidden)
+      .presentationBackground(background)
+      .presentationCornerRadius(20)
+  }
+}
+
 // MARK: - Settings drill-down (paridade appearance_screen / labels_screen)
 
 enum SettingsChrome {

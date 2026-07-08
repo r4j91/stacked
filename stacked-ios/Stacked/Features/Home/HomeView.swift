@@ -95,7 +95,7 @@ struct HomeView: View {
       )
       .environment(ThemeManager.shared)
       .presentationDetents([.medium, .large])
-      .presentationDragIndicator(.visible)
+      .stackedEditableSheetPresentation(background: theme.colors.background)
     }
   }
 

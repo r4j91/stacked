@@ -98,6 +98,7 @@ final class ProjectRepository {
       let id: String
       let nome: String?
       let cor: String?
+      let icone: String?
       let tasks: [TaskDoneRow]?
     }
 
@@ -124,6 +125,7 @@ final class ProjectRepository {
         id: row.id,
         name: row.nome ?? "",
         colorHex: row.cor,
+        iconKey: row.icone,
         pending: tasks.filter { !($0.concluida ?? false) }.count,
         total: tasks.count
       )

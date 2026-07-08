@@ -199,27 +199,35 @@ struct FiltersView: View {
             EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
             .stackedListEmptyStateRow()
           } else {
-            ForEach(store.projects) { project in
-              Button {
-                HapticService.selection()
-                let projectId = project.id
-                ProjectDetailCache.shared.prefetch(projectId: projectId)
-                selectedProject = ProjectRoute(
-                  id: projectId,
-                  name: project.name,
-                  snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
-                )
-              } label: {
-                projectRow(project)
+            filtersDashboardCard {
+              VStack(spacing: 0) {
+                ForEach(Array(store.projects.enumerated()), id: \.element.id) { index, project in
+                  Button {
+                    HapticService.selection()
+                    let projectId = project.id
+                    ProjectDetailCache.shared.prefetch(projectId: projectId)
+                    selectedProject = ProjectRoute(
+                      id: projectId,
+                      name: project.name,
+                      snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+                    )
+                  } label: {
+                    projectRow(project)
+                  }
+                  .buttonStyle(.plain)
+
+                  if index < store.projects.count - 1 {
+                    filtersCardDivider(leadingPadding: 66)
+                  }
+                }
               }
-              .buttonStyle(.plain)
-              .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
             }
+            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
           }
         } header: {
-          ListSectionHeader(text: "PROJETOS")
+          projectsHeader
         }
       }
 
@@ -396,42 +404,111 @@ struct FiltersView: View {
     .padding(.vertical, 13)
   }
 
+  private func filtersDashboardCard<Content: View>(
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    let c = theme.colors
+    return content()
+      .background(c.surface)
+      .clipShape(RoundedRectangle(cornerRadius: 14))
+      .overlay(
+        RoundedRectangle(cornerRadius: 14)
+          .stroke(c.textTertiary.opacity(0.1), lineWidth: 1)
+      )
+  }
+
+  private func filtersCardDivider(leadingPadding: CGFloat) -> some View {
+    let c = theme.colors
+    return Rectangle()
+      .fill(c.textTertiary.opacity(0.1))
+      .frame(height: 1)
+      .padding(.leading, leadingPadding)
+  }
+
+  private var projectsHeader: some View {
+    let c = theme.colors
+    return VStack(alignment: .leading, spacing: 6) {
+      ListSectionHeader(text: "PROJETOS")
+
+      if store.projects.isEmpty {
+        Text("Crie projetos na aba Navegar para acompanhar o progresso aqui.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textTertiary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+    }
+  }
+
+  private func projectStatusLine(_ project: ProjectTaskStats) -> String {
+    if project.total == 0 {
+      return "Sem tarefas"
+    }
+    let done = project.total - project.pending
+    if project.pending == 0 {
+      return "Tudo concluído · \(project.total) no total"
+    }
+    let pendingLabel = project.pending == 1 ? "1 pendente" : "\(project.pending) pendentes"
+    let doneLabel = done == 1 ? "1 concluída" : "\(done) concluídas"
+    return "\(pendingLabel) · \(doneLabel)"
+  }
+
   private func projectRow(_ project: ProjectTaskStats) -> some View {
     let c = theme.colors
     let color = AppColors.parseHex(project.colorHex, fallback: c.accent)
     let done = project.total - project.pending
     let progress = project.total > 0 ? Double(done) / Double(project.total) : 0
 
-    return HStack(spacing: 16) {
-      StackedIcons.image(.folder)
-        .font(.system(size: 22))
-        .foregroundStyle(color)
-        .frame(width: 28, height: 28)
+    return HStack(spacing: 14) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(color.opacity(0.14))
+          .frame(width: 40, height: 40)
+        StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
+          .font(.system(size: 20))
+          .foregroundStyle(color)
+      }
 
-      VStack(alignment: .leading, spacing: 7) {
+      VStack(alignment: .leading, spacing: 5) {
         Text(project.name)
-          .font(AppTypography.navRowTitle)
+          .font(AppTypography.filterRowTitle)
           .foregroundStyle(c.textPrimary)
           .lineLimit(1)
+
+        Text(projectStatusLine(project))
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textTertiary)
+          .lineLimit(1)
+
         if project.total > 0 {
-          GeometryReader { geo in
-            ZStack(alignment: .leading) {
-              Capsule().fill(c.textTertiary.opacity(0.12))
-              Capsule().fill(color).frame(width: geo.size.width * progress)
-            }
-          }
-          .frame(height: 3)
+          projectProgressBar(progress: progress, color: color)
         }
       }
 
+      Spacer(minLength: 8)
+
       Text("\(project.pending)")
-        .font(AppTypography.filterRowTitle)
-        .foregroundStyle(c.textTertiary)
+        .font(AppTypography.navRowCount)
+        .foregroundStyle(project.pending > 0 ? c.textSecondary : c.textTertiary)
 
       StackedIcons.image(.chevronRight)
-        .font(.system(size: 14))
+        .font(.system(size: 12, weight: .semibold))
         .foregroundStyle(c.textTertiary.opacity(0.7))
     }
-    .padding(.vertical, 13)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .contentShape(Rectangle())
+  }
+
+  private func projectProgressBar(progress: Double, color: Color) -> some View {
+    let c = theme.colors
+    return ZStack(alignment: .leading) {
+      Capsule()
+        .fill(c.textTertiary.opacity(0.12))
+      Capsule()
+        .fill(color)
+        .scaleEffect(x: max(progress, progress > 0 ? 0.04 : 0), y: 1, anchor: .leading)
+    }
+    .frame(height: 3)
+    .clipShape(Capsule())
   }
 }

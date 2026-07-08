@@ -364,14 +364,29 @@ class FiltersScreenState extends State<FiltersScreen> {
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm,
               ),
-              child: Text(
-                'PROJETOS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                  color: AppColors.textSecondary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PROJETOS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (_projects.isEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Crie projetos na aba Navegar para acompanhar o progresso aqui.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -641,10 +656,22 @@ class _ProjectStatRow extends StatelessWidget {
   const _ProjectStatRow({required this.project});
 
   static final _countStyle = TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textTertiary,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
   );
+
+  String _statusLine() {
+    if (project.total == 0) return 'Sem tarefas';
+    final done = project.total - project.pending;
+    if (project.pending == 0) {
+      return 'Tudo concluído · ${project.total} no total';
+    }
+    final pendingLabel =
+        project.pending == 1 ? '1 pendente' : '${project.pending} pendentes';
+    final doneLabel = done == 1 ? '1 concluída' : '$done concluídas';
+    return '$pendingLabel · $doneLabel';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -676,13 +703,17 @@ class _ProjectStatRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              SizedBox(
-                width: 28,
-                height: 28,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Center(
                   child: HugeIcon(
                     icon: ProjectIcons.resolve(project.icone),
-                    size: 22,
+                    size: 20,
                     color: color,
                   ),
                 ),
@@ -695,15 +726,25 @@ class _ProjectStatRow extends StatelessWidget {
                     Text(
                       project.name,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _statusLine(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     if (project.total > 0) ...[
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 6),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(2),
                         child: LinearProgressIndicator(
@@ -718,7 +759,12 @@ class _ProjectStatRow extends StatelessWidget {
                   ],
                 ),
               ),
-              Text('${project.pending}', style: _countStyle),
+              Text(
+                '${project.pending}',
+                style: project.pending > 0
+                    ? _countStyle
+                    : _countStyle.copyWith(color: AppColors.textTertiary),
+              ),
               const SizedBox(width: AppSpacing.sm),
               HugeIcon(
                 icon: HugeIcons.strokeRoundedArrowRight01,

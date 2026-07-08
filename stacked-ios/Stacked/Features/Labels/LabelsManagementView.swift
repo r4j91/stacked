@@ -60,9 +60,7 @@ struct LabelsManagementView: View {
         }
         .environment(theme)
         .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(theme.colors.background)
-        .presentationCornerRadius(20)
+        .stackedEditableSheetPresentation(background: theme.colors.background)
       }
   }
 
@@ -174,7 +172,7 @@ private struct LabelEditorSheet: View {
     let c = theme.colors
 
     VStack(spacing: 0) {
-      sheetHandle
+      SheetDragHandle()
       sheetHeader
       Divider().overlay(c.textTertiary.opacity(0.12))
 
@@ -253,37 +251,27 @@ private struct LabelEditorSheet: View {
       .padding(.top, 8)
       .padding(.bottom, 12)
     }
-    .background(c.background.ignoresSafeArea())
-  }
-
-  private var sheetHandle: some View {
-    Capsule()
-      .fill(theme.colors.textTertiary.opacity(0.35))
-      .frame(width: 36, height: 4)
-      .padding(.top, 8)
-      .padding(.bottom, 10)
+    .background(c.background)
   }
 
   private var sheetHeader: some View {
     let c = theme.colors
-    return HStack(spacing: 8) {
+    return HStack(spacing: 4) {
       Button("Cancelar") { dismiss() }
         .font(AppTypography.body)
         .foregroundStyle(c.textSecondary)
         .buttonStyle(.plain)
-
-      Spacer()
+        .frame(width: 88, alignment: .leading)
 
       Text(label.isNew ? "Nova etiqueta" : "Editar etiqueta")
         .font(AppTypography.sheetPageTitle)
         .foregroundStyle(c.textPrimary)
         .lineLimit(1)
+        .frame(maxWidth: .infinity)
 
-      Spacer()
-
-      Color.clear.frame(width: 72, height: 1)
+      Color.clear.frame(width: 88, height: 1)
     }
-    .padding(.horizontal, 14)
+    .padding(.horizontal, 12)
     .padding(.bottom, 8)
   }
 

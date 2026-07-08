@@ -250,7 +250,7 @@ struct ProjectDetailView: View {
       )
       .environment(ThemeManager.shared)
       .presentationDetents([.medium, .large])
-      .presentationDragIndicator(.visible)
+      .stackedEditableSheetPresentation(background: theme.colors.background)
     }
     .alert("Nova seção", isPresented: $showNewSection) {
       TextField("Nome da seção", text: $newSectionName)
