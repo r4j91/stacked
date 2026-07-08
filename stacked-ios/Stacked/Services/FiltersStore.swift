@@ -380,6 +380,7 @@ final class FiltersStore {
           order: subtask.order,
           valor: subtask.valor,
           dueDate: subtask.dueDate,
+          time: subtask.time,
           dueDateChipLabel: subtask.dueDateChipLabel,
           dueDateChipColor: subtask.dueDateChipColor,
           labelIds: subtask.labelIds

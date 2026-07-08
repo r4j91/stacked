@@ -15,7 +15,7 @@ enum TaskSelect {
     project_id,
     section_id,
     projects ( nome ),
-    subtasks ( id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, label_ids ),
+    subtasks ( id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids ),
     task_labels ( labels ( id, nome, cor ) ),
     task_comments ( count )
     """

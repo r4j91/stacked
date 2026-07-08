@@ -508,6 +508,7 @@ export class TaskRepository {
       task_id: string;
       titulo: string;
       data_vencimento: string;
+      hora?: string | null;
       valor?: number;
       concluida: boolean;
       ordem: number;

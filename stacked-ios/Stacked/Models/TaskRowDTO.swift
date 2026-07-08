@@ -32,6 +32,7 @@ struct SubtaskRowDTO: Decodable {
   let prioridade: String?
   let valor: Double?
   let data_vencimento: String?
+  let hora: String?
   let label_ids: [String]?
 
   init(from decoder: Decoder) throws {
@@ -50,11 +51,12 @@ struct SubtaskRowDTO: Decodable {
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
     valor = try c.decodeIfPresent(Double.self, forKey: .valor)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
+    hora = try c.decodeIfPresent(String.self, forKey: .hora)
     label_ids = try c.decodeIfPresent([String].self, forKey: .label_ids)
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, label_ids
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids
   }
 }
 

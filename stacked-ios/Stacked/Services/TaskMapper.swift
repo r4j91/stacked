@@ -50,6 +50,14 @@ enum TaskMapper {
 
   private static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
     let due = parseDueDate(row.data_vencimento)
+    let chipLabel: String? = {
+      guard let due else { return nil }
+      let base = dueDateChipLabel(for: due)
+      if let hora = row.hora, !hora.isEmpty {
+        return "\(base) · \(formatTimeDisplay(hora))"
+      }
+      return base
+    }()
     return Subtask(
       id: row.id,
       taskId: taskId,
@@ -60,7 +68,8 @@ enum TaskMapper {
       order: row.ordem ?? 0,
       valor: row.valor,
       dueDate: due,
-      dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
+      time: row.hora,
+      dueDateChipLabel: chipLabel,
       dueDateChipColor: due.map { dateColor(for: $0) },
       labelIds: row.label_ids ?? []
     )

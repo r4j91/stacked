@@ -12,6 +12,7 @@ struct Subtask: Identifiable, Equatable {
   let order: Int
   let valor: Double?
   let dueDate: Date?
+  let time: String?
   /// FASE5: chip de vencimento memoizado em TaskMapper.mapSubtask.
   var dueDateChipLabel: String? = nil
   var dueDateChipColor: Color? = nil

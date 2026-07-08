@@ -242,6 +242,7 @@ final class TaskDetailViewModel {
       order: subtask.order,
       valor: subtask.valor,
       dueDate: subtask.dueDate,
+      time: subtask.time,
       labelIds: subtask.labelIds
     )
     let newDone = subtasks[i].done
@@ -270,6 +271,7 @@ final class TaskDetailViewModel {
         order: order,
         valor: nil,
         dueDate: nil,
+        time: nil,
         labelIds: []
       ))
     } catch {

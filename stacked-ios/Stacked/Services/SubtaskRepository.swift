@@ -144,18 +144,25 @@ final class SubtaskRepository {
     order: Int,
     priority: Priority?,
     dueDateISO: String?,
+    time: String?,
     labelIds: [String]
   ) async throws {
     let full = MetadataPayload(
       prioridade: priority?.rawValue,
       data_vencimento: dueDateISO,
+      hora: time,
       label_ids: labelIds.isEmpty ? nil : labelIds
     )
     do {
       try await persistSubtask(id: id, taskId: taskId, order: order, payload: full)
     } catch {
       guard isMissingOptionalColumn(error) else { throw error }
-      let base = MetadataPayload(prioridade: priority?.rawValue, data_vencimento: nil, label_ids: nil)
+      let base = MetadataPayload(
+        prioridade: priority?.rawValue,
+        data_vencimento: nil,
+        hora: nil,
+        label_ids: nil
+      )
       try await persistSubtask(id: id, taskId: taskId, order: order, payload: base)
     }
   }
@@ -164,6 +171,7 @@ final class SubtaskRepository {
     id: String,
     priority: Priority?,
     dueDateISO: String?,
+    time: String?,
     labelIds: [String]
   ) async throws {
     try await updateMetadata(
@@ -172,6 +180,7 @@ final class SubtaskRepository {
       order: 0,
       priority: priority,
       dueDateISO: dueDateISO,
+      time: time,
       labelIds: labelIds
     )
   }
@@ -194,6 +203,7 @@ final class SubtaskRepository {
     return msg.contains("data_vencimento")
       || msg.contains("label_ids")
       || msg.contains("descricao")
+      || msg.contains("hora")
   }
 }
 
@@ -201,10 +211,11 @@ final class SubtaskRepository {
 private struct MetadataPayload: Encodable {
   let prioridade: String?
   let data_vencimento: String?
+  let hora: String?
   let label_ids: [String]?
 
   enum CodingKeys: String, CodingKey {
-    case prioridade, data_vencimento, label_ids
+    case prioridade, data_vencimento, hora, label_ids
   }
 
   func encode(to encoder: Encoder) throws {
@@ -218,6 +229,11 @@ private struct MetadataPayload: Encodable {
       try container.encode(data_vencimento, forKey: .data_vencimento)
     } else {
       try container.encodeNil(forKey: .data_vencimento)
+    }
+    if let hora {
+      try container.encode(hora, forKey: .hora)
+    } else {
+      try container.encodeNil(forKey: .hora)
     }
     if let label_ids {
       try container.encode(label_ids, forKey: .label_ids)

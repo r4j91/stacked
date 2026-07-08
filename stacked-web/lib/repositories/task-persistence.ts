@@ -88,6 +88,14 @@ export class TaskPersistence {
     if (error) throw error;
   }
 
+  async updateSubtaskTime(subtaskId: string, time: string | null): Promise<void> {
+    const { error } = await this.client
+      .from("subtasks")
+      .update({ hora: time })
+      .eq("id", subtaskId);
+    if (error) throw error;
+  }
+
   async updateSubtaskLabelIds(subtaskId: string, labelIds: string[]): Promise<void> {
     const { error } = await this.client
       .from("subtasks")

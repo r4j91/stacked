@@ -66,6 +66,20 @@ final class NotificationService {
     dueDate: Date,
     time: String
   ) async {
+    await scheduleNotification(
+      identifier: taskIdentifier(id),
+      title: title,
+      dueDate: dueDate,
+      time: time
+    )
+  }
+
+  private func scheduleNotification(
+    identifier: String,
+    title: String,
+    dueDate: Date,
+    time: String
+  ) async {
     guard await isEnabled() else { return }
 
     let now = Date()
@@ -97,7 +111,7 @@ final class NotificationService {
     let components = cal.dateComponents([.year, .month, .day, .hour, .minute], from: scheduled)
     let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     let request = UNNotificationRequest(
-      identifier: taskIdentifier(id),
+      identifier: identifier,
       content: content,
       trigger: trigger
     )
@@ -117,6 +131,33 @@ final class NotificationService {
       title: task.title,
       dueDate: task.dueDate,
       time: task.time
+    )
+  }
+
+  func syncSubtaskNotification(
+    id: String,
+    title: String,
+    dueDate: Date?,
+    time: String?,
+    done: Bool
+  ) async {
+    await cancelSubtaskNotification(id: id)
+    guard !done else { return }
+    guard let dueDate, let time, !time.isEmpty else { return }
+    await scheduleSubtaskNotification(id: id, title: title, dueDate: dueDate, time: time)
+  }
+
+  func scheduleSubtaskNotification(
+    id: String,
+    title: String,
+    dueDate: Date,
+    time: String
+  ) async {
+    await scheduleNotification(
+      identifier: subtaskIdentifier(id),
+      title: title,
+      dueDate: dueDate,
+      time: time
     )
   }
 
@@ -198,7 +239,15 @@ final class NotificationService {
         .execute()
         .value
 
-      await cancelAllTaskNotifications()
+      let subRows: [Row] = try await SupabaseService.client
+        .from("subtasks")
+        .select("id, titulo, data_vencimento, hora")
+        .eq("concluida", value: false)
+        .gte("data_vencimento", value: today)
+        .execute()
+        .value
+
+      await cancelAllScheduledItemNotifications()
 
       for row in rows {
         guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
@@ -206,6 +255,14 @@ final class NotificationService {
         let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty else { continue }
         await scheduleTaskNotification(id: row.id, title: title, dueDate: due, time: hora)
+      }
+
+      for row in subRows {
+        guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
+        guard let hora = row.hora, !hora.isEmpty else { continue }
+        let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !title.isEmpty else { continue }
+        await scheduleSubtaskNotification(id: row.id, title: title, dueDate: due, time: hora)
       }
 
       await scheduleDailySummaryIfNeeded()
@@ -221,16 +278,25 @@ final class NotificationService {
       .removePendingNotificationRequests(withIdentifiers: [taskIdentifier(id)])
   }
 
+  func cancelSubtaskNotification(id: String) async {
+    UNUserNotificationCenter.current()
+      .removePendingNotificationRequests(withIdentifiers: [subtaskIdentifier(id)])
+  }
+
   func cancelDailySummary() async {
     UNUserNotificationCenter.current()
       .removePendingNotificationRequests(withIdentifiers: [Self.dailySummaryId])
   }
 
   func cancelAllTaskNotifications() async {
+    await cancelAllScheduledItemNotifications()
+  }
+
+  private func cancelAllScheduledItemNotifications() async {
     let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
     let ids = pending
       .map(\.identifier)
-      .filter { $0.hasPrefix("task-") }
+      .filter { $0.hasPrefix("task-") || $0.hasPrefix("subtask-") }
     guard !ids.isEmpty else { return }
     UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
   }
@@ -258,5 +324,9 @@ final class NotificationService {
 
   private func taskIdentifier(_ taskId: String) -> String {
     "task-\(taskId)"
+  }
+
+  private func subtaskIdentifier(_ subtaskId: String) -> String {
+    "subtask-\(subtaskId)"
   }
 }

@@ -13,6 +13,7 @@ function parsePriority(value: unknown): Priority | undefined {
 
 function mapSubtask(row: DbRow): Subtask {
   const due = parseDueDate(row.data_vencimento);
+  const time = row.hora ? String(row.hora) : null;
   const rawLabels = row.label_ids;
   const labelIds = Array.isArray(rawLabels)
     ? rawLabels.map((id) => String(id)).filter(Boolean)
@@ -23,7 +24,8 @@ function mapSubtask(row: DbRow): Subtask {
     done: Boolean(row.concluida),
     notes: row.descricao ? String(row.descricao) : undefined,
     dueDate: due ? due.toISOString().slice(0, 10) : null,
-    date: formatTaskDate(due),
+    date: time ?? formatTaskDate(due),
+    time,
     priority: parsePriority(row.prioridade),
     labelIds: labelIds?.length ? labelIds : undefined,
   };

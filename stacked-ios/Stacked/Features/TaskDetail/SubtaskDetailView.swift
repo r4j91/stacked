@@ -16,6 +16,7 @@ struct SubtaskDetailView: View {
   @State private var done: Bool
   @State private var priority: Priority?
   @State private var dueDate: Date?
+  @State private var dueTimeDate: Date?
   @State private var selectedLabelIds: Set<String> = []
   @State private var labels: [TaskLabel] = []
   @State private var saving = false
@@ -48,6 +49,10 @@ struct SubtaskDetailView: View {
     _done = State(initialValue: subtask.done)
     _priority = State(initialValue: subtask.priority)
     _dueDate = State(initialValue: subtask.dueDate)
+    _dueTimeDate = State(initialValue: {
+      guard let dueDate = subtask.dueDate, let time = subtask.time, !time.isEmpty else { return nil }
+      return TaskMapper.combinedDateTime(dueDate: dueDate, time: time)
+    }())
     _selectedLabelIds = State(initialValue: Set(subtask.labelIds))
     _resolvedSubtaskId = State(initialValue: subtask.id)
   }
@@ -144,9 +149,15 @@ struct SubtaskDetailView: View {
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
         initialDate: dueDate,
+        initialTime: dueTimeDate,
         showRecurrence: false
-      ) { date, _ in
+      ) { date, timeDate in
         dueDate = date
+        if date == nil {
+          dueTimeDate = nil
+        } else {
+          dueTimeDate = timeDate
+        }
         _Concurrency.Task { await flushPending() }
       }
     }
@@ -205,7 +216,16 @@ struct SubtaskDetailView: View {
 
   private var dueDateLabel: String {
     guard let dueDate else { return "Nenhuma" }
-    return TaskMapper.dayLabel(for: dueDate)
+    var label = TaskMapper.dayLabel(for: dueDate)
+    if let dueTimeDate {
+      label += " · \(TaskMapper.formatTimeDisplay(TaskMapper.timeString(from: dueTimeDate)))"
+    }
+    return label
+  }
+
+  private var currentTimeString: String? {
+    guard dueDate != nil, let dueTimeDate else { return nil }
+    return TaskMapper.timeString(from: dueTimeDate)
   }
 
   private var labelsSummary: String {
@@ -315,6 +335,7 @@ struct SubtaskDetailView: View {
       done: done,
       priority: priority,
       dueDate: dueDate,
+      time: currentTimeString,
       labelIds: Array(selectedLabelIds)
     )
   }
@@ -344,6 +365,19 @@ struct SubtaskDetailView: View {
         resolvedSubtaskId = resolved
       }
       await notifyChanged(resolvedId: activeId)
+      if let activeId {
+        if newValue {
+          await NotificationService.shared.cancelSubtaskNotification(id: activeId)
+        } else {
+          await NotificationService.shared.syncSubtaskNotification(
+            id: activeId,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? subtask.title : title,
+            dueDate: dueDate,
+            time: currentTimeString,
+            done: false
+          )
+        }
+      }
     } catch {
       done = !newValue
       saveError = error.localizedDescription
@@ -366,6 +400,7 @@ struct SubtaskDetailView: View {
     let descChanged = trimmedDesc != initialDesc
     let metaChanged = priority != subtask.priority
       || dueDate != subtask.dueDate
+      || currentTimeString != subtask.time
       || selectedLabelIds != Set(subtask.labelIds)
 
     guard titleChanged || descChanged || metaChanged else { return }
@@ -405,14 +440,25 @@ struct SubtaskDetailView: View {
 
       if metaChanged {
         let dueISO = dueDate.map { TaskMapper.dateString($0) }
+        let savedTime = currentTimeString
         try await SubtaskRepository.shared.updateMetadata(
           id: activeId,
           taskId: parentTaskId,
           order: subtask.order,
           priority: priority,
           dueDateISO: dueISO,
+          time: savedTime,
           labelIds: Array(selectedLabelIds)
         )
+        if let activeId {
+          await NotificationService.shared.syncSubtaskNotification(
+            id: activeId,
+            title: trimmedTitle.isEmpty ? subtask.title : trimmedTitle,
+            dueDate: dueDate,
+            time: savedTime,
+            done: done
+          )
+        }
       }
 
       await notifyChanged(resolvedId: activeId)

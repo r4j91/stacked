@@ -7,6 +7,7 @@ export type Subtask = {
   notes?: string;
   date?: string | null;
   dueDate?: string | null;
+  time?: string | null;
   tag?: string;
   priority?: Priority;
   project?: string | null;
