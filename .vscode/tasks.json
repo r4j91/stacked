@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "stacked -sim",
+      "label": "stacked ios",
       "type": "shell",
-      "command": "${workspaceFolder}/bin/stacked -sim",
+      "command": "${workspaceFolder}/bin/stacked ios",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -14,8 +14,20 @@
       },
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "focus": true
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "stacked web",
+      "type": "shell",
+      "command": "${workspaceFolder}/bin/stacked web",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
       },
       "problemMatcher": []
     }

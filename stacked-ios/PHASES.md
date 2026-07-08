@@ -246,9 +246,9 @@ Ciclo documentado em [`AUDITORIA_FLUIDEZ.md`](AUDITORIA_FLUIDEZ.md) (Slate defau
 
 ## Referências no repo
 
-| Flutter | iOS nativo | Web |
-|---------|------------|-----|
-| `lib/theme/app_theme_data.dart` | `Stacked/DesignSystem/AppTheme.swift` | `stacked-web/lib/theme/tokens.ts` |
-| `lib/services/task_repository.dart` | `Stacked/Services/TaskRepository.swift` | `stacked-web/lib/repositories/task-repository.ts` |
-| `lib/widgets/task_tile.dart` | Fase 2 — `TaskRow` | `stacked-web/components/tasks/task-list.tsx` |
-| `lib/widgets/swipeable_task_tile.dart` | Fase 2 — UIKit bridge | — |
+| Conceito | iOS nativo | Web |
+|----------|------------|-----|
+| Design tokens | `Stacked/DesignSystem/AppTheme.swift` | `stacked-web/lib/theme/tokens.ts` |
+| Task repository | `Stacked/Services/TaskRepository.swift` | `stacked-web/lib/repositories/task-repository.ts` |
+| Task row UI | `TaskRow` (Fase 2) | `stacked-web/components/tasks/task-list.tsx` |
+| Swipe actions | UIKit bridge | — |

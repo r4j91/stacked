@@ -26,7 +26,7 @@ npm install
 cp .env.local.example .env.local
 ```
 
-Edite `.env.local` — use a mesma URL e `publishableKey` do `lib/main.dart`, mais as variáveis de Google Calendar (ver `.env.local.example`).
+Edite `.env.local` — use a mesma URL e anon key do Supabase que o `stacked-ios` (ver `.env.local.example`).
 
 ```bash
 npm run dev
@@ -111,7 +111,7 @@ Em **Site configuration → Environment variables**, adicione:
 | Variável | Valor |
 |----------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key (`lib/main.dart`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key (mesmo projeto do iOS) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role (tokens Google Calendar — server only) |
 | `GOOGLE_CLIENT_ID` | OAuth client ID (Google Cloud) |
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret |

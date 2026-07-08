@@ -11,6 +11,9 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@hugeicons/core-free-icons@^4.2.2",
+        "npm:@hugeicons/react@^1.1.9",
+        "npm:@opentelemetry/api@^1.9.1",
         "npm:@supabase/ssr@~0.6.1",
         "npm:@supabase/supabase-js@^2.49.8",
         "npm:@tailwindcss/postcss@^4.1.8",

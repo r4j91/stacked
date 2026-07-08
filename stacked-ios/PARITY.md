@@ -1,6 +1,6 @@
 # Stacked iOS — Checklist de paridade (TestFlight)
 
-Use este documento antes de substituir o app Flutter no iPhone.
+Use este documento antes de publicar builds nativos no TestFlight.
 
 ## Core loop diário
 
@@ -76,10 +76,8 @@ Use este documento antes de substituir o app Flutter no iPhone.
 3. Habilitar App Groups no app e na extensão do widget
 4. Archive → Distribute → TestFlight
 5. Validar checklist acima em dispositivo físico
-6. Quando paridade mínima OK: parar de publicar Flutter iOS; manter Android/web
+6. Publicar build nativo `stacked-ios/` no TestFlight
 
-## Desligar Flutter iOS (quando pronto)
+## Nota
 
-- Não remover `lib/` — continua Android
-- Opcional: renomear target iOS Flutter ou remover do workflow de release iOS
-- Atualizar ícone/TestFlight listing para build nativo `stacked-ios/`
+O app Flutter legado foi removido do monorepo (tag git `flutter-archive`). iOS = `stacked-ios/`, web = `stacked-web/`.

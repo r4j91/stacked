@@ -1,26 +1,42 @@
 # Stacked
 
-Task manager estilo Todoist/Things 3 — Flutter + Supabase.
+Task manager estilo Todoist/Things 3 — monorepo com duas stacks ativas.
 
-## Layout
+| Plataforma | Diretório | Stack | Produção |
+|------------|-----------|-------|----------|
+| iPhone | [`stacked-ios/`](stacked-ios/) | Swift + SwiftUI | TestFlight |
+| Web | [`stacked-web/`](stacked-web/) | Next.js + Supabase | [get-stacked-app.netlify.app](https://get-stacked-app.netlify.app) |
 
-| Largura | Shell |
-|---------|--------|
-| &lt; 1024px | Bottom nav (pill) + FAB |
-| ≥ 1024px | Desktop sidebar |
+Backend compartilhado: **Supabase**.
 
-Breakpoints definidos em `lib/theme/app_layout.dart`. Conteúdo em tablet (≥ 600px) é centralizado com max-width 640–720px.
+## Quick start
 
-## Getting Started
+### iOS
+```bash
+cd stacked-ios
+cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
+# Edite SUPABASE_URL e SUPABASE_ANON_KEY
+./scripts/bootstrap.sh
+open Stacked.xcodeproj
+```
 
-This project is a starting point for a Flutter application.
+Ver [`stacked-ios/README.md`](stacked-ios/README.md).
 
-A few resources to get you started if this is your first Flutter project:
+### Web
+```bash
+cd stacked-web
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Ver [`stacked-web/README.md`](stacked-web/README.md).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Outros diretórios
+
+- [`assets/`](assets/) — ícones e recursos visuais compartilhados
+- [`docs/`](docs/) — conceitos e explorations de design
+
+## Histórico
+
+O app Flutter legado (`lib/`, `android/`, etc.) foi removido. Código preservado na tag git `flutter-archive`.

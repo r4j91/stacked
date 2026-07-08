@@ -35,7 +35,7 @@ Mobile usa tokens **Graphite** (`#1A1B1E`, accent `#5FD3DC`); desktop usa **Slat
 
 **3 colunas:** Sidebar colapsável (260px ↔ 56px) | Canvas | Inspector
 
-Sidebar alinhada ao [`desktop_sidebar.dart`](../../lib/widgets/desktop_shell/desktop_sidebar.dart): logo, Nova tarefa, nav com ícone + label, projetos expansíveis, perfil. Filtros (Atrasadas/Hoje) ficam **só na lista**, não na sidebar.
+Sidebar alinhada ao shell desktop do `stacked-web`: logo, Nova tarefa, nav com ícone + label, projetos expansíveis, perfil. Filtros (Atrasadas/Hoje) ficam **só na lista**, não na sidebar.
 
 | Atalho | Ação |
 |--------|------|
@@ -55,7 +55,7 @@ Sidebar alinhada ao [`desktop_sidebar.dart`](../../lib/widgets/desktop_shell/des
 
 ## Tema
 
-Mock usa **Slate** (`lib/theme/app_theme_data.dart`): fundo `#16161A`, superfícies `#1C1C20` / `#2C2C32`, accent `#E8E8EC`, texto `#F2F2F4`. Cores semânticas (prioridade, atrasadas, tags) seguem `AppColors` e não mudam com o tema.
+Mock usa **Slate** (`stacked-web/lib/theme/tokens.ts`): fundo `#16161A`, superfícies `#1C1C20` / `#2C2C32`, accent `#E8E8EC`, texto `#F2F2F4`. Cores semânticas (prioridade, atrasadas, tags) não mudam com o tema.
 
 ## O que validar (v2)
 

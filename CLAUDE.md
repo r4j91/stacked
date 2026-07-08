@@ -1,17 +1,28 @@
 # Stacked — Contexto do Projeto
 
 ## Visão Geral
-App de gerenciamento de tarefas estilo Todoist/Things 3, sendo reconstruído do zero em Flutter (anteriormente era um PWA em React/Tailwind).
+Monorepo do Stacked — app de gerenciamento de tarefas estilo Todoist/Things 3.
 
-## Stack
-- Flutter (Dart) — iOS, Android, Web e macOS a partir de um único código
-- Supabase — banco de dados, autenticação e sincronização (conectar na Fase 5)
-- Riverpod — gerenciamento de estado (adicionar quando necessário)
-- go_router — navegação (adicionar na Fase 7)
+**Não existe Flutter neste repositório.** O app Flutter legado foi removido (tag `flutter-archive` no git).
+
+## Stacks ativas (IMPORTANTE)
+
+| Plataforma | Diretório | Stack |
+|------------|-----------|-------|
+| **iPhone** | `stacked-ios/` | Swift + SwiftUI/UIKit |
+| **Web / desktop** | `stacked-web/` | Next.js + TypeScript + Supabase |
+
+### Regras para agentes
+- Pedido de **iOS** → editar **somente** `stacked-ios/`
+- Pedido de **web** → editar **somente** `stacked-web/`
+- **Nunca** criar ou editar `lib/` na raiz (não existe)
+- `stacked-web/lib/` é código TypeScript do Next.js — **não** confundir com Flutter
+- Backend compartilhado: **Supabase** (mesmo projeto entre iOS e web)
+- Ícones compartilhados: `assets/`
 
 ## Design System
 
-### Paleta de cores (lib/theme/app_colors.dart)
+### Paleta de cores (semânticas — não mudam com tema)
 - Fundo: #1A1B1E
 - Superfície: #242529
 - Superfície variante: #2C2D33
@@ -25,47 +36,40 @@ App de gerenciamento de tarefas estilo Todoist/Things 3, sendo reconstruído do 
 - Tag roxo (Ideia): #B18CF5
 - Tag verde (Em Andamento): #8FD46B
 
+Referências por stack:
+- iOS: `stacked-ios/Stacked/DesignSystem/AppColors.swift`, `AppTheme.swift`
+- Web: `stacked-web/lib/theme/tokens.ts`, `themes.ts`, `palette-colors.ts`
+
 ### Tipografia e densidade
-- Fonte do sistema (padrão do Flutter)
-- Linhas de tarefa compactas (~52-56px de altura)
+- Fonte do sistema
+- Linhas de tarefa compactas (~52–56px de altura)
 - Título de tela: 30px, weight 800
 - Título de tarefa: 15.5px, weight 600
-- Texto secundário (projeto/descrição): ~12.5-13px
+- Texto secundário (projeto/descrição): ~12.5–13px
 
-### Telas (bottom navigation, 5 abas)
+### Telas (5 abas)
 1. Navegar (Home) — hub com visão geral e projetos
 2. Inbox — tarefas sem projeto/data
 3. Hoje — lista de tarefas do dia
 4. Em breve — calendário + próximas tarefas
 5. Filtros — dashboard de filtros e projetos
 
-### Layout responsivo (lib/theme/app_layout.dart)
-- **Mobile/tablet (< 1024px):** bottom nav flutuante (pill) + FAB — [`ResponsiveLayout`](lib/widgets/responsive_layout.dart)
-- **Desktop (≥ 1024px):** sidebar customizada — [`DesktopAppShell`](lib/widgets/desktop_shell/desktop_app_shell.dart)
+### Layout responsivo (web)
+- **Mobile/tablet (< 1024px):** bottom nav flutuante (pill) + FAB
+- **Desktop (≥ 1024px):** sidebar customizada
 - **Tablet centering (≥ 600px):** conteúdo centralizado, max-width 640px (≥ 768px: 720px)
-- **720px** é max-width de conteúdo em tablet, **não** o breakpoint mobile/desktop (esse é **1024px**)
-- Inset inferior do nav/FAB usa `MediaQuery.viewPadding.bottom` (home indicator)
+- **720px** é max-width de conteúdo em tablet; breakpoint mobile/desktop é **1024px**
 
-## Estrutura de pastas
-lib/
-  main.dart
-  theme/ (app_colors.dart, app_theme.dart)
-  models/ (task.dart, project.dart, label.dart, subtask.dart)
-  services/ (supabase_client.dart, task_repository.dart)
-  screens/ (today_screen.dart, upcoming_screen.dart, projects_screen.dart, filters_screen.dart, profile_screen.dart)
-  widgets/ (task_tile.dart, swipeable_task.dart, task_context_menu.dart, subtask_list.dart, bottom_nav.dart)
+## Estrutura do monorepo
+```
+stacked/
+├── stacked-ios/     # App iPhone (Swift)
+├── stacked-web/     # App web (Next.js)
+├── assets/          # Ícones e recursos compartilhados
+└── docs/            # Conceitos de design
+```
 
 ## Bugs conhecidos e soluções (não repetir)
-
-### AnimatedSize + SizeTransition simultâneos causam salto de conteúdo
-`AnimatedSize` anima *qualquer* mudança de tamanho do filho, incluindo mudanças causadas por `SizeTransition` internos. Se um card usa `AnimatedSize` para colapsar na conclusão E um `SizeTransition` interno para expandir subtarefas, os dois animam a altura ao mesmo tempo → conteúdo "salta".
-**Solução:** nunca usar `AnimatedSize` como wrapper externo quando há animações de altura internas. Usar `SizeTransition` com `AnimationController` dedicado, iniciado em `value: 1.0`, acionado explicitamente apenas quando necessário (ex: conclusão de tarefa).
-
-### onTapDown em GestureDetector interno não bloqueia o pai
-`onTapDown` dispara em todos os listeners da árvore imediatamente, antes do gesture arena. Adicionar `onTapDown: (_) {}` num GestureDetector filho **não** impede o pai de receber o evento. Para isolar completamente o toque, mover o widget para fora da árvore do pai (sibling em vez de filho).
-
-### SafeArea dentro de showModalBottomSheet causa salto de animação
-`SafeArea` lê `MediaQuery.viewInsets` (altura do teclado). Quando o teclado fecha enquanto o sheet abre, o padding muda no meio da animação → itens "saltam". Substituir `SafeArea` por `SizedBox(height: 8 + MediaQuery.of(ctx).viewPadding.bottom)`.
 
 ### Hero animations em listas de tarefas
 Testado e causou problemas visuais nas listas. **Nunca usar Hero animations** neste projeto.
@@ -73,11 +77,16 @@ Testado e causou problemas visuais nas listas. **Nunca usar Hero animations** ne
 ### Coluna descricao na tabela subtasks
 A coluna `descricao text` precisa existir no Supabase antes de incluí-la em queries. Migration: `ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS descricao text;`. Sem ela, qualquer SELECT que inclua `descricao` retorna erro e a tela fica em branco.
 
-## Workflow de validação visual (economia de tokens)
-Após editar UI: rodar `flutter analyze` no(s) arquivo(s) tocado(s) e parar — isso já garante correção estrutural. **NÃO** relançar o simulador, navegar por `idb`/`xcrun simctl` e tirar/ler screenshots por padrão a cada ajuste pontual — cada screenshot lido consome muitos tokens (visão), e ajustes pequenos (raio, cor, padding, remover/restaurar um trecho) raramente precisam de confirmação visual para serem considerados corretos. Só fazer o ciclo completo (rebuild → screenshot → ler) quando o usuário pedir explicitamente ("tirar screenshot", "mostrar resultado", "validar visualmente") ou quando a mudança for estrutural/arriscada o suficiente para justificar.
+## Workflow de validação
+
+### Web (`stacked-web/`)
+Após editar UI: `npm run build` ou lint nos arquivos tocados. **Não** tirar screenshots por padrão a cada ajuste pontual.
+
+### iOS (`stacked-ios/`)
+Build via Xcode ou `xcodebuild`. **Não** relançar simulador/screenshots por padrão a cada ajuste pontual — só quando o usuário pedir explicitamente.
 
 ## Padrões de interação alvo
-- Swipe para a esquerda no item de tarefa revela: Concluir (verde), Adiar (amarelo), Excluir (vermelho). Threshold de ~60-80px, com direction lock para não conflitar com scroll vertical.
+- Swipe para a esquerda no item de tarefa revela: Concluir (verde), Adiar (amarelo), Excluir (vermelho). Threshold de ~60–80px, com direction lock para não conflitar com scroll vertical.
 - Long-press (ou clique direito no desktop/web) abre menu de contexto compacto: Editar, Concluir, Adiar, Duplicar, depois linhas resumidas "Prioridade: Alta ›", "Etiquetas (N) ›", "Mover para: Projeto ›" que expandem em sub-painéis ao tocar, e por fim Excluir (vermelho).
-- Botão de expandir (chevron) ao lado do contador de subtarefas (ex: "5/5") expande a lista de subtarefas inline, sem navegar de tela, com animação fluida (preferir grid/clip ao invés de height: auto).
+- Botão de expandir (chevron) ao lado do contador de subtarefas (ex: "5/5") expande a lista de subtarefas inline, sem navegar de tela, com animação fluida.
 - Tarefas com descrição mostram uma linha de preview (truncada com ellipsis) abaixo do título.

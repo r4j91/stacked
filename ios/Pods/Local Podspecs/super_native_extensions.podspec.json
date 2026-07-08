@@ -1,0 +1,44 @@
+{
+  "name": "super_native_extensions",
+  "version": "0.0.1",
+  "summary": "A new Flutter plugin project.",
+  "description": "A new Flutter plugin project.",
+  "homepage": "http://example.com",
+  "license": {
+    "file": "../LICENSE"
+  },
+  "authors": {
+    "Your Company": "email@example.com"
+  },
+  "source": {
+    "path": "."
+  },
+  "source_files": "Classes/**/*",
+  "public_header_files": "Classes/**/*.h",
+  "dependencies": {
+    "Flutter": []
+  },
+  "platforms": {
+    "ios": "9.0"
+  },
+  "script_phases": {
+    "name": "Build SuperNativeExtensions Rust library",
+    "script": "sh \"$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh\" ../rust super_native_extensions",
+    "execution_position": "before_compile",
+    "input_files": [
+      "${BUILT_PRODUCTS_DIR}/cargokit_phony"
+    ],
+    "output_files": [
+      "${BUILT_PRODUCTS_DIR}/libsuper_native_extensions.a"
+    ]
+  },
+  "pod_target_xcconfig": {
+    "DEFINES_MODULE": "YES",
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "i386",
+    "EXCLUDED_ARCHS": "armv7",
+    "OTHER_LDFLAGS": "-force_load ${BUILT_PRODUCTS_DIR}/libsuper_native_extensions.a -framework CoreServices"
+  },
+  "user_target_xcconfig": {
+    "EXCLUDED_ARCHS": "armv7"
+  }
+}
