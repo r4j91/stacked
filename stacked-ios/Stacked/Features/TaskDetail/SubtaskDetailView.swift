@@ -70,7 +70,7 @@ struct SubtaskDetailView: View {
                 ringColor: priority?.color ?? c.textTertiary.opacity(0.45)
               )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
             TextField("Nova subtarefa", text: $title)
               .font(.system(size: 20, weight: .bold))
@@ -326,6 +326,11 @@ struct SubtaskDetailView: View {
   private func toggleDone() async {
     let newValue = !done
     done = newValue
+    if newValue {
+      HapticService.taskCompleted()
+    } else {
+      HapticService.light()
+    }
     do {
       var activeId = persistSubtaskId
       let resolved = try await SubtaskRepository.shared.persistSubtask(
@@ -338,7 +343,6 @@ struct SubtaskDetailView: View {
         activeId = resolved
         resolvedSubtaskId = resolved
       }
-      HapticService.taskCompleted()
       await notifyChanged(resolvedId: activeId)
     } catch {
       done = !newValue

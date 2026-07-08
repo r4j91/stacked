@@ -303,6 +303,11 @@ struct TaskDetailView: View {
 
     return HStack(alignment: hasMeta ? .top : .center, spacing: 8) {
       Button {
+        if !sub.done {
+          HapticService.taskCompleted()
+        } else {
+          HapticService.light()
+        }
         vm.toggleSubtask(sub)
       } label: {
         DoneCircle(
@@ -316,7 +321,7 @@ struct TaskDetailView: View {
         .frame(width: 32, height: 32)
         .padding(.top, hasMeta ? 2 : 0)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
       VStack(alignment: .leading, spacing: 2) {
         Text(sub.title)
