@@ -1,4 +1,4 @@
-/** Paleta unificada — paridade com Flutter `lib/theme/palette_colors.dart` */
+/** Paleta unificada — etiquetas, projetos e filtros (stacked-web + stacked-ios) */
 export const PALETTE_HEX = [
   // Tons suaves
   "#63C7D8",
@@ -13,6 +13,31 @@ export const PALETTE_HEX = [
   "#D3B36A",
   "#7F99A8",
   "#9CA3AF",
+  // Azuis — slate / oceano (combinam com fundo #1A1B1E e accent #5FD3DC)
+  "#7A9BB8",
+  "#5E89A8",
+  "#4B7294",
+  "#8DB4CC",
+  "#6A8FAE",
+  "#3E6582",
+  "#9CB8D4",
+  "#556B8A",
+  // Verdes — sage / eucalipto
+  "#6D9E82",
+  "#5B8A70",
+  "#82B392",
+  "#4A7359",
+  "#7FA88E",
+  "#93A882",
+  "#5F9688",
+  "#6B8F7A",
+  // Cinzas — cool slate (legíveis em chips no tema escuro)
+  "#8A9099",
+  "#6E737C",
+  "#A3A9B2",
+  "#565C66",
+  "#949BA6",
+  "#727884",
   // Tons fortes (design system)
   "#5FD3DC",
   "#4D9FEC",
@@ -52,7 +77,24 @@ export const PALETTE_HEX = [
   "#134E4A",
 ] as const;
 
-/** Primeiras 12 cores — preview compacto no seletor */
-export const PALETTE_PREVIEW_HEX = PALETTE_HEX.slice(0, 12);
+/** Preview compacto — mix de azuis, verdes e cinzas + cores clássicas */
+export const PALETTE_PREVIEW_HEX = [
+  "#63C7D8",
+  "#5FD3DC",
+  "#4D9FEC",
+  "#7A9BB8",
+  "#5E89A8",
+  "#8DB4CC",
+  "#6D9E82",
+  "#5B8A70",
+  "#82B392",
+  "#84B98E",
+  "#8A9099",
+  "#6E737C",
+  "#949BA6",
+  "#7F99A8",
+  "#9CA3AF",
+  "#A496C8",
+] as const;
 
 export const DEFAULT_PALETTE_HEX = PALETTE_HEX[0];
