@@ -52,6 +52,18 @@ struct SettingsView: View {
 
         Section {
           NavigationLink {
+            ProductivitySettingsView().environment(theme)
+          } label: {
+            settingsRow(icon: .productivity, label: "Captura rápida", subtitle: "Descrição no Quick Add")
+          }
+          .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .only)
+        } header: {
+          SettingsSectionHeader(text: "Produtividade")
+        }
+
+        Section {
+          NavigationLink {
             LabelsManagementView().environment(theme)
           } label: {
             settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")

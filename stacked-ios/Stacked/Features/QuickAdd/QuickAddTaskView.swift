@@ -11,6 +11,7 @@ struct QuickAddTaskView: View {
   var onDismiss: () -> Void
 
   @FocusState private var titleFocused: Bool
+  @AppStorage(ProductivityPreferences.quickAddDescriptionKey) private var showDescriptionField = false
   @State private var title = ""
   @State private var descriptionText = ""
   @State private var priority: Priority?
@@ -110,6 +111,16 @@ struct QuickAddTaskView: View {
         .onSubmit {
           if hasTitle { _Concurrency.Task { await save() } }
         }
+
+      if showDescriptionField {
+        TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)
+          .font(AppTypography.commentBody)
+          .foregroundStyle(c.textSecondary)
+          .tint(c.accent)
+          .lineLimit(1...3)
+          .padding(.horizontal, 16)
+          .padding(.bottom, 6)
+      }
 
       Divider()
         .frame(height: 1)
