@@ -30,11 +30,24 @@ struct FilterSubtaskRow: View {
 
       Button(action: onTap) {
         VStack(alignment: .leading, spacing: 2) {
-          Text(subtask.title)
-            .font(AppTypography.taskTitle)
-            .foregroundStyle(subtask.done ? c.textTertiary : c.textPrimary)
-            .strikethrough(subtask.done)
-            .lineLimit(1)
+          HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(subtask.title)
+              .font(AppTypography.taskTitle)
+              .foregroundStyle(subtask.done ? c.textTertiary : c.textPrimary)
+              .strikethrough(subtask.done)
+              .lineLimit(1)
+              .layoutPriority(1)
+            Spacer(minLength: 4)
+            if let timeDisplay = subtask.timeDisplay {
+              HStack(spacing: 2) {
+                StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
+                Text(timeDisplay)
+                  .font(AppTypography.timeChip)
+                  .foregroundStyle(c.textTertiary)
+              }
+              .fixedSize()
+            }
+          }
 
           Text(parentContext)
             .font(AppTypography.screenSubtitle)

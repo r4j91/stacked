@@ -13,6 +13,7 @@ import { buildTodayTimeline } from "@/lib/utils/schedule-items";
 import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
+import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import {
@@ -78,9 +79,12 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
                 }}
               />
               <div className="min-w-0 flex-1">
-                <span className={`block truncate text-[13px] font-medium ${s.done ? "text-[var(--color-text-tertiary)] line-through" : "text-[var(--color-text-secondary)]"}`}>
-                  {s.name}
-                </span>
+                <div className="flex items-start gap-2">
+                  <span className={`block min-w-0 flex-1 truncate text-[13px] font-medium ${s.done ? "text-[var(--color-text-tertiary)] line-through" : "text-[var(--color-text-secondary)]"}`}>
+                    {s.name}
+                  </span>
+                  <TaskRowTime time={s.time} className="mt-0.5" />
+                </div>
                 <SubtaskMetaLine sub={s} />
               </div>
             </div>
@@ -176,9 +180,12 @@ export function TaskRow({
             }}
           />
           <div className="min-w-0 flex-1">
-            <p className={`truncate text-[15.5px] font-semibold leading-snug ${task.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}>
-              {task.title}
-            </p>
+            <div className="flex items-start gap-2">
+              <p className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${task.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}>
+                {task.title}
+              </p>
+              <TaskRowTime time={task.time} className="mt-1" />
+            </div>
             {task.preview && (
               <p className={`mt-0.5 truncate text-[12.5px] text-[var(--color-text-secondary)] ${task.done ? "opacity-60 line-through" : ""}`}>
                 {task.preview}

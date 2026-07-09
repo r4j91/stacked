@@ -83,7 +83,7 @@ export function CalendarGrid({ value, onChange }: CalendarGridProps) {
               onClick={() => onChange(toDateStr(cell.date!))}
               className={`flex h-8 items-center justify-center rounded-[var(--radius-sm)] text-sm transition-colors ${
                 isSelected
-                  ? "bg-[var(--color-text)] font-semibold text-[var(--color-bg)]"
+                  ? "bg-[var(--color-accent)] font-semibold text-[var(--color-accent-text)]"
                   : isToday
                     ? "font-semibold text-[var(--color-text)] ring-1 ring-[var(--color-border-strong)]"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)]"

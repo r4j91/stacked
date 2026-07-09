@@ -58,6 +58,31 @@ export function formatTaskDate(due: Date | null, now = new Date()): string | nul
   return `${due.getDate()} ${MONTHS[due.getMonth()].slice(0, 3)}`;
 }
 
+/** HH:MM ou HH:MM:SS → exibição compacta (paridade TaskMapper.formatTimeDisplay). */
+export function formatTimeDisplay(time: string | null | undefined): string | null {
+  if (!time) return null;
+  const trimmed = time.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(":");
+  if (parts.length < 2) return trimmed;
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (Number.isNaN(h) || Number.isNaN(m)) return trimmed;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function formatDueDateTimeLabel(
+  dueDate: string | null | undefined,
+  time?: string | null,
+  now = new Date(),
+): string | null {
+  const due = parseDueDate(dueDate);
+  if (!due) return null;
+  const datePart = formatDayLabel(due, now);
+  const timePart = formatTimeDisplay(time);
+  return timePart ? `${datePart} · ${timePart}` : datePart;
+}
+
 export function addDays(d: Date, days: number): Date {
   const next = new Date(d);
   next.setDate(next.getDate() + days);

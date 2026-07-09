@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useWorkbench, type SubtaskKey } from "./workbench-context";
 import type { Subtask, Task } from "@/lib/types/task";
-import { parseDueDate, isOverdueDate } from "@/lib/utils/date";
+import { parseDueDate, isOverdueDate, formatDueDateTimeLabel } from "@/lib/utils/date";
 import { AutosaveTextarea } from "@/components/tasks/autosave-textarea";
 import { InstallmentGeneratorSheet } from "@/components/tasks/installment-generator-sheet";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -45,6 +45,7 @@ function MetaCard({
     labels,
     updateTaskPriority,
     updateTaskDueDate,
+    updateTaskTime,
     updateTaskProject,
     updateTaskLabels,
     updateTaskRecurrence,
@@ -64,7 +65,7 @@ function MetaCard({
 
   const project = item.project;
   const projectId = item.projectId;
-  const date = item.date;
+  const date = formatDueDateTimeLabel(item.dueDate, item.time);
   const tag = item.tag;
   const priority = item.priority;
   const labelIds = item.labelIds ?? [];
@@ -128,7 +129,10 @@ function MetaCard({
         open={dateOpen}
         onClose={() => setDateOpen(false)}
         value={item.dueDate}
+        timeValue={item.time}
+        showTime
         onChange={(d) => void updateTaskDueDate(taskId, d)}
+        onTimeChange={(t) => void updateTaskTime(taskId, t)}
         anchorRect={pickerAnchor}
       />
       <PriorityPicker
@@ -174,7 +178,7 @@ function SubtaskMetaCard({
   sub: Subtask;
   parentTask: Task;
 }) {
-  const { labels, updateSubtaskPriority, updateSubtaskDueDate, updateSubtaskLabels } = useWorkbench();
+  const { labels, updateSubtaskPriority, updateSubtaskDueDate, updateSubtaskTime, updateSubtaskLabels } = useWorkbench();
   const [dateOpen, setDateOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -192,6 +196,7 @@ function SubtaskMetaCard({
     .join(", ");
   const selectedLabels = labels.filter((l) => labelIds.includes(l.id));
   const labelColor = selectedLabels.length > 0 ? selectedLabels[0].color : undefined;
+  const dueLabel = formatDueDateTimeLabel(sub.dueDate, sub.time);
   const overdue = isOverdueDate(parseDueDate(sub.dueDate), Boolean(sub.done));
 
   return (
@@ -201,9 +206,9 @@ function SubtaskMetaCard({
         <MetaRow
           icon={Calendar03Icon}
           label="Data"
-          value={sub.date || "Sem data"}
+          value={dueLabel || "Sem data"}
           danger={overdue}
-          valueColor={sub.date && !overdue ? "var(--color-text-secondary)" : undefined}
+          valueColor={dueLabel && !overdue ? "var(--color-text-secondary)" : undefined}
           onClick={(e) => openPicker(e, () => setDateOpen(true))}
         />
         <MetaRow
@@ -225,7 +230,10 @@ function SubtaskMetaCard({
         open={dateOpen}
         onClose={() => setDateOpen(false)}
         value={sub.dueDate}
+        timeValue={sub.time}
+        showTime
         onChange={(d) => void updateSubtaskDueDate(subtaskKey, d)}
+        onTimeChange={(t) => void updateSubtaskTime(subtaskKey, t)}
         anchorRect={pickerAnchor}
       />
       <PriorityPicker

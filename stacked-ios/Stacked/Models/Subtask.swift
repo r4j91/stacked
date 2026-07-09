@@ -23,4 +23,9 @@ struct Subtask: Identifiable, Equatable {
     if let taskId { return "\(taskId):\(order)" }
     return "sub-\(order)-\(title)"
   }
+
+  var timeDisplay: String? {
+    guard let time, !time.isEmpty else { return nil }
+    return TaskMapper.formatTimeDisplay(time)
+  }
 }

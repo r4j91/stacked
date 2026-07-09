@@ -35,14 +35,7 @@ enum SubtaskListPatch {
       valor: previous.valor,
       dueDate: due,
       time: snapshot.time,
-      dueDateChipLabel: {
-        guard let due else { return nil }
-        let base = TaskMapper.dueDateChipLabel(for: due)
-        if let time = snapshot.time, !time.isEmpty {
-          return "\(base) · \(TaskMapper.formatTimeDisplay(time))"
-        }
-        return base
-      }(),
+      dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
       dueDateChipColor: due.map { TaskMapper.dateColor(for: $0) },
       labelIds: snapshot.labelIds
     )

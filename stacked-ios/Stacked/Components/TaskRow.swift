@@ -269,10 +269,24 @@ struct TaskRow: View {
             onSubtaskTap?(sub)
           } label: {
             VStack(alignment: .leading, spacing: 0) {
-              Text(sub.title)
-                .font(AppTypography.subtaskRowTitle)
-                .foregroundStyle(done ? c.textTertiary : c.textPrimary)
-                .strikethrough(done)
+              HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(sub.title)
+                  .font(AppTypography.subtaskRowTitle)
+                  .foregroundStyle(done ? c.textTertiary : c.textPrimary)
+                  .strikethrough(done)
+                  .lineLimit(2)
+                  .layoutPriority(1)
+                Spacer(minLength: 4)
+                if let timeDisplay = sub.timeDisplay {
+                  HStack(spacing: 2) {
+                    StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
+                    Text(timeDisplay)
+                      .font(AppTypography.timeChip)
+                      .foregroundStyle(c.textTertiary)
+                  }
+                  .fixedSize()
+                }
+              }
               if let desc = sub.description, !desc.isEmpty {
                 Text(desc)
                   .font(AppTypography.subtaskPreview)

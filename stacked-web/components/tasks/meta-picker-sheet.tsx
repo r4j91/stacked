@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Priority } from "@/lib/types/task";
 import type { Label } from "@/lib/types/label";
 import type { Project } from "@/lib/types/project";
@@ -85,15 +86,59 @@ type DatePickerProps = PickerBaseProps & {
   open: boolean;
   onClose: () => void;
   value?: string | null;
+  timeValue?: string | null;
   onChange: (date: string | null) => void;
+  onTimeChange?: (time: string | null) => void;
+  showTime?: boolean;
 };
 
-export function DatePicker({ open, onClose, value, onChange, anchorRect }: DatePickerProps) {
+function parseTimeParts(time?: string | null): { hour: number; minute: number } {
+  if (!time) return { hour: 9, minute: 0 };
+  const [h, m] = time.split(":");
+  const hour = Number(h);
+  const minute = Number(m);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return { hour: 9, minute: 0 };
+  return { hour: Math.min(23, Math.max(0, hour)), minute: Math.min(59, Math.max(0, minute)) };
+}
+
+export function DatePicker({
+  open,
+  onClose,
+  value,
+  timeValue,
+  onChange,
+  onTimeChange,
+  showTime = false,
+  anchorRect,
+}: DatePickerProps) {
   const today = startOfDay(new Date());
+  const initial = parseTimeParts(timeValue);
+  const [hour, setHour] = useState(initial.hour);
+  const [minute, setMinute] = useState(initial.minute);
+  const [hasTime, setHasTime] = useState(Boolean(timeValue));
+
+  useEffect(() => {
+    if (!open) return;
+    const next = parseTimeParts(timeValue);
+    setHour(next.hour);
+    setMinute(next.minute);
+    setHasTime(Boolean(timeValue));
+  }, [open, timeValue]);
+
+  function emitTime(enabled: boolean, h = hour, m = minute) {
+    if (!onTimeChange) return;
+    if (!enabled || !value) {
+      onTimeChange(null);
+      return;
+    }
+    onTimeChange(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
 
   function pick(offsetDays: number | null) {
     if (offsetDays === null) {
       onChange(null);
+      onTimeChange?.(null);
+      setHasTime(false);
     } else {
       onChange(toDateStr(addDays(today, offsetDays)));
     }
@@ -119,10 +164,60 @@ export function DatePicker({ open, onClose, value, onChange, anchorRect }: DateP
           value={value}
           onChange={(date) => {
             onChange(date);
-            onClose();
+            if (showTime) {
+              if (hasTime) emitTime(true);
+            } else {
+              onClose();
+            }
           }}
         />
       </div>
+      {showTime && onTimeChange ? (
+        <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+          <label className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--color-text-secondary)]">
+            <input
+              type="checkbox"
+              checked={hasTime}
+              disabled={!value}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                setHasTime(enabled);
+                emitTime(enabled);
+              }}
+            />
+            Definir hora
+          </label>
+          {hasTime && value ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={hour}
+                onChange={(e) => {
+                  const h = Number(e.target.value);
+                  setHour(h);
+                  emitTime(true, h, minute);
+                }}
+                className="w-16 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-2 py-1.5 text-sm tabular-nums text-[var(--color-text)]"
+              />
+              <span className="text-[var(--color-text-tertiary)]">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={minute}
+                onChange={(e) => {
+                  const m = Number(e.target.value);
+                  setMinute(m);
+                  emitTime(true, hour, m);
+                }}
+                className="w-16 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-2 py-1.5 text-sm tabular-nums text-[var(--color-text)]"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </SheetShell>
   );
 }

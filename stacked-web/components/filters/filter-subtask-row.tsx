@@ -4,6 +4,7 @@ import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench, type SubtaskKey } from "@/components/shell/workbench-context";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { SubtaskMetaLine } from "@/components/tasks/task-meta-line";
+import { TaskRowTime } from "@/components/tasks/task-time-chip";
 
 export function FilterSubtaskRow({
   subtask,
@@ -49,13 +50,16 @@ export function FilterSubtaskRow({
             }}
           />
           <div className="min-w-0 flex-1">
-            <p
-              className={`truncate text-[15.5px] font-semibold leading-snug ${
-                subtask.done ? "text-[var(--color-text-tertiary)] line-through" : ""
-              }`}
-            >
-              {subtask.name}
-            </p>
+            <div className="flex items-start gap-2">
+              <p
+                className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
+                  subtask.done ? "text-[var(--color-text-tertiary)] line-through" : ""
+                }`}
+              >
+                {subtask.name}
+              </p>
+              <TaskRowTime time={subtask.time} className="mt-1" />
+            </div>
             <p className="mt-0.5 truncate text-[12.5px] text-[var(--color-text-secondary)]">
               {parent.title}
               {parent.project ? ` · ${parent.project}` : ""}

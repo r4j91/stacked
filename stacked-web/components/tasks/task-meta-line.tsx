@@ -2,7 +2,7 @@
 
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
-import { isOverdueDate, parseDueDate } from "@/lib/utils/date";
+import { isOverdueDate, parseDueDate, formatTaskDate } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
 import { AppIcon } from "@/components/ui/app-icon";
 import { TaskDone01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
@@ -48,16 +48,19 @@ export function TaskMetaLine({ task, hideDate }: TaskMetaLineProps) {
     );
   }
 
-  if (!hideDate && task.date) {
-    const overdue = isOverdueDate(due, task.done);
-    items.push(
-      <TagChip
-        key="d"
-        label={task.date}
-        color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
-        icon={Calendar03Icon}
-      />,
-    );
+  if (!hideDate && task.dueDate) {
+    const dateLabel = formatTaskDate(due);
+    if (dateLabel) {
+      const overdue = isOverdueDate(due, task.done);
+      items.push(
+        <TagChip
+          key="d"
+          label={dateLabel}
+          color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
+          icon={Calendar03Icon}
+        />,
+      );
+    }
   }
 
   if (subs.length) {
@@ -105,16 +108,20 @@ export function SubtaskMetaLine({ sub }: { sub: Subtask }) {
     );
   }
 
-  if (sub.date) {
-    const overdue = isOverdueDate(parseDueDate(sub.dueDate), sub.done);
-    items.push(
-      <TagChip
-        key="d"
-        label={sub.date}
-        color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
-        icon={Calendar03Icon}
-      />,
-    );
+  if (sub.dueDate) {
+    const due = parseDueDate(sub.dueDate);
+    const dateLabel = formatTaskDate(due);
+    if (dateLabel) {
+      const overdue = isOverdueDate(due, sub.done);
+      items.push(
+        <TagChip
+          key="d"
+          label={dateLabel}
+          color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
+          icon={Calendar03Icon}
+        />,
+      );
+    }
   }
 
   if (!items.length) return null;

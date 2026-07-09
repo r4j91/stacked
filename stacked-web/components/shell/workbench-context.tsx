@@ -119,6 +119,7 @@ type WorkbenchContextValue = {
   autosaveSubtaskNotes: (key: SubtaskKey, notes: string) => Promise<void>;
   updateSubtaskPriority: (key: SubtaskKey, priority: Priority | null) => Promise<void>;
   updateSubtaskDueDate: (key: SubtaskKey, dueDate: string | null) => Promise<void>;
+  updateSubtaskTime: (key: SubtaskKey, time: string | null) => Promise<void>;
   updateSubtaskLabels: (key: SubtaskKey, labelIds: string[]) => Promise<void>;
   toggleSidebar: () => void;
   toggleSectionCollapsed: (sectionId: string) => void;
@@ -193,6 +194,7 @@ type WorkbenchContextValue = {
   reorderSections: (draggedId: string, targetId: string) => Promise<void>;
   updateTaskPriority: (id: string, priority: Priority | null) => Promise<void>;
   updateTaskDueDate: (id: string, dueDate: string | null) => Promise<void>;
+  updateTaskTime: (id: string, time: string | null) => Promise<void>;
   updateTaskProject: (id: string, projectId: string | null) => Promise<void>;
   updateTaskProjectAndSection: (
     id: string,
@@ -1198,12 +1200,34 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const result = patchSubtaskMeta(key, {
         dueDate,
         date: formatTaskDate(due),
+        ...(dueDate ? {} : { time: null }),
       });
       if (!result) return;
       const { task, index, sub, prev } = result;
       if (!usingMock && isSupabaseConfigured() && sub.id) {
         try {
           await new TaskPersistence(createClient()).updateSubtaskDueDate(sub.id, dueDate);
+          if (!dueDate && sub.time) {
+            await new TaskPersistence(createClient()).updateSubtaskTime(sub.id, null);
+          }
+        } catch {
+          const subtasks = [...(task.subtasks ?? [])];
+          subtasks[index] = prev;
+          patchTaskInView(task.id, { subtasks });
+        }
+      }
+    },
+    [patchSubtaskMeta, patchTaskInView, usingMock],
+  );
+
+  const updateSubtaskTime = useCallback(
+    async (key: SubtaskKey, time: string | null) => {
+      const result = patchSubtaskMeta(key, { time });
+      if (!result) return;
+      const { task, index, sub, prev } = result;
+      if (!usingMock && isSupabaseConfigured() && sub.id) {
+        try {
+          await new TaskPersistence(createClient()).updateSubtaskTime(sub.id, time);
         } catch {
           const subtasks = [...(task.subtasks ?? [])];
           subtasks[index] = prev;
@@ -1471,7 +1495,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
   const updateTaskDueDate = useCallback(
     async (id: string, dueDate: string | null) => {
-      patchTaskInView(id, { dueDate });
+      const due = parseDueDate(dueDate);
+      patchTaskInView(id, { dueDate, date: formatTaskDate(due) });
       if (!usingMock && isSupabaseConfigured()) {
         try {
           await new TaskPersistence(createClient()).updateTaskDueDate(id, dueDate);
@@ -1480,6 +1505,23 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         } catch {
           await refreshTasks();
           showToast("Erro ao atualizar data");
+        }
+      }
+    },
+    [patchTaskInView, refreshTasks, showToast, usingMock],
+  );
+
+  const updateTaskTime = useCallback(
+    async (id: string, time: string | null) => {
+      patchTaskInView(id, { time });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new TaskPersistence(createClient()).updateTaskTime(id, time);
+          showToast("Hora atualizada");
+          await refreshTasks();
+        } catch {
+          await refreshTasks();
+          showToast("Erro ao atualizar hora");
         }
       }
     },
@@ -1834,6 +1876,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     autosaveSubtaskNotes,
     updateSubtaskPriority,
     updateSubtaskDueDate,
+    updateSubtaskTime,
     updateSubtaskLabels,
     toggleSidebar,
     toggleSectionCollapsed,
@@ -1894,6 +1937,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     duplicateTask,
     updateTaskPriority,
     updateTaskDueDate,
+    updateTaskTime,
     updateTaskProject,
     updateTaskProjectAndSection,
     getProjectSections,
