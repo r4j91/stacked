@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const HOLD_MS = 220;
-const MOVE_CANCEL_PX = 6;
+const HOLD_MS = 380;
+const MOVE_CANCEL_PX = 10;
+const HANDLE_DRAG_START_PX = 5;
 
 export type ReorderDropKind = "task" | "section";
 
@@ -11,6 +12,8 @@ export type ReorderDropTarget = {
   id: string;
   kind: ReorderDropKind;
 };
+
+type DragVariant = "hold" | "handle";
 
 function isInteractiveTarget(target: EventTarget | null) {
   return Boolean(
@@ -49,57 +52,96 @@ export function useHoldToReorder(
   onReorder: (draggedId: string, targetId: string, targetKind: ReorderDropKind) => void,
   mode: "task" | "section" = "task",
 ) {
-  const [holdingId, setHoldingId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overTarget, setOverTarget] = useState<ReorderDropTarget | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingId = useRef<string | null>(null);
+  const pendingVariant = useRef<DragVariant | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const suppressClickRef = useRef(false);
   const onReorderRef = useRef(onReorder);
   onReorderRef.current = onReorder;
 
   const itemAttr = mode === "task" ? "data-reorder-task-id" : "data-reorder-section-id";
-
   const findTarget = mode === "task" ? findTaskDropTarget : findSectionDropTarget;
 
-  const cancelHold = useCallback(() => {
+  const clearHoldTimer = useCallback(() => {
     if (holdTimer.current) {
       clearTimeout(holdTimer.current);
       holdTimer.current = null;
     }
-    pendingId.current = null;
-    setHoldingId(null);
   }, []);
 
-  const getProps = useCallback(
-    (id: string, enabled = true) => ({
+  const cancelPending = useCallback(() => {
+    clearHoldTimer();
+    pendingId.current = null;
+    pendingVariant.current = null;
+  }, [clearHoldTimer]);
+
+  const beginDrag = useCallback(
+    (id: string) => {
+      clearHoldTimer();
+      pendingId.current = null;
+      pendingVariant.current = null;
+      setDraggingId(id);
+      setOverTarget(null);
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+    },
+    [clearHoldTimer],
+  );
+
+  const getDropProps = useCallback(
+    (id: string) => ({
       [itemAttr]: id,
+    }),
+    [itemAttr],
+  );
+
+  const getHoldProps = useCallback(
+    (id: string, enabled = true) => ({
       onPointerDown: (e: React.PointerEvent) => {
         if (!enabled || e.button !== 0 || isInteractiveTarget(e.target)) return;
         pendingId.current = id;
-        setHoldingId(id);
+        pendingVariant.current = "hold";
         startPos.current = { x: e.clientX, y: e.clientY };
-        holdTimer.current = setTimeout(() => {
-          holdTimer.current = null;
-          pendingId.current = null;
-          setHoldingId(null);
-          setDraggingId(id);
-          setOverTarget(null);
-          document.body.style.cursor = "grabbing";
-          document.body.style.userSelect = "none";
-        }, HOLD_MS);
+        clearHoldTimer();
+        holdTimer.current = setTimeout(() => beginDrag(id), HOLD_MS);
       },
       onPointerMove: (e: React.PointerEvent) => {
-        if (!pendingId.current || !holdTimer.current) return;
+        if (pendingId.current !== id || pendingVariant.current !== "hold" || !holdTimer.current) return;
         const dx = Math.abs(e.clientX - startPos.current.x);
         const dy = Math.abs(e.clientY - startPos.current.y);
-        if (dx > MOVE_CANCEL_PX || dy > MOVE_CANCEL_PX) cancelHold();
+        if (dx > MOVE_CANCEL_PX || dy > MOVE_CANCEL_PX) cancelPending();
       },
-      onPointerUp: () => cancelHold(),
-      onPointerCancel: () => cancelHold(),
+      onPointerUp: () => cancelPending(),
+      onPointerCancel: () => cancelPending(),
     }),
-    [cancelHold, itemAttr],
+    [beginDrag, cancelPending, clearHoldTimer],
+  );
+
+  const getHandleProps = useCallback(
+    (id: string, enabled = true) => ({
+      onPointerDown: (e: React.PointerEvent) => {
+        if (!enabled || e.button !== 0) return;
+        e.stopPropagation();
+        pendingId.current = id;
+        pendingVariant.current = "handle";
+        startPos.current = { x: e.clientX, y: e.clientY };
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (pendingId.current !== id || pendingVariant.current !== "handle") return;
+        const dx = Math.abs(e.clientX - startPos.current.x);
+        const dy = Math.abs(e.clientY - startPos.current.y);
+        if (dx > HANDLE_DRAG_START_PX || dy > HANDLE_DRAG_START_PX) {
+          e.stopPropagation();
+          beginDrag(id);
+        }
+      },
+      onPointerUp: () => cancelPending(),
+      onPointerCancel: () => cancelPending(),
+    }),
+    [beginDrag, cancelPending],
   );
 
   const consumeClick = useCallback(() => {
@@ -139,8 +181,9 @@ export function useHoldToReorder(
   }, [draggingId, findTarget]);
 
   return {
-    getProps,
-    holdingId,
+    getDropProps,
+    getHoldProps,
+    getHandleProps,
     draggingId,
     overId: overTarget?.id ?? null,
     overKind: overTarget?.kind ?? null,

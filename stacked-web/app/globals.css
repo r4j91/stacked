@@ -340,15 +340,7 @@ html[data-reorder-active] [data-workbench-scroll] {
   margin-right: -10px;
 }
 
-/* Reorder drag — hold → lift → drop target */
-.reorder-holding {
-  transform: scale(0.985);
-  background-color: var(--color-hover-overlay);
-  transition:
-    transform 0.18s cubic-bezier(0.2, 0, 0, 1),
-    background-color 0.18s ease-out;
-}
-
+/* Reorder drag — lift + drop target (active drag only toggles data-reorder-active on html) */
 .reorder-dragging {
   position: relative;
   z-index: 30;

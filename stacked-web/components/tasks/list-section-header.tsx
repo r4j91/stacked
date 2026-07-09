@@ -1,6 +1,7 @@
 "use client";
 
 import type { AnchorRect } from "@/components/ui/anchored-popover";
+import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
 
 type ListSectionHeaderProps = {
   title: string;
@@ -10,8 +11,9 @@ type ListSectionHeaderProps = {
   onToggle?: () => void;
   onMenu?: (anchor: AnchorRect) => void;
   dropSectionId?: string;
-  reorderRowProps?: Record<string, unknown>;
-  reorderHolding?: boolean;
+  reorderDropProps?: Record<string, unknown>;
+  reorderHoldProps?: Record<string, unknown>;
+  reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
   reorderDragging?: boolean;
 };
@@ -39,26 +41,29 @@ export function ListSectionHeader({
   onToggle,
   onMenu,
   dropSectionId,
-  reorderRowProps,
-  reorderHolding,
+  reorderDropProps,
+  reorderHoldProps,
+  reorderHandleProps,
   reorderDragOver,
   reorderDragging,
 }: ListSectionHeaderProps) {
   return (
     <div
-      {...(reorderRowProps ?? {})}
+      {...(reorderDropProps ?? {})}
+      {...(reorderHoldProps ?? {})}
       data-task-drop-section={dropSectionId}
-      className={`flex items-center gap-2 px-2 pb-2 pt-4 ${
+      className={`group/list-section flex items-center gap-1 px-2 pb-2 pt-4 ${
         reorderDragging
           ? "reorder-dragging rounded-[var(--radius-sm)]"
-          : reorderHolding
-            ? "reorder-holding rounded-[var(--radius-sm)]"
-            : reorderDragOver
-              ? "reorder-drop-target rounded-[var(--radius-sm)]"
-              : ""
+          : reorderDragOver
+            ? "reorder-drop-target rounded-[var(--radius-sm)]"
+            : ""
       }`}
       data-reorder-dragging={reorderDragging ? "" : undefined}
     >
+      {reorderHandleProps ? (
+        <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar seção ${title}`} />
+      ) : null}
       {onToggle != null && (
         <button
           type="button"

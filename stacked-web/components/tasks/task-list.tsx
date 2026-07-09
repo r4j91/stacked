@@ -16,6 +16,7 @@ import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
+import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
 import {
   Sun01Icon,
   InboxIcon,
@@ -99,8 +100,9 @@ export function TaskRow({
   task,
   keyboardFocused,
   embedded,
-  reorderRowProps,
-  reorderHolding,
+  reorderDropProps,
+  reorderHoldProps,
+  reorderHandleProps,
   reorderDragOver,
   reorderDragging,
   onReorderConsumeClick,
@@ -109,8 +111,9 @@ export function TaskRow({
   keyboardFocused?: boolean;
   /** Lista embutida (ex.: drill-down de filtros) — sem borda de seleção do inspector */
   embedded?: boolean;
-  reorderRowProps?: Record<string, unknown>;
-  reorderHolding?: boolean;
+  reorderDropProps?: Record<string, unknown>;
+  reorderHoldProps?: Record<string, unknown>;
+  reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
   reorderDragging?: boolean;
   onReorderConsumeClick?: () => boolean;
@@ -129,14 +132,15 @@ export function TaskRow({
         onComplete={() => toggleTaskDone(task.id)}
         onDefer={() => void deferTask(task.id)}
         onDelete={() => void deleteTask(task.id)}
-        allowOverflow={Boolean(reorderDragging || reorderHolding)}
+        allowOverflow={Boolean(reorderDragging)}
         dragGhost={Boolean(reorderDragging)}
-        reserveRight={subs.length > 0 ? 40 : 0}
+        reserveRight={subs.length > 0 ? 40 : reorderHandleProps ? 32 : 0}
       >
         <div
           role="button"
           tabIndex={0}
-          {...(reorderRowProps ?? {})}
+          {...(reorderDropProps ?? {})}
+          {...(reorderHoldProps ?? {})}
           onClick={() => {
             if (onReorderConsumeClick?.()) return;
             if (embedded) openTaskInspector(task);
@@ -154,22 +158,24 @@ export function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
+          className={`group/task-row task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-1 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
             reorderDragging
               ? "reorder-dragging"
-              : reorderHolding
-                ? "reorder-holding"
-                : reorderDragOver
-                  ? "reorder-drop-target border-[var(--color-border-strong)]"
-                  : isSelected
-                    ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
-                    : isKeyboardFocused
-                      ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
-                      : "border-transparent"
-          } ${task.done && !reorderDragging && !reorderHolding ? "opacity-65" : ""}`}
+              : reorderDragOver
+                ? "reorder-drop-target border-[var(--color-border-strong)]"
+                : isSelected
+                  ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
+                  : isKeyboardFocused
+                    ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
+                    : "border-transparent"
+          } ${task.done && !reorderDragging ? "opacity-65" : ""}`}
           data-task-id={task.id}
           data-selected={isSelected ? "" : undefined}
+          data-reorder-dragging={reorderDragging ? "" : undefined}
         >
+          {reorderHandleProps ? (
+            <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar ${task.title}`} />
+          ) : null}
           <DoneCircle
             done={task.done}
             priority={task.priority}

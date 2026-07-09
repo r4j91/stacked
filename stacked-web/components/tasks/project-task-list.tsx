@@ -10,6 +10,7 @@ import { AnchoredPopover, type AnchorRect } from "@/components/ui/anchored-popov
 import { EmptyState } from "@/components/ui/empty-state";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { useHoldToReorder } from "@/lib/hooks/use-hold-to-reorder";
+import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { Add01Icon } from "@/lib/icons/nav-icons";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 
@@ -19,8 +20,9 @@ function CollapsibleSectionHeader({
   expanded,
   onToggle,
   onMenu,
-  reorderRowProps,
-  reorderHolding,
+  reorderDropProps,
+  reorderHoldProps,
+  reorderHandleProps,
   reorderDragOver,
   reorderDragging,
 }: {
@@ -29,8 +31,9 @@ function CollapsibleSectionHeader({
   expanded: boolean;
   onToggle: () => void;
   onMenu: (anchor: AnchorRect) => void;
-  reorderRowProps?: Record<string, unknown>;
-  reorderHolding?: boolean;
+  reorderDropProps?: Record<string, unknown>;
+  reorderHoldProps?: Record<string, unknown>;
+  reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
   reorderDragging?: boolean;
 }) {
@@ -42,8 +45,9 @@ function CollapsibleSectionHeader({
       onToggle={onToggle}
       onMenu={onMenu}
       dropSectionId={section.id}
-      reorderRowProps={reorderRowProps}
-      reorderHolding={reorderHolding}
+      reorderDropProps={reorderDropProps}
+      reorderHoldProps={reorderHoldProps}
+      reorderHandleProps={reorderHandleProps}
       reorderDragOver={reorderDragOver}
       reorderDragging={reorderDragging}
     />
@@ -71,6 +75,7 @@ export function ProjectTaskList() {
   const [dialog, setDialog] = useState<{ mode: "rename"; section: Section } | null>(null);
   const [menuSection, setMenuSection] = useState<Section | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
+  const desktopReorder = useMediaQuery("(min-width: 1024px)");
 
   const taskDrag = useHoldToReorder((from, to, kind) => {
     void reorderProjectTasks(from, to, kind);
@@ -79,13 +84,7 @@ export function ProjectTaskList() {
     void reorderSections(from, to);
   }, "section");
 
-  const taskDragActive = Boolean(taskDrag.holdingId || taskDrag.draggingId);
-
-  const isReordering = Boolean(
-    taskDragActive ||
-      sectionDrag.holdingId ||
-      sectionDrag.draggingId,
-  );
+  const isReordering = Boolean(taskDrag.draggingId || sectionDrag.draggingId);
 
   useEffect(() => {
     if (isReordering) {
@@ -151,19 +150,21 @@ export function ProjectTaskList() {
           return <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[var(--color-border)]/60" />;
         }
         if (item.kind === "task") {
+          const taskId = item.task.id;
           return (
             <TaskRow
-              key={item.task.id}
+              key={taskId}
               task={item.task}
-              keyboardFocused={focusedTaskId === item.task.id}
-              reorderRowProps={taskDrag.getProps(item.task.id, true)}
-              reorderHolding={taskDrag.holdingId === item.task.id}
+              keyboardFocused={focusedTaskId === taskId}
+              reorderDropProps={taskDrag.getDropProps(taskId)}
+              reorderHoldProps={desktopReorder ? undefined : taskDrag.getHoldProps(taskId, true)}
+              reorderHandleProps={desktopReorder ? taskDrag.getHandleProps(taskId, true) : undefined}
               reorderDragOver={
-                taskDrag.overId === item.task.id &&
+                taskDrag.overId === taskId &&
                 taskDrag.overKind === "task" &&
-                taskDrag.draggingId !== item.task.id
+                taskDrag.draggingId !== taskId
               }
-              reorderDragging={taskDrag.draggingId === item.task.id}
+              reorderDragging={taskDrag.draggingId === taskId}
               onReorderConsumeClick={taskDrag.consumeClick}
             />
           );
@@ -175,22 +176,24 @@ export function ProjectTaskList() {
         }
         if (item.kind === "sectionHeader") {
           const expanded = !collapsedSectionIds.has(item.section.id);
+          const sectionId = item.section.id;
           return (
             <CollapsibleSectionHeader
-              key={item.section.id}
+              key={sectionId}
               section={item.section}
               count={item.count}
               expanded={expanded}
-              reorderRowProps={sectionDrag.getProps(item.section.id, true)}
-              reorderHolding={sectionDrag.holdingId === item.section.id}
+              reorderDropProps={sectionDrag.getDropProps(sectionId)}
+              reorderHoldProps={desktopReorder ? undefined : sectionDrag.getHoldProps(sectionId, true)}
+              reorderHandleProps={desktopReorder ? sectionDrag.getHandleProps(sectionId, true) : undefined}
               reorderDragOver={
-                (sectionDrag.overId === item.section.id && sectionDrag.draggingId !== item.section.id) ||
-                (taskDrag.overId === item.section.id &&
+                (sectionDrag.overId === sectionId && sectionDrag.draggingId !== sectionId) ||
+                (taskDrag.overId === sectionId &&
                   taskDrag.overKind === "section" &&
                   taskDrag.draggingId !== null)
               }
-              reorderDragging={sectionDrag.draggingId === item.section.id}
-              onToggle={() => toggleSectionCollapsed(item.section.id)}
+              reorderDragging={sectionDrag.draggingId === sectionId}
+              onToggle={() => toggleSectionCollapsed(sectionId)}
               onMenu={(anchor) => {
                 setMenuAnchor(anchor);
                 setMenuSection(item.section);
