@@ -84,7 +84,7 @@ export function TaskMetaLine({ task, hideDate }: TaskMetaLineProps) {
   );
 }
 
-export function SubtaskMetaLine({ sub }: { sub: Subtask }) {
+export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabels?: number }) {
   const { labels: allLabels } = useWorkbench();
 
   let subLabels =
@@ -99,12 +99,17 @@ export function SubtaskMetaLine({ sub }: { sub: Subtask }) {
 
   const items: React.ReactNode[] = [];
 
-  for (const label of subLabels.slice(0, 2)) {
+  for (const label of subLabels.slice(0, maxLabels)) {
     items.push(<TagChip key={label.id} label={label.name} color={label.color} />);
   }
-  if (subLabels.length > 2) {
+  if (subLabels.length > maxLabels) {
     items.push(
-      <TagChip key="more" label={`+${subLabels.length - 2}`} color="var(--color-text-tertiary)" showIcon={false} />,
+      <TagChip
+        key="more"
+        label={`+${subLabels.length - maxLabels}`}
+        color="var(--color-text-tertiary)"
+        showIcon={false}
+      />,
     );
   }
 

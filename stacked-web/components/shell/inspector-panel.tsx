@@ -27,6 +27,8 @@ import {
 } from "@/components/tasks/meta-picker-sheet";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { anchorFromElement, type AnchorRect } from "@/components/ui/anchored-popover";
+import { SubtaskMetaLine } from "@/components/tasks/task-meta-line";
+import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { priorityLabel, priorityColor } from "@/lib/utils/priority";
 import { parseRecurrence, recurrenceLabel } from "@/lib/utils/recurrence";
 import { createClient } from "@/lib/supabase/client";
@@ -387,32 +389,52 @@ function SubtasksCard({ task }: { task: Task }) {
       {subs.map((s, i) => {
         const key = `${task.id}:${i}` as SubtaskKey;
         const selected = selectedSubtaskKey === key;
+        const notesPreview = s.notes?.trim();
+        const hasMetaLine = Boolean(s.dueDate || (s.labelIds?.length ?? 0) > 0 || s.tag);
+        const hasMeta = Boolean(notesPreview || hasMetaLine);
         return (
           <div
             key={key}
-            className={`flex items-center gap-2.5 border-t border-[var(--color-border)] px-4 py-2.5 ${
-              selected ? "bg-[var(--color-hover-overlay-strong)]" : "hover:bg-[var(--color-hover-overlay)]"
-            }`}
+            className={`flex items-start gap-2.5 border-t border-[var(--color-border)] px-4 ${
+              hasMeta ? "py-3" : "py-2.5"
+            } ${selected ? "bg-[var(--color-hover-overlay-strong)]" : "hover:bg-[var(--color-hover-overlay)]"}`}
           >
-            <DoneCircle
-              small
-              done={s.done}
-              priority={s.priority}
-              label={s.done ? "Marcar pendente" : "Marcar concluída"}
-              onClick={() => toggleSubtaskDone(key)}
-            />
+            <div className={hasMeta ? "mt-0.5" : "self-center"}>
+              <DoneCircle
+                small
+                done={s.done}
+                priority={s.priority}
+                label={s.done ? "Marcar pendente" : "Marcar concluída"}
+                onClick={() => toggleSubtaskDone(key)}
+              />
+            </div>
             <button
               type="button"
               onClick={() => selectSubtask(task.id, i)}
-              className={`min-w-0 flex-1 truncate text-left text-sm font-medium ${s.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}
+              className="min-w-0 flex-1 text-left"
             >
-              {s.name}
+              <div className="flex items-start gap-2">
+                <span
+                  className={`min-w-0 flex-1 text-sm font-medium leading-snug ${
+                    s.done ? "text-[var(--color-text-tertiary)] line-through" : ""
+                  }`}
+                >
+                  {s.name}
+                </span>
+                <TaskRowTime time={s.time} className="mt-0.5 shrink-0" />
+              </div>
+              {notesPreview ? (
+                <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-[var(--color-text-tertiary)]">
+                  {notesPreview}
+                </p>
+              ) : null}
+              {hasMetaLine ? <SubtaskMetaLine sub={s} maxLabels={4} /> : null}
             </button>
             {s.id && (
               <button
                 type="button"
                 onClick={() => void deleteSubtask(key)}
-                className="text-[var(--color-text-tertiary)] hover:text-[var(--color-overdue)]"
+                className="mt-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-overdue)]"
                 aria-label="Excluir subtarefa"
               >
                 <AppIcon icon={Delete01Icon} size={14} />
