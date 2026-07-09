@@ -41,7 +41,7 @@ enum TaskMapper {
       subtasks: subtasks,
       dueDate: due,
       dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
-      dueDateChipColor: due.map { dateColor(for: $0) },
+      dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
       done: row.concluida ?? false,
       commentCount: commentCount,
       recurrence: row.recorrencia
@@ -62,7 +62,7 @@ enum TaskMapper {
       dueDate: due,
       time: row.hora,
       dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
-      dueDateChipColor: due.map { dateColor(for: $0) },
+      dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
       labelIds: row.label_ids ?? []
     )
   }
@@ -174,15 +174,11 @@ enum TaskMapper {
     return "\(weekdayLabels[idx]), \(day) \(monthLabels[month - 1])"
   }
 
-  static func dateColor(for date: Date, now: Date = Date()) -> Color {
+  static func dateColor(for date: Date, done: Bool = false, now: Date = Date()) -> Color {
     let today = startOfDay(now)
     let d = startOfDay(date)
-    if d == today { return AppColors.dateDueToday }
-    if d == Calendar.current.date(byAdding: .day, value: 1, to: today) { return AppColors.priorityMedium }
-    let weekday = Calendar.current.component(.weekday, from: date)
-    if weekday == 1 { return AppColors.priorityLow }
-    if weekday == 2 { return AppColors.tagPurple }
-    return Color(hex: 0x5FD3DC)
+    if !done, d < today { return AppColors.dateOverdue }
+    return AppColors.textTertiary
   }
 
   static func formatTimeDisplay(_ time: String) -> String {

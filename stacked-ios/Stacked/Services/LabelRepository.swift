@@ -49,16 +49,14 @@ final class LabelRepository {
 
   func createLabel(name: String, colorHex: String) async throws {
     guard let userId = client.auth.currentUser?.id else { return }
-    let lastOrder: Int = {
-      let rows: [LabelSortRowDTO] = (try? await client
-        .from("labels")
-        .select("sort_order")
-        .order("sort_order", ascending: false)
-        .limit(1)
-        .execute()
-        .value) ?? []
-      return (rows.first?.sort_order ?? -1) + 1
-    }()
+    let rows: [LabelSortRowDTO] = (try? await client
+      .from("labels")
+      .select("sort_order")
+      .order("sort_order", ascending: false)
+      .limit(1)
+      .execute()
+      .value) ?? []
+    let lastOrder = (rows.first?.sort_order ?? -1) + 1
     struct Payload: Encodable {
       let nome: String
       let cor: String

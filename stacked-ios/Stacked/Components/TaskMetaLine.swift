@@ -10,6 +10,7 @@ struct TaskMetaLine: View {
   /// FASE5: quando presentes, evitam formatação no body.
   var dueDateLabel: String? = nil
   var dueDateColor: Color? = nil
+  var dateDone: Bool = false
   var subtasksDone: Int = 0
   var subtasksTotal: Int = 0
   var commentCount: Int = 0
@@ -70,7 +71,7 @@ struct TaskMetaLine: View {
   }
 
   private func dueDateChip(_ date: Date) -> some View {
-    let color = dueDateColor ?? TaskMapper.dateColor(for: date)
+    let color = TaskMapper.dateColor(for: date, done: dateDone)
     let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
     return TagChip(label: label, color: color, icon: .calendar)
   }

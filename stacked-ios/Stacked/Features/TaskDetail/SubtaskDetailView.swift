@@ -185,7 +185,7 @@ struct SubtaskDetailView: View {
         title: "Data",
         value: dueDateLabel,
         active: dueDate != nil,
-        valueColor: dueDate.map { TaskMapper.dateColor(for: $0) },
+        valueColor: dueDate.map { TaskMapper.dateColor(for: $0, done: subtask.done) },
         anchor: $dateAnchor
       ) { showDatePicker = true }
 

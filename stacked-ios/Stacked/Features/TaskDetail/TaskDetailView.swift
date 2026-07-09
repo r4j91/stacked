@@ -191,7 +191,7 @@ struct TaskDetailView: View {
       if vm.dueDate != nil {
         divider
         metaRow(icon: .calendar, title: "Data", value: vm.dueDateLabel, active: true,
-                valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0) },
+                valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0, done: vm.done) },
                 anchor: $dateAnchor) {
           showDatePicker = true
         }
@@ -343,6 +343,7 @@ struct TaskDetailView: View {
             dueDate: sub.dueDate,
             dueDateLabel: sub.dueDateChipLabel,
             dueDateColor: sub.dueDateChipColor,
+            dateDone: sub.done,
             maxLabels: 4
           )
         }

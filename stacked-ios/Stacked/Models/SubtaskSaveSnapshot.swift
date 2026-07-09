@@ -36,7 +36,7 @@ enum SubtaskListPatch {
       dueDate: due,
       time: snapshot.time,
       dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
-      dueDateChipColor: due.map { TaskMapper.dateColor(for: $0) },
+      dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: snapshot.done) },
       labelIds: snapshot.labelIds
     )
   }

@@ -59,7 +59,8 @@ struct FilterSubtaskRow: View {
               labels: labels,
               dueDate: subtask.dueDate,
               dueDateLabel: subtask.dueDateChipLabel,
-              dueDateColor: subtask.dueDateChipColor
+              dueDateColor: subtask.dueDateChipColor,
+              dateDone: subtask.done
             )
           }
         }

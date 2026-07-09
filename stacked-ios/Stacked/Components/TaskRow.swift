@@ -174,6 +174,7 @@ struct TaskRow: View {
         dueDate: task.dueDate,
         dueDateLabel: task.dueDateChipLabel,
         dueDateColor: task.dueDateChipColor,
+        dateDone: task.done,
         subtasksDone: displayedSubtasksDone,
         subtasksTotal: displayedSubtasksTotal,
         commentCount: task.commentCount,
@@ -299,7 +300,8 @@ struct TaskRow: View {
                   labels: labels,
                   dueDate: sub.dueDate,
                   dueDateLabel: sub.dueDateChipLabel,
-                  dueDateColor: sub.dueDateChipColor
+                  dueDateColor: sub.dueDateChipColor,
+                  dateDone: done
                 )
               }
             }
