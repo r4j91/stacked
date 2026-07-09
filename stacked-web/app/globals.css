@@ -327,36 +327,60 @@ textarea:focus:not(:focus-visible) {
   color: var(--color-text-secondary);
 }
 
-/* Reorder drag — relax scroll clipping so lift/shadow aren't squeezed */
-html[data-reorder-active] [data-workbench-main],
-html[data-reorder-active] [data-workbench-scroll] {
-  overflow: visible !important;
+/* Reorder — shared gutter + ghost drag (desktop project lists) */
+.reorder-enabled-list {
+  --reorder-gutter: 16px;
 }
 
-html[data-reorder-active] [data-workbench-scroll] {
-  padding-left: 10px;
-  padding-right: 10px;
-  margin-left: -10px;
-  margin-right: -10px;
+.reorder-row-with-gutter {
+  --reorder-gutter: 16px;
 }
 
-/* Reorder drag — lift + drop target (active drag only toggles data-reorder-active on html) */
-.reorder-dragging {
-  position: relative;
-  z-index: 30;
-  transform: scale(1.022);
-  pointer-events: none;
-  opacity: 1 !important;
+.reorder-row-with-gutter.grid {
+  grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr) auto;
+}
+
+.reorder-enabled-list .subtask-tree {
+  margin-left: calc(var(--reorder-gutter) + 28px);
+}
+
+.reorder-enabled-list .subtask-tree-line {
+  left: calc(var(--reorder-gutter) + 9px);
+}
+
+.subtask-tree {
+  margin-left: 22px;
+}
+
+.subtask-tree-line {
+  left: 9px;
+}
+
+.reorder-source-placeholder {
+  opacity: 0.28 !important;
+  border-style: dashed !important;
   border-color: var(--color-border-strong) !important;
-  background-color: var(--color-surface) !important;
+  background: transparent !important;
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reorder-ghost {
+  position: fixed;
+  z-index: 120;
+  margin: 0;
+  pointer-events: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-surface);
   box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.12),
-    0 14px 28px rgba(0, 0, 0, 0.22);
+    0 2px 8px rgba(0, 0, 0, 0.14),
+    0 16px 40px rgba(0, 0, 0, 0.24);
+  opacity: 0.96;
+  transform: scale(1.01);
   transition:
-    transform 0.16s cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 0.16s ease-out,
-    background-color 0.16s ease-out;
-  cursor: grabbing !important;
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: left, top;
 }
 
 .reorder-drop-target {
@@ -366,23 +390,41 @@ html[data-reorder-active] [data-workbench-scroll] {
 .reorder-drop-target::before {
   content: "";
   position: absolute;
-  left: 8px;
+  left: calc(var(--reorder-gutter, 0px) + 8px);
   right: 8px;
-  top: 0;
+  top: -1px;
   height: 2px;
   border-radius: 1px;
-  background: var(--color-text-tertiary);
-  opacity: 0.9;
+  background: var(--color-accent);
+  opacity: 0.95;
   pointer-events: none;
+  transform-origin: left center;
+  animation: reorder-drop-line-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reorder-drop-target-after::before {
+  top: auto;
+  bottom: -1px;
+}
+
+@keyframes reorder-drop-line-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.65);
+  }
+  to {
+    opacity: 0.95;
+    transform: scaleX(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reorder-holding,
-  .reorder-dragging,
+  .reorder-source-placeholder,
+  .reorder-ghost,
   .reorder-drop-target {
-    transform: none;
     transition: none;
     animation: none;
+    transform: none;
   }
 
   .reorder-drop-target::before {

@@ -32,9 +32,9 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   const subs = task.subtasks;
 
   return (
-    <div className="relative ml-[22px] mr-2 mt-0.5 space-y-0.5 pb-1.5">
+    <div className="subtask-tree relative mr-2 mt-0.5 space-y-0.5 pb-1.5">
       <div
-        className="pointer-events-none absolute left-[9px] top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
+        className="subtask-tree-line pointer-events-none absolute top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
         style={{ height: `calc(100% - 10px)` }}
         aria-hidden
       />
@@ -104,6 +104,7 @@ export function TaskRow({
   reorderHoldProps,
   reorderHandleProps,
   reorderDragOver,
+  reorderDropPosition,
   reorderDragging,
   onReorderConsumeClick,
 }: {
@@ -115,6 +116,7 @@ export function TaskRow({
   reorderHoldProps?: Record<string, unknown>;
   reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
+  reorderDropPosition?: "before" | "after" | null;
   reorderDragging?: boolean;
   onReorderConsumeClick?: () => boolean;
 }) {
@@ -132,13 +134,14 @@ export function TaskRow({
         onComplete={() => toggleTaskDone(task.id)}
         onDefer={() => void deferTask(task.id)}
         onDelete={() => void deleteTask(task.id)}
-        allowOverflow={Boolean(reorderDragging)}
+        allowOverflow={false}
         dragGhost={Boolean(reorderDragging)}
-        reserveRight={subs.length > 0 ? 40 : reorderHandleProps ? 32 : 0}
+        reserveRight={subs.length > 0 ? 40 : 0}
       >
         <div
           role="button"
           tabIndex={0}
+          data-reorder-item
           {...(reorderDropProps ?? {})}
           {...(reorderHoldProps ?? {})}
           onClick={() => {
@@ -158,23 +161,28 @@ export function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`group/task-row task-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-1 rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
-            reorderDragging
-              ? "reorder-dragging"
-              : reorderDragOver
-                ? "reorder-drop-target border-[var(--color-border-strong)]"
-                : isSelected
-                  ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
-                  : isKeyboardFocused
-                    ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
-                    : "border-transparent"
-          } ${task.done && !reorderDragging ? "opacity-65" : ""}`}
+          className={`group/reorder-row task-row scroll-list-item mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border py-2 pl-1 pr-0.5 ${
+            reorderHandleProps
+              ? "reorder-row-with-gutter grid items-start gap-x-2"
+              : "flex items-start gap-2"
+          } ${
+            reorderDragOver
+              ? reorderDropPosition === "after"
+                ? "reorder-drop-target reorder-drop-target-after border-transparent"
+                : "reorder-drop-target border-transparent"
+              : isSelected
+                ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
+                : isKeyboardFocused
+                  ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
+                  : "border-transparent"
+          } ${task.done ? "opacity-65" : ""}`}
           data-task-id={task.id}
           data-selected={isSelected ? "" : undefined}
-          data-reorder-dragging={reorderDragging ? "" : undefined}
         >
           {reorderHandleProps ? (
-            <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar ${task.title}`} />
+            <div className="reorder-gutter flex items-center justify-center self-center">
+              <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar ${task.title}`} />
+            </div>
           ) : null}
           <DoneCircle
             done={task.done}

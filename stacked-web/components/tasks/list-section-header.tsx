@@ -15,6 +15,7 @@ type ListSectionHeaderProps = {
   reorderHoldProps?: Record<string, unknown>;
   reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
+  reorderDropPosition?: "before" | "after" | null;
   reorderDragging?: boolean;
 };
 
@@ -45,24 +46,28 @@ export function ListSectionHeader({
   reorderHoldProps,
   reorderHandleProps,
   reorderDragOver,
-  reorderDragging,
+  reorderDropPosition,
 }: ListSectionHeaderProps) {
   return (
     <div
+      data-reorder-item
       {...(reorderDropProps ?? {})}
       {...(reorderHoldProps ?? {})}
       data-task-drop-section={dropSectionId}
-      className={`group/list-section flex items-center gap-1 px-2 pb-2 pt-4 ${
-        reorderDragging
-          ? "reorder-dragging rounded-[var(--radius-sm)]"
-          : reorderDragOver
-            ? "reorder-drop-target rounded-[var(--radius-sm)]"
-            : ""
+      className={`group/reorder-row flex items-center gap-2 px-2 pb-2 pt-4 ${
+        reorderHandleProps ? "reorder-row-with-gutter" : ""
+      } ${
+        reorderDragOver
+          ? reorderDropPosition === "after"
+            ? "reorder-drop-target reorder-drop-target-after"
+            : "reorder-drop-target"
+          : ""
       }`}
-      data-reorder-dragging={reorderDragging ? "" : undefined}
     >
       {reorderHandleProps ? (
-        <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar seção ${title}`} />
+        <div className="reorder-gutter flex shrink-0 items-center justify-center self-center">
+          <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar seção ${title}`} />
+        </div>
       ) : null}
       {onToggle != null && (
         <button

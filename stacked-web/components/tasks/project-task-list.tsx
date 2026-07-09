@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Section } from "@/lib/types/project";
 import { TaskRow, TaskListSkeleton } from "@/components/tasks/task-list";
 import { useWorkbench } from "@/components/shell/workbench-context";
@@ -24,6 +24,7 @@ function CollapsibleSectionHeader({
   reorderHoldProps,
   reorderHandleProps,
   reorderDragOver,
+  reorderDropPosition,
   reorderDragging,
 }: {
   section: Section;
@@ -35,6 +36,7 @@ function CollapsibleSectionHeader({
   reorderHoldProps?: Record<string, unknown>;
   reorderHandleProps?: Record<string, unknown>;
   reorderDragOver?: boolean;
+  reorderDropPosition?: "before" | "after" | null;
   reorderDragging?: boolean;
 }) {
   return (
@@ -49,6 +51,7 @@ function CollapsibleSectionHeader({
       reorderHoldProps={reorderHoldProps}
       reorderHandleProps={reorderHandleProps}
       reorderDragOver={reorderDragOver}
+      reorderDropPosition={reorderDropPosition}
       reorderDragging={reorderDragging}
     />
   );
@@ -77,25 +80,12 @@ export function ProjectTaskList() {
   const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
   const desktopReorder = useMediaQuery("(min-width: 1024px)");
 
-  const taskDrag = useHoldToReorder((from, to, kind) => {
-    void reorderProjectTasks(from, to, kind);
+  const taskDrag = useHoldToReorder((from, to, kind, position) => {
+    void reorderProjectTasks(from, to, kind, position);
   }, "task");
-  const sectionDrag = useHoldToReorder((from, to) => {
-    void reorderSections(from, to);
+  const sectionDrag = useHoldToReorder((from, to, _kind, position) => {
+    void reorderSections(from, to, position);
   }, "section");
-
-  const isReordering = Boolean(taskDrag.draggingId || sectionDrag.draggingId);
-
-  useEffect(() => {
-    if (isReordering) {
-      document.documentElement.dataset.reorderActive = "";
-    } else {
-      delete document.documentElement.dataset.reorderActive;
-    }
-    return () => {
-      delete document.documentElement.dataset.reorderActive;
-    };
-  }, [isReordering]);
 
   const items = useMemo(
     () =>
@@ -144,13 +134,15 @@ export function ProjectTaskList() {
   }
 
   return (
-    <>
+    <div className={desktopReorder ? "reorder-enabled-list" : undefined}>
       {items.map((item, i) => {
         if (item.kind === "separator") {
           return <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[var(--color-border)]/60" />;
         }
         if (item.kind === "task") {
           const taskId = item.task.id;
+          const isDropTarget =
+            taskDrag.overId === taskId && taskDrag.overKind === "task" && taskDrag.draggingId !== taskId;
           return (
             <TaskRow
               key={taskId}
@@ -159,11 +151,8 @@ export function ProjectTaskList() {
               reorderDropProps={taskDrag.getDropProps(taskId)}
               reorderHoldProps={desktopReorder ? undefined : taskDrag.getHoldProps(taskId, true)}
               reorderHandleProps={desktopReorder ? taskDrag.getHandleProps(taskId, true) : undefined}
-              reorderDragOver={
-                taskDrag.overId === taskId &&
-                taskDrag.overKind === "task" &&
-                taskDrag.draggingId !== taskId
-              }
+              reorderDragOver={isDropTarget}
+              reorderDropPosition={isDropTarget ? taskDrag.overPosition : null}
               reorderDragging={taskDrag.draggingId === taskId}
               onReorderConsumeClick={taskDrag.consumeClick}
             />
@@ -177,6 +166,10 @@ export function ProjectTaskList() {
         if (item.kind === "sectionHeader") {
           const expanded = !collapsedSectionIds.has(item.section.id);
           const sectionId = item.section.id;
+          const isSectionDropTarget =
+            (sectionDrag.overId === sectionId && sectionDrag.draggingId !== sectionId) ||
+            (taskDrag.overId === sectionId && taskDrag.overKind === "section" && taskDrag.draggingId !== null);
+          const dropPosition = taskDrag.overId === sectionId ? taskDrag.overPosition : sectionDrag.overPosition;
           return (
             <CollapsibleSectionHeader
               key={sectionId}
@@ -186,12 +179,8 @@ export function ProjectTaskList() {
               reorderDropProps={sectionDrag.getDropProps(sectionId)}
               reorderHoldProps={desktopReorder ? undefined : sectionDrag.getHoldProps(sectionId, true)}
               reorderHandleProps={desktopReorder ? sectionDrag.getHandleProps(sectionId, true) : undefined}
-              reorderDragOver={
-                (sectionDrag.overId === sectionId && sectionDrag.draggingId !== sectionId) ||
-                (taskDrag.overId === sectionId &&
-                  taskDrag.overKind === "section" &&
-                  taskDrag.draggingId !== null)
-              }
+              reorderDragOver={isSectionDropTarget}
+              reorderDropPosition={isSectionDropTarget ? dropPosition : null}
               reorderDragging={sectionDrag.draggingId === sectionId}
               onToggle={() => toggleSectionCollapsed(sectionId)}
               onMenu={(anchor) => {
@@ -262,6 +251,6 @@ export function ProjectTaskList() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

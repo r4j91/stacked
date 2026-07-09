@@ -55,7 +55,7 @@ import {
 import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { profileFromUser } from "@/lib/services/profile-service";
 import { projectDetailCache } from "@/lib/services/project-detail-cache";
-import type { ReorderDropKind } from "@/lib/hooks/use-hold-to-reorder";
+import type { ReorderDropKind, ReorderDropPosition } from "@/lib/hooks/use-hold-to-reorder";
 export type QuickAddOptions = { projectId?: string | null; sectionId?: string | null };
 
 const MOCK_LABELS: Label[] = [
@@ -190,8 +190,13 @@ type WorkbenchContextValue = {
   deleteTask: (id: string) => Promise<void>;
   deferTask: (id: string) => Promise<void>;
   duplicateTask: (id: string) => Promise<void>;
-  reorderProjectTasks: (draggedId: string, targetId: string, targetKind?: ReorderDropKind) => Promise<void>;
-  reorderSections: (draggedId: string, targetId: string) => Promise<void>;
+  reorderProjectTasks: (
+    draggedId: string,
+    targetId: string,
+    targetKind?: ReorderDropKind,
+    position?: ReorderDropPosition,
+  ) => Promise<void>;
+  reorderSections: (draggedId: string, targetId: string, position?: ReorderDropPosition) => Promise<void>;
   updateTaskPriority: (id: string, priority: Priority | null) => Promise<void>;
   updateTaskDueDate: (id: string, dueDate: string | null) => Promise<void>;
   updateTaskTime: (id: string, time: string | null) => Promise<void>;
@@ -902,7 +907,12 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   );
 
   const reorderProjectTasks = useCallback(
-    async (draggedId: string, targetId: string, targetKind: ReorderDropKind = "task") => {
+    async (
+      draggedId: string,
+      targetId: string,
+      targetKind: ReorderDropKind = "task",
+      position: ReorderDropPosition = "before",
+    ) => {
       if (draggedId === targetId && targetKind === "task") return;
       const dragged = viewTasks.pending.find((t) => t.id === draggedId);
       if (!dragged) return;
@@ -910,15 +920,33 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const oldSectionKey = dragged.sectionId ?? null;
       let newSectionKey: string | null;
       let insertBeforeTaskId: string | null;
+      let appendToSection = false;
 
       if (targetKind === "section") {
         newSectionKey = targetId;
-        insertBeforeTaskId = null;
+        if (position === "after") {
+          appendToSection = true;
+          insertBeforeTaskId = null;
+        } else {
+          insertBeforeTaskId = null;
+        }
       } else {
         const target = viewTasks.pending.find((t) => t.id === targetId);
         if (!target) return;
         newSectionKey = target.sectionId ?? null;
-        insertBeforeTaskId = targetId;
+        if (position === "after") {
+          const sortByOrder = (tasks: typeof viewTasks.pending) =>
+            [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+          const bucket = sortByOrder(
+            viewTasks.pending.filter((t) => (t.sectionId ?? null) === newSectionKey && t.id !== draggedId),
+          );
+          const targetIdx = bucket.findIndex((t) => t.id === targetId);
+          const nextTask = targetIdx >= 0 ? bucket[targetIdx + 1] : undefined;
+          insertBeforeTaskId = nextTask?.id ?? null;
+          appendToSection = !nextTask;
+        } else {
+          insertBeforeTaskId = targetId;
+        }
       }
 
       const sortByOrder = (tasks: typeof viewTasks.pending) =>
@@ -935,6 +963,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         const to = destBucket.findIndex((t) => t.id === insertBeforeTaskId);
         nextDest = [...destBucket];
         nextDest.splice(to < 0 ? nextDest.length : to, 0, moved);
+      } else if (appendToSection) {
+        nextDest = [...destBucket, moved];
       } else {
         nextDest = [moved, ...destBucket];
       }
@@ -992,7 +1022,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   );
 
   const reorderSections = useCallback(
-    async (draggedId: string, targetId: string) => {
+    async (draggedId: string, targetId: string, position: ReorderDropPosition = "before") => {
       if (draggedId === targetId) return;
       const sorted = [...sections].sort((a, b) => a.order - b.order);
       const from = sorted.findIndex((s) => s.id === draggedId);
@@ -1001,7 +1031,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
       const next = [...sorted];
       const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
+      let insertAt = next.findIndex((s) => s.id === targetId);
+      if (insertAt < 0) return;
+      if (position === "after") insertAt += 1;
+      next.splice(insertAt, 0, moved);
 
       const withOrder = next.map((s, i) => ({ ...s, order: i }));
       setSections(withOrder);
