@@ -37,7 +37,16 @@ export function parseDueDate(raw: unknown): Date | null {
   if (raw == null) return null;
   const str = String(raw).trim();
   if (!str) return null;
-  const dt = new Date(str.length === 10 ? `${str}T12:00:00` : str);
+
+  // Sempre preferir YYYY-MM-DD civil (paridade iOS TaskMapper.parseDueDate).
+  // timestamptz "2026-07-01T00:00:00+00:00" vira 30/jun no Brasil se parsear ISO completo.
+  const head = str.length >= 10 ? str.slice(0, 10) : str;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    const dt = new Date(`${head}T12:00:00`);
+    return Number.isNaN(dt.getTime()) ? null : startOfDay(dt);
+  }
+
+  const dt = new Date(str);
   return Number.isNaN(dt.getTime()) ? null : startOfDay(dt);
 }
 

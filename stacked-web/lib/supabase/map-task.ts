@@ -1,5 +1,5 @@
 import type { Priority, Subtask, Task } from "@/lib/types/task";
-import { formatTaskDate, parseDueDate } from "@/lib/utils/date";
+import { formatTaskDate, parseDueDate, toDateStr } from "@/lib/utils/date";
 
 type DbRow = Record<string, unknown>;
 
@@ -23,7 +23,7 @@ function mapSubtask(row: DbRow): Subtask {
     name: String(row.titulo ?? ""),
     done: Boolean(row.concluida),
     notes: row.descricao ? String(row.descricao) : undefined,
-    dueDate: due ? due.toISOString().slice(0, 10) : null,
+    dueDate: due ? toDateStr(due) : null,
     date: formatTaskDate(due),
     time,
     priority: parsePriority(row.prioridade),
@@ -74,7 +74,7 @@ export function mapTaskRow(row: DbRow): Task {
     project: projectName,
     projectId: row.project_id != null ? String(row.project_id) : null,
     sectionId: row.section_id != null ? String(row.section_id) : null,
-    dueDate: due ? due.toISOString().slice(0, 10) : null,
+    dueDate: due ? toDateStr(due) : null,
     date: formatTaskDate(due),
     tag: labels[0],
     priority: parsePriority(row.prioridade),
