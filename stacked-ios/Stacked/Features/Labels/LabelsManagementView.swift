@@ -7,6 +7,7 @@ struct LabelsManagementView: View {
   @State private var labels: [TaskLabel] = []
   @State private var loading = true
   @State private var editorLabel: EditableLabel?
+  @State private var editMode: EditMode = .inactive
 
   var body: some View {
     let c = theme.colors
@@ -20,20 +21,27 @@ struct LabelsManagementView: View {
         } else {
           List {
             Section {
-              SettingsCardSurface {
-                VStack(spacing: 0) {
-                  ForEach(Array(labels.enumerated()), id: \.element.id) { index, label in
-                    labelRow(label)
-                    if index < labels.count - 1 {
-                      SettingsCardDivider(leadingPadding: 44)
+              ForEach(labels) { label in
+                labelRow(label)
+                  .listRowInsets(EdgeInsets())
+                  .listRowSeparator(.hidden)
+                  .listRowBackground(Color.clear)
+                  .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                      _Concurrency.Task { await deleteLabel(label) }
+                    } label: {
+                      StackedIcons.image(.trash)
                     }
+                    .accessibilityLabel("Excluir etiqueta \(label.name)")
                   }
-                }
               }
-              .settingsListCardRow(top: 8)
+              .onMove(perform: moveLabels)
             }
           }
+          .listStyle(.plain)
+          .scrollContentBackground(.hidden)
           .settingsDrillDownList(background: c.background)
+          .environment(\.editMode, $editMode)
         }
       }
       .stackedTabletCentered()
@@ -43,12 +51,22 @@ struct LabelsManagementView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            openEditor(nil)
-          } label: {
-            StackedIcons.image(.plus)
-              .font(.system(size: 16, weight: .semibold))
+          HStack(spacing: 16) {
+            if !labels.isEmpty {
+              Button(editMode == .active ? "Concluir" : "Ordenar") {
+                HapticService.selection()
+                editMode = editMode == .active ? .inactive : .active
+              }
+              .font(AppTypography.body)
               .foregroundStyle(c.accent)
+            }
+            Button {
+              openEditor(nil)
+            } label: {
+              StackedIcons.image(.plus)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(c.accent)
+            }
           }
         }
       }
@@ -67,39 +85,48 @@ struct LabelsManagementView: View {
   private func labelRow(_ label: TaskLabel) -> some View {
     let c = theme.colors
 
-    return HStack(spacing: 12) {
-      StackedIcons.image(.tag)
-        .font(.system(size: 18))
-        .foregroundStyle(label.color)
-      Text(label.name)
-        .font(AppTypography.body)
-        .foregroundStyle(c.textPrimary)
-      Spacer()
-      Button {
-        openEditor(label)
-      } label: {
-        StackedIcons.image(.edit)
-          .font(.system(size: 16))
-          .foregroundStyle(c.textSecondary)
-          .frame(width: 44, height: 44)
-          .contentShape(Rectangle())
+    return SettingsCardSurface {
+      HStack(spacing: 12) {
+        StackedIcons.image(.tag)
+          .font(.system(size: 18))
+          .foregroundStyle(label.color)
+        Text(label.name)
+          .font(AppTypography.body)
+          .foregroundStyle(c.textPrimary)
+        Spacer(minLength: 0)
+        if editMode == .inactive {
+          Button {
+            openEditor(label)
+          } label: {
+            StackedIcons.image(.edit)
+              .font(.system(size: 16))
+              .foregroundStyle(c.textSecondary)
+              .frame(width: 44, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Editar etiqueta \(label.name)")
+        }
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Editar etiqueta \(label.name)")
-      Button {
-        _Concurrency.Task { await deleteLabel(label) }
-      } label: {
-        StackedIcons.image(.trash)
-          .font(.system(size: 16))
-          .foregroundStyle(AppColors.priorityHigh)
-          .frame(width: 44, height: 44)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Excluir etiqueta \(label.name)")
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
     }
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .settingsListCardRow(top: labels.first?.id == label.id ? 8 : 0)
+  }
+
+  private func moveLabels(from source: IndexSet, to destination: Int) {
+    labels.move(fromOffsets: source, toOffset: destination)
+    _Concurrency.Task { await persistOrder() }
+  }
+
+  private func persistOrder() async {
+    let ids = labels.map(\.id)
+    do {
+      try await LabelRepository.shared.reorderLabels(ids: ids)
+      HapticService.selection()
+    } catch {
+      await load()
+    }
   }
 
   private func openEditor(_ label: TaskLabel?) {
@@ -121,7 +148,7 @@ struct LabelsManagementView: View {
   private func load() async {
     loading = labels.isEmpty
     defer { loading = false }
-    labels = (try? await LabelRepository.shared.fetchLabels()) ?? []
+    labels = (try? await LabelRepository.shared.fetchLabels(force: true)) ?? []
   }
 
   private func deleteLabel(_ label: TaskLabel) async {

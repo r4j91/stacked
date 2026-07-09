@@ -328,6 +328,20 @@ textarea:focus:not(:focus-visible) {
 }
 
 /* Reorder — shared gutter + ghost drag (desktop project lists) */
+.labels-reorder-list {
+  --reorder-gutter: 4px;
+}
+
+.labels-reorder-list .reorder-handle {
+  opacity: 0.5;
+}
+
+.labels-reorder-list .group\/reorder-row:hover .reorder-handle,
+.labels-reorder-list .reorder-handle:hover,
+.labels-reorder-list .reorder-handle:focus-visible {
+  opacity: 1;
+}
+
 .reorder-enabled-list {
   --reorder-gutter: 16px;
 }

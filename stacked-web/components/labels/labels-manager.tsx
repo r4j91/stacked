@@ -1,21 +1,47 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AnchoredPopover } from "@/components/ui/anchored-popover";
 import { AppIcon } from "@/components/ui/app-icon";
 import { Cancel01Icon, Delete01Icon, Edit01Icon } from "@/lib/icons/nav-icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ColorPalettePicker } from "@/components/ui/color-palette-picker";
+import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
+import { applyLabelReorder, useLabelListReorder } from "@/lib/hooks/use-label-list-reorder";
 import { DEFAULT_PALETTE_HEX } from "@/lib/theme/palette-colors";
 import type { Label } from "@/lib/types/label";
 
 export function LabelsManager() {
-  const { labelsOpen, labelsAnchor, closeLabels, labels, createLabel, updateLabel, deleteLabel } = useWorkbench();
+  const {
+    labelsOpen,
+    labelsAnchor,
+    closeLabels,
+    labels,
+    createLabel,
+    updateLabel,
+    deleteLabel,
+    reorderLabels,
+  } = useWorkbench();
   const [editing, setEditing] = useState<Label | null>(null);
   const [deleting, setDeleting] = useState<Label | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(DEFAULT_PALETTE_HEX);
+
+  const handleReorder = useCallback(
+    (draggedId: string, targetId: string, position: "before" | "after") => {
+      const next = applyLabelReorder(
+        labels.map((l) => l.id),
+        draggedId,
+        targetId,
+        position,
+      );
+      void reorderLabels(next);
+    },
+    [labels, reorderLabels],
+  );
+
+  const labelDrag = useLabelListReorder(handleReorder);
 
   function resetForm() {
     setEditing(null);
@@ -95,35 +121,54 @@ export function LabelsManager() {
           )}
         </form>
 
-        <ul className="min-h-0 flex-1 overflow-y-auto scroll-thin p-2">
+        <ul className="labels-reorder-list min-h-0 flex-1 overflow-y-auto scroll-thin p-2">
           {labels.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-[var(--color-text-tertiary)]">Nenhuma etiqueta criada.</li>
           )}
-          {labels.map((label) => (
-            <li
-              key={label.id}
-              className="mb-0.5 flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 hover:bg-[var(--color-surface-variant)]"
-            >
-              <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: label.color }} />
-              <span className="flex-1 truncate text-sm font-medium">{label.name}</span>
-              <button
-                type="button"
-                onClick={() => startEdit(label)}
-                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)]"
-                aria-label={`Editar ${label.name}`}
+          {labels.map((label) => {
+            const isDropTarget = labelDrag.overId === label.id;
+            const isDragging = labelDrag.draggingId === label.id;
+
+            return (
+              <li
+                key={label.id}
+                data-reorder-item
+                {...labelDrag.getDropProps(label.id)}
+                className={`group/reorder-row mb-0.5 flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-1.5 hover:bg-[var(--color-surface-variant)] ${
+                  isDropTarget
+                    ? labelDrag.overPosition === "after"
+                      ? "reorder-drop-target reorder-drop-target-after"
+                      : "reorder-drop-target"
+                    : ""
+                } ${isDragging ? "opacity-40" : ""}`}
               >
-                <AppIcon icon={Edit01Icon} size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleting(label)}
-                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-overdue)] hover:bg-[var(--color-hover-overlay)]"
-                aria-label={`Excluir ${label.name}`}
-              >
-                <AppIcon icon={Delete01Icon} size={16} />
-              </button>
-            </li>
-          ))}
+                <ReorderDragHandle
+                  dragProps={labelDrag.getHandleProps(label.id)}
+                  label={`Reordenar ${label.name}`}
+                />
+                <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: label.color }} />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{label.name}</span>
+                <button
+                  type="button"
+                  onClick={() => startEdit(label)}
+                  data-no-reorder
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)]"
+                  aria-label={`Editar ${label.name}`}
+                >
+                  <AppIcon icon={Edit01Icon} size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleting(label)}
+                  data-no-reorder
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-overdue)] hover:bg-[var(--color-hover-overlay)]"
+                  aria-label={`Excluir ${label.name}`}
+                >
+                  <AppIcon icon={Delete01Icon} size={16} />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </AnchoredPopover>
 

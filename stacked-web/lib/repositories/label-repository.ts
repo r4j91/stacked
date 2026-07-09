@@ -14,6 +14,7 @@ function mapLabel(row: Record<string, unknown>): Label {
     id: String(row.id),
     name: String(row.nome ?? ""),
     color: parseColor(row.cor),
+    sortOrder: typeof row.sort_order === "number" ? row.sort_order : 0,
   }
 }
 
@@ -23,7 +24,8 @@ export class LabelRepository {
   async fetchLabels(): Promise<Label[]> {
     const { data, error } = await this.client
       .from("labels")
-      .select("id, nome, cor")
+      .select("id, nome, cor, sort_order")
+      .order("sort_order", { ascending: true })
       .order("nome", { ascending: true })
     if (error) throw error
     return (data ?? []).map((row) => mapLabel(row as Record<string, unknown>))
@@ -32,12 +34,33 @@ export class LabelRepository {
   async createLabel(name: string, color: string): Promise<void> {
     const userId = await requireAuthUserId(this.client);
 
+    const { data: last } = await this.client
+      .from("labels")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const sortOrder = (typeof last?.sort_order === "number" ? last.sort_order : -1) + 1;
+
     const { error } = await this.client.from("labels").insert({
       nome: name.trim(),
       cor: color,
       user_id: userId,
+      sort_order: sortOrder,
     });
     if (error) throw error;
+  }
+
+  async reorderLabels(orderedIds: string[]): Promise<void> {
+    if (!orderedIds.length) return;
+    const results = await Promise.all(
+      orderedIds.map((id, index) =>
+        this.client.from("labels").update({ sort_order: index }).eq("id", id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) throw failed.error;
   }
 
   async updateLabel(id: string, patch: { name?: string; color?: string }): Promise<void> {

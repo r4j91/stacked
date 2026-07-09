@@ -17,8 +17,8 @@ export type MockProject = {
 };
 
 export const MOCK_LABELS: import("@/lib/types/label").Label[] = [
-  { id: "l1", name: "Em Andamento", color: "#8FD46B" },
-  { id: "l2", name: "Ideia", color: "#B18CF5" },
+  { id: "l1", name: "Em Andamento", color: "#8FD46B", sortOrder: 0 },
+  { id: "l2", name: "Ideia", color: "#B18CF5", sortOrder: 1 },
 ];
 
 export const MOCK_SAVED_FILTERS: SavedFilter[] = [

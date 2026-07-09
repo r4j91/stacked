@@ -59,8 +59,8 @@ import type { ReorderDropKind, ReorderDropPosition } from "@/lib/hooks/use-hold-
 export type QuickAddOptions = { projectId?: string | null; sectionId?: string | null };
 
 const MOCK_LABELS: Label[] = [
-  { id: "l1", name: "Em Andamento", color: "#8FD46B" },
-  { id: "l2", name: "Ideia", color: "#B18CF5" },
+  { id: "l1", name: "Em Andamento", color: "#8FD46B", sortOrder: 0 },
+  { id: "l2", name: "Ideia", color: "#B18CF5", sortOrder: 1 },
 ];
 
 const SHOW_COMPLETED_KEY = "stacked-show-completed";
@@ -215,6 +215,7 @@ type WorkbenchContextValue = {
   createLabel: (name: string, color: string) => Promise<void>;
   updateLabel: (id: string, patch: { name?: string; color?: string }) => Promise<void>;
   deleteLabel: (id: string) => Promise<void>;
+  reorderLabels: (orderedIds: string[]) => Promise<void>;
   projectSheetOpen: boolean;
   projectSheetMode: "create" | "edit";
   projectSheetProject: Project | null;
@@ -1817,7 +1818,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const createLabel = useCallback(
     async (name: string, color: string) => {
       if (usingMock || !isSupabaseConfigured()) {
-        setLabels((prev) => [...prev, { id: `mock-l-${Date.now()}`, name, color }]);
+        setLabels((prev) => [
+          ...prev,
+          { id: `mock-l-${Date.now()}`, name, color, sortOrder: prev.length },
+        ]);
         showToast("Etiqueta criada");
         return;
       }
@@ -1864,6 +1868,30 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         }
       } else {
         showToast("Etiqueta excluída");
+      }
+    },
+    [showToast, usingMock],
+  );
+
+  const reorderLabels = useCallback(
+    async (orderedIds: string[]) => {
+      setLabels((prev) => {
+        const map = new Map(prev.map((l) => [l.id, l]));
+        return orderedIds
+          .map((id, index) => {
+            const label = map.get(id);
+            return label ? { ...label, sortOrder: index } : null;
+          })
+          .filter((l): l is Label => l !== null);
+      });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new LabelRepository(createClient()).reorderLabels(orderedIds);
+        } catch {
+          const list = await new LabelRepository(createClient()).fetchLabels();
+          setLabels(list);
+          showToast("Erro ao reordenar etiquetas");
+        }
       }
     },
     [showToast, usingMock],
@@ -1982,6 +2010,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     createLabel,
     updateLabel,
     deleteLabel,
+    reorderLabels,
     projectSheetOpen,
     projectSheetMode,
     projectSheetProject,
