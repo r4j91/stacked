@@ -32,9 +32,11 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>O Stacked mostra compromissos do Calendário em Hoje e Em breve, e exporta tarefas com hora para o Calendário.</string>
+	<string>O Stacked mostra compromissos do Calendário em Hoje e Em breve, e exporta tarefas para o Calendário.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
 	<string>O Stacked exporta tarefas com data e hora como eventos no Calendário.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>O Stacked exporta tarefas como lembretes para aparecerem no Calendário do iPhone com só o título.</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>

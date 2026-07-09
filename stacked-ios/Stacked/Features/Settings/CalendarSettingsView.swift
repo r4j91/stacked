@@ -7,6 +7,7 @@ struct CalendarSettingsView: View {
 
   @State private var importEnabled = false
   @State private var exportEnabled = false
+  @State private var exportAsAllDay = false
   @State private var selectedIDs: Set<String> = []
   @State private var loading = true
   @State private var togglesReady = false
@@ -60,9 +61,19 @@ struct CalendarSettingsView: View {
                   calendarToggle(
                     isOn: $exportEnabled,
                     icon: "square.and.arrow.up",
-                    title: "Exportar tarefas com hora",
-                    subtitle: "Envia tarefas e subtarefas com data e hora para o calendário \"Stacked\""
+                    title: "Exportar tarefas",
+                    subtitle: "Envia tarefas e subtarefas com data para o calendário \"Stacked\""
                   )
+
+                  if exportEnabled {
+                    SettingsCardDivider(leadingPadding: 14)
+                    calendarToggle(
+                      isOn: $exportAsAllDay,
+                      icon: "text.alignleft",
+                      title: "Só título (sem horário)",
+                      subtitle: "Bloco de 30 min no Calendário — título legível, sem faixa de 1 hora"
+                    )
+                  }
                 } else if importEnabled {
                   SettingsCardDivider(leadingPadding: 14)
                   HStack(spacing: 12) {
@@ -133,6 +144,10 @@ struct CalendarSettingsView: View {
     .onChange(of: exportEnabled) { _, newValue in
       guard togglesReady else { return }
       _Concurrency.Task { await applyExportPreference(newValue) }
+    }
+    .onChange(of: exportAsAllDay) { _, newValue in
+      guard togglesReady else { return }
+      _Concurrency.Task { await applyExportAsAllDayPreference(newValue) }
     }
   }
 
@@ -206,6 +221,7 @@ struct CalendarSettingsView: View {
     togglesReady = false
     importEnabled = CalendarPreferences.importEnabled
     exportEnabled = CalendarPreferences.exportEnabled
+    exportAsAllDay = CalendarPreferences.exportAsAllDay
     selectedIDs = CalendarPreferences.selectedCalendarIDs
     loading = false
     togglesReady = true
@@ -266,6 +282,16 @@ struct CalendarSettingsView: View {
     } else {
       HapticService.selection()
     }
+  }
+
+  private func applyExportAsAllDayPreference(_ enabled: Bool) async {
+    CalendarPreferences.exportAsAllDay = enabled
+    guard CalendarPreferences.exportEnabled, calendarService.authorizationGranted else {
+      HapticService.selection()
+      return
+    }
+    await calendarService.syncAllExportableTasks()
+    HapticService.success()
   }
 
   private func toggleCalendar(_ id: String) {

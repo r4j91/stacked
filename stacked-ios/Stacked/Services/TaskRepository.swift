@@ -194,13 +194,20 @@ final class TaskRepository {
       .execute()
       .value
 
+    async let overdueSubtasksReq = SubtaskRepository.shared.countOverdueScheduleEntries(todayStr: todayStr)
+    async let todaySubtasksPendingReq = SubtaskRepository.shared.countDueTodayPending(todayStr: todayStr)
+
     let today = try await todayRows
     let overdue = try await overdueRows
+    let overdueSubtasks = try await overdueSubtasksReq
+    let todaySubtasksPending = try await todaySubtasksPendingReq
     let mapped = TaskMapper.mapList(today)
+    let taskTodayPending = mapped.filter { !$0.done }.count
     return HomeTaskSummary(
       todayTotal: mapped.count,
       todayDone: mapped.filter(\.done).count,
-      overdueCount: overdue.count
+      todayPending: taskTodayPending + todaySubtasksPending,
+      overdueCount: overdue.count + overdueSubtasks
     )
   }
 
@@ -309,11 +316,16 @@ final class TaskRepository {
       .execute()
       .value
 
+    async let overdueSubReq = SubtaskRepository.shared.countOverdueScheduleEntries(todayStr: todayStr)
+    async let todaySubReq = SubtaskRepository.shared.countDueTodayPending(todayStr: todayStr)
+    async let weekSubReq = SubtaskRepository.shared.countDueInWeekPending(todayStr: todayStr, weekStr: weekStr)
+
     let (overdue, today, week, completed) = try await (overdueReq, todayReq, weekReq, completedReq)
+    let (overdueSub, todaySub, weekSub) = try await (overdueSubReq, todaySubReq, weekSubReq)
     return FilterDashboardCounts(
-      overdue: overdue.count,
-      today: today.count,
-      week: week.count,
+      overdue: overdue.count + overdueSub,
+      today: today.count + todaySub,
+      week: week.count + weekSub,
       completedToday: completed.count
     )
   }

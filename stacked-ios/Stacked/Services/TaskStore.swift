@@ -127,6 +127,8 @@ final class TaskStore {
         time: entry.subtask.time,
         labelIds: entry.subtask.labelIds
       ))
+      TabRefreshPolicy.invalidate(.home)
+      TabRefreshPolicy.invalidate(.filters)
     }
   }
 

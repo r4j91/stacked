@@ -249,6 +249,46 @@ final class SubtaskRepository {
     return mapScheduleEntries(rows)
   }
 
+  // MARK: - Home aggregates
+
+  func countOverdueScheduleEntries(todayStr: String) async throws -> Int {
+    struct IdRow: Decodable { let id: String }
+    let rows: [IdRow] = try await client
+      .from("subtasks")
+      .select("id")
+      .eq("concluida", value: false)
+      .lt("data_vencimento", value: todayStr)
+      .not("data_vencimento", operator: .is, value: "null")
+      .execute()
+      .value
+    return rows.count
+  }
+
+  func countDueTodayPending(todayStr: String) async throws -> Int {
+    struct IdRow: Decodable { let id: String }
+    let rows: [IdRow] = try await client
+      .from("subtasks")
+      .select("id")
+      .eq("concluida", value: false)
+      .eq("data_vencimento", value: todayStr)
+      .execute()
+      .value
+    return rows.count
+  }
+
+  func countDueInWeekPending(todayStr: String, weekStr: String) async throws -> Int {
+    struct IdRow: Decodable { let id: String }
+    let rows: [IdRow] = try await client
+      .from("subtasks")
+      .select("id")
+      .eq("concluida", value: false)
+      .gt("data_vencimento", value: todayStr)
+      .lte("data_vencimento", value: weekStr)
+      .execute()
+      .value
+    return rows.count
+  }
+
   private func mapScheduleEntries(_ rows: [ScheduledSubtaskRowDTO]) -> [SubtaskScheduleEntry] {
     rows.compactMap { row in
       guard let parentDTO = row.tasks else { return nil }

@@ -73,7 +73,7 @@ const PAYMENTS = [
   { title: "Bressanone Unifique", day: 25, time: "14:00" },
   { title: "Bressanone Condomínio", day: 15, time: "14:00" },
   { title: "Bressanone Ultragaz", day: 20, time: "14:00" },
-  { title: "Bressanone Celesc", day: 15, time: "14:30" },
+  { title: "Bressanone Celesc", day: 15, time: "15:00" },
   { title: "Fatura Vivo", day: 1, time: "13:00" },
 ];
 
@@ -161,13 +161,16 @@ async function main() {
       );
       if (already) {
         const needsHora = !already.hora && /^\d{1,2}:\d{2}$/.test(String(already.descricao ?? "").trim());
-        if (needsHora && !dryRun) {
+        const wrongHora = already.hora && already.hora !== p.time;
+        if ((needsHora || wrongHora) && !dryRun) {
           await rest("subtasks", {
             method: "PATCH",
             query: { id: `eq.${already.id}` },
-            body: { hora: p.time, descricao: null },
+            body: { hora: p.time, descricao: needsHora ? null : already.descricao },
           });
           console.log(`  ↻ corrigida: ${p.title} (${date}) — hora ${p.time}`);
+        } else if (needsHora || wrongHora) {
+          console.log(`  ↻ corrigiria: ${p.title} (${date}) — hora ${p.time}`);
         } else {
           console.log(`  ↷ subtarefa já existe: ${p.title} (${date})`);
         }

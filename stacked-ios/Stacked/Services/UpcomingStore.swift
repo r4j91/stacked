@@ -154,6 +154,8 @@ final class UpcomingStore {
         time: entry.subtask.time,
         labelIds: entry.subtask.labelIds
       ))
+      TabRefreshPolicy.invalidate(.home)
+      TabRefreshPolicy.invalidate(.filters)
     }
   }
 

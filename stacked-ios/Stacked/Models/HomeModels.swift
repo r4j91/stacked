@@ -3,9 +3,8 @@ import Foundation
 struct HomeTaskSummary {
   let todayTotal: Int
   let todayDone: Int
+  let todayPending: Int
   let overdueCount: Int
-
-  var todayPending: Int { max(0, todayTotal - todayDone) }
 }
 
 struct HomeProject: Identifiable, Equatable {

@@ -12,11 +12,11 @@ enum TaskCalendarSync {
   }
 
   static func remove(taskId: String) {
-    EventKitCalendarService.shared.removeEvent(forTaskId: taskId)
+    EventKitCalendarService.shared.removeExportedTask(taskId: taskId)
   }
 
   static func remove(subtaskId: String) {
-    EventKitCalendarService.shared.removeEvent(forSubtaskId: subtaskId)
+    EventKitCalendarService.shared.removeExportedSubtask(subtaskId: subtaskId)
   }
 
   static func syncTaskId(_ taskId: String) async {

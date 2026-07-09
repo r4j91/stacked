@@ -391,6 +391,7 @@ final class FiltersStore {
         filterCompletedResults.insert(.subtask(doneSub, parent: parentTask, index: subIndex), at: 0)
       }
       await loadDashboard()
+      TabRefreshPolicy.invalidate(.home)
     }
   }
 

@@ -76,8 +76,8 @@ final class HomeStore {
   }
 
   func statusLabel(overdueCount: Int) -> String {
-    if overdueCount == 1 { return "1 tarefa atrasada" }
-    if overdueCount > 1 { return "\(overdueCount) tarefas atrasadas" }
+    if overdueCount == 1 { return "1 pendência atrasada" }
+    if overdueCount > 1 { return "\(overdueCount) pendências atrasadas" }
     return "Tudo em dia"
   }
 
@@ -86,8 +86,8 @@ final class HomeStore {
   }
 
   func focusHeroSubtitle(overdueCount: Int) -> String {
-    if overdueCount == 1 { return "1 tarefa atrasada precisa da sua atenção." }
-    if overdueCount > 1 { return "\(overdueCount) tarefas atrasadas precisam da sua atenção." }
+    if overdueCount == 1 { return "1 pendência atrasada precisa da sua atenção." }
+    if overdueCount > 1 { return "\(overdueCount) pendências atrasadas precisam da sua atenção." }
     return "Você está em dia com tudo."
   }
 
