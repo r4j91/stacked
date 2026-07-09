@@ -29,11 +29,17 @@ export class LabelRepository {
   }
 
   async createLabel(name: string, color: string): Promise<void> {
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
+    if (!user?.id) throw new Error("Usuário não autenticado");
+
     const { error } = await this.client.from("labels").insert({
       nome: name.trim(),
       cor: color,
-    })
-    if (error) throw error
+      user_id: user.id,
+    });
+    if (error) throw error;
   }
 
   async updateLabel(id: string, patch: { name?: string; color?: string }): Promise<void> {
