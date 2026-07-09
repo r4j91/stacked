@@ -58,7 +58,7 @@ struct UpcomingView: View {
               .frame(maxWidth: .infinity)
               .listRowBackground(Color.clear)
           }
-        } else if let err = store.error, store.tasks.isEmpty {
+        } else if let err = store.error, store.tasks.isEmpty && store.scheduledSubtasks.isEmpty {
           Section {
             LoadErrorView(message: err) {
               _Concurrency.Task { await store.load() }
@@ -190,6 +190,17 @@ struct UpcomingView: View {
     switch item {
     case .task(let task):
       taskRow(task)
+    case .subtask(let entry):
+      FilterSubtaskRow(
+        subtask: entry.subtask,
+        parent: entry.parent,
+        labelCatalog: entry.parent.labels,
+        onToggle: { store.completeScheduledSubtask(entry) },
+        onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id) }
+      )
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
     case .calendarEvent(let event):
       CalendarEventRow(event: event) {
         EventKitCalendarService.shared.openInCalendar(event)

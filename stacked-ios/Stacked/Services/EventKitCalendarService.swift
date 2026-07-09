@@ -9,9 +9,11 @@ final class EventKitCalendarService {
 
   static let stackedCalendarTitle = "Stacked"
   static let stackedTaskURLPrefix = "stacked://task/"
+  static let stackedSubtaskURLPrefix = "stacked://subtask/"
 
   private let store = EKEventStore()
   private static let eventMapKey = "calendar_task_event_map"
+  private static let subtaskEventMapKey = "calendar_subtask_event_map"
   private static let exportCalendarIdKey = "calendar_stacked_export_calendar_id"
 
   private var cachedExportCalendar: EKCalendar?
@@ -23,6 +25,11 @@ final class EventKitCalendarService {
   private var eventMap: [String: String] {
     get { UserDefaults.standard.dictionary(forKey: Self.eventMapKey) as? [String: String] ?? [:] }
     set { UserDefaults.standard.set(newValue, forKey: Self.eventMapKey) }
+  }
+
+  private var subtaskEventMap: [String: String] {
+    get { UserDefaults.standard.dictionary(forKey: Self.subtaskEventMapKey) as? [String: String] ?? [:] }
+    set { UserDefaults.standard.set(newValue, forKey: Self.subtaskEventMapKey) }
   }
 
   private init() {
@@ -133,55 +140,59 @@ final class EventKitCalendarService {
 
     guard let due = task.dueDate,
           let time = task.time,
-          let start = TaskMapper.combinedDateTime(dueDate: due, time: time),
-          let calendar = resolveExportCalendar() else {
+          let start = TaskMapper.combinedDateTime(dueDate: due, time: time) else {
       removeEvent(forTaskId: task.id)
       return
     }
 
-    let end = start.addingTimeInterval(3600)
+    saveExportedEvent(
+      itemId: task.id,
+      title: task.title,
+      start: start,
+      urlPrefix: Self.stackedTaskURLPrefix,
+      map: eventMap
+    ) { [self] newMap in
+      eventMap = newMap
+    }
+  }
 
-    let event: EKEvent
-    if let existingId = eventMap[task.id], let existing = store.event(withIdentifier: existingId) {
-      event = existing
-    } else {
-      event = EKEvent(eventStore: store)
+  func syncSubtask(_ subtask: Subtask) {
+    guard CalendarPreferences.exportEnabled, canWriteEvents() else { return }
+    guard let subtaskId = subtask.id else { return }
+
+    if subtask.done || subtask.dueDate == nil || subtask.time == nil || subtask.time?.isEmpty == true {
+      removeEvent(forSubtaskId: subtaskId)
+      return
     }
 
-    event.title = task.title
-    event.startDate = start
-    event.endDate = end
-    event.isAllDay = false
-    event.calendar = calendar
-    event.url = URL(string: Self.stackedTaskURLPrefix + task.id)
+    guard let due = subtask.dueDate,
+          let time = subtask.time,
+          let start = TaskMapper.combinedDateTime(dueDate: due, time: time) else {
+      removeEvent(forSubtaskId: subtaskId)
+      return
+    }
 
-    do {
-      try store.save(event, span: .thisEvent, commit: true)
-      guard let eventId = event.eventIdentifier else { return }
-      var map = eventMap
-      map[task.id] = eventId
-      eventMap = map
-    } catch {
-      // Calendário inválido no simulador — limpa cache e tenta na próxima mutação.
-      cachedExportCalendar = nil
-      UserDefaults.standard.removeObject(forKey: Self.exportCalendarIdKey)
+    saveExportedEvent(
+      itemId: subtaskId,
+      title: subtask.title,
+      start: start,
+      urlPrefix: Self.stackedSubtaskURLPrefix,
+      map: subtaskEventMap
+    ) { [self] newMap in
+      subtaskEventMap = newMap
     }
   }
 
   func removeEvent(forTaskId taskId: String) {
-    guard let eventId = eventMap[taskId],
-          let event = store.event(withIdentifier: eventId) else {
-      var map = eventMap
-      map.removeValue(forKey: taskId)
-      eventMap = map
-      return
+    removeExportedEvent(itemId: taskId, map: eventMap) { [self] newMap in
+      eventMap = newMap
     }
-    do {
-      try store.remove(event, span: .thisEvent, commit: true)
-    } catch { }
-    var map = eventMap
-    map.removeValue(forKey: taskId)
-    eventMap = map
+  }
+
+  func removeEvent(forSubtaskId subtaskId: String) {
+    removeExportedEvent(itemId: subtaskId, map: subtaskEventMap) { [self] newMap in
+      subtaskEventMap = newMap
+    }
   }
 
   func syncAllExportableTasks() async {
@@ -190,6 +201,10 @@ final class EventKitCalendarService {
       let tasks = try await TaskRepository.shared.fetchDatedPendingTasks()
       for task in tasks where !task.done {
         syncTask(task)
+      }
+      let subtasks = try await SubtaskRepository.shared.fetchDatedPendingScheduleEntries()
+      for entry in subtasks where !entry.subtask.done {
+        syncSubtask(entry.subtask)
       }
     } catch { }
   }
@@ -293,8 +308,69 @@ final class EventKitCalendarService {
 
   private func isStackedExportedEvent(_ event: EKEvent) -> Bool {
     if event.calendar.title == Self.stackedCalendarTitle { return true }
-    if let url = event.url?.absoluteString, url.hasPrefix(Self.stackedTaskURLPrefix) { return true }
+    if let url = event.url?.absoluteString {
+      if url.hasPrefix(Self.stackedTaskURLPrefix) { return true }
+      if url.hasPrefix(Self.stackedSubtaskURLPrefix) { return true }
+    }
     return false
+  }
+
+  private func saveExportedEvent(
+    itemId: String,
+    title: String,
+    start: Date,
+    urlPrefix: String,
+    map: [String: String],
+    persistMap: ([String: String]) -> Void
+  ) {
+    guard let calendar = resolveExportCalendar() else { return }
+
+    let end = start.addingTimeInterval(3600)
+
+    let event: EKEvent
+    if let existingId = map[itemId], let existing = store.event(withIdentifier: existingId) {
+      event = existing
+    } else {
+      event = EKEvent(eventStore: store)
+    }
+
+    event.title = title
+    event.startDate = start
+    event.endDate = end
+    event.isAllDay = false
+    event.calendar = calendar
+    event.url = URL(string: urlPrefix + itemId)
+
+    do {
+      try store.save(event, span: .thisEvent, commit: true)
+      guard let eventId = event.eventIdentifier else { return }
+      var updated = map
+      updated[itemId] = eventId
+      persistMap(updated)
+    } catch {
+      cachedExportCalendar = nil
+      UserDefaults.standard.removeObject(forKey: Self.exportCalendarIdKey)
+    }
+  }
+
+  private func removeExportedEvent(
+    itemId: String,
+    map: [String: String],
+    persistMap: ([String: String]) -> Void
+  ) {
+    guard let eventId = map[itemId],
+          let event = store.event(withIdentifier: eventId) else {
+      var updated = map
+      updated.removeValue(forKey: itemId)
+      persistMap(updated)
+      return
+    }
+    do {
+      try store.remove(event, span: .thisEvent, commit: true)
+    } catch { }
+    var updated = map
+    updated.removeValue(forKey: itemId)
+    persistMap(updated)
   }
 
   private func mapEvent(_ event: EKEvent) -> CalendarEvent {

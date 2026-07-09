@@ -5,7 +5,7 @@ struct NotificationsPreviewSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
 
-  @State private var tasks: [Task] = []
+  @State private var items: [NotificationService.SchedulableNotificationItem] = []
   @State private var loading = true
 
   var body: some View {
@@ -16,21 +16,28 @@ struct NotificationsPreviewSheet: View {
         if loading {
           ProgressView().tint(c.accent)
             .frame(maxWidth: .infinity, minHeight: 220)
-        } else if tasks.isEmpty {
-          EmptyStateView(icon: .notifications, title: "Nenhuma notificação agendada", subtitle: "Tarefas com data e hora futuras aparecem aqui")
+        } else if items.isEmpty {
+          EmptyStateView(icon: .notifications, title: "Nenhuma notificação agendada", subtitle: "Tarefas e subtarefas com data e hora futuras aparecem aqui")
             .stackedStandaloneEmptyState()
         } else {
           List {
-            ForEach(tasks) { task in
-              HStack(spacing: 12) {
+            ForEach(items) { item in
+              HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "bell.fill")
                   .font(.system(size: 16))
                   .foregroundStyle(c.accent)
+                  .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 2) {
-                  Text(task.title)
+                  Text(item.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(c.textPrimary)
-                  if let label = dueLabel(task.dueDate, time: task.time), !label.isEmpty {
+                  if let parent = item.parentTitle {
+                    Text(parent)
+                      .font(.system(size: 12))
+                      .foregroundStyle(c.textTertiary)
+                      .lineLimit(1)
+                  }
+                  if let label = dueLabel(item.dueDate, time: item.time), !label.isEmpty {
                     Text(label)
                       .font(.system(size: 13))
                       .foregroundStyle(c.textSecondary)
@@ -81,6 +88,6 @@ struct NotificationsPreviewSheet: View {
   private func load() async {
     loading = true
     defer { loading = false }
-    tasks = await NotificationService.shared.fetchSchedulableTasks(limit: 20)
+    items = await NotificationService.shared.fetchSchedulableItems(limit: 20)
   }
 }

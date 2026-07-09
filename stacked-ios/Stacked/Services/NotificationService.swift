@@ -307,6 +307,87 @@ final class NotificationService {
 
   // MARK: - Preview helpers
 
+  /// Item exibido no sheet "Próximas" (tarefa ou subtarefa com data+hora futuras).
+  struct SchedulableNotificationItem: Identifiable, Equatable {
+    enum Kind: Equatable { case task, subtask }
+
+    let id: String
+    let kind: Kind
+    let title: String
+    /// Título da tarefa pai — só em subtarefas.
+    let parentTitle: String?
+    let dueDate: Date
+    let time: String
+    let scheduledAt: Date
+  }
+
+  func fetchSchedulableItems(limit: Int = 20) async -> [SchedulableNotificationItem] {
+    var items: [SchedulableNotificationItem] = []
+    let now = Date()
+
+    let tasks = (try? await TaskRepository.shared.fetchDatedPendingTasks()) ?? []
+    for task in tasks {
+      guard let due = task.dueDate, let time = task.time, !time.isEmpty else { continue }
+      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: time), scheduled > now else { continue }
+      let title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !title.isEmpty else { continue }
+      items.append(SchedulableNotificationItem(
+        id: "task-\(task.id)",
+        kind: .task,
+        title: title,
+        parentTitle: nil,
+        dueDate: due,
+        time: time,
+        scheduledAt: scheduled
+      ))
+    }
+
+    struct SubtaskSchedulableRow: Decodable {
+      let id: String
+      let titulo: String?
+      let data_vencimento: String?
+      let hora: String?
+      let tasks: ParentRef?
+
+      struct ParentRef: Decodable {
+        let titulo: String?
+      }
+    }
+
+    let subRows: [SubtaskSchedulableRow] = (try? await SupabaseService.client
+      .from("subtasks")
+      .select("id, titulo, data_vencimento, hora, tasks(titulo)")
+      .eq("concluida", value: false)
+      .not("data_vencimento", operator: .is, value: "null")
+      .not("hora", operator: .is, value: "null")
+      .execute()
+      .value) ?? []
+
+    for row in subRows {
+      guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
+      guard let hora = row.hora, !hora.isEmpty else { continue }
+      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: hora), scheduled > now else { continue }
+      let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      guard !title.isEmpty else { continue }
+      let parent = row.tasks?.titulo?.trimmingCharacters(in: .whitespacesAndNewlines)
+      items.append(SchedulableNotificationItem(
+        id: "subtask-\(row.id)",
+        kind: .subtask,
+        title: title,
+        parentTitle: parent?.isEmpty == false ? parent : nil,
+        dueDate: due,
+        time: hora,
+        scheduledAt: scheduled
+      ))
+    }
+
+    return items
+      .sorted { $0.scheduledAt < $1.scheduledAt }
+      .prefix(limit)
+      .map { $0 }
+  }
+
+  @available(*, deprecated, message: "Use fetchSchedulableItems — inclui subtarefas.")
   func fetchSchedulableTasks(limit: Int = 20) async -> [Task] {
     let all = (try? await TaskRepository.shared.fetchDatedPendingTasks()) ?? []
     let now = Date()

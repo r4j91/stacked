@@ -205,6 +205,113 @@ final class SubtaskRepository {
       || msg.contains("descricao")
       || msg.contains("hora")
   }
+
+  // MARK: - Agenda (Hoje / Em breve)
+
+  private static let scheduleParentSelect = """
+    id, titulo, descricao, prioridade, hora, ordem, concluida, data_vencimento, recorrencia, project_id, section_id,
+    projects ( nome ),
+    task_labels ( labels ( id, nome, cor ) )
+    """
+
+  private static let scheduleSubtaskSelect = """
+    id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids, task_id,
+    tasks ( \(scheduleParentSelect) )
+    """
+
+  /// Subtarefas pendentes com data — para Em breve e calendário.
+  func fetchDatedPendingScheduleEntries() async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .not("data_vencimento", operator: .is, value: "null")
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows)
+  }
+
+  /// Subtarefas com vencimento até hoje — para Hoje (inclui atrasadas).
+  func fetchTodayScheduleEntries() async throws -> [SubtaskScheduleEntry] {
+    let today = TaskMapper.dateString(Date())
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .lte("data_vencimento", value: today)
+      .not("data_vencimento", operator: .is, value: "null")
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows)
+  }
+
+  private func mapScheduleEntries(_ rows: [ScheduledSubtaskRowDTO]) -> [SubtaskScheduleEntry] {
+    rows.compactMap { row in
+      guard let parentDTO = row.tasks else { return nil }
+      let parent = TaskMapper.mapRow(parentDTO)
+      let due = TaskMapper.parseDueDate(row.data_vencimento)
+      guard due != nil else { return nil }
+      let subtask = Subtask(
+        id: row.id,
+        taskId: parent.id,
+        title: row.titulo ?? "",
+        description: row.descricao,
+        done: row.concluida ?? false,
+        priority: Priority.parse(row.prioridade),
+        order: row.ordem ?? 0,
+        valor: row.valor,
+        dueDate: due,
+        time: row.hora,
+        dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
+        dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: row.concluida ?? false) },
+        labelIds: row.label_ids ?? []
+      )
+      return SubtaskScheduleEntry(subtask: subtask, parent: parent)
+    }
+  }
+}
+
+private struct ScheduledSubtaskRowDTO: Decodable {
+  let id: String?
+  let titulo: String?
+  let descricao: String?
+  let concluida: Bool?
+  let ordem: Int?
+  let prioridade: String?
+  let valor: Double?
+  let data_vencimento: String?
+  let hora: String?
+  let label_ids: [String]?
+  let tasks: TaskRowDTO?
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    if let s = try? c.decodeIfPresent(String.self, forKey: .id) {
+      id = s
+    } else if let u = try? c.decodeIfPresent(UUID.self, forKey: .id) {
+      id = u.uuidString
+    } else {
+      id = nil
+    }
+    titulo = try c.decodeIfPresent(String.self, forKey: .titulo)
+    descricao = try c.decodeIfPresent(String.self, forKey: .descricao)
+    concluida = try c.decodeIfPresent(Bool.self, forKey: .concluida)
+    ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
+    prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
+    valor = try c.decodeIfPresent(Double.self, forKey: .valor)
+    data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
+    hora = try c.decodeIfPresent(String.self, forKey: .hora)
+    label_ids = try c.decodeIfPresent([String].self, forKey: .label_ids)
+    tasks = try c.decodeIfPresent(TaskRowDTO.self, forKey: .tasks)
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids, tasks
+  }
 }
 
 /// Encoda null explícito para limpar colunas no Supabase (JSONEncoder padrão omite nil).

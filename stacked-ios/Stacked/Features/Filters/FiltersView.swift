@@ -178,17 +178,25 @@ struct FiltersView: View {
 
         Section {
           if !store.savedFilters.isEmpty {
-            ForEach(store.savedFilters) { item in
-              Button {
-                openSavedFilter(item.filter)
-              } label: {
-                savedFilterRow(item)
+            filtersDashboardCard {
+              VStack(spacing: 0) {
+                ForEach(Array(store.savedFilters.enumerated()), id: \.element.id) { index, item in
+                  Button {
+                    openSavedFilter(item.filter)
+                  } label: {
+                    savedFilterRow(item)
+                  }
+                  .buttonStyle(.plain)
+
+                  if index < store.savedFilters.count - 1 {
+                    filtersCardDivider(leadingPadding: 56)
+                  }
+                }
               }
-              .buttonStyle(.plain)
-              .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
             }
+            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
           }
         } header: {
           savedFiltersHeader
@@ -398,10 +406,12 @@ struct FiltersView: View {
         .font(AppTypography.navRowCount)
         .foregroundStyle(c.textTertiary)
       StackedIcons.image(.chevronRight)
-        .font(.system(size: 14))
+        .font(.system(size: 12, weight: .semibold))
         .foregroundStyle(c.textTertiary.opacity(0.7))
     }
-    .padding(.vertical, 13)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .contentShape(Rectangle())
   }
 
   private func filtersDashboardCard<Content: View>(

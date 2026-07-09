@@ -61,7 +61,7 @@ struct CalendarSettingsView: View {
                     isOn: $exportEnabled,
                     icon: "square.and.arrow.up",
                     title: "Exportar tarefas com hora",
-                    subtitle: "Envia tarefas com data e hora para o calendário \"Stacked\""
+                    subtitle: "Envia tarefas e subtarefas com data e hora para o calendário \"Stacked\""
                   )
                 } else if importEnabled {
                   SettingsCardDivider(leadingPadding: 14)

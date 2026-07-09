@@ -369,6 +369,9 @@ final class FiltersStore {
         order: sub.order,
         done: true
       )
+      if let subId = sub.id {
+        TaskCalendarSync.remove(subtaskId: subId)
+      }
       if case .savedFilter = mode {
         let doneSub = Subtask(
           id: subtask.id,

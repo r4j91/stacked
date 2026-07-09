@@ -248,6 +248,11 @@ final class TaskDetailViewModel {
     let newDone = subtasks[i].done
     _Concurrency.Task {
       try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
+      if newDone {
+        TaskCalendarSync.remove(subtaskId: id)
+      } else {
+        TaskCalendarSync.sync(subtasks[i])
+      }
     }
   }
 
@@ -282,6 +287,7 @@ final class TaskDetailViewModel {
   func deleteSubtask(_ sub: Subtask) async {
     guard let id = sub.id else { return }
     do {
+      TaskCalendarSync.remove(subtaskId: id)
       try await SubtaskRepository.shared.deleteSubtask(id: id)
       subtasks.removeAll { $0.id == id }
     } catch {
@@ -290,6 +296,11 @@ final class TaskDetailViewModel {
   }
 
   func deleteTask() async throws {
+    for sub in subtasks {
+      if let subId = sub.id {
+        TaskCalendarSync.remove(subtaskId: subId)
+      }
+    }
     TaskCalendarSync.remove(taskId: taskId)
     try await TaskRepository.shared.deleteTask(id: taskId)
   }

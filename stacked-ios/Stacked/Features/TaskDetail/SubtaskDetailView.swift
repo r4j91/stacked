@@ -368,9 +368,17 @@ struct SubtaskDetailView: View {
       if let activeId {
         if newValue {
           await NotificationService.shared.cancelSubtaskNotification(id: activeId)
+          TaskCalendarSync.remove(subtaskId: activeId)
         } else {
           await NotificationService.shared.syncSubtaskNotification(
             id: activeId,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? subtask.title : title,
+            dueDate: dueDate,
+            time: currentTimeString,
+            done: false
+          )
+          TaskCalendarSync.syncAfterSubtaskMutation(
+            subtaskId: activeId,
             title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? subtask.title : title,
             dueDate: dueDate,
             time: currentTimeString,
@@ -453,6 +461,13 @@ struct SubtaskDetailView: View {
         if let activeId {
           await NotificationService.shared.syncSubtaskNotification(
             id: activeId,
+            title: trimmedTitle.isEmpty ? subtask.title : trimmedTitle,
+            dueDate: dueDate,
+            time: savedTime,
+            done: done
+          )
+          TaskCalendarSync.syncAfterSubtaskMutation(
+            subtaskId: activeId,
             title: trimmedTitle.isEmpty ? subtask.title : trimmedTitle,
             dueDate: dueDate,
             time: savedTime,

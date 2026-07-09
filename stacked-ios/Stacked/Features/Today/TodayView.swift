@@ -14,7 +14,6 @@ struct TodayView: View {
 
   var body: some View {
     let c = theme.colors
-    let overdue = store.todayOverdue
     let timeline = store.todayTimeline
 
     List {
@@ -44,7 +43,7 @@ struct TodayView: View {
           }
           .listRowBackground(Color.clear)
         }
-      } else if overdue.isEmpty && timeline.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
+      } else if store.todayOverdueItems.isEmpty && timeline.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
         Section {
           EmptyStateView(
             illustration: .todayClear,
@@ -54,10 +53,10 @@ struct TodayView: View {
           .stackedListEmptyStateRow()
         }
       } else {
-        if !overdue.isEmpty {
+        if !store.todayOverdueItems.isEmpty {
           Section {
-            ForEach(overdue) { task in
-              taskRow(task)
+            ForEach(store.todayOverdueItems) { item in
+              scheduleRow(item)
             }
           } header: {
             ListSectionHeader(text: "ATRASADAS")
@@ -70,7 +69,7 @@ struct TodayView: View {
               scheduleRow(item)
             }
           } header: {
-            if !overdue.isEmpty { ListSectionHeader(text: "HOJE") }
+            if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
           }
         }
 
@@ -147,6 +146,17 @@ struct TodayView: View {
     switch item {
     case .task(let task):
       taskRow(task)
+    case .subtask(let entry):
+      FilterSubtaskRow(
+        subtask: entry.subtask,
+        parent: entry.parent,
+        labelCatalog: entry.parent.labels,
+        onToggle: { store.completeScheduledSubtask(entry) },
+        onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id) }
+      )
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
     case .calendarEvent(let event):
       CalendarEventRow(event: event) {
         EventKitCalendarService.shared.openInCalendar(event)

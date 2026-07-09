@@ -398,6 +398,25 @@ struct TaskRow: View {
         order: sub.order,
         done: newDone
       )
+      if let id = sub.id {
+        if newDone {
+          TaskCalendarSync.remove(subtaskId: id)
+        } else {
+          TaskCalendarSync.sync(Subtask(
+            id: sub.id,
+            taskId: sub.taskId,
+            title: sub.title,
+            description: sub.description,
+            done: false,
+            priority: sub.priority,
+            order: sub.order,
+            valor: sub.valor,
+            dueDate: sub.dueDate,
+            time: sub.time,
+            labelIds: sub.labelIds
+          ))
+        }
+      }
       onSubtaskChanged?()
     }
   }

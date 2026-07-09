@@ -48,7 +48,7 @@ enum TaskMapper {
     )
   }
 
-  private static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
+  static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
     let due = parseDueDate(row.data_vencimento)
     return Subtask(
       id: row.id,
@@ -236,13 +236,38 @@ enum TaskMapper {
     return combinedDateTime(dueDate: base, time: time)
   }
 
-  /// Mescla tarefas + compromissos por dia; só inclui dias com conteúdo.
-  static func groupScheduleItems(tasks: [Task], events: [CalendarEvent]) -> [(day: Date, items: [ScheduleItem])] {
+  /// Paridade today_screen — separa subtarefas atrasadas vs hoje.
+  static func splitTodayScheduledSubtasks(
+    _ entries: [SubtaskScheduleEntry],
+    now: Date = Date()
+  ) -> (overdue: [SubtaskScheduleEntry], today: [SubtaskScheduleEntry]) {
+    let todayStart = Calendar.current.startOfDay(for: now)
+    var overdue: [SubtaskScheduleEntry] = []
+    var today: [SubtaskScheduleEntry] = []
+    for entry in entries {
+      guard let due = entry.subtask.dueDate else { continue }
+      if due < todayStart { overdue.append(entry) }
+      else if startOfDay(due) == todayStart { today.append(entry) }
+    }
+    return (overdue, today)
+  }
+
+  /// Mescla tarefas + subtarefas + compromissos por dia; só inclui dias com conteúdo.
+  static func groupScheduleItems(
+    tasks: [Task],
+    subtasks: [SubtaskScheduleEntry] = [],
+    events: [CalendarEvent]
+  ) -> [(day: Date, items: [ScheduleItem])] {
     var grouped: [Date: [ScheduleItem]] = [:]
     for task in tasks {
       guard let due = task.dueDate else { continue }
       let day = startOfDay(due)
       grouped[day, default: []].append(.task(task))
+    }
+    for entry in subtasks {
+      guard let due = entry.subtask.dueDate else { continue }
+      let day = startOfDay(due)
+      grouped[day, default: []].append(.subtask(entry))
     }
     for event in events {
       grouped[event.day, default: []].append(.calendarEvent(event))
@@ -253,8 +278,13 @@ enum TaskMapper {
     }
   }
 
-  /// Hoje — compromissos + tarefas do dia, ordenados por horário.
-  static func todayTimeline(tasks: [Task], events: [CalendarEvent], now: Date = Date()) -> [ScheduleItem] {
+  /// Hoje — compromissos + tarefas + subtarefas do dia, ordenados por horário.
+  static func todayTimeline(
+    tasks: [Task],
+    subtasks: [SubtaskScheduleEntry] = [],
+    events: [CalendarEvent],
+    now: Date = Date()
+  ) -> [ScheduleItem] {
     let todayStart = startOfDay(now)
     var items: [ScheduleItem] = tasks
       .filter { task in
@@ -262,7 +292,23 @@ enum TaskMapper {
         return startOfDay(due) == todayStart
       }
       .map { .task($0) }
+    items += subtasks
+      .filter { entry in
+        guard let due = entry.subtask.dueDate else { return false }
+        return startOfDay(due) == todayStart
+      }
+      .map { .subtask($0) }
     items += events.map { .calendarEvent($0) }
     return items.sorted { $0.sortDate < $1.sortDate }
+  }
+
+  static func overdueScheduleItems(
+    tasks: [Task],
+    subtasks: [SubtaskScheduleEntry],
+    now: Date = Date()
+  ) -> [ScheduleItem] {
+    let overdueTasks = splitTodayPending(tasks, now: now).overdue.map { ScheduleItem.task($0) }
+    let overdueSubtasks = splitTodayScheduledSubtasks(subtasks, now: now).overdue.map { ScheduleItem.subtask($0) }
+    return (overdueTasks + overdueSubtasks).sorted { $0.sortDate < $1.sortDate }
   }
 }

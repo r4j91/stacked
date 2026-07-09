@@ -24,6 +24,7 @@ final class UpcomingStore {
   private let repo = TaskRepository.shared
 
   private(set) var tasks: [Task] = []
+  private(set) var scheduledSubtasks: [SubtaskScheduleEntry] = []
   private(set) var calendarEvents: [CalendarEvent] = []
   private(set) var isLoading = false
   private(set) var error: String?
@@ -46,6 +47,14 @@ final class UpcomingStore {
     TaskMapper.groupTasksByDay(filteredTasks)
   }
 
+  var filteredSubtasks: [SubtaskScheduleEntry] {
+    guard let selectedDay else { return scheduledSubtasks }
+    return scheduledSubtasks.filter { entry in
+      guard let due = entry.subtask.dueDate else { return false }
+      return TaskMapper.isSameDay(due, selectedDay)
+    }
+  }
+
   var groupedSchedule: [(day: Date, items: [ScheduleItem])] {
     let events: [CalendarEvent]
     if let selectedDay {
@@ -53,13 +62,22 @@ final class UpcomingStore {
     } else {
       events = calendarEvents
     }
-    return TaskMapper.groupScheduleItems(tasks: filteredTasks, events: events)
+    return TaskMapper.groupScheduleItems(
+      tasks: filteredTasks,
+      subtasks: filteredSubtasks,
+      events: events
+    )
   }
 
   var daysWithTasks: Set<Date> {
     var days = Set(tasks.compactMap { task in
       task.dueDate.map(TaskMapper.startOfDay)
     })
+    for entry in scheduledSubtasks {
+      if let due = entry.subtask.dueDate {
+        days.insert(TaskMapper.startOfDay(due))
+      }
+    }
     for event in calendarEvents {
       days.insert(event.day)
     }
@@ -71,7 +89,9 @@ final class UpcomingStore {
   }
 
   var agendaPeriodLabel: String {
-    let dated = tasks.compactMap(\.dueDate).sorted()
+    let taskDates = tasks.compactMap(\.dueDate)
+    let subtaskDates = scheduledSubtasks.compactMap { $0.subtask.dueDate }
+    let dated = (taskDates + subtaskDates).sorted()
     guard let first = dated.first, let last = dated.last else { return "Agenda" }
     let firstLabel = TaskMapper.dayLabel(for: first)
     let lastLabel = TaskMapper.dayLabel(for: last)
@@ -80,13 +100,22 @@ final class UpcomingStore {
 
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     SubtaskListPatch.apply(snapshot, to: &tasks)
+    if snapshot.done || snapshot.dueDate == nil {
+      scheduledSubtasks.removeAll {
+        $0.parent.id == snapshot.parentTaskId && $0.subtask.order == snapshot.order
+      }
+    }
   }
 
   func load() async {
     isLoading = tasks.isEmpty
     error = nil
     do {
-      tasks = try await repo.fetchDatedPendingTasks()
+      async let taskReq = repo.fetchDatedPendingTasks()
+      async let subtaskReq = SubtaskRepository.shared.fetchDatedPendingScheduleEntries()
+      let (fetchedTasks, fetchedSubs) = try await (taskReq, subtaskReq)
+      tasks = fetchedTasks
+      scheduledSubtasks = fetchedSubs
       calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
     } catch {
       if AsyncLoad.isCancellation(error) { return }
@@ -101,6 +130,30 @@ final class UpcomingStore {
       self.selectedDay = nil
     } else {
       selectedDay = normalized
+    }
+  }
+
+  func completeScheduledSubtask(_ entry: SubtaskScheduleEntry) {
+    guard let subId = entry.subtask.id else { return }
+    scheduledSubtasks.removeAll { $0.id == entry.id }
+    HapticService.taskCompleted()
+
+    _Concurrency.Task {
+      try? await SubtaskRepository.shared.toggleDone(id: subId, done: true)
+      await NotificationService.shared.cancelSubtaskNotification(id: subId)
+      TaskCalendarSync.remove(subtaskId: subId)
+      applySubtaskPatch(SubtaskSaveSnapshot(
+        parentTaskId: entry.parent.id,
+        order: entry.subtask.order,
+        resolvedId: subId,
+        title: entry.subtask.title,
+        description: entry.subtask.description,
+        done: true,
+        priority: entry.subtask.priority,
+        dueDate: entry.subtask.dueDate,
+        time: entry.subtask.time,
+        labelIds: entry.subtask.labelIds
+      ))
     }
   }
 
