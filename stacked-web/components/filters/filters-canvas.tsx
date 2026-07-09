@@ -72,7 +72,7 @@ export function FiltersCanvas() {
   const [activeSavedFilter, setActiveSavedFilter] = useState<SavedFilter | null>(null);
   const [filterResults, setFilterResults] = useState<FilterResultItem[]>([]);
   const [completedFilterResults, setCompletedFilterResults] = useState<FilterResultItem[]>([]);
-  const [presetFilterTasks, setPresetFilterTasks] = useState<Task[]>([]);
+  const [presetFilterResults, setPresetFilterResults] = useState<FilterResultItem[]>([]);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
 
@@ -129,13 +129,15 @@ export function FiltersCanvas() {
     if (!kind) return;
     setLoading(true);
     if (!isSupabaseConfigured() || usingMock) {
-      setPresetFilterTasks(mockFilteredTasks(kind));
+      setPresetFilterResults(
+        mockFilteredTasks(kind).map((task) => ({ kind: "task" as const, task })),
+      );
       setLoading(false);
       return;
     }
     try {
-      const tasks = await new TaskRepository(createClient()).fetchFilteredTasks(kind);
-      setPresetFilterTasks(tasks);
+      const results = await new TaskRepository(createClient()).fetchPresetFilterResults(kind);
+      setPresetFilterResults(results);
     } finally {
       setLoading(false);
     }
@@ -345,17 +347,26 @@ export function FiltersCanvas() {
           <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
           <h2 className="text-lg font-bold">{meta.title}</h2>
           <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
-            {presetFilterTasks.length}
+            {presetFilterResults.length}
           </span>
         </div>
         <div className="filter-result-list">
-          {presetFilterTasks.map((t) => (
-            <TaskRow key={t.id} task={t} embedded />
-          ))}
+          {presetFilterResults.map((item) =>
+            item.kind === "task" ? (
+              <TaskRow key={filterResultId(item)} task={item.task} embedded />
+            ) : (
+              <FilterSubtaskRow
+                key={filterResultId(item)}
+                subtask={item.subtask}
+                parent={item.parent}
+                subtaskIndex={item.subtaskIndex}
+              />
+            ),
+          )}
         </div>
-        {!presetFilterTasks.length && (
+        {!presetFilterResults.length && (
           <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
-            Nenhuma tarefa neste filtro.
+            Nenhum item neste filtro.
           </p>
         )}
       </>

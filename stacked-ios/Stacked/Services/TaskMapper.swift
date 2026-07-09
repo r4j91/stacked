@@ -178,7 +178,10 @@ enum TaskMapper {
   static func dateColor(for date: Date, done: Bool = false, now: Date = Date()) -> Color {
     let today = startOfDay(now)
     let d = startOfDay(date)
-    if !done, d < today { return AppColors.dateOverdue }
+    if !done {
+      if d < today { return AppColors.dateOverdue }
+      if d == today { return AppColors.dateDueToday }
+    }
     return AppColors.textTertiary
   }
 

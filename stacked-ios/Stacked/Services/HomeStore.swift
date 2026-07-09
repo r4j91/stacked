@@ -303,4 +303,48 @@ final class ProjectDetailStore {
     try? await SectionRepository.shared.deleteSection(id: section.id)
     await load()
   }
+
+  func moveTasks(in sectionId: String?, from source: IndexSet, to destination: Int) {
+    var bucket = tasks(in: sectionId)
+    guard !bucket.isEmpty else { return }
+    bucket.move(fromOffsets: source, toOffset: destination)
+    pending = orderedPending(sectionId: sectionId, reordered: bucket)
+    syncCache()
+
+    let updates = bucket.enumerated().map { (id: $1.id, order: $0) }
+    _Concurrency.Task {
+      do {
+        try await TaskRepository.shared.updateTaskOrders(updates)
+        HapticService.selection()
+      } catch {
+        await load()
+      }
+    }
+  }
+
+  private func orderedPending(sectionId: String?, reordered: [Task]) -> [Task] {
+    var result: [Task] = []
+    for section in sections {
+      if section.id == sectionId {
+        result.append(contentsOf: reordered)
+      } else {
+        result.append(contentsOf: pending.filter { $0.sectionId == section.id })
+      }
+    }
+    if sectionId == nil {
+      result.append(contentsOf: reordered)
+    } else {
+      result.append(contentsOf: pending.filter { $0.sectionId == nil })
+    }
+    return result
+  }
+
+  private func syncCache() {
+    ProjectDetailCache.shared.store(
+      projectId: projectId,
+      sections: sections,
+      pending: pending,
+      completed: completed
+    )
+  }
 }

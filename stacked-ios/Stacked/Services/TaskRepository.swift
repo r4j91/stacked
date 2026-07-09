@@ -131,6 +131,7 @@ final class TaskRepository {
         user_id: userId,
         concluida: false,
         recorrencia: recurrence,
+        whatsapp_rotina: task.whatsappRoutine,
         ordem: ordem
       )
     ).select("id").single().execute().value
@@ -356,6 +357,112 @@ final class TaskRepository {
     return TaskMapper.mapList(rows)
   }
 
+  func fetchPresetFilterResults(
+    kind: TaskFilterKind,
+    todayStr: String,
+    weekStr: String
+  ) async throws -> [FilterResultItem] {
+    switch kind {
+    case .completedToday:
+      let tasks = try await fetchFilteredTasks(kind: kind, todayStr: todayStr, weekStr: weekStr)
+      return tasks.map { .task($0) }
+    case .overdue:
+      async let todayTasksReq = fetchTodayTasks()
+      async let subtasksReq = fetchPresetSubtaskEntries(kind: kind, todayStr: todayStr, weekStr: weekStr)
+      let todayTasks = try await todayTasksReq
+      let subtaskEntries = try await subtasksReq
+      let tasks = TaskMapper.splitTodayPending(todayTasks).overdue
+      return buildPresetFilterResults(
+        tasks: tasks,
+        subtaskEntries: subtaskEntries,
+        dateScope: .overdue,
+        todayStr: todayStr,
+        weekStr: weekStr
+      )
+    case .today:
+      async let todayTasksReq = fetchTodayTasks()
+      async let subtasksReq = fetchPresetSubtaskEntries(kind: kind, todayStr: todayStr, weekStr: weekStr)
+      let todayTasks = try await todayTasksReq
+      let subtaskEntries = try await subtasksReq
+      let tasks = TaskMapper.splitTodayPending(todayTasks).today
+      return buildPresetFilterResults(
+        tasks: tasks,
+        subtaskEntries: subtaskEntries,
+        dateScope: .today,
+        todayStr: todayStr,
+        weekStr: weekStr
+      )
+    case .week:
+      guard let dateScope = kind.presetDateScope else { return [] }
+      async let tasksReq = fetchFilteredTasks(kind: kind, todayStr: todayStr, weekStr: weekStr)
+      async let subtasksReq = fetchPresetSubtaskEntries(kind: kind, todayStr: todayStr, weekStr: weekStr)
+      let tasks = try await tasksReq
+      let subtaskEntries = try await subtasksReq
+      return buildPresetFilterResults(
+        tasks: tasks,
+        subtaskEntries: subtaskEntries,
+        dateScope: dateScope,
+        todayStr: todayStr,
+        weekStr: weekStr
+      )
+    }
+  }
+
+  private func fetchPresetSubtaskEntries(
+    kind: TaskFilterKind,
+    todayStr: String,
+    weekStr: String
+  ) async throws -> [SubtaskScheduleEntry] {
+    switch kind {
+    case .overdue:
+      return try await SubtaskRepository.shared.fetchOverdueScheduleEntries(todayStr: todayStr)
+    case .today:
+      return try await SubtaskRepository.shared.fetchTodayOnlyScheduleEntries(todayStr: todayStr)
+    case .week:
+      return try await SubtaskRepository.shared.fetchWeekScheduleEntries(todayStr: todayStr, weekStr: weekStr)
+    case .completedToday:
+      return []
+    }
+  }
+
+  private func buildPresetFilterResults(
+    tasks: [Task],
+    subtaskEntries: [SubtaskScheduleEntry],
+    dateScope: FilterDateScope,
+    todayStr: String,
+    weekStr: String
+  ) -> [FilterResultItem] {
+    let criteria = FilterCriteria(labelIds: [], priorities: [], projectId: nil, dateScope: dateScope)
+    let matchingTaskIds = Set(tasks.map(\.id))
+    var results: [FilterResultItem] = tasks.map { .task($0) }
+
+    for entry in subtaskEntries where !entry.subtask.done {
+      guard !matchingTaskIds.contains(entry.parent.id) else { continue }
+      // scheduleParentSelect não embute subtasks — usar entry.subtask direto.
+      let sub = entry.subtask
+      let index = entry.parent.subtasks.firstIndex(where: { $0.id == sub.id }) ?? sub.order
+      guard FilterMatcher.subtaskMatches(
+        sub,
+        parent: entry.parent,
+        criteria: criteria,
+        todayStr: todayStr,
+        weekStr: weekStr
+      ) else { continue }
+      results.append(.subtask(sub, parent: entry.parent, index: index))
+    }
+
+    return results.sorted { presetResultSortDate($0) < presetResultSortDate($1) }
+  }
+
+  private func presetResultSortDate(_ item: FilterResultItem) -> Date {
+    switch item {
+    case .task(let task):
+      return task.dueDate ?? .distantFuture
+    case .subtask(let sub, _, _):
+      return sub.dueDate ?? .distantFuture
+    }
+  }
+
   func fetchFilterResults(
     _ criteria: FilterCriteria,
     todayStr: String,
@@ -510,6 +617,12 @@ final class TaskRepository {
       try await client.from("tasks").update(["recorrencia": Optional<String>.none]).eq("id", value: id).execute()
     }
   }
+
+  func updateTaskOrders(_ items: [(id: String, order: Int)]) async throws {
+    for item in items {
+      try await client.from("tasks").update(["ordem": item.order]).eq("id", value: item.id).execute()
+    }
+  }
 }
 
 /// JSONEncoder padrão omite nil — sem isso o Postgres pode aplicar default em `prioridade`.
@@ -524,10 +637,11 @@ private struct NextOccurrenceInsertPayload: Encodable {
   let user_id: UUID
   let concluida: Bool
   let recorrencia: String
+  let whatsapp_rotina: Bool
   let ordem: Int?
 
   enum CodingKeys: String, CodingKey {
-    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida, recorrencia, ordem
+    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida, recorrencia, whatsapp_rotina, ordem
   }
 
   func encode(to encoder: Encoder) throws {
@@ -562,6 +676,7 @@ private struct NextOccurrenceInsertPayload: Encodable {
     try c.encode(user_id, forKey: .user_id)
     try c.encode(concluida, forKey: .concluida)
     try c.encode(recorrencia, forKey: .recorrencia)
+    try c.encode(whatsapp_rotina, forKey: .whatsapp_rotina)
     if let ordem {
       try c.encode(ordem, forKey: .ordem)
     } else {

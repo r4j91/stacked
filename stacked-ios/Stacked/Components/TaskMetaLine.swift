@@ -71,7 +71,7 @@ struct TaskMetaLine: View {
   }
 
   private func dueDateChip(_ date: Date) -> some View {
-    let color = TaskMapper.dateColor(for: date, done: dateDone)
+    let color = dueDateColor ?? TaskMapper.dateColor(for: date, done: dateDone)
     let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
     return TagChip(label: label, color: color, icon: .calendar)
   }

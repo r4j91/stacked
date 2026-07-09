@@ -1,26 +1,24 @@
 import SwiftUI
 
-/// Drill-down de filtro preset — snapshot local; store sincroniza após a transição.
+/// Drill-down de filtro preset — sempre sincroniza via FiltersStore.
 struct PresetFilterResultsScreen: View {
   let kind: TaskFilterKind
-  let initialTasks: [Task]
   let taskDetailNamespace: Namespace.ID
   let onTaskTap: (String) -> Void
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
 
   @Environment(ThemeManager.self) private var theme
   @Bindable private var store = FiltersStore.shared
-  @State private var usesStore = false
   @State private var allowRowHeavyWork = false
 
   private let rowInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
 
-  private var tasks: [Task] {
-    usesStore ? store.filterTasks : initialTasks
+  private var results: [FilterResultItem] {
+    store.filterResults
   }
 
   private var isLoading: Bool {
-    usesStore ? store.filterLoading : initialTasks.isEmpty && !store.hasPresetFilterCache(kind)
+    store.filterLoading
   }
 
   private var deferHeavyRowWork: Bool {
@@ -33,26 +31,26 @@ struct PresetFilterResultsScreen: View {
     List {
       if isLoading {
         TaskListSkeleton(rowCount: 6)
-      } else if let err = store.filterError, tasks.isEmpty, usesStore {
+      } else if let err = store.filterError, results.isEmpty {
         Section {
           LoadErrorView(message: err) {
             loadFilter()
           }
           .listRowBackground(Color.clear)
         }
-      } else if tasks.isEmpty {
+      } else if results.isEmpty {
         Section {
           EmptyStateView(
             icon: kind.stackedIcon,
-            title: "Nenhuma tarefa",
+            title: "Nenhum item",
             subtitle: "Nada neste filtro por enquanto."
           )
           .stackedListEmptyStateRow()
         }
       } else {
         Section {
-          ForEach(tasks) { task in
-            taskRow(task, canPostpone: kind != .completedToday)
+          ForEach(results) { item in
+            resultRow(item, canPostpone: kind != .completedToday)
           }
         }
       }
@@ -76,7 +74,6 @@ struct PresetFilterResultsScreen: View {
     .refreshable {
       await store.openFilter(kind)
       await store.loadDashboard()
-      usesStore = true
     }
     .task(id: kind) {
       await NavigationPushMotion.awaitSettle()
@@ -85,19 +82,37 @@ struct PresetFilterResultsScreen: View {
       transaction.disablesAnimations = true
       withTransaction(transaction) {
         allowRowHeavyWork = true
-        store.adoptPresetFilterSession(kind, tasks: initialTasks)
-        usesStore = true
+        store.adoptPresetFilterSession(kind)
       }
-      if initialTasks.isEmpty && !store.hasPresetFilterCache(kind) {
-        await store.openFilter(kind)
-      }
+      await store.openFilter(kind)
     }
   }
 
   private func loadFilter() {
-    usesStore = true
     _Concurrency.Task {
       await store.openFilter(kind)
+    }
+  }
+
+  @ViewBuilder
+  private func resultRow(_ item: FilterResultItem, canPostpone: Bool) -> some View {
+    switch item {
+    case .task(let task):
+      taskRow(task, canPostpone: canPostpone)
+    case .subtask(let sub, let parent, let index):
+      FilterSubtaskRow(
+        subtask: sub,
+        parent: parent,
+        labelCatalog: store.pickerLabels,
+        onToggle: {
+          store.completeSubtask(parent: parent, sub: sub, at: index)
+        },
+        onTap: { onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id)) }
+      )
+      .id(item.id)
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
     }
   }
 
@@ -107,7 +122,6 @@ struct PresetFilterResultsScreen: View {
       task: task,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {
-        ensureStoreLinked()
         store.complete(task)
       },
       onTap: {
@@ -127,34 +141,24 @@ struct PresetFilterResultsScreen: View {
       task: task,
       onEdit: { onTaskTap(task.id) },
       onComplete: {
-        ensureStoreLinked()
         store.complete(task)
       },
       onDuplicate: {
         _Concurrency.Task {
-          ensureStoreLinked()
           _ = try? await TaskRepository.shared.duplicateTask(task)
           await store.openFilter(kind)
           await store.loadDashboard()
         }
       },
       onDelete: {
-        ensureStoreLinked()
         store.delete(task)
       },
       onRefresh: {
         _Concurrency.Task {
-          ensureStoreLinked()
           await store.openFilter(kind)
           await store.loadDashboard()
         }
       }
     )
-  }
-
-  private func ensureStoreLinked() {
-    guard !usesStore else { return }
-    usesStore = true
-    store.adoptPresetFilterSession(kind, tasks: initialTasks)
   }
 }

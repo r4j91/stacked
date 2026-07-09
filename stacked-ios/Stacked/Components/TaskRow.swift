@@ -12,6 +12,7 @@ struct TaskRow: View {
   var showProject: Bool = true
   var allLabels: [TaskLabel] = []
   var deferHeavyWork: Bool = false
+  var rowInteractionsEnabled: Bool = true
   var onToggle: () -> Void
   var onTap: (() -> Void)?
   var onSubtaskTap: ((Subtask) -> Void)?
@@ -105,6 +106,7 @@ struct TaskRow: View {
             .padding(12)
         }
         .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
+        .disabled(!rowInteractionsEnabled)
         .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
         .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
 
@@ -119,6 +121,7 @@ struct TaskRow: View {
           expandButton
             .padding(.trailing, expandTrailing)
             .padding(.top, expandTop)
+            .disabled(!rowInteractionsEnabled)
         }
       }
     }
@@ -158,7 +161,7 @@ struct TaskRow: View {
     .frame(maxWidth: .infinity, minHeight: AppLayout.taskRowHeight)
     .contentShape(Rectangle())
 
-    if let onTap, let openTaskContextMenu {
+    if let onTap, let openTaskContextMenu, rowInteractionsEnabled {
       // Long-press exclusivo antes do tap: evita abrir TaskDetail ao soltar após o menu.
       content.gesture(
         LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)

@@ -58,7 +58,7 @@ export function formatTaskDate(due: Date | null, now = new Date()): string | nul
   if (!due) return null;
   const today = startOfDay(now);
   const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
-  if (diff === 0) return "hoje";
+  if (diff === 0) return "Hoje";
   if (diff === -1) return "ontem";
   if (diff === 1) return "amanhã";
   if (diff > -7 && diff < 7) {
@@ -125,4 +125,20 @@ export function monthLabel(d: Date): string {
 export function isOverdueDate(due: Date | null, done: boolean, now = new Date()): boolean {
   if (!due || done) return false;
   return due.getTime() < startOfDay(now).getTime();
+}
+
+export function isDueToday(due: Date | null, now = new Date()): boolean {
+  if (!due) return false;
+  return due.getTime() === startOfDay(now).getTime();
+}
+
+export function dueDateChipColor(
+  due: Date | null,
+  done: boolean,
+  now = new Date(),
+): string {
+  if (!due || done) return "var(--color-text-tertiary)";
+  if (isOverdueDate(due, done, now)) return "var(--color-overdue)";
+  if (isDueToday(due, now)) return "var(--color-done)";
+  return "var(--color-text-tertiary)";
 }

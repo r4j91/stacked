@@ -42,7 +42,6 @@ struct FiltersView: View {
         .navigationDestination(item: $presetFilterRoute) { kind in
           PresetFilterResultsScreen(
             kind: kind,
-            initialTasks: store.cachedPresetTasks(for: kind),
             taskDetailNamespace: taskDetailZoom,
             onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
             onSubtaskTap: { subtaskDetailRoute = $0 }
@@ -125,12 +124,18 @@ struct FiltersView: View {
     guard let kind = store.takePendingPresetFilter() else { return }
     store.preparePresetFilterSession(kind)
     presetFilterRoute = kind
+    _Concurrency.Task {
+      await store.openFilter(kind)
+    }
   }
 
   private func openPresetFilter(_ kind: TaskFilterKind) {
     HapticService.selection()
     store.preparePresetFilterSession(kind)
     presetFilterRoute = kind
+    _Concurrency.Task {
+      await store.openFilter(kind)
+    }
   }
 
   private func openSavedFilter(_ filter: SavedFilter) {

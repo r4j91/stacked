@@ -24,6 +24,7 @@ struct ProjectDetailView: View {
   @State private var collapsedSectionIds: Set<String>
   @State private var allowRowHeavyWork = false
   @State private var revealListContent = false
+  @State private var editMode: EditMode = .inactive
   @Namespace private var taskDetailZoom
 
   let projectId: String
@@ -87,6 +88,8 @@ struct ProjectDetailView: View {
   }
 
   private var displayModeEnum: ProjectDisplayMode { ProjectDisplayMode.from(displayMode) }
+
+  private var taskReorderMode: Bool { editMode == .active }
 
   var body: some View {
     let c = theme.colors
@@ -165,6 +168,7 @@ struct ProjectDetailView: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .environment(\.editMode, $editMode)
     .stackedDrillDownListChrome()
     .background(c.background)
     .stackedDrillDownNavChrome(title: projectName, background: c.background)
@@ -174,9 +178,16 @@ struct ProjectDetailView: View {
 
       ToolbarItem(id: "stacked-project-toolbar", placement: .topBarTrailing) {
         HStack(spacing: 6) {
-          AnchoredTapButton { rect in
-            openToolbarMenu(anchor: rect)
-          } label: {
+          if taskReorderMode {
+            Button("Concluir") {
+              HapticService.selection()
+              editMode = .inactive
+            }
+            .font(AppTypography.body)
+            .foregroundStyle(c.accent)
+          }
+
+          if !taskReorderMode {
             LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
               HStack(spacing: 5) {
                 StackedIcons.image(displayModeEnum.menuIcon)
@@ -189,19 +200,21 @@ struct ProjectDetailView: View {
                   .foregroundStyle(c.accent)
               }
             }
+            .allowsHitTesting(false)
           }
-          .buttonStyle(PressableStyle(cornerRadius: 20))
 
-          AnchoredTapButton { rect in
-            openToolbarMenu(anchor: rect)
-          } label: {
-            LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
-              StackedIcons.image(.more)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(c.textPrimary)
+          if !taskReorderMode {
+            AnchoredTapButton { rect in
+              openToolbarMenu(anchor: rect)
+            } label: {
+              LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+                StackedIcons.image(.more)
+                  .font(.system(size: 16, weight: .medium))
+                  .foregroundStyle(c.textPrimary)
+              }
             }
+            .buttonStyle(PressableStyle(cornerRadius: 20))
           }
-          .buttonStyle(PressableStyle(cornerRadius: 20))
         }
       }
       .sharedBackgroundVisibility(.hidden)
@@ -365,6 +378,7 @@ struct ProjectDetailView: View {
                       selected: displayModeEnum == .cardsRefined),
       PopoverMenuItem(id: "mode_list", icon: Hugeicons.listView, label: "Lista",
                       selected: displayModeEnum == .list),
+      PopoverMenuItem(id: "reorder_tasks", icon: Hugeicons.arrowUp01, label: "Ordenar tarefas"),
       PopoverMenuItem(id: "add_task", icon: Hugeicons.add01, label: "Nova tarefa"),
       PopoverMenuItem(id: "add_section", icon: Hugeicons.add01, label: "Nova seção"),
       PopoverMenuItem(id: "project_options", icon: Hugeicons.settings01, label: "Opções do projeto"),
@@ -381,8 +395,22 @@ struct ProjectDetailView: View {
     case "add_task": showQuickAdd = true
     case "add_section": showNewSection = true
     case "project_options": showProjectOptions = true
+    case "reorder_tasks": enterTaskReorderMode()
     default: break
     }
+  }
+
+  private func enterTaskReorderMode() {
+    guard !pending.isEmpty else { return }
+    ensureStoreLinked()
+    collapsedSectionIds.removeAll()
+    HapticService.selection()
+    editMode = .active
+  }
+
+  private func moveTasks(in sectionId: String?, from source: IndexSet, to destination: Int) {
+    ensureStoreLinked()
+    store.moveTasks(in: sectionId, from: source, to: destination)
   }
 
   private var rowInsets: EdgeInsets {
@@ -431,6 +459,9 @@ struct ProjectDetailView: View {
       ForEach(tasks) { task in
         projectTaskRow(task)
       }
+      .onMove { source, destination in
+        moveTasks(in: section.id, from: source, to: destination)
+      }
     }
   }
 
@@ -457,19 +488,26 @@ struct ProjectDetailView: View {
       ForEach(tasks) { task in
         projectTaskRow(task)
       }
+      .onMove { source, destination in
+        moveTasks(in: nil, from: source, to: destination)
+      }
     }
   }
 
   @ViewBuilder
   private func projectTaskRow(_ task: Task) -> some View {
-    projectTaskRowBody(task)
+    let row = projectTaskRowBody(task)
       .id(task.id)
       .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
       .taskCompleteRemovalTransition()
       .listRowInsets(rowInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
-      .taskContextMenu(
+
+    if taskReorderMode {
+      row
+    } else {
+      row.taskContextMenu(
         task: task,
         onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
         onComplete: {
@@ -489,6 +527,7 @@ struct ProjectDetailView: View {
           _Concurrency.Task { await store.load() }
         }
       )
+    }
   }
 
   @ViewBuilder
@@ -500,11 +539,12 @@ struct ProjectDetailView: View {
       flatSubtaskPanel: mode.flatSubtaskPanel,
       showProject: false,
       deferHeavyWork: deferHeavyRowWork,
+      rowInteractionsEnabled: !taskReorderMode,
       onToggle: {
         ensureStoreLinked()
         store.complete(task)
       },
-      onTap: {
+      onTap: taskReorderMode ? nil : {
         detailRoute = TaskDetailRoute(taskId: task.id)
       },
       onSubtaskTap: { sub in

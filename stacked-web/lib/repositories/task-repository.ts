@@ -315,6 +315,34 @@ export class TaskRepository {
     };
   }
 
+  async fetchPresetFilterResults(kind: TaskFilterKind, now = new Date()): Promise<FilterResultItem[]> {
+    if (kind === "completedToday") {
+      const tasks = await this.fetchFilteredTasks(kind, now);
+      return tasks.map((task) => ({ kind: "task", task }));
+    }
+    if (kind === "overdue" || kind === "today") {
+      const pending = await this.fetchTodayTasks();
+      const split = splitTodayPending(pending, now);
+      const tasks = kind === "overdue" ? split.overdue : split.today;
+      const dateScope: FilterCriteria["dateScope"] = kind === "overdue" ? "overdue" : "today";
+      const criteria: FilterCriteria = {
+        labelIds: [],
+        priorities: [],
+        projectId: null,
+        dateScope,
+      };
+      return buildPendingFilterResults(tasks, criteria, now);
+    }
+    const criteria: FilterCriteria = {
+      labelIds: [],
+      priorities: [],
+      projectId: null,
+      dateScope: "week",
+    };
+    const tasks = await this.fetchFilteredTasks(kind, now);
+    return buildPendingFilterResults(tasks, criteria, now);
+  }
+
   /** Base fetch — critérios de etiqueta/prioridade/data aplicados em memória (inclui subtarefas). */
   private async fetchTasksForFilterMatching(criteria: FilterCriteria, _now = new Date()) {
     let q = this.client.from("tasks").select(TASK_SELECT);

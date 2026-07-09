@@ -249,6 +249,47 @@ final class SubtaskRepository {
     return mapScheduleEntries(rows)
   }
 
+  func fetchOverdueScheduleEntries(todayStr: String) async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .lt("data_vencimento", value: todayStr)
+      .not("data_vencimento", operator: .is, value: "null")
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows)
+  }
+
+  func fetchTodayOnlyScheduleEntries(todayStr: String) async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .eq("data_vencimento", value: todayStr)
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows)
+  }
+
+  func fetchWeekScheduleEntries(todayStr: String, weekStr: String) async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .gt("data_vencimento", value: todayStr)
+      .lte("data_vencimento", value: weekStr)
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows)
+  }
+
   // MARK: - Home aggregates
 
   func countOverdueScheduleEntries(todayStr: String) async throws -> Int {

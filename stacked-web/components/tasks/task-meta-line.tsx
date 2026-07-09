@@ -2,7 +2,7 @@
 
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
-import { isOverdueDate, parseDueDate, formatTaskDate } from "@/lib/utils/date";
+import { parseDueDate, formatTaskDate, dueDateChipColor } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
 import { AppIcon } from "@/components/ui/app-icon";
 import { TaskDone01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
@@ -51,12 +51,11 @@ export function TaskMetaLine({ task, hideDate }: TaskMetaLineProps) {
   if (!hideDate && task.dueDate) {
     const dateLabel = formatTaskDate(due);
     if (dateLabel) {
-      const overdue = isOverdueDate(due, task.done);
       items.push(
         <TagChip
           key="d"
           label={dateLabel}
-          color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
+          color={dueDateChipColor(due, task.done)}
           icon={Calendar03Icon}
         />,
       );
@@ -117,12 +116,11 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
     const due = parseDueDate(sub.dueDate);
     const dateLabel = formatTaskDate(due);
     if (dateLabel) {
-      const overdue = isOverdueDate(due, sub.done);
       items.push(
         <TagChip
           key="d"
           label={dateLabel}
-          color={overdue ? "var(--color-overdue)" : "var(--color-text-tertiary)"}
+          color={dueDateChipColor(due, sub.done)}
           icon={Calendar03Icon}
         />,
       );

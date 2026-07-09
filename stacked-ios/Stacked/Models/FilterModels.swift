@@ -26,6 +26,15 @@ enum TaskFilterKind: String, CaseIterable, Identifiable {
     case .completedToday: .checkCircle
     }
   }
+
+  var presetDateScope: FilterDateScope? {
+    switch self {
+    case .overdue: .overdue
+    case .today: .today
+    case .week: .week
+    case .completedToday: nil
+    }
+  }
 }
 
 struct FilterDashboardCounts: Equatable {

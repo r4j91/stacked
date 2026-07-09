@@ -38,7 +38,7 @@ final class FiltersStore {
   /// para abrir drill-down mesmo quando a aba já estava montada (onAppear não repete).
   private(set) var pendingPresetFilterToken = 0
   private var savedFilterResultsCache: [String: (pending: [FilterResultItem], completed: [FilterResultItem])] = [:]
-  private var presetFilterTasksCache: [TaskFilterKind: [Task]] = [:]
+  private var presetFilterResultsCache: [TaskFilterKind: [FilterResultItem]] = [:]
 
   private init() {}
 
@@ -109,62 +109,72 @@ final class FiltersStore {
   }
 
   private func populatePresetFilterCache(todayStr: String, weekStr: String) async {
-    await withTaskGroup(of: (TaskFilterKind, [Task]).self) { group in
+    await withTaskGroup(of: (TaskFilterKind, [FilterResultItem]?).self) { group in
       for kind in TaskFilterKind.allCases {
         group.addTask {
-          let tasks = (try? await self.taskRepo.fetchFilteredTasks(
-            kind: kind,
-            todayStr: todayStr,
-            weekStr: weekStr
-          )) ?? []
-          return (kind, tasks)
+          do {
+            let results = try await self.taskRepo.fetchPresetFilterResults(
+              kind: kind,
+              todayStr: todayStr,
+              weekStr: weekStr
+            )
+            return (kind, results)
+          } catch {
+            return (kind, nil)
+          }
         }
       }
-      for await (kind, tasks) in group {
-        presetFilterTasksCache[kind] = tasks
+      for await (kind, results) in group {
+        if let results {
+          presetFilterResultsCache[kind] = results
+        }
       }
     }
   }
 
-  func cachedPresetTasks(for kind: TaskFilterKind) -> [Task] {
-    presetFilterTasksCache[kind] ?? []
+  func cachedPresetResults(for kind: TaskFilterKind) -> [FilterResultItem] {
+    presetFilterResultsCache[kind] ?? []
   }
 
   func hasPresetFilterCache(_ kind: TaskFilterKind) -> Bool {
-    presetFilterTasksCache[kind] != nil
+    guard let cached = presetFilterResultsCache[kind] else { return false }
+    return !cached.isEmpty
   }
 
   /// Prepara sessão do preset no toque — dados do cache imediatamente, sem dados stale.
   func preparePresetFilterSession(_ kind: TaskFilterKind) {
-    filterLoadGeneration += 1
     mode = .presetFilter(kind)
     filterError = nil
+    filterTasks = []
     filterCompletedTasks = []
-    filterResults = []
     filterCompletedResults = []
-    if let cached = presetFilterTasksCache[kind] {
-      filterTasks = cached
+    if let cached = presetFilterResultsCache[kind], !cached.isEmpty {
+      filterResults = cached
       filterLoading = false
     } else {
-      filterTasks = []
+      filterResults = []
       filterLoading = true
     }
   }
 
   /// Liga sessão do preset ao store após a transição de navegação.
-  func adoptPresetFilterSession(_ kind: TaskFilterKind, tasks: [Task]) {
+  func adoptPresetFilterSession(_ kind: TaskFilterKind) {
     mode = .presetFilter(kind)
     filterError = nil
+    filterTasks = []
     filterCompletedTasks = []
-    filterResults = []
     filterCompletedResults = []
-    filterTasks = tasks
-    filterLoading = tasks.isEmpty && presetFilterTasksCache[kind] == nil
+    if filterResults.isEmpty, let cached = presetFilterResultsCache[kind], !cached.isEmpty {
+      filterResults = cached
+      filterLoading = false
+    } else if filterResults.isEmpty {
+      filterLoading = true
+    }
   }
 
   private func syncPresetFilterCache() {
     guard case .presetFilter(let kind) = mode else { return }
-    presetFilterTasksCache[kind] = filterTasks
+    presetFilterResultsCache[kind] = filterResults
   }
 
   /// Aplica cache do dashboard imediatamente ao abrir drill-down (sem spinner).
@@ -218,8 +228,9 @@ final class FiltersStore {
 
     mode = .presetFilter(kind)
     filterError = nil
+    filterTasks = []
     filterCompletedTasks = []
-    filterLoading = filterTasks.isEmpty
+    filterLoading = filterResults.isEmpty
     defer {
       if generation == filterLoadGeneration {
         filterLoading = false
@@ -229,8 +240,12 @@ final class FiltersStore {
     let todayStr = TaskMapper.dateString(Date())
     let weekStr = TaskMapper.weekString()
     do {
-      filterTasks = try await taskRepo.fetchFilteredTasks(kind: kind, todayStr: todayStr, weekStr: weekStr)
-      presetFilterTasksCache[kind] = filterTasks
+      filterResults = try await taskRepo.fetchPresetFilterResults(
+        kind: kind,
+        todayStr: todayStr,
+        weekStr: weekStr
+      )
+      presetFilterResultsCache[kind] = filterResults
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       filterError = error.localizedDescription
@@ -335,6 +350,7 @@ final class FiltersStore {
     FilterResultListPatch.apply(snapshot, to: &filterResults)
     FilterResultListPatch.apply(snapshot, to: &filterCompletedResults)
     syncSavedFilterCache()
+    syncPresetFilterCache()
   }
 
   func backToDashboard() {
@@ -346,7 +362,7 @@ final class FiltersStore {
     filterCompletedResults = []
     filterError = nil
     filterLoading = false
-    presetFilterTasksCache.removeAll()
+    presetFilterResultsCache.removeAll()
   }
 
   func completeSubtask(parent: Task, sub: Subtask, at index: Int) {
@@ -360,6 +376,7 @@ final class FiltersStore {
 
     filterResults.remove(at: i)
     syncSavedFilterCache()
+    syncPresetFilterCache()
     HapticService.taskCompleted()
 
     _Concurrency.Task {
@@ -396,7 +413,7 @@ final class FiltersStore {
   }
 
   func complete(_ task: Task) {
-    if case .savedFilter = mode,
+    if usesFilterResultList,
        let i = filterResults.firstIndex(where: {
          if case .task(let t) = $0 { return t.id == task.id }
          return false
@@ -409,10 +426,13 @@ final class FiltersStore {
       HapticService.taskCompleted()
       TaskCompletionMotion.afterDwell(
         animatedRemoval: { [self] in
-          var doneTask = snapshot
-          doneTask.done = true
-          filterCompletedResults.insert(.task(doneTask), at: 0)
+          if case .savedFilter = mode {
+            var doneTask = snapshot
+            doneTask.done = true
+            filterCompletedResults.insert(.task(doneTask), at: 0)
+          }
           syncSavedFilterCache()
+          syncPresetFilterCache()
         },
         persist: {
           if let newId = try await self.taskRepo.completeTask(snapshot) {
@@ -468,6 +488,15 @@ final class FiltersStore {
         syncPresetFilterCache()
       }
     )
+  }
+
+  private var usesFilterResultList: Bool {
+    switch mode {
+    case .savedFilter, .presetFilter:
+      return true
+    case .dashboard:
+      return false
+    }
   }
 
   private func completeFromCompletedSection(_ task: Task) {
