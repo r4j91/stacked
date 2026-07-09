@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Project } from "@/lib/types/project";
 import { DEFAULT_PROJECT_ICON } from "@/lib/icons/project-icons";
+import { requireAuthUserId } from "@/lib/supabase/require-auth-user";
 
 const DEFAULT_COLOR = "#E8E8EC";
 
@@ -102,15 +103,13 @@ export class ProjectRepository {
     icon?: string;
     description?: string;
   }): Promise<string> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    const userId = await requireAuthUserId(this.client);
     const payload: Record<string, unknown> = {
       nome: input.name.trim(),
       cor: input.color,
       icone: input.icon ?? DEFAULT_PROJECT_ICON,
+      user_id: userId,
       ...(input.description?.trim() ? { descricao: input.description.trim() } : {}),
-      ...(user?.id ? { user_id: user.id } : {}),
     };
     const { data, error } = await this.client
       .from("projects")

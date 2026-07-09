@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Label } from "@/lib/types/label"
+import { requireAuthUserId } from "@/lib/supabase/require-auth-user"
 
 const DEFAULT_COLOR = "#9296A0"
 
@@ -29,15 +30,12 @@ export class LabelRepository {
   }
 
   async createLabel(name: string, color: string): Promise<void> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
-    if (!user?.id) throw new Error("Usuário não autenticado");
+    const userId = await requireAuthUserId(this.client);
 
     const { error } = await this.client.from("labels").insert({
       nome: name.trim(),
       cor: color,
-      user_id: user.id,
+      user_id: userId,
     });
     if (error) throw error;
   }

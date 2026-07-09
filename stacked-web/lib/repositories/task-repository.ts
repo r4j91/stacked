@@ -11,6 +11,7 @@ import {
 import { mapTaskRow, splitTodayPending } from "@/lib/supabase/map-task";
 import { addDays, parseDueDate, startOfDay, toDateStr } from "@/lib/utils/date";
 import { toDbPriority } from "@/lib/utils/priority";
+import { requireAuthUserId } from "@/lib/supabase/require-auth-user";
 import { computeNextRecurrenceDate, parseRecurrence } from "@/lib/utils/recurrence";
 
 export class TaskRepository {
@@ -18,6 +19,10 @@ export class TaskRepository {
 
   private todayStr(now = new Date()) {
     return toDateStr(startOfDay(now));
+  }
+
+  private async requireUserId(): Promise<string> {
+    return requireAuthUserId(this.client);
   }
 
   private async getUserId(): Promise<string | null> {
@@ -139,7 +144,7 @@ export class TaskRepository {
     const next = computeNextRecurrenceDate(due, recurrence);
     if (!next) return null;
 
-    const userId = await this.getUserId();
+    const userId = await this.requireUserId();
 
     const { data: ordemRow } = await this.client
       .from("tasks")
@@ -161,7 +166,7 @@ export class TaskRepository {
         recorrencia: task.recurrence,
         concluida: false,
         ...(ordem != null ? { ordem } : {}),
-        ...(userId ? { user_id: userId } : {}),
+        user_id: userId,
       })
       .select("id")
       .single();
@@ -369,7 +374,7 @@ export class TaskRepository {
     time?: string | null;
     labelIds?: string[];
   }): Promise<string> {
-    const userId = await this.getUserId();
+    const userId = await this.requireUserId();
     const { data, error } = await this.client
       .from("tasks")
       .insert({
@@ -381,7 +386,7 @@ export class TaskRepository {
         data_vencimento: input.dueDate ?? null,
         hora: input.time ?? null,
         concluida: false,
-        ...(userId ? { user_id: userId } : {}),
+        user_id: userId,
       })
       .select("id")
       .single();
@@ -422,7 +427,7 @@ export class TaskRepository {
     if (error) throw error;
 
     const task = mapTaskRow(row as Record<string, unknown>);
-    const userId = await this.getUserId();
+    const userId = await this.requireUserId();
     const { data: inserted, error: insertError } = await this.client
       .from("tasks")
       .insert({
@@ -434,7 +439,7 @@ export class TaskRepository {
         project_id: task.projectId ?? null,
         section_id: task.sectionId ?? null,
         concluida: false,
-        ...(userId ? { user_id: userId } : {}),
+        user_id: userId,
       })
       .select("id")
       .single();

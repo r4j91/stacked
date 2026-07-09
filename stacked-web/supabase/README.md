@@ -49,12 +49,14 @@ Scripts específicos:
 
 | Tabela | RLS | Escopo |
 |--------|-----|--------|
-| tasks, projects, labels | ✅ | `auth.uid() = user_id` |
-| subtasks, task_labels | ✅ | via ownership da tarefa pai |
-| sections | ✅ | via ownership do projeto |
-| task_comments | ✅ | `auth.uid() = user_id` |
+| tasks, projects, labels | ✅ | `auth.uid() = user_id` no INSERT |
+| subtasks, task_labels | ✅ | via ownership da tarefa pai (`task_id`) |
+| sections | ✅ | via ownership do projeto (`project_id`) |
+| task_comments | ✅ | `auth.uid() = user_id` no INSERT |
 | saved_filters | ✅ | `auth.uid() = user_id` |
 | google_calendar_connections | ✅ | sem policies — só service role |
+
+**Web:** inserts em `labels`, `projects`, `tasks` e `task_comments` devem sempre enviar `user_id` (helper `requireAuthUserId`). Subtarefas e `task_labels` herdam permissão pela tarefa pai.
 
 ## Tipos inconsistentes (legado — não alterar sem migration)
 

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { requireAuthUserId } from "@/lib/supabase/require-auth-user"
 
 export type Comment = {
   id: string
@@ -28,13 +29,11 @@ export class CommentRepository {
   async addComment(taskId: string, text: string): Promise<void> {
     const trimmed = text.trim()
     if (!trimmed) return
-    const {
-      data: { user },
-    } = await this.client.auth.getUser()
+    const userId = await requireAuthUserId(this.client)
     const { error } = await this.client.from("task_comments").insert({
       task_id: taskId,
       conteudo: trimmed,
-      ...(user?.id ? { user_id: user.id } : {}),
+      user_id: userId,
     })
     if (error) throw error
   }
