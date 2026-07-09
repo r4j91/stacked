@@ -6,11 +6,14 @@ struct StackedSwitchControl: View {
   var onTrack: Color
   var offTrack: Color
 
+  @State private var animateChanges = false
+
   private let width: CGFloat = 51
   private let height: CGFloat = 31
 
   var body: some View {
     Button {
+      animateChanges = true
       isOn.toggle()
       HapticService.selection()
     } label: {
@@ -26,7 +29,7 @@ struct StackedSwitchControl: View {
           .padding(2)
       }
       .frame(width: width, height: height)
-      .animation(.snappy(duration: 0.2), value: isOn)
+      .animation(animateChanges ? .snappy(duration: 0.2) : nil, value: isOn)
     }
     .buttonStyle(.plain)
     .frame(minWidth: 44, minHeight: 44)

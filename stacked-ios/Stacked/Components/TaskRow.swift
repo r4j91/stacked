@@ -16,6 +16,7 @@ struct TaskRow: View {
   var onTap: (() -> Void)?
   var onSubtaskTap: ((Subtask) -> Void)?
   var onSubtaskChanged: (() -> Void)?
+  var onWhatsAppCopy: (() -> Void)?
 
   @State private var expanded = false
   @State private var subtaskRevealActive = false
@@ -91,7 +92,8 @@ struct TaskRow: View {
   }
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
-    let expandReserve: CGFloat = task.hasSubtasks ? 40 : 0
+    let showsWhatsApp = showsWhatsAppCopyButton
+    let expandReserve: CGFloat = (task.hasSubtasks ? 40 : 0) + (showsWhatsApp ? 40 : 0)
     let centerTitle = centersTitleInRow
 
     return ZStack(alignment: centerTitle ? .leading : .topLeading) {
@@ -108,6 +110,11 @@ struct TaskRow: View {
 
         Spacer(minLength: 0)
 
+        if showsWhatsApp, let onWhatsAppCopy {
+          whatsAppCopyButton(action: onWhatsAppCopy)
+            .padding(.trailing, task.hasSubtasks ? 0 : expandTrailing)
+            .padding(.top, expandTop)
+        }
         if task.hasSubtasks {
           expandButton
             .padding(.trailing, expandTrailing)
@@ -118,6 +125,23 @@ struct TaskRow: View {
     .frame(minHeight: AppLayout.taskRowHeight)
   }
 
+  private var showsWhatsAppCopyButton: Bool {
+    task.whatsappRoutine && task.hasDescription && onWhatsAppCopy != nil
+  }
+
+  private func whatsAppCopyButton(action: @escaping () -> Void) -> some View {
+    let c = theme.colors
+    return Button(action: action) {
+      StackedIcons.image(.copy)
+        .font(.system(size: 16, weight: .medium))
+        .foregroundStyle(c.accent)
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Copiar mensagem para WhatsApp")
+  }
+
   @ViewBuilder
   private func taskContentTapArea(expandReserve: CGFloat) -> some View {
     let centerTitle = centersTitleInRow
@@ -125,9 +149,9 @@ struct TaskRow: View {
       Color.clear.frame(width: 46)
       rowTextContent
         .padding(.vertical, centerTitle ? 4 : 10)
-        .padding(.trailing, task.hasSubtasks ? 4 : 14)
+        .padding(.trailing, (task.hasSubtasks || showsWhatsAppCopyButton) ? 4 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-      if task.hasSubtasks {
+      if task.hasSubtasks || showsWhatsAppCopyButton {
         Color.clear.frame(width: expandReserve)
       }
     }

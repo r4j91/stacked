@@ -22,9 +22,15 @@ struct Task: Identifiable, Equatable {
   var done: Bool
   var commentCount: Int
   var recurrence: String?
+  var whatsappRoutine: Bool = false
 
   var tags: [String] { labels.map(\.name) }
   var subtasksDone: Int { subtasks.filter(\.done).count }
   var subtasksTotal: Int { subtasks.count }
   var hasSubtasks: Bool { !subtasks.isEmpty }
+  var hasPendingSubtasks: Bool { subtasks.contains { !$0.done } }
+  var hasDescription: Bool {
+    guard let description else { return false }
+    return !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
 }

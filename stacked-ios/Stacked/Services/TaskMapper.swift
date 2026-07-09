@@ -44,7 +44,8 @@ enum TaskMapper {
       dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
       done: row.concluida ?? false,
       commentCount: commentCount,
-      recurrence: row.recorrencia
+      recurrence: row.recorrencia,
+      whatsappRoutine: row.whatsapp_rotina ?? false
     )
   }
 

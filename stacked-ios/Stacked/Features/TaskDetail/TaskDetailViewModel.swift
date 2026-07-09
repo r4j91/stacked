@@ -41,6 +41,7 @@ final class TaskDetailViewModel {
   var recurrence: String?
   var comments: [TaskComment] = []
   var newCommentText = ""
+  var whatsappRoutine = false
 
   var allProjects: [Project] = []
   var allLabels: [TaskLabel] = []
@@ -51,6 +52,7 @@ final class TaskDetailViewModel {
   private var titleSaveTask: _Concurrency.Task<Void, Never>?
   private var descSaveTask: _Concurrency.Task<Void, Never>?
   private var loadGeneration = 0
+  private var whatsappRoutineReady = false
 
   init(taskId: String) {
     self.taskId = taskId
@@ -110,7 +112,33 @@ final class TaskDetailViewModel {
     projectName = task.project
     subtasks = task.subtasks
     recurrence = task.recurrence
+    whatsappRoutine = task.whatsappRoutine
+    whatsappRoutineReady = true
     selectedLabelIds = Set(task.labels.map(\.id))
+  }
+
+  func setWhatsappRoutine(_ enabled: Bool) {
+    whatsappRoutine = enabled
+    guard whatsappRoutineReady else { return }
+    _Concurrency.Task {
+      await TaskDetailPersistence.autosaveWhatsappRoutine(taskId: taskId, enabled: enabled)
+    }
+  }
+
+  var showsWhatsAppAction: Bool {
+    whatsappRoutine && hasDescriptionText
+  }
+
+  private var hasDescriptionText: Bool {
+    !descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  var whatsAppMessage: String {
+    WhatsAppRoutineMessageBuilder.compose(
+      taskTitle: title,
+      dueDate: dueDate,
+      description: descriptionText
+    )
   }
 
   func onTitleChanged() {

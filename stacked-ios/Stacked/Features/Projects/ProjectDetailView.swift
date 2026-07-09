@@ -13,6 +13,7 @@ struct ProjectDetailView: View {
   @State private var completedExpanded: Bool
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
+  @State private var whatsAppCopyTask: Task?
   @State private var showQuickAdd = false
   @State private var showProjectOptions = false
   @State private var showNewSection = false
@@ -238,6 +239,15 @@ struct ProjectDetailView: View {
       }
       .environment(ThemeManager.shared)
     }
+    .sheet(item: $whatsAppCopyTask) { task in
+      WhatsAppCopyPreviewSheet(
+        taskTitle: task.title,
+        message: whatsAppMessage(for: task)
+      )
+      .environment(ThemeManager.shared)
+      .presentationBackground(theme.colors.background)
+      .presentationDragIndicator(.visible)
+    }
     .sheet(isPresented: $showProjectOptions) {
       ProjectOptionsSheet(
         project: Project(
@@ -322,6 +332,14 @@ struct ProjectDetailView: View {
     guard !usesStore else { return }
     usesStore = true
     store.adoptSnapshot(initialSnapshot)
+  }
+
+  private func whatsAppMessage(for task: Task) -> String {
+    WhatsAppRoutineMessageBuilder.compose(
+      taskTitle: task.title,
+      dueDate: task.dueDate,
+      description: task.description
+    )
   }
 
   private func openToolbarMenu(anchor: CGRect) {
@@ -494,6 +512,9 @@ struct ProjectDetailView: View {
       },
       onSubtaskChanged: {
         _Concurrency.Task { await store.load() }
+      },
+      onWhatsAppCopy: {
+        whatsAppCopyTask = task
       }
     )
   }
@@ -517,6 +538,9 @@ struct ProjectDetailView: View {
       },
       onSubtaskChanged: {
         _Concurrency.Task { await store.load() }
+      },
+      onWhatsAppCopy: {
+        whatsAppCopyTask = task
       }
     )
     .id(task.id)

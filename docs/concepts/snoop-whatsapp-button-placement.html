@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Onde ficam os botões WhatsApp (mapa visual)</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --accent-dim: rgba(95, 211, 220, 0.16);
+      --accent-ring: rgba(95, 211, 220, 0.55);
+      --tag-green: #8FD46B;
+      --muted: rgba(242, 243, 245, 0.06);
+      --callout: #F5A623;
+      --phone-w: 280px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: #0e0f11;
+      color: var(--text-primary);
+      padding: 28px 16px 64px;
+      line-height: 1.4;
+    }
+
+    header { max-width: 1240px; margin: 0 auto 24px; }
+    header h1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    header p { font-size: 13px; color: var(--text-secondary); max-width: 70ch; }
+
+    .legend-bar {
+      max-width: 1240px;
+      margin: 0 auto 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .legend-bar span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--callout);
+      color: #1a1a1a;
+      font-size: 12px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .grid {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px 20px;
+    }
+
+    .panel {
+      position: relative;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      padding-left: 4px;
+    }
+
+    .panel-sub {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    .stage {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding: 8px 0 20px;
+    }
+
+    .phone {
+      width: var(--phone-w);
+      background: var(--bg);
+      border-radius: 26px;
+      border: 1px solid rgba(242, 243, 245, 0.1);
+      overflow: visible;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+      position: relative;
+    }
+
+    .phone-inner { overflow: hidden; border-radius: 26px; }
+
+    .status { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 8px 0 4px; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 12px 10px;
+      border-bottom: 1px solid var(--muted);
+    }
+
+    .toolbar .x { color: var(--text-secondary); font-size: 15px; }
+    .toolbar .actions { display: flex; align-items: center; gap: 10px; }
+    .toolbar .wa-btn {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(95,211,220,0.35);
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .toolbar .dots { color: var(--text-secondary); font-size: 16px; letter-spacing: 1px; }
+
+    .content { padding: 12px 14px 16px; min-height: 380px; }
+
+    .title-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+    .circle { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-tertiary); margin-top: 3px; flex-shrink: 0; }
+    .task-title { font-size: 17px; font-weight: 700; line-height: 1.25; }
+
+    .notes {
+      margin-left: 26px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .meta-card {
+      background: var(--surface-variant);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--muted);
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--muted);
+    }
+
+    .meta-row:last-child { border-bottom: none; }
+    .meta-row .label { color: var(--text-secondary); }
+    .meta-row .value { color: var(--text-primary); font-weight: 500; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      background: rgba(95, 211, 220, 0.06);
+      border-top: 1px solid rgba(95, 211, 220, 0.15);
+    }
+
+    .toggle-row .left { display: flex; flex-direction: column; gap: 2px; }
+    .toggle-row .t-title { font-size: 13px; font-weight: 600; }
+    .toggle-row .t-sub { font-size: 10px; color: var(--text-tertiary); }
+
+    .switch {
+      width: 44px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--accent);
+      position: relative;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      top: 2px;
+      right: 2px;
+    }
+
+    .switch.off { background: #4a4d55; }
+    .switch.off::after { right: auto; left: 2px; }
+
+    .section-h {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      margin: 14px 0 8px;
+    }
+
+    .sub-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--surface-variant);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .sub-row .c { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--text-tertiary); }
+
+    /* Project list screen */
+    .nav-title { font-size: 16px; font-weight: 700; text-align: center; flex: 1; }
+    .nav-back { color: var(--accent); font-size: 13px; }
+
+    .sec-head {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.08em;
+      padding: 12px 14px 4px;
+    }
+
+    .list-row {
+      margin: 4px 10px;
+      padding: 10px 11px;
+      background: var(--surface-variant);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .list-row .c { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-tertiary); flex-shrink: 0; }
+    .list-row .info { flex: 1; min-width: 0; }
+    .list-row .t { font-size: 14px; font-weight: 600; }
+    .list-row .s { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+    .list-row .wa-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(95,211,220,0.3);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .list-row.dim { opacity: 0.55; }
+
+    /* Sheet */
+    .sheet-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      border-radius: 26px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .sheet {
+      width: 100%;
+      background: var(--surface);
+      border-radius: 16px 16px 0 0;
+      padding: 8px 12px 14px;
+      border-top: 1px solid var(--muted);
+    }
+
+    .sheet-handle { width: 32px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 99px; margin: 0 auto 10px; }
+    .sheet h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+
+    .preview {
+      background: #101114;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 10px;
+      line-height: 1.5;
+      color: #cdd2d8;
+      margin-bottom: 10px;
+      font-family: ui-monospace, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      color: #0d1213;
+      text-align: center;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 11px;
+      border-radius: 12px;
+    }
+
+    /* Callouts */
+    .highlight {
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 0 0 2px var(--accent-ring), 0 0 0 6px rgba(95, 211, 220, 0.12);
+      border-radius: 10px;
+    }
+
+    .callout {
+      position: absolute;
+      z-index: 10;
+      max-width: 140px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #1a1a1a;
+      background: var(--callout);
+      padding: 6px 8px;
+      border-radius: 8px;
+      line-height: 1.3;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+
+    .callout::after {
+      content: "";
+      position: absolute;
+      width: 0;
+      height: 0;
+      border: 6px solid transparent;
+    }
+
+    .c1 { top: 38px; right: -8px; }
+    .c1::after { left: -10px; top: 10px; border-right-color: var(--callout); }
+
+    .c2 { top: 168px; left: -12px; transform: translateX(-100%); }
+    .c2::after { right: -10px; top: 12px; border-left-color: var(--callout); }
+
+    .c3 { bottom: 72px; right: -10px; }
+    .c3::after { left: -10px; top: 14px; border-right-color: var(--callout); }
+
+    .c4 { top: 50%; right: -14px; transform: translateY(-50%); }
+    .c4::after { left: -10px; top: calc(50% - 6px); border-right-color: var(--callout); }
+
+    .c5 { bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100%); text-align: center; max-width: 200px; }
+    .c5::after { top: -10px; left: calc(50% - 6px); border-bottom-color: var(--callout); }
+
+    .flow {
+      max-width: 1240px;
+      margin: 36px auto 0;
+      padding: 18px 20px;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--muted);
+    }
+
+    .flow h2 { font-size: 14px; font-weight: 800; margin-bottom: 12px; }
+
+    .flow-steps {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .flow-steps .arrow { color: var(--accent); font-weight: 700; padding: 0 4px; }
+
+    .note-off {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(239, 90, 95, 0.08);
+      border: 1px dashed rgba(239, 90, 95, 0.35);
+      font-size: 11px;
+      color: #e8a0a3;
+    }
+
+    @media (max-width: 680px) {
+      .callout { position: static; transform: none !important; max-width: none; margin: 8px 0 0; }
+      .callout::after { display: none; }
+      .stage { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Onde ficam os botões — Rotina WhatsApp</h1>
+    <p>
+      Mapa visual da Opção A: você <strong>liga o toggle uma vez</strong> na tarefa-pai;
+      só então aparecem os atalhos de copiar. Tarefas sem toggle = zero botão WhatsApp.
+    </p>
+  </header>
+
+  <div class="legend-bar">
+    <span><span class="num">1</span> Toggle no card de metadados (liga/desliga)</span>
+    <span><span class="num">2</span> Botão WhatsApp na barra do detalhe (só se ligado)</span>
+    <span><span class="num">3</span> Atalho opcional na lista do projeto (só se ligado)</span>
+    <span><span class="num">4</span> Sheet preview + Copiar (ao tocar WhatsApp)</span>
+  </div>
+
+  <div class="grid">
+    <!-- Panel A: Toggle OFF -->
+    <div class="panel">
+      <div class="panel-title">A · Detalhe — Rotina desligada</div>
+      <div class="panel-sub">Você configura aqui; ainda <em>não</em> aparece botão de copiar</div>
+      <div class="stage">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="status">9:41</div>
+            <div class="toolbar">
+              <span class="x">✕</span>
+              <span></span>
+              <div class="actions"><span class="dots">⋯</span></div>
+            </div>
+            <div class="content">
+              <div class="title-row">
+                <div class="circle"></div>
+                <div class="task-title">15 Jul — Saldos</div>
+              </div>
+              <div class="notes">Notas da tarefa-pai (opcional)</div>
+              <div class="meta-card">
+                <div class="meta-row"><span class="label">📁 Projeto</span><span class="value">SNOOP</span></div>
+                <div class="meta-row"><span class="label">📅 Data</span><span class="value">15 Jul</span></div>
+                <div class="toggle-row highlight">
+                  <div class="left">
+                    <span class="t-title">Rotina WhatsApp</span>
+                    <span class="t-sub">Ativar copiar lista para equipe</span>
+                  </div>
+                  <div class="switch off"></div>
+                </div>
+              </div>
+              <div class="section-h">SUBTAREFAS</div>
+              <div class="sub-row"><div class="c"></div>Caixa Econômica</div>
+              <div class="sub-row"><div class="c"></div>Stone</div>
+            </div>
+          </div>
+          <div class="callout c2"><span class="num">1</span> Toggle aqui — padrão desligado</div>
+        </div>
+      </div>
+      <div class="note-off">Sem toggle ligado → nenhum botão WhatsApp em lugar nenhum</div>
+    </div>
+
+    <!-- Panel B: Toggle ON + toolbar button -->
+    <div class="panel">
+      <div class="panel-title">B · Detalhe — Rotina ligada</div>
+      <div class="panel-sub">Toggle ON → botão WhatsApp aparece no topo</div>
+      <div class="stage">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="status">9:41</div>
+            <div class="toolbar">
+              <span class="x">✕</span>
+              <span></span>
+              <div class="actions highlight">
+                <span class="wa-btn">WhatsApp</span>
+                <span class="dots">⋯</span>
+              </div>
+            </div>
+            <div class="content">
+              <div class="title-row">
+                <div class="circle"></div>
+                <div class="task-title">15 Jul — Saldos</div>
+              </div>
+              <div class="notes">Notas da tarefa-pai</div>
+              <div class="meta-card">
+                <div class="meta-row"><span class="label">📁 Projeto</span><span class="value">SNOOP</span></div>
+                <div class="meta-row"><span class="label">📅 Data</span><span class="value">15 Jul</span></div>
+                <div class="toggle-row">
+                  <div class="left">
+                    <span class="t-title">Rotina WhatsApp</span>
+                    <span class="t-sub">Lista pronta para copiar</span>
+                  </div>
+                  <div class="switch"></div>
+                </div>
+              </div>
+              <div class="section-h">SUBTAREFAS → viram bullets na mensagem</div>
+              <div class="sub-row"><div class="c"></div>Caixa Econômica</div>
+              <div class="sub-row"><div class="c"></div>Stone</div>
+              <div class="sub-row"><div class="c"></div>Mercado Pago</div>
+            </div>
+          </div>
+          <div class="callout c1"><span class="num">2</span> Botão principal — abre preview</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel C: Project list -->
+    <div class="panel">
+      <div class="panel-title">C · Lista do projeto (atalho opcional)</div>
+      <div class="panel-sub">Só a tarefa-pai marcada mostra ícone 📋</div>
+      <div class="stage">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="status">9:41</div>
+            <div class="toolbar">
+              <span class="nav-back">‹ Início</span>
+              <span class="nav-title">SNOOP</span>
+              <span class="dots">⋯</span>
+            </div>
+            <div class="sec-head">SALDOS DIÁRIOS</div>
+            <div class="list-row">
+              <div class="c"></div>
+              <div class="info">
+                <div class="t">15 Jul — Saldos</div>
+                <div class="s">4 subtarefas · Rotina WhatsApp ✓</div>
+              </div>
+              <div class="wa-icon highlight">📋</div>
+            </div>
+            <div class="list-row dim">
+              <div class="c"></div>
+              <div class="info">
+                <div class="t">Relatório mensal</div>
+                <div class="s">Sem rotina WhatsApp</div>
+              </div>
+            </div>
+            <div class="list-row">
+              <div class="c"></div>
+              <div class="info">
+                <div class="t">16 Jul — Saldos</div>
+                <div class="s">Rotina WhatsApp ✓</div>
+              </div>
+              <div class="wa-icon">📋</div>
+            </div>
+          </div>
+          <div class="callout c4"><span class="num">3</span> Atalho rápido (opcional na v1)</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-tertiary);padding:0 4px;margin-top:6px;">
+        Toque no 📋 = mesmo sheet do botão WhatsApp, sem abrir o detalhe.
+      </p>
+    </div>
+
+    <!-- Panel D: Sheet -->
+    <div class="panel">
+      <div class="panel-title">D · Preview ao tocar WhatsApp</div>
+      <div class="panel-sub">Confere a mensagem → Copiar → colar no WhatsApp</div>
+      <div class="stage">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="status">9:41</div>
+            <div class="toolbar">
+              <span class="x">✕</span>
+              <span></span>
+              <div class="actions"><span class="wa-btn">WhatsApp</span><span class="dots">⋯</span></div>
+            </div>
+            <div class="content" style="min-height:200px;opacity:0.35">
+              <div class="task-title" style="padding-left:4px">15 Jul — Saldos</div>
+            </div>
+          </div>
+          <div class="sheet-overlay">
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <h4>Mensagem · 15 Jul</h4>
+              <div class="preview">*Saldos diários — 15/07/2026*
+
+Olá, equipe! Preciso dos saldos:
+
+• *Caixa Econômica* — extrato do dia
+• *Stone* — saldo + vendas
+• *Mercado Pago* — saldo e PIX
+
+_Responder até 17h._</div>
+              <div class="copy-btn highlight">Copiar mensagem</div>
+            </div>
+          </div>
+          <div class="callout c5"><span class="num">4</span> Preview + Copiar (UIPasteboard)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="flow">
+    <h2>Fluxo completo (do dia a dia)</h2>
+    <div class="flow-steps">
+      <span>Abrir tarefa-pai <em>15 Jul — Saldos</em></span>
+      <span class="arrow">→</span>
+      <span><span class="num">1</span> Ligar <strong>Rotina WhatsApp</strong> (1× por tarefa, ou em cada nova tarefa-pai)</span>
+      <span class="arrow">→</span>
+      <span><span class="num">2</span> ou <span class="num">3</span> Tocar <strong>WhatsApp</strong> / 📋</span>
+      <span class="arrow">→</span>
+      <span><span class="num">4</span> <strong>Copiar</strong> → colar no grupo</span>
+    </div>
+  </section>
+</body>
+</html>

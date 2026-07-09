@@ -31,6 +31,7 @@ struct TaskDetailView: View {
   @State private var recurrencePillAnchor: CGRect = .zero
   @State private var installmentPillAnchor: CGRect = .zero
   @State private var installmentRoute: InstallmentGeneratorRoute?
+  @State private var showWhatsAppPreview = false
 
   var onDismiss: () -> Void = {}
 
@@ -70,15 +71,20 @@ struct TaskDetailView: View {
           }
         }
         ToolbarItem(placement: .topBarTrailing) {
-          Menu {
-            Button(role: .destructive) {
-              showDeleteConfirm = true
-            } label: {
-              Label("Excluir tarefa", systemImage: "trash")
+          HStack(spacing: 10) {
+            if vm.showsWhatsAppAction {
+              whatsAppToolbarButton
             }
-          } label: {
-            Image(systemName: "ellipsis")
-              .foregroundStyle(c.textSecondary)
+            Menu {
+              Button(role: .destructive) {
+                showDeleteConfirm = true
+              } label: {
+                Label("Excluir tarefa", systemImage: "trash")
+              }
+            } label: {
+              Image(systemName: "ellipsis")
+                .foregroundStyle(c.textSecondary)
+            }
           }
         }
       }
@@ -114,6 +120,12 @@ struct TaskDetailView: View {
         .environment(ThemeManager.shared)
         .presentationBackground(c.background)
         .presentationDragIndicator(.visible)
+      }
+      .sheet(isPresented: $showWhatsAppPreview) {
+        WhatsAppCopyPreviewSheet(taskTitle: vm.title, message: vm.whatsAppMessage)
+          .environment(ThemeManager.shared)
+          .presentationBackground(c.background)
+          .presentationDragIndicator(.visible)
       }
       .task { await vm.load() }
       .onChange(of: vm.isLoading) { wasLoading, isLoading in
@@ -221,6 +233,9 @@ struct TaskDetailView: View {
       }
 
       divider
+      whatsappRoutineRow
+
+      fullDivider
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
@@ -613,6 +628,61 @@ struct TaskDetailView: View {
     .readAnchor(anchor)
   }
 
+  private var whatsAppToolbarButton: some View {
+    let c = theme.colors
+    return Button {
+      showWhatsAppPreview = true
+    } label: {
+      Text("WhatsApp")
+        .font(.system(size: 11, weight: .bold))
+        .foregroundStyle(c.accent)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(c.accent.opacity(0.14))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(c.accent.opacity(0.35), lineWidth: 1))
+    }
+    .accessibilityLabel("Copiar mensagem para WhatsApp")
+  }
+
+  private var whatsappRoutineRow: some View {
+    let c = theme.colors
+    let binding = Binding(
+      get: { vm.whatsappRoutine },
+      set: { vm.setWhatsappRoutine($0) }
+    )
+    return HStack(spacing: 12) {
+      StackedIcons.image(.copy)
+        .font(AppTypography.body)
+        .foregroundStyle(c.textTertiary)
+        .frame(width: 22)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Rotina WhatsApp")
+          .font(AppTypography.metadataLabel)
+          .foregroundStyle(c.textPrimary)
+        Text("Copiar descrição formatada para WhatsApp")
+          .font(AppTypography.metaSmall)
+          .foregroundStyle(c.textTertiary)
+      }
+      Spacer(minLength: 8)
+      Group {
+        if vm.isLoading {
+          Capsule()
+            .fill(c.textTertiary.opacity(0.35))
+            .frame(width: 51, height: 31)
+        } else {
+          StackedSwitchControl(isOn: binding, colors: c)
+        }
+      }
+      .frame(width: 51, height: 44)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Rotina WhatsApp")
+    .accessibilityValue(vm.whatsappRoutine ? "Ativada" : "Desativada")
+  }
+
   private func showPriorityMenu(anchor: CGRect) {
     presentAnchoredPopover(anchorRect: anchor, items: [
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
@@ -708,6 +778,12 @@ struct TaskDetailView: View {
       .fill(theme.colors.textTertiary.opacity(0.12))
       .frame(height: 1)
       .padding(.leading, 50)
+  }
+
+  private var fullDivider: some View {
+    Rectangle()
+      .fill(theme.colors.textTertiary.opacity(0.12))
+      .frame(height: 1)
   }
 
   private func close() {

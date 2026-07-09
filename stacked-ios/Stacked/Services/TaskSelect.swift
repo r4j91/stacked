@@ -12,6 +12,7 @@ enum TaskSelect {
     concluida,
     data_vencimento,
     recorrencia,
+    whatsapp_rotina,
     project_id,
     section_id,
     projects ( nome ),

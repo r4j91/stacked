@@ -45,6 +45,10 @@ enum TaskDetailPersistence {
     }
   }
 
+  static func autosaveWhatsappRoutine(taskId: String, enabled: Bool) async {
+    try? await client.from("tasks").update(["whatsapp_rotina": enabled]).eq("id", value: taskId).execute()
+  }
+
   static func autosaveProject(taskId: String, projectId: String?) async {
     if let projectId {
       try? await client.from("tasks").update([
