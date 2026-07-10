@@ -133,8 +133,7 @@ struct HomeHeroSection: View {
           .font(AppTypography.bodySemibold)
           .foregroundStyle(AppColors.overdue)
         Spacer()
-        StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(AppColors.overdue.opacity(0.85))
+        DisclosureChevron(color: AppColors.overdue.opacity(0.85))
       }
       .padding(14)
       .background(AppColors.overdue.opacity(0.15))
@@ -160,9 +159,7 @@ struct HomeHeroSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
 
       if isOverdue {
-        StackedIcons.image(.chevronRight)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(AppColors.overdue.opacity(0.7))
+        DisclosureChevron(color: AppColors.overdue.opacity(0.7))
       }
     }
     .padding(.horizontal, m.cardPaddingH)
@@ -201,9 +198,7 @@ struct HomeHeroSection: View {
           .frame(maxWidth: .infinity, alignment: .leading)
 
         if isOverdue {
-          StackedIcons.image(.chevronRight)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(AppColors.overdue.opacity(0.7))
+          DisclosureChevron(color: AppColors.overdue.opacity(0.7))
         }
       }
 
@@ -231,9 +226,7 @@ struct HomeHeroSection: View {
       )
 
       if isOverdue {
-        StackedIcons.image(.chevronRight)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(AppColors.overdue.opacity(0.7))
+        DisclosureChevron(color: AppColors.overdue.opacity(0.7))
       }
     }
     .padding(.horizontal, m.cardPaddingH)
@@ -276,9 +269,7 @@ struct HomeHeroSection: View {
         }
         Spacer()
         if isOverdue {
-          StackedIcons.image(.chevronRight)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(AppColors.overdue.opacity(0.7))
+          DisclosureChevron(color: AppColors.overdue.opacity(0.7))
         }
       }
     }
@@ -318,9 +309,7 @@ struct HomeHeroSection: View {
       .frame(maxWidth: .infinity, alignment: .leading)
 
       if isOverdue {
-        StackedIcons.image(.chevronRight)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(AppColors.overdue.opacity(0.75))
+        DisclosureChevron(color: AppColors.overdue.opacity(0.75))
       }
     }
     .padding(.horizontal, m.cardPaddingH)
@@ -355,9 +344,7 @@ struct HomeHeroSection: View {
         }
         Spacer()
         if isOverdue {
-          StackedIcons.image(.chevronRight)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(AppColors.overdue.opacity(0.7))
+          DisclosureChevron(color: AppColors.overdue.opacity(0.7))
         }
       }
       .padding(.top, 1)

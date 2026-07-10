@@ -167,8 +167,7 @@ struct HomeView: View {
         Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
         Spacer()
         Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
-        StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(c.textTertiary.opacity(0.7))
+        DisclosureChevron(color: c.textTertiary.opacity(0.7))
       }
       .padding(.vertical, 10)
     }
@@ -187,8 +186,7 @@ struct HomeView: View {
       Text(project.name).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
       Spacer()
       Text("\(project.taskCount)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
-      StackedIcons.image(.chevronRight).font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(c.textTertiary.opacity(0.7))
+      DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
     .padding(.vertical, 10)
   }

@@ -51,6 +51,8 @@ final class TaskDetailViewModel {
 
   private var titleSaveTask: _Concurrency.Task<Void, Never>?
   private var descSaveTask: _Concurrency.Task<Void, Never>?
+  private var subtaskReorderTask: _Concurrency.Task<Void, Never>?
+  private var subtaskSortHoldId: String?
   private var loadGeneration = 0
   private var whatsappRoutineReady = false
 
@@ -110,7 +112,14 @@ final class TaskDetailViewModel {
     projectId = task.projectId
     sectionId = task.sectionId
     projectName = task.project
-    subtasks = task.subtasks
+    if subtaskSortHoldId != nil, !subtasks.isEmpty {
+      let sorted = task.subtasks
+      subtasks = subtasks.map { local in
+        sorted.first(where: { $0.id == local.id }) ?? local
+      }
+    } else {
+      subtasks = task.subtasks
+    }
     recurrence = task.recurrence
     whatsappRoutine = task.whatsappRoutine
     whatsappRoutineReady = true
@@ -260,12 +269,14 @@ final class TaskDetailViewModel {
   func toggleSubtask(_ subtask: Subtask) {
     guard let id = subtask.id else { return }
     guard let i = subtasks.firstIndex(where: { $0.id == id }) else { return }
+    let newDone = !subtask.done
+
     subtasks[i] = Subtask(
       id: subtask.id,
       taskId: subtask.taskId,
       title: subtask.title,
       description: subtask.description,
-      done: !subtask.done,
+      done: newDone,
       priority: subtask.priority,
       order: subtask.order,
       valor: subtask.valor,
@@ -273,13 +284,31 @@ final class TaskDetailViewModel {
       time: subtask.time,
       labelIds: subtask.labelIds
     )
-    subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)
-    let newDone = subtasks.first(where: { $0.id == id })?.done ?? false
-    _Concurrency.Task {
+
+    subtaskReorderTask?.cancel()
+    subtaskReorderTask = _Concurrency.Task { @MainActor [weak self] in
+      guard let self else { return }
+      if newDone {
+        self.subtaskSortHoldId = id
+        if !UIAccessibility.isReduceMotionEnabled {
+          try? await _Concurrency.Task.sleep(for: AppMotion.subtaskCompleteReorderDelay)
+        }
+        guard !_Concurrency.Task.isCancelled else { return }
+        self.subtaskSortHoldId = nil
+        withAnimation(AppMotion.smooth) {
+          self.subtasks = TaskMapper.sortSubtasksForDisplay(self.subtasks)
+        }
+      } else {
+        self.subtaskSortHoldId = nil
+        withAnimation(AppMotion.smooth) {
+          self.subtasks = TaskMapper.sortSubtasksForDisplay(self.subtasks)
+        }
+      }
+
       try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
       if newDone {
         TaskCalendarSync.remove(subtaskId: id)
-      } else if let synced = subtasks.first(where: { $0.id == id }) {
+      } else if let synced = self.subtasks.first(where: { $0.id == id }) {
         TaskCalendarSync.sync(synced)
       }
     }

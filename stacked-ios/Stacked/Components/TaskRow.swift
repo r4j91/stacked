@@ -24,6 +24,8 @@ struct TaskRow: View {
   @State private var subtaskRevealLayoutPass = 0
   @State private var displaySubtasks: [Subtask] = []
   @State private var subtasksDone: [Bool] = []
+  @State private var subtaskSortHoldId: String?
+  @State private var subtaskReorderTask: _Concurrency.Task<Void, Never>?
   @State private var labelCatalog: [TaskLabel] = []
 
   var body: some View {
@@ -458,8 +460,39 @@ struct TaskRow: View {
   }
 
   private func syncSubtasks() {
-    displaySubtasks = TaskMapper.sortSubtasksForDisplay(task.subtasks)
-    subtasksDone = displaySubtasks.map(\.done)
+    let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
+    if subtaskSortHoldId != nil, !displaySubtasks.isEmpty {
+      displaySubtasks = displaySubtasks.map { local in
+        sorted.first(where: { subtaskHoldKey($0) == subtaskHoldKey(local) }) ?? local
+      }
+      subtasksDone = displaySubtasks.map(\.done)
+      return
+    }
+    displaySubtasks = sorted
+    subtasksDone = sorted.map(\.done)
+  }
+
+  private func subtaskHoldKey(_ sub: Subtask) -> String {
+    if let id = sub.id, !id.isEmpty { return id }
+    return "\(sub.taskId ?? task.id):\(sub.order)"
+  }
+
+  private func subtaskWithDone(_ sub: Subtask, done: Bool) -> Subtask {
+    Subtask(
+      id: sub.id,
+      taskId: sub.taskId,
+      title: sub.title,
+      description: sub.description,
+      done: done,
+      priority: sub.priority,
+      order: sub.order,
+      valor: sub.valor,
+      dueDate: sub.dueDate,
+      time: sub.time,
+      dueDateChipLabel: sub.dueDateChipLabel,
+      dueDateChipColor: sub.dueDateChipColor,
+      labelIds: sub.labelIds
+    )
   }
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
@@ -471,25 +504,34 @@ struct TaskRow: View {
     } else {
       HapticService.light()
     }
+
+    let holdKey = subtaskHoldKey(sub)
     var updated = displaySubtasks
-    updated[index] = Subtask(
-      id: sub.id,
-      taskId: sub.taskId,
-      title: sub.title,
-      description: sub.description,
-      done: newDone,
-      priority: sub.priority,
-      order: sub.order,
-      valor: sub.valor,
-      dueDate: sub.dueDate,
-      time: sub.time,
-      dueDateChipLabel: sub.dueDateChipLabel,
-      dueDateChipColor: sub.dueDateChipColor,
-      labelIds: sub.labelIds
-    )
-    displaySubtasks = TaskMapper.sortSubtasksForDisplay(updated)
-    subtasksDone = displaySubtasks.map(\.done)
-    _Concurrency.Task {
+    updated[index] = subtaskWithDone(sub, done: newDone)
+    displaySubtasks = updated
+    subtasksDone[index] = newDone
+
+    subtaskReorderTask?.cancel()
+    subtaskReorderTask = _Concurrency.Task { @MainActor in
+      if newDone {
+        subtaskSortHoldId = holdKey
+        if !reduceMotion {
+          try? await _Concurrency.Task.sleep(for: AppMotion.subtaskCompleteReorderDelay)
+        }
+        guard !_Concurrency.Task.isCancelled else { return }
+        subtaskSortHoldId = nil
+        AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+          displaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          subtasksDone = displaySubtasks.map(\.done)
+        }
+      } else {
+        subtaskSortHoldId = nil
+        AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+          displaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          subtasksDone = displaySubtasks.map(\.done)
+        }
+      }
+
       try? await SubtaskRepository.shared.toggleDone(
         id: sub.id,
         taskId: sub.taskId,
@@ -551,6 +593,21 @@ struct TaskRow: View {
 enum TaskRowStyle {
   case card
   case list
+}
+
+/// Chevron lateral para linhas navegáveis — mesmo ícone das subtarefas (`arrowDown01` → direita).
+struct DisclosureChevron: View {
+  @Environment(ThemeManager.self) private var theme
+
+  var size: CGFloat = 12
+  var color: Color?
+
+  var body: some View {
+    StackedIcons.image(.chevronDown)
+      .font(.system(size: size, weight: .semibold))
+      .foregroundStyle(color ?? theme.colors.textTertiary)
+      .rotationEffect(.degrees(-90))
+  }
 }
 
 /// Chevron de expandir subtarefas — paridade web (`rotate-90`: → fechado, ↓ aberto).

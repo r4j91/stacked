@@ -89,6 +89,9 @@ enum AppMotion {
     .easeInOut(duration: 0.2)
   }
 
+  /// Espera a animação do DoneCircle antes de mover subtarefa concluída ao fim.
+  static let subtaskCompleteReorderDelay: Duration = .milliseconds(340)
+
   /// Subtarefas inline — expand easeOutCubic (task_tile.dart ~220ms).
   static var subtaskExpandSpring: Animation {
     .timingCurve(0.215, 0.61, 0.355, 1.0, duration: 0.22)

@@ -594,9 +594,7 @@ struct TaskDetailView: View {
           .font(AppTypography.metadataLabel)
           .foregroundStyle(active ? accent : c.textTertiary)
           .lineLimit(1)
-        StackedIcons.image(.chevronRight)
-          .font(AppTypography.metaSmall.weight(.semibold))
-          .foregroundStyle(c.textTertiary)
+        DisclosureChevron()
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
