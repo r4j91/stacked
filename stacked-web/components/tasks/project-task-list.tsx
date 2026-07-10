@@ -10,7 +10,6 @@ import { AnchoredPopover, type AnchorRect } from "@/components/ui/anchored-popov
 import { EmptyState } from "@/components/ui/empty-state";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { useHoldToReorder } from "@/lib/hooks/use-hold-to-reorder";
-import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { Add01Icon } from "@/lib/icons/nav-icons";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 
@@ -78,7 +77,6 @@ export function ProjectTaskList() {
   const [dialog, setDialog] = useState<{ mode: "rename"; section: Section } | null>(null);
   const [menuSection, setMenuSection] = useState<Section | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
-  const desktopReorder = useMediaQuery("(min-width: 1024px)");
 
   const taskDrag = useHoldToReorder((from, to, kind, position) => {
     void reorderProjectTasks(from, to, kind, position);
@@ -134,7 +132,7 @@ export function ProjectTaskList() {
   }
 
   return (
-    <div className={desktopReorder ? "reorder-enabled-list" : undefined}>
+    <div className="reorder-enabled-list project-task-list">
       {items.map((item, i) => {
         if (item.kind === "separator") {
           return <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[var(--color-border)]/60" />;
@@ -149,8 +147,7 @@ export function ProjectTaskList() {
               task={item.task}
               keyboardFocused={focusedTaskId === taskId}
               reorderDropProps={taskDrag.getDropProps(taskId)}
-              reorderHoldProps={desktopReorder ? undefined : taskDrag.getHoldProps(taskId, true)}
-              reorderHandleProps={desktopReorder ? taskDrag.getHandleProps(taskId, true) : undefined}
+              reorderHandleProps={taskDrag.getHandleProps(taskId, true)}
               reorderDragOver={isDropTarget}
               reorderDropPosition={isDropTarget ? taskDrag.overPosition : null}
               reorderDragging={taskDrag.draggingId === taskId}
@@ -177,8 +174,7 @@ export function ProjectTaskList() {
               count={item.count}
               expanded={expanded}
               reorderDropProps={sectionDrag.getDropProps(sectionId)}
-              reorderHoldProps={desktopReorder ? undefined : sectionDrag.getHoldProps(sectionId, true)}
-              reorderHandleProps={desktopReorder ? sectionDrag.getHandleProps(sectionId, true) : undefined}
+              reorderHandleProps={sectionDrag.getHandleProps(sectionId, true)}
               reorderDragOver={isSectionDropTarget}
               reorderDropPosition={isSectionDropTarget ? dropPosition : null}
               reorderDragging={sectionDrag.draggingId === sectionId}

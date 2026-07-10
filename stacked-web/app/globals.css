@@ -362,6 +362,16 @@ textarea:focus:not(:focus-visible) {
   left: calc(var(--reorder-gutter) + 9px);
 }
 
+.project-task-list .reorder-handle {
+  opacity: 0.42;
+}
+
+.project-task-list .group\/reorder-row:hover .reorder-handle,
+.project-task-list .reorder-handle:hover,
+.project-task-list .reorder-handle:focus-visible {
+  opacity: 1;
+}
+
 .subtask-tree {
   margin-left: 22px;
 }

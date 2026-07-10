@@ -456,11 +456,17 @@ struct ProjectDetailView: View {
     .listRowBackground(Color.clear)
 
     if isSectionExpanded(section.id) {
-      ForEach(tasks) { task in
-        projectTaskRow(task)
-      }
-      .onMove { source, destination in
-        moveTasks(in: section.id, from: source, to: destination)
+      if taskReorderMode {
+        ForEach(tasks) { task in
+          projectTaskRow(task)
+        }
+        .onMove { source, destination in
+          moveTasks(in: section.id, from: source, to: destination)
+        }
+      } else {
+        ForEach(tasks) { task in
+          projectTaskRow(task)
+        }
       }
     }
   }
@@ -485,11 +491,17 @@ struct ProjectDetailView: View {
     }
 
     if !showsHeader || isSectionExpanded(id) {
-      ForEach(tasks) { task in
-        projectTaskRow(task)
-      }
-      .onMove { source, destination in
-        moveTasks(in: nil, from: source, to: destination)
+      if taskReorderMode {
+        ForEach(tasks) { task in
+          projectTaskRow(task)
+        }
+        .onMove { source, destination in
+          moveTasks(in: nil, from: source, to: destination)
+        }
+      } else {
+        ForEach(tasks) { task in
+          projectTaskRow(task)
+        }
       }
     }
   }
