@@ -29,6 +29,10 @@ final class EventKitCalendarService {
   private(set) var remindersAuthorizationGranted = false
   private(set) var writableCalendars: [EKCalendar] = []
   private(set) var importableCalendars: [EKCalendar] = []
+  private(set) var isExportSyncing = false
+
+  /// Índice em memória durante sync em lote — evita varrer o EventKit por tarefa.
+  private var batchExportedEventIndex: [String: [EKEvent]]?
 
   private var eventMap: [String: String] {
     get { UserDefaults.standard.dictionary(forKey: Self.eventMapKey) as? [String: String] ?? [:] }
@@ -169,6 +173,13 @@ final class EventKitCalendarService {
       .sorted { $0.startDate < $1.startDate }
   }
 
+  var calendarsAvailableForImport: [EKCalendar] {
+    let excluded = exportCalendarIdentifiers()
+    return importableCalendars.filter { cal in
+      cal.title != Self.stackedCalendarTitle && !excluded.contains(cal.calendarIdentifier)
+    }
+  }
+
   func fetchTodayEvents(now: Date = Date()) -> [CalendarEvent] {
     let start = TaskMapper.startOfDay(now)
     let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86400)
@@ -302,23 +313,36 @@ final class EventKitCalendarService {
     }
   }
 
-  func syncAllExportableTasks() async {
+  func syncAllExportableTasks(runGlobalDedupe: Bool = true) async {
     guard CalendarPreferences.exportEnabled else { return }
+    guard !isExportSyncing else { return }
     if !canWriteEvents() {
       _ = await requestAccess()
     }
     guard canWriteEvents() else { return }
 
+    isExportSyncing = true
+    defer {
+      batchExportedEventIndex = nil
+      isExportSyncing = false
+    }
+
     purgeAllExportedReminders()
+    if runGlobalDedupe {
+      dedupeAllExportedEvents()
+    }
+    batchExportedEventIndex = buildExportedEventURLIndex()
 
     do {
       let tasks = try await TaskRepository.shared.fetchDatedPendingTasks()
-      for task in tasks where !task.done {
+      for (index, task) in tasks.enumerated() where !task.done {
         syncTask(task)
+        if index.isMultiple(of: 5) { await _Concurrency.Task.yield() }
       }
       let subtasks = try await SubtaskRepository.shared.fetchDatedPendingScheduleEntries()
-      for entry in subtasks where !entry.subtask.done {
+      for (index, entry) in subtasks.enumerated() where !entry.subtask.done {
         syncSubtask(entry.subtask)
+        if index.isMultiple(of: 5) { await _Concurrency.Task.yield() }
       }
     } catch { }
   }
@@ -457,10 +481,30 @@ final class EventKitCalendarService {
   }
 
   private func selectedImportCalendars() -> [EKCalendar] {
-    let withoutStacked = importableCalendars.filter { $0.title != Self.stackedCalendarTitle }
+    let excludedIds = exportCalendarIdentifiers()
+    let withoutStacked = importableCalendars.filter { cal in
+      if cal.title == Self.stackedCalendarTitle { return false }
+      if excludedIds.contains(cal.calendarIdentifier) { return false }
+      return true
+    }
     let selected = CalendarPreferences.selectedCalendarIDs
     if selected.isEmpty { return withoutStacked }
     return withoutStacked.filter { selected.contains($0.calendarIdentifier) }
+  }
+
+  /// IDs de calendários usados só para exportar — nunca importar de volta.
+  private func exportCalendarIdentifiers() -> Set<String> {
+    var ids = Set<String>()
+    if let savedId = UserDefaults.standard.string(forKey: Self.exportCalendarIdKey) {
+      ids.insert(savedId)
+    }
+    if let export = resolveExportCalendar() {
+      ids.insert(export.calendarIdentifier)
+    }
+    for cal in store.calendars(for: .event) where cal.title == Self.stackedCalendarTitle {
+      ids.insert(cal.calendarIdentifier)
+    }
+    return ids
   }
 
   /// Calendário "Stacked" ou fallback para o calendário padrão do sistema (simulador).
@@ -569,12 +613,120 @@ final class EventKitCalendarService {
   }
 
   private func isStackedExportedEvent(_ event: EKEvent) -> Bool {
+    if exportCalendarIdentifiers().contains(event.calendar.calendarIdentifier) { return true }
     if event.calendar.title == Self.stackedCalendarTitle { return true }
     if let url = event.url?.absoluteString {
       if url.hasPrefix(Self.stackedTaskURLPrefix) { return true }
       if url.hasPrefix(Self.stackedSubtaskURLPrefix) { return true }
     }
     return false
+  }
+
+  /// Remove cópias globais de eventos exportados (mesmo `stacked://` URL).
+  private func dedupeAllExportedEvents() {
+    guard let exportCalendar = resolveExportCalendar() else { return }
+    let byURL = buildExportedEventURLIndex()
+
+    let preferredId = exportCalendar.calendarIdentifier
+    var didChange = false
+    for group in byURL.values where group.count > 1 {
+      let canonical = group.first(where: { $0.calendar.calendarIdentifier == preferredId }) ?? group[0]
+      for duplicate in group where duplicate.eventIdentifier != canonical.eventIdentifier {
+        try? store.remove(duplicate, span: .thisEvent, commit: false)
+        didChange = true
+      }
+    }
+    if didChange { try? store.commit() }
+    dedupeLegacyExportedEvents(in: exportCalendar)
+  }
+
+  private func buildExportedEventURLIndex() -> [String: [EKEvent]] {
+    let cal = Calendar.current
+    let start = cal.date(byAdding: .year, value: -2, to: Date()) ?? Date()
+    let end = cal.date(byAdding: .year, value: 2, to: Date()) ?? Date()
+    let predicate = store.predicateForEvents(withStart: start, end: end, calendars: store.calendars(for: .event))
+    var byURL: [String: [EKEvent]] = [:]
+    for event in store.events(matching: predicate) {
+      guard let url = event.url?.absoluteString,
+            url.hasPrefix(Self.stackedTaskURLPrefix) || url.hasPrefix(Self.stackedSubtaskURLPrefix) else { continue }
+      byURL[url, default: []].append(event)
+    }
+    return byURL
+  }
+
+  /// Eventos antigos exportados sem `stacked://` URL (antes do mapa ou após troca de bundle).
+  private func dedupeLegacyExportedEvents(in exportCalendar: EKCalendar) {
+    let cal = Calendar.current
+    let start = cal.date(byAdding: .year, value: -2, to: Date()) ?? Date()
+    let end = cal.date(byAdding: .year, value: 2, to: Date()) ?? Date()
+    let predicate = store.predicateForEvents(withStart: start, end: end, calendars: [exportCalendar])
+    var bySlot: [String: [EKEvent]] = [:]
+    for event in store.events(matching: predicate) {
+      let title = event.title?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+      let minute = Int(event.startDate.timeIntervalSince1970 / 60)
+      let key = "\(title)|\(minute)"
+      bySlot[key, default: []].append(event)
+    }
+
+    var didChange = false
+    for group in bySlot.values where group.count > 1 {
+      let canonical = group.first(where: { $0.url != nil }) ?? group[0]
+      for duplicate in group where duplicate.eventIdentifier != canonical.eventIdentifier {
+        try? store.remove(duplicate, span: .thisEvent, commit: false)
+        didChange = true
+      }
+    }
+    if didChange { try? store.commit() }
+  }
+
+  private func stackedItemURL(prefix: String, itemId: String) -> String {
+    prefix + itemId
+  }
+
+  /// Localiza eventos exportados pelo deep link `stacked://…` (sobrevive a troca de bundle / mapa perdido).
+  private func findExportedEvents(itemId: String, urlPrefix: String) -> [EKEvent] {
+    let targetURL = stackedItemURL(prefix: urlPrefix, itemId: itemId)
+    if let batchExportedEventIndex, let cached = batchExportedEventIndex[targetURL] {
+      return cached
+    }
+    let cal = Calendar.current
+    let start = cal.date(byAdding: .year, value: -2, to: Date()) ?? Date()
+    let end = cal.date(byAdding: .year, value: 2, to: Date()) ?? Date()
+    let predicate = store.predicateForEvents(withStart: start, end: end, calendars: store.calendars(for: .event))
+    return store.events(matching: predicate).filter { $0.url?.absoluteString == targetURL }
+  }
+
+  /// Mantém um evento canônico e remove cópias órfãs (ex.: após mudar bundle identifier).
+  private func reconcileDuplicateExports(
+    itemId: String,
+    urlPrefix: String,
+    preferredCalendar: EKCalendar
+  ) -> EKEvent? {
+    let matches = findExportedEvents(itemId: itemId, urlPrefix: urlPrefix)
+    guard !matches.isEmpty else { return nil }
+
+    let preferredId = preferredCalendar.calendarIdentifier
+    let canonical = matches.first(where: { $0.calendar.calendarIdentifier == preferredId })
+      ?? matches.first!
+
+    for duplicate in matches where duplicate.eventIdentifier != canonical.eventIdentifier {
+      try? store.remove(duplicate, span: .thisEvent, commit: false)
+    }
+    try? store.commit()
+    return canonical
+  }
+
+  private func findLegacyExportedEvent(title: String, start: Date, calendar: EKCalendar) -> EKEvent? {
+    let cal = Calendar.current
+    let dayStart = TaskMapper.startOfDay(start)
+    let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart.addingTimeInterval(86400)
+    let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    let predicate = store.predicateForEvents(withStart: dayStart, end: dayEnd, calendars: [calendar])
+    return store.events(matching: predicate).first { event in
+      let eventTitle = event.title?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+      guard eventTitle == normalized else { return false }
+      return abs(event.startDate.timeIntervalSince(start)) < 120
+    }
   }
 
   private func saveExportedEvent(
@@ -592,6 +744,18 @@ final class EventKitCalendarService {
     let event: EKEvent
     if let existingId = map[itemId], let existing = store.event(withIdentifier: existingId) {
       event = existing
+    } else if let reconciled = reconcileDuplicateExports(
+      itemId: itemId,
+      urlPrefix: urlPrefix,
+      preferredCalendar: calendar
+    ) {
+      event = reconciled
+    } else if let legacy = findLegacyExportedEvent(
+      title: title,
+      start: start,
+      calendar: calendar
+    ) {
+      event = legacy
     } else {
       event = EKEvent(eventStore: store)
     }
@@ -601,11 +765,17 @@ final class EventKitCalendarService {
     event.endDate = end
     event.isAllDay = isAllDay
     event.calendar = calendar
-    event.url = URL(string: urlPrefix + itemId)
+    event.url = URL(string: stackedItemURL(prefix: urlPrefix, itemId: itemId))
 
     do {
       try store.save(event, span: .thisEvent, commit: true)
       guard let eventId = event.eventIdentifier else { return }
+      if batchExportedEventIndex != nil {
+        let url = stackedItemURL(prefix: urlPrefix, itemId: itemId)
+        batchExportedEventIndex?[url] = [event]
+      } else {
+        _ = reconcileDuplicateExports(itemId: itemId, urlPrefix: urlPrefix, preferredCalendar: calendar)
+      }
       var updated = map
       updated[itemId] = eventId
       persistMap(updated)

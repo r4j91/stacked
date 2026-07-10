@@ -62,8 +62,12 @@ struct CalendarSettingsView: View {
                     isOn: $exportEnabled,
                     icon: "square.and.arrow.up",
                     title: "Exportar tarefas",
-                    subtitle: "Envia tarefas e subtarefas com data para o calendário \"Stacked\""
+                    subtitle: calendarService.isExportSyncing
+                      ? "Atualizando eventos no Calendário…"
+                      : "Envia tarefas e subtarefas com data para o calendário \"Stacked\""
                   )
+                  .disabled(calendarService.isExportSyncing)
+                  .opacity(calendarService.isExportSyncing ? 0.6 : 1)
 
                   if exportEnabled {
                     SettingsCardDivider(leadingPadding: 14)
@@ -71,8 +75,10 @@ struct CalendarSettingsView: View {
                       isOn: $exportAsAllDay,
                       icon: "text.alignleft",
                       title: "Só título (sem horário)",
-                      subtitle: "Bloco de 30 min no Calendário — título legível, sem faixa de 1 hora"
+                      subtitle: exportSyncSubtitle
                     )
+                    .disabled(calendarService.isExportSyncing)
+                    .opacity(calendarService.isExportSyncing ? 0.6 : 1)
                   }
                 } else if importEnabled {
                   SettingsCardDivider(leadingPadding: 14)
@@ -151,8 +157,15 @@ struct CalendarSettingsView: View {
     }
   }
 
+  private var exportSyncSubtitle: String {
+    if calendarService.isExportSyncing {
+      return "Atualizando eventos no Calendário…"
+    }
+    return "Bloco de 30 min no Calendário — título legível, sem faixa de 1 hora"
+  }
+
   private var importableCalendarsForUI: [EKCalendar] {
-    calendarService.importableCalendars.filter { $0.title != EventKitCalendarService.stackedCalendarTitle }
+    calendarService.calendarsAvailableForImport
   }
 
   private func calendarToggle(
@@ -276,7 +289,7 @@ struct CalendarSettingsView: View {
         needsPermissionHint = !granted
       }
       if calendarService.authorizationGranted {
-        await calendarService.syncAllExportableTasks()
+        await calendarService.syncAllExportableTasks(runGlobalDedupe: false)
       }
       HapticService.success()
     } else {
@@ -290,7 +303,7 @@ struct CalendarSettingsView: View {
       HapticService.selection()
       return
     }
-    await calendarService.syncAllExportableTasks()
+    await calendarService.syncAllExportableTasks(runGlobalDedupe: false)
     HapticService.success()
   }
 

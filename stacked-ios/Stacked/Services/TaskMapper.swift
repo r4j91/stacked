@@ -272,7 +272,11 @@ enum TaskMapper {
       let day = startOfDay(due)
       grouped[day, default: []].append(.subtask(entry))
     }
-    for event in events {
+    for event in calendarEventsExcludingStackedDuplicates(
+      events: events,
+      tasks: tasks,
+      subtasks: subtasks
+    ) {
       grouped[event.day, default: []].append(.calendarEvent(event))
     }
     return grouped.keys.sorted().map { day in
@@ -301,8 +305,48 @@ enum TaskMapper {
         return startOfDay(due) == todayStart
       }
       .map { .subtask($0) }
-    items += events.map { .calendarEvent($0) }
+    items += calendarEventsExcludingStackedDuplicates(
+      events: events,
+      tasks: tasks,
+      subtasks: subtasks
+    ).map { .calendarEvent($0) }
     return items.sorted { $0.sortDate < $1.sortDate }
+  }
+
+  /// Evita mostrar compromisso importado que já existe como tarefa/subtarefa no mesmo horário.
+  static func calendarEventsExcludingStackedDuplicates(
+    events: [CalendarEvent],
+    tasks: [Task],
+    subtasks: [SubtaskScheduleEntry]
+  ) -> [CalendarEvent] {
+    events.filter { event in
+      !tasks.contains { calendarEvent($0, duplicates: event) }
+        && !subtasks.contains { calendarEvent($0.subtask, duplicates: event) }
+    }
+  }
+
+  private static func calendarEvent(_ task: Task, duplicates event: CalendarEvent) -> Bool {
+    guard let due = task.dueDate, isSameDay(due, event.startDate) else { return false }
+    guard normalizedTitle(task.title) == normalizedTitle(event.title) else { return false }
+    if let time = task.time, !time.isEmpty,
+       let combined = combinedDateTime(dueDate: due, time: time) {
+      return abs(combined.timeIntervalSince(event.startDate)) < 120
+    }
+    return event.isAllDay
+  }
+
+  private static func calendarEvent(_ subtask: Subtask, duplicates event: CalendarEvent) -> Bool {
+    guard let due = subtask.dueDate, isSameDay(due, event.startDate) else { return false }
+    guard normalizedTitle(subtask.title) == normalizedTitle(event.title) else { return false }
+    if let time = subtask.time, !time.isEmpty,
+       let combined = combinedDateTime(dueDate: due, time: time) {
+      return abs(combined.timeIntervalSince(event.startDate)) < 120
+    }
+    return event.isAllDay
+  }
+
+  private static func normalizedTitle(_ title: String) -> String {
+    title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
   }
 
   static func overdueScheduleItems(
