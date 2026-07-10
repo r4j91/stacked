@@ -4,11 +4,13 @@ import SwiftUI
 struct RootView: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.scenePhase) private var scenePhase
   @State private var showSearch = false
   @State private var showQuickAdd = false
   @State private var showNewProject = false
   @State private var router = AppNavigationRouter.shared
   @State private var visitedTabs: Set<NavTab> = [.home] // AJUSTADO_VISITED_TABS
+  @State private var didBootstrap = false
 
   var body: some View {
     @Bindable var chrome = chrome
@@ -33,6 +35,13 @@ struct RootView: View {
     }
     .task {
       await bootstrap(tab: currentTab)
+      didBootstrap = true
+    }
+    .onChange(of: scenePhase) { _, phase in
+      guard didBootstrap, phase == .active else { return }
+      _Concurrency.Task {
+        await NotificationService.shared.rescheduleAllPending()
+      }
     }
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
