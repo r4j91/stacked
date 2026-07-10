@@ -8,6 +8,8 @@ import { InlineSubtasks } from "@/components/tasks/task-list";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ArrowDown01Icon } from "@/lib/icons/nav-icons";
+import { WhatsAppTaskCopyButton } from "@/components/tasks/whatsapp-task-copy-button";
+import { taskShowsWhatsAppCopy } from "@/lib/utils/whatsapp-routine-message";
 
 type ScheduleTaskRowProps = {
   task: Task;
@@ -25,6 +27,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
   const { expandedSubtasks, toggleSubtaskExpand } = useWorkbench();
   const subs = task.subtasks ?? [];
   const isExpanded = expandedSubtasks.has(task.id);
+  const showsWhatsApp = taskShowsWhatsAppCopy(task);
 
   return (
     <>
@@ -40,7 +43,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
           }
         }}
         className={`schedule-row scroll-list-item mb-0.5 flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border py-2 pl-1 ${
-          subs.length > 0 ? "pr-0.5" : "pr-3"
+          subs.length > 0 || showsWhatsApp ? "pr-0.5" : "pr-3"
         } ${
           selected
             ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
@@ -76,24 +79,27 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
           )}
           <TaskMetaLine task={task} hideDate />
         </div>
-        {subs.length > 0 ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSubtaskExpand(task.id);
-            }}
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
-          >
-            <AppIcon
-              icon={ArrowDown01Icon}
-              size={18}
-              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-            />
-          </button>
-        ) : null}
+        <div className="mt-0.5 flex shrink-0 items-start">
+          <WhatsAppTaskCopyButton task={task} />
+          {subs.length > 0 ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSubtaskExpand(task.id);
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
+            >
+              <AppIcon
+                icon={ArrowDown01Icon}
+                size={18}
+                className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          ) : null}
+        </div>
       </div>
       {subs.length > 0 && (
         <div className="expand-panel scroll-list-item" data-open={isExpanded ? "true" : "false"}>

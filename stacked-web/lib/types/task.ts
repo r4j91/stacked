@@ -34,6 +34,7 @@ export type Task = {
   labels?: { id: string; name: string; color: string }[];
   recurrence?: string;
   order?: number;
+  whatsappRoutine?: boolean;
 };
 
 export type ViewMode = "today" | "inbox" | "upcoming" | "done" | "project" | "filters";

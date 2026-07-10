@@ -89,6 +89,7 @@ export function mapTaskRow(row: DbRow): Task {
         ? String(row.recorrencia)
         : undefined,
     order: row.ordem != null ? Number(row.ordem) : undefined,
+    whatsappRoutine: Boolean(row.whatsapp_rotina),
   };
 }
 

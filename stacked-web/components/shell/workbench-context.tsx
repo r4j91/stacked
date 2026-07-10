@@ -214,6 +214,7 @@ type WorkbenchContextValue = {
   getProjectSections: (projectId: string) => Promise<Section[]>;
   updateTaskLabels: (id: string, labelIds: string[]) => Promise<void>;
   updateTaskRecurrence: (id: string, recurrence: string | null) => Promise<void>;
+  updateTaskWhatsappRoutine: (id: string, enabled: boolean) => Promise<void>;
   createSubtask: (taskId: string, title: string) => Promise<void>;
   deleteSubtask: (key: SubtaskKey) => Promise<void>;
   addComment: (taskId: string, text: string) => Promise<void>;
@@ -1708,6 +1709,21 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [patchTaskInView, refreshTasks, showToast, usingMock],
   );
 
+  const updateTaskWhatsappRoutine = useCallback(
+    async (id: string, enabled: boolean) => {
+      patchTaskInView(id, { whatsappRoutine: enabled });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new TaskPersistence(createClient()).updateTaskWhatsappRoutine(id, enabled);
+        } catch {
+          await refreshTasks();
+          showToast("Erro ao atualizar rotina WhatsApp");
+        }
+      }
+    },
+    [patchTaskInView, refreshTasks, showToast, usingMock],
+  );
+
   const openProjectCreate = useCallback(() => {
     setProjectSheetMode("create");
     setProjectSheetProject(null);
@@ -2054,6 +2070,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     getProjectSections,
     updateTaskLabels,
     updateTaskRecurrence,
+    updateTaskWhatsappRoutine,
     createSubtask,
     deleteSubtask,
     addComment,

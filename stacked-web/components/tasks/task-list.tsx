@@ -14,6 +14,8 @@ import { AppIcon } from "@/components/ui/app-icon";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
+import { WhatsAppTaskCopyButton } from "@/components/tasks/whatsapp-task-copy-button";
+import { taskShowsWhatsAppCopy } from "@/lib/utils/whatsapp-routine-message";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
@@ -127,6 +129,8 @@ export function TaskRow({
   const isExpanded = expandedSubtasks.has(task.id);
   const isSelected = !embedded && selectedTaskId === task.id;
   const isKeyboardFocused = !embedded && keyboardFocused;
+  const showsWhatsApp = taskShowsWhatsAppCopy(task);
+  const reserveRight = (subs.length > 0 ? 40 : 0) + (showsWhatsApp ? 40 : 0);
 
   return (
     <>
@@ -136,7 +140,7 @@ export function TaskRow({
         onDelete={() => void deleteTask(task.id)}
         allowOverflow={false}
         dragGhost={Boolean(reorderDragging)}
-        reserveRight={subs.length > 0 ? 40 : 0}
+        reserveRight={reserveRight}
       >
         <div
           role="button"
@@ -207,24 +211,27 @@ export function TaskRow({
             )}
             <TaskMetaLine task={task} />
           </div>
-          {subs.length > 0 ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSubtaskExpand(task.id);
-              }}
-              className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
-            >
-              <AppIcon
-                icon={ArrowDown01Icon}
-                size={18}
-                className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-              />
-            </button>
-          ) : null}
+          <div className="mt-0.5 flex shrink-0 items-start">
+            <WhatsAppTaskCopyButton task={task} />
+            {subs.length > 0 ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSubtaskExpand(task.id);
+                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
+              >
+                <AppIcon
+                  icon={ArrowDown01Icon}
+                  size={18}
+                  className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+            ) : null}
+          </div>
         </div>
       </SwipeableTaskRow>
       {subs.length > 0 && (

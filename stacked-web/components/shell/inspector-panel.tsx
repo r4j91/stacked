@@ -17,6 +17,7 @@ import {
   Delete01Icon,
   RepeatIcon,
   ArrowUp01Icon,
+  Copy01Icon,
 } from "@/lib/icons/nav-icons";
 import {
   DatePicker,
@@ -34,6 +35,10 @@ import { parseRecurrence, recurrenceLabel } from "@/lib/utils/recurrence";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CommentRepository, type Comment } from "@/lib/repositories/comment-repository";
+import { WhatsAppCopyPreviewSheet } from "@/components/tasks/whatsapp-copy-preview-sheet";
+import {
+  composeWhatsAppRoutineMessage,
+} from "@/lib/utils/whatsapp-routine-message";
 
 function MetaCard({
   item,
@@ -51,6 +56,7 @@ function MetaCard({
     updateTaskProject,
     updateTaskLabels,
     updateTaskRecurrence,
+    updateTaskWhatsappRoutine,
   } = useWorkbench();
 
   const [dateOpen, setDateOpen] = useState(false);
@@ -125,6 +131,10 @@ function MetaCard({
           label="Repetir"
           value={recurrence ? recurrenceLabel(recurrence) : "Sem repetição"}
           onClick={(e) => openPicker(e, () => setRecurrenceOpen(true))}
+        />
+        <WhatsAppRoutineRow
+          enabled={Boolean(item.whatsappRoutine)}
+          onChange={(enabled) => void updateTaskWhatsappRoutine(taskId, enabled)}
         />
       </div>
       <DatePicker
@@ -254,6 +264,33 @@ function SubtaskMetaCard({
         anchorRect={pickerAnchor}
       />
     </>
+  );
+}
+
+function WhatsAppRoutineRow({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+}) {
+  return (
+    <label className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 hover:bg-[var(--color-hover-overlay)]">
+      <AppIcon icon={Copy01Icon} size={16} className="shrink-0 text-[var(--color-text-secondary)]" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-[var(--color-text)]">Rotina WhatsApp</p>
+        <p className="text-xs text-[var(--color-text-tertiary)]">
+          Copiar descrição formatada para WhatsApp
+        </p>
+      </div>
+      <input
+        type="checkbox"
+        checked={enabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+        aria-label="Rotina WhatsApp"
+      />
+    </label>
   );
 }
 
@@ -565,6 +602,7 @@ export function InspectorPanel() {
 
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [whatsAppPreviewOpen, setWhatsAppPreviewOpen] = useState(false);
 
   useEffect(() => {
     // Só reseta campos ao trocar seleção — não quando autosave atualiza sub.name/notes
@@ -587,6 +625,9 @@ export function InspectorPanel() {
   if (!inspectorOpen || !selectedTask) return null;
 
   const task = selectedTask;
+  const showsWhatsAppAction =
+    !isSub &&
+    Boolean(selectedTask.whatsappRoutine && notes.trim());
 
   function handleClose() {
     if (isSub && subCtx && selectedSubtaskKey) {
@@ -637,6 +678,16 @@ export function InspectorPanel() {
               selectedTask.title
             )}
           </div>
+          {showsWhatsAppAction ? (
+            <button
+              type="button"
+              onClick={() => setWhatsAppPreviewOpen(true)}
+              className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--color-accent)]/35 bg-[var(--color-accent)]/14 px-2 py-1 text-[11px] font-bold text-[var(--color-accent)]"
+              aria-label="Copiar mensagem para WhatsApp"
+            >
+              WhatsApp
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleClose}
@@ -711,6 +762,18 @@ export function InspectorPanel() {
           )}
         </div>
       </aside>
+      {!isSub && selectedTask ? (
+        <WhatsAppCopyPreviewSheet
+          open={whatsAppPreviewOpen}
+          onClose={() => setWhatsAppPreviewOpen(false)}
+          taskTitle={title || selectedTask.title}
+          message={composeWhatsAppRoutineMessage({
+            taskTitle: title || selectedTask.title,
+            dueDate: parseDueDate(selectedTask.dueDate),
+            description: notes,
+          })}
+        />
+      ) : null}
     </>
   );
 }

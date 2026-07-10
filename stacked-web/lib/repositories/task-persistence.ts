@@ -80,6 +80,14 @@ export class TaskPersistence {
     if (error) throw error;
   }
 
+  async updateTaskWhatsappRoutine(taskId: string, enabled: boolean): Promise<void> {
+    const { error } = await this.client
+      .from("tasks")
+      .update({ whatsapp_rotina: enabled })
+      .eq("id", taskId);
+    if (error) throw error;
+  }
+
   async updateSubtaskPriority(subtaskId: string, priority: Priority | null): Promise<void> {
     const { error } = await this.client
       .from("subtasks")

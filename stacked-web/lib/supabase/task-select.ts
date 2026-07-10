@@ -9,6 +9,7 @@ export const TASK_SELECT = `
   concluida,
   data_vencimento,
   recorrencia,
+  whatsapp_rotina,
   project_id,
   section_id,
   projects ( nome ),
