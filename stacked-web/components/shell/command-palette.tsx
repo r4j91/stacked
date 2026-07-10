@@ -72,6 +72,7 @@ export function CommandPalette() {
     projects,
     openTaskInspector,
     openQuickAdd,
+    prefetchProject,
   } = useWorkbench();
 
   const [query, setQuery] = useState("");
@@ -126,7 +127,10 @@ export function CommandPalette() {
           group: "Ir para",
           label,
           icon: Folder01Icon,
-          action: () => go(`/projects/${p.id}`),
+          action: () => {
+            prefetchProject(p.id);
+            go(`/projects/${p.id}`);
+          },
         });
       }
     }
@@ -166,7 +170,7 @@ export function CommandPalette() {
     }
 
     return list.slice(0, 16);
-  }, [query, projects, filterCounts, searchTasks, go, openTaskInspector, closePalette, openQuickAdd]);
+  }, [query, projects, filterCounts, searchTasks, go, openTaskInspector, closePalette, openQuickAdd, prefetchProject]);
 
   useEffect(() => {
     if (paletteOpen) {
@@ -248,7 +252,12 @@ export function CommandPalette() {
                 key={item.id}
                 type="button"
                 onClick={() => item.action()}
-                onMouseEnter={() => setFocusIndex(idx)}
+                onMouseEnter={() => {
+                  setFocusIndex(idx);
+                  if (item.id.startsWith("proj-")) {
+                    prefetchProject(item.id.slice("proj-".length));
+                  }
+                }}
                 className={`flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2.5 text-left transition-colors ${
                   idx === focusIndex ? "bg-[var(--color-surface-variant)]" : "hover:bg-[var(--color-surface-variant)]/60"
                 }`}

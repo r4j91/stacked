@@ -80,6 +80,12 @@ class ProjectDetailCache {
   ): void {
     this.cache.set(projectId, { ...snapshot, fetchedAt: Date.now() });
   }
+
+  patchViewTasks(projectId: string, viewTasks: ViewTasks): void {
+    const hit = this.cache.get(projectId);
+    if (!hit) return;
+    this.cache.set(projectId, { ...hit, viewTasks, fetchedAt: Date.now() });
+  }
 }
 
 export const projectDetailCache = new ProjectDetailCache();

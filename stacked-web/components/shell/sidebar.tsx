@@ -187,6 +187,8 @@ export function Sidebar() {
               href={href}
               onMouseEnter={() => prefetchProject(p.id)}
               onFocus={() => prefetchProject(p.id)}
+              onPointerEnter={() => prefetchProject(p.id)}
+              onTouchStart={() => prefetchProject(p.id)}
               className={`mb-0.5 flex min-h-10 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-[13px] transition-colors hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)] ${
                 sidebarCollapsed ? "justify-center px-0" : ""
               } ${

@@ -99,6 +99,8 @@ export function HomeCanvas() {
                     href={`/projects/${p.id}`}
                     onMouseEnter={() => prefetchProject(p.id)}
                     onFocus={() => prefetchProject(p.id)}
+                    onPointerEnter={() => prefetchProject(p.id)}
+                    onTouchStart={() => prefetchProject(p.id)}
                     className="flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
                   >
                     <ProjectIcon iconKey={p.icon} color={p.color} size={20} />

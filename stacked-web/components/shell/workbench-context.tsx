@@ -48,6 +48,7 @@ import { SectionRepository } from "@/lib/repositories/section-repository";
 import { TaskRepository } from "@/lib/repositories/task-repository";
 import { TaskPersistence } from "@/lib/repositories/task-persistence";
 import { splitTodayPending } from "@/lib/supabase/map-task";
+import { reclassifyTaskDoneInView } from "@/lib/utils/view-tasks";
 
 export type NavCounts = { inbox: number; today: number };
 export type SubtaskKey = `${string}:${number}`;
@@ -408,8 +409,9 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
   const prefetchProject = useCallback((id: string) => {
     if (usingMock || !isSupabaseConfigured()) return;
+    router.prefetch(`/projects/${id}`);
     projectDetailCache.prefetch(id);
-  }, [usingMock]);
+  }, [usingMock, router]);
 
   const refreshTasks = useCallback(
     async (options?: { showLoading?: boolean; refreshGlobal?: boolean }) => {
@@ -785,6 +787,19 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const applyViewTasksUpdate = useCallback(
+    (updater: (prev: ViewTasks) => ViewTasks, cacheProjectId?: string | null) => {
+      setViewTasks((prev) => {
+        const next = updater(prev);
+        viewCacheRef.current.set(viewCacheKey(), next);
+        const pid = cacheProjectId ?? projectId;
+        if (pid) projectDetailCache.patchViewTasks(pid, next);
+        return next;
+      });
+    },
+    [projectId, viewCacheKey],
+  );
+
   const removeTaskFromView = useCallback((id: string) => {
     const filter = (list: Task[]) => list.filter((t) => t.id !== id);
     setViewTasks((prev) => ({
@@ -1085,7 +1100,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const task = allTasks.find((t) => t.id === id);
       if (!task) return;
       const newDone = !task.done;
-      patchTaskInView(id, { done: newDone });
+      applyViewTasksUpdate(
+        (prev) => reclassifyTaskDoneInView(prev, task, newDone, view),
+        task.projectId,
+      );
       setSelectedSubtaskKey(null);
 
       if (!usingMock && isSupabaseConfigured()) {
@@ -1093,25 +1111,26 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           const repo = new TaskRepository(createClient());
           if (newDone) {
             const newId = await repo.completeTask(task);
-            if (task.projectId) projectDetailCache.invalidate(task.projectId);
             if (newId) {
               await refreshTasks({ refreshGlobal: false });
             }
           } else {
             await repo.toggleTaskDone(id, false);
-            if (task.projectId) projectDetailCache.invalidate(task.projectId);
           }
           await refreshGlobalCounts();
           showToast(newDone ? "Tarefa concluída" : "Tarefa reaberta");
         } catch {
-          patchTaskInView(id, { done: task.done });
+          applyViewTasksUpdate(
+            (prev) => reclassifyTaskDoneInView(prev, task, task.done, view),
+            task.projectId,
+          );
           showToast("Erro ao atualizar tarefa");
         }
       } else {
         if (newDone) showToast("Tarefa concluída");
       }
     },
-    [allTasks, patchTaskInView, refreshGlobalCounts, refreshTasks, usingMock, showToast],
+    [allTasks, applyViewTasksUpdate, refreshGlobalCounts, refreshTasks, usingMock, showToast, view],
   );
 
   const toggleSubtaskDone = useCallback(
