@@ -535,11 +535,7 @@ struct TaskDetailView: View {
 
         Spacer(minLength: 0)
 
-        StackedIcons.image(.chevronRight)
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(c.textTertiary)
-          .rotationEffect(.degrees(expanded ? 90 : 0))
-          .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
+        SubtaskExpandChevron(expanded: expanded, size: 14)
       }
       .padding(.horizontal, 4)
       .contentShape(Rectangle())

@@ -84,6 +84,11 @@ enum AppMotion {
   /// Atraso da coreografia ícone após o blob (ms).
   static let navIconFollowDelay: Duration = .milliseconds(35)
 
+  /// Rotação do chevron de subtarefas — paridade web `duration-200 ease-in-out`.
+  static var subtaskChevronTurnSpring: Animation {
+    .easeInOut(duration: 0.2)
+  }
+
   /// Subtarefas inline — expand easeOutCubic (task_tile.dart ~220ms).
   static var subtaskExpandSpring: Animation {
     .timingCurve(0.215, 0.61, 0.355, 1.0, duration: 0.22)
@@ -144,6 +149,10 @@ enum AppMotion {
 
   static func iconBounce(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : iconBounceSpring
+  }
+
+  static func subtaskChevronTurn(reduceMotion: Bool) -> Animation? {
+    reduceMotion ? nil : subtaskChevronTurnSpring
   }
 
   static func subtaskExpand(reduceMotion: Bool) -> Animation? {

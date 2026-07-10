@@ -4,7 +4,6 @@ import Hugeicons
 /// Header colapsável para seções de projeto — chevron e hit target iguais ao expand de subtarefas.
 struct CollapsibleSectionHeader: View {
   @Environment(ThemeManager.self) private var theme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let title: String
   let count: Int
@@ -24,11 +23,7 @@ struct CollapsibleSectionHeader: View {
         onToggle()
       } label: {
         HStack(spacing: 0) {
-          StackedIcons.image(.chevronDown)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(c.textTertiary)
-            .rotationEffect(.degrees(expanded ? 180 : 0))
-            .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
+          SubtaskExpandChevron(expanded: expanded)
             .frame(width: 44, height: 44)
 
           Text(title)

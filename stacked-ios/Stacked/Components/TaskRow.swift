@@ -273,16 +273,11 @@ struct TaskRow: View {
   }
 
   private var expandButton: some View {
-    let c = theme.colors
-    return Button {
+    Button {
       HapticService.selection()
       toggleSubtaskExpansion()
     } label: {
-      StackedIcons.image(.chevronDown)
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(c.textTertiary)
-        .rotationEffect(.degrees(expanded ? 180 : 0))
-        .animation(AppMotion.subtaskExpand(reduceMotion: reduceMotion), value: expanded)
+      SubtaskExpandChevron(expanded: expanded)
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }
@@ -413,12 +408,16 @@ struct TaskRow: View {
       _Concurrency.Task { @MainActor in
         await _Concurrency.Task.yield()
         guard subtaskRevealActive else { return }
-        expanded = true
+        AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+          expanded = true
+        }
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
       }
       return
     }
-    expanded.toggle()
+    AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+      expanded.toggle()
+    }
     ProjectDetailPreferences.setSubtaskListExpanded(expanded, taskId: task.id)
   }
 
@@ -552,6 +551,23 @@ struct TaskRow: View {
 enum TaskRowStyle {
   case card
   case list
+}
+
+/// Chevron de expandir subtarefas — paridade web (`rotate-90`: → fechado, ↓ aberto).
+struct SubtaskExpandChevron: View {
+  @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  let expanded: Bool
+  var size: CGFloat = 12
+
+  var body: some View {
+    StackedIcons.image(.chevronDown)
+      .font(.system(size: size, weight: .semibold))
+      .foregroundStyle(theme.colors.textTertiary)
+      .rotationEffect(.degrees(expanded ? 0 : -90))
+      .animation(AppMotion.subtaskChevronTurn(reduceMotion: reduceMotion), value: expanded)
+  }
 }
 
 struct PriorityDot: View {
