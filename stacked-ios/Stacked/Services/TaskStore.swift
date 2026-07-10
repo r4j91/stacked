@@ -127,8 +127,7 @@ final class TaskStore {
         time: entry.subtask.time,
         labelIds: entry.subtask.labelIds
       ))
-      TabRefreshPolicy.invalidate(.home)
-      TabRefreshPolicy.invalidate(.filters)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
     }
   }
 
@@ -157,8 +156,10 @@ final class TaskStore {
       persist: {
         if let newId = try await self.repo.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
+          await TabDataLoader.load(.today)
         }
         TaskCalendarSync.remove(taskId: taskId)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
       },
       rollback: { [self] in
         todayCompleted.removeAll { $0.id == taskId }
@@ -194,8 +195,10 @@ final class TaskStore {
       persist: {
         if let newId = try await self.repo.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
+          await TabDataLoader.load(.inbox)
         }
         TaskCalendarSync.remove(taskId: taskId)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
       },
       rollback: { [self] in
         inboxCompleted.removeAll { $0.id == taskId }
@@ -215,6 +218,7 @@ final class TaskStore {
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
       TaskCalendarSync.remove(taskId: task.id)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
     }
     _ = wasPending
   }
@@ -225,6 +229,7 @@ final class TaskStore {
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
       TaskCalendarSync.remove(taskId: task.id)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
     }
   }
 

@@ -154,8 +154,7 @@ final class UpcomingStore {
         time: entry.subtask.time,
         labelIds: entry.subtask.labelIds
       ))
-      TabRefreshPolicy.invalidate(.home)
-      TabRefreshPolicy.invalidate(.filters)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
     }
   }
 
@@ -177,8 +176,10 @@ final class UpcomingStore {
       persist: {
         if let newId = try await self.repo.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
+          await TabDataLoader.load(.upcoming)
         }
         TaskCalendarSync.remove(taskId: taskId)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
       },
       rollback: { [self] in
         var restored = snapshot
@@ -193,6 +194,7 @@ final class UpcomingStore {
     TaskCalendarSync.remove(taskId: task.id)
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
     }
   }
 

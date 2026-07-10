@@ -118,6 +118,27 @@ final class HomeStore {
     }
     isLoading = false
   }
+
+  /// Atualiza badges da Home sem spinner — usado após mutações em outras abas.
+  func refreshCounts() async {
+    guard let userId = SupabaseService.client.auth.currentUser?.id else { return }
+    let today = TaskMapper.dateString(Date())
+    do {
+      async let summaryReq = TaskRepository.shared.fetchHomeTaskSummary(userId: userId, todayStr: today)
+      async let projectsReq = ProjectRepository.shared.fetchHomeProjects()
+      async let upcomingReq = TaskRepository.shared.countUpcomingTasks(userId: userId, todayStr: today)
+      async let pendingReq = TaskRepository.shared.fetchPendingTaskProjectIds(userId: userId)
+
+      let summary = try await summaryReq
+      overdueCount = summary.overdueCount
+      todayPending = summary.todayPending
+      projects = try await projectsReq
+      upcomingCount = try await upcomingReq
+      inboxCount = try await pendingReq.filter { $0 == nil }.count
+    } catch {
+      if AsyncLoad.isCancellation(error) { return }
+    }
+  }
 }
 
 private extension String {
@@ -232,6 +253,7 @@ final class ProjectDetailStore {
           await TaskCalendarSync.syncTaskId(newId)
           await self.load()
         }
+        GlobalDataRefresh.afterTaskMutation()
       },
       rollback: { [self] in
         completed.removeAll { $0.id == taskId }
@@ -245,7 +267,10 @@ final class ProjectDetailStore {
   func delete(_ task: Task) {
     pending.removeAll { $0.id == task.id }
     completed.removeAll { $0.id == task.id }
-    _Concurrency.Task { try? await TaskRepository.shared.deleteTask(id: task.id) }
+    _Concurrency.Task {
+      try? await TaskRepository.shared.deleteTask(id: task.id)
+      GlobalDataRefresh.afterTaskMutation()
+    }
   }
 
   func postpone(_ task: Task) async {

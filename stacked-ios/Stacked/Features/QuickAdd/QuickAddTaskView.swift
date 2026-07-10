@@ -7,7 +7,7 @@ struct QuickAddTaskView: View {
 
   var initialProjectId: String?
   var initialSectionId: String?
-  var onSaved: () -> Void
+  var onSaved: (QuickAddSaveSummary) -> Void
   var onDismiss: () -> Void
 
   @FocusState private var titleFocused: Bool
@@ -39,7 +39,7 @@ struct QuickAddTaskView: View {
   init(
     initialProjectId: String? = nil,
     initialSectionId: String? = nil,
-    onSaved: @escaping () -> Void,
+    onSaved: @escaping (QuickAddSaveSummary) -> Void,
     onDismiss: @escaping () -> Void
   ) {
     self.initialProjectId = initialProjectId
@@ -71,7 +71,11 @@ struct QuickAddTaskView: View {
         dueTime = time
       }
       .installmentGeneratorSheet(route: $installmentRoute) {
-        onSaved()
+        onSaved(QuickAddSaveSummary(
+          projectId: selectedProjectId,
+          dueDateISO: currentDueDateISO(),
+          extraTabs: [.upcoming]
+        ))
         onDismiss()
       }
   }
@@ -475,12 +479,20 @@ struct QuickAddTaskView: View {
         return
       }
       HapticService.taskCreated()
-      onSaved()
+      onSaved(QuickAddSaveSummary(
+        projectId: selectedProjectId,
+        dueDateISO: currentDueDateISO()
+      ))
       onDismiss()
     } catch {
       self.error = error.localizedDescription
       saving = false
     }
+  }
+
+  private func currentDueDateISO() -> String? {
+    guard let dueDate else { return nil }
+    return TaskMapper.dateString(dueDate)
   }
 
   /// Salva tarefa sem fechar o Quick Add — usado pelo gerador de parcelas.

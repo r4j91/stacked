@@ -77,6 +77,17 @@ final class FiltersStore {
     dashboardLoading = false
   }
 
+  /// Só os cards do dashboard (Atrasadas, Hoje, etc.) — sem refetch de filtros salvos.
+  func refreshDashboardCounts() async {
+    let todayStr = TaskMapper.dateString(Date())
+    let weekStr = TaskMapper.weekString()
+    do {
+      counts = try await taskRepo.fetchFilterDashboardCounts(todayStr: todayStr, weekStr: weekStr)
+    } catch {
+      if AsyncLoad.isCancellation(error) { return }
+    }
+  }
+
   private func loadSavedFiltersPopulatingCache(
     todayStr: String,
     weekStr: String
@@ -407,7 +418,7 @@ final class FiltersStore {
         )
         filterCompletedResults.insert(.subtask(doneSub, parent: parentTask, index: subIndex), at: 0)
       }
-      await loadDashboard()
+      await GlobalDataRefresh.refreshDashboardCounts()
       TabRefreshPolicy.invalidate(.home)
     }
   }
@@ -438,7 +449,7 @@ final class FiltersStore {
           if let newId = try await self.taskRepo.completeTask(snapshot) {
             await TaskCalendarSync.syncTaskId(newId)
           }
-          await self.loadDashboard()
+          GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
         },
         rollback: { [self] in
           filterResults.insert(.task(snapshot), at: min(originalIndex, filterResults.count))
@@ -478,7 +489,7 @@ final class FiltersStore {
         if let newId = try await self.taskRepo.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
         }
-        await self.loadDashboard()
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
       },
       rollback: { [self] in
         var restored = snapshot

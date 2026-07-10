@@ -37,7 +37,7 @@ struct RootView: View {
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
     }
-    .quickAddFloating(isPresented: $showQuickAdd, onSaved: { reloadAll() })
+    .quickAddFloating(isPresented: $showQuickAdd, onSaved: { afterQuickAddSaved($0) })
     .newProjectFloating(isPresented: $showNewProject) {
       TabRefreshPolicy.invalidate()
       _Concurrency.Task {
@@ -76,6 +76,23 @@ struct RootView: View {
       // navMorphSpring (response: 0.36) — 400ms cobre a transição com folga
       try? await _Concurrency.Task.sleep(for: .milliseconds(400)) // AJUSTADO_RELOAD_DELAY
       await TabDataLoader.load(tab)
+    }
+  }
+
+  private func afterQuickAddSaved(_ summary: QuickAddSaveSummary) {
+    let today = TaskMapper.dateString(Date())
+    let tabs = summary.tabsToReload(todayStr: today)
+    GlobalDataRefresh.afterTaskMutation(invalidateTabs: tabs)
+
+    if tabs.contains(chrome.selectedTab) {
+      reloadData(for: chrome.selectedTab, force: true)
+    }
+
+    TabBootstrapCoordinator.cancelPrefetch()
+    _Concurrency.Task {
+      for tab in tabs where tab != chrome.selectedTab {
+        await TabDataLoader.load(tab)
+      }
     }
   }
 

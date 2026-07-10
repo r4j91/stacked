@@ -244,7 +244,7 @@ struct ProjectDetailView: View {
     .quickAddFloating(
       isPresented: $showQuickAdd,
       initialProjectId: store.projectId,
-      onSaved: { _Concurrency.Task { await store.load() } }
+      onSaved: { _ in _Concurrency.Task { await store.load() } }
     )
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in

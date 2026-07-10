@@ -51,3 +51,56 @@ enum TabBootstrapCoordinator {
     prefetchTask = nil
   }
 }
+
+/// Metadados da tarefa criada — define quais abas precisam recarregar.
+struct QuickAddSaveSummary: Sendable {
+  let projectId: String?
+  let dueDateISO: String?
+  var extraTabs: [NavTab] = []
+
+  var affectsInbox: Bool {
+    projectId == nil && dueDateISO == nil
+  }
+
+  func affectsToday(todayStr: String) -> Bool {
+    guard let dueDateISO else { return false }
+    return dueDateISO <= todayStr
+  }
+
+  func affectsUpcoming(todayStr: String) -> Bool {
+    guard let dueDateISO else { return false }
+    return dueDateISO > todayStr
+  }
+
+  func tabsToReload(todayStr: String) -> [NavTab] {
+    var tabs: [NavTab] = []
+    if affectsInbox { tabs.append(.inbox) }
+    if affectsToday(todayStr: todayStr) { tabs.append(.today) }
+    if affectsUpcoming(todayStr: todayStr) { tabs.append(.upcoming) }
+    for tab in extraTabs where !tabs.contains(tab) {
+      tabs.append(tab)
+    }
+    return tabs
+  }
+}
+
+/// Atualiza contagens globais (Home + Filtros) sem recarregar listas inteiras.
+@MainActor
+enum GlobalDataRefresh {
+  static func refreshDashboardCounts() async {
+    async let home: Void = HomeStore.shared.refreshCounts()
+    async let filters: Void = FiltersStore.shared.refreshDashboardCounts()
+    _ = await (home, filters)
+  }
+
+  static func afterTaskMutation(invalidateTabs tabs: [NavTab] = []) {
+    TabRefreshPolicy.invalidate(.home)
+    TabRefreshPolicy.invalidate(.filters)
+    for tab in tabs {
+      TabRefreshPolicy.invalidate(tab)
+    }
+    _Concurrency.Task {
+      await refreshDashboardCounts()
+    }
+  }
+}

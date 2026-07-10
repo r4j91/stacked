@@ -6,7 +6,7 @@ struct QuickAddFloatingPresentation: ViewModifier {
   @Binding var isPresented: Bool
   var initialProjectId: String?
   var initialSectionId: String?
-  var onSaved: () -> Void
+  var onSaved: (QuickAddSaveSummary) -> Void
 
   private let horizontalInset: CGFloat = 12
   /// Folga entre a borda inferior da cápsula e o topo do teclado.
@@ -57,7 +57,7 @@ extension View {
     isPresented: Binding<Bool>,
     initialProjectId: String? = nil,
     initialSectionId: String? = nil,
-    onSaved: @escaping () -> Void = {}
+    onSaved: @escaping (QuickAddSaveSummary) -> Void = { _ in }
   ) -> some View {
     modifier(
       QuickAddFloatingPresentation(

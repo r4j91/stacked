@@ -561,8 +561,28 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [view, projectId, pathname, loadCalendarEvents, viewCacheKey],
   );
 
+  const refreshGlobalCounts = useCallback(async () => {
+    if (!isSupabaseConfigured() || usingMock) return;
+    try {
+      const client = createClient();
+      const taskRepo = new TaskRepository(client);
+      const [counts, filterDashboard, projectList] = await Promise.all([
+        taskRepo.fetchNavCounts(),
+        taskRepo.fetchFilterDashboardCounts(),
+        new ProjectRepository(client).fetchProjects(),
+      ]);
+      setNavCounts(counts);
+      setFilterCounts(filterDashboard);
+      setProjects(projectList);
+    } catch {
+      /* mantém contagens anteriores */
+    }
+  }, [usingMock]);
+
   const refreshTasksRef = useRef(refreshTasks);
   refreshTasksRef.current = refreshTasks;
+  const refreshGlobalCountsRef = useRef(refreshGlobalCounts);
+  refreshGlobalCountsRef.current = refreshGlobalCounts;
 
   const loadSearchTasks = useCallback(async () => {
     if (searchTasksLoadedRef.current || usingMock || !isSupabaseConfigured()) return;
@@ -635,6 +655,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         if (realtimeRefreshTimerRef.current) clearTimeout(realtimeRefreshTimerRef.current);
         realtimeRefreshTimerRef.current = setTimeout(() => {
           void refreshTasksRef.current({ refreshGlobal: false });
+          void refreshGlobalCountsRef.current();
         }, 400);
       })
       .subscribe();
@@ -1070,12 +1091,16 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         try {
           const repo = new TaskRepository(createClient());
           if (newDone) {
-            await repo.completeTask(task);
+            const newId = await repo.completeTask(task);
+            if (task.projectId) projectDetailCache.invalidate(task.projectId);
+            if (newId) {
+              await refreshTasks({ refreshGlobal: false });
+            }
           } else {
             await repo.toggleTaskDone(id, false);
+            if (task.projectId) projectDetailCache.invalidate(task.projectId);
           }
-          if (task.projectId) projectDetailCache.invalidate(task.projectId);
-          await refreshTasks();
+          await refreshGlobalCounts();
           showToast(newDone ? "Tarefa concluída" : "Tarefa reaberta");
         } catch {
           patchTaskInView(id, { done: task.done });
@@ -1085,7 +1110,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         if (newDone) showToast("Tarefa concluída");
       }
     },
-    [allTasks, patchTaskInView, refreshTasks, usingMock, showToast],
+    [allTasks, patchTaskInView, refreshGlobalCounts, refreshTasks, usingMock, showToast],
   );
 
   const toggleSubtaskDone = useCallback(
@@ -1111,6 +1136,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       if (!usingMock && isSupabaseConfigured() && sub.id) {
         try {
           await new TaskRepository(createClient()).toggleSubtaskDone(sub.id, newDone);
+          await refreshGlobalCounts();
         } catch {
           const rollback = sortSubtasksForDisplay(
             [...(task.subtasks ?? [])].map((item, i) => (i === index ? sub : item)),
@@ -1120,7 +1146,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [getSubtaskContext, patchTaskInView, usingMock],
+    [getSubtaskContext, patchTaskInView, refreshGlobalCounts, usingMock],
   );
 
   const autosaveTaskTitle = useCallback(
@@ -1425,14 +1451,17 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         const taskId = await new TaskRepository(createClient()).createTask(input);
         if (input.projectId) projectDetailCache.invalidate(input.projectId);
         showToast("Tarefa criada");
-        await refreshTasks();
+        await Promise.all([
+          refreshTasks({ refreshGlobal: false }),
+          refreshGlobalCounts(),
+        ]);
         return taskId;
       } catch {
         showToast("Erro ao criar tarefa");
         return undefined;
       }
     },
-    [refreshTasks, showToast, usingMock],
+    [refreshGlobalCounts, refreshTasks, showToast, usingMock],
   );
 
   const deleteTask = useCallback(
@@ -1454,7 +1483,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         if (!usingMock && isSupabaseConfigured()) {
           try {
             await new TaskRepository(createClient()).deleteTask(id);
-            await refreshTasks();
+            if (task.projectId) projectDetailCache.invalidate(task.projectId);
+            await refreshGlobalCounts();
           } catch {
             restoreTaskToView(snapshot);
             showToast("Erro ao excluir tarefa");
@@ -1483,7 +1513,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [
       allTasks,
       closeInspector,
-      refreshTasks,
+      refreshGlobalCounts,
       removeTaskFromView,
       restoreTaskToView,
       selectedTaskId,
@@ -1502,7 +1532,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         try {
           await new TaskRepository(createClient()).deferTask(id, task.dueDate);
           showToast("Tarefa adiada");
-          await refreshTasks();
+          await refreshTasks({ refreshGlobal: false });
+          await refreshGlobalCounts();
         } catch {
           showToast("Erro ao adiar tarefa");
         }
@@ -1510,7 +1541,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         showToast("Tarefa adiada");
       }
     },
-    [allTasks, refreshTasks, showToast, usingMock],
+    [allTasks, refreshGlobalCounts, refreshTasks, showToast, usingMock],
   );
 
   const duplicateTask = useCallback(
