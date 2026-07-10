@@ -28,6 +28,10 @@ import { CommentRepository } from "@/lib/repositories/comment-repository";
 import { toDateStr, parseDueDate, formatTaskDate, startOfDay } from "@/lib/utils/date";
 import { sortSubtasksForDisplay } from "@/lib/utils/subtask-ordering";
 import {
+  loadExpandedSubtaskIds,
+  saveExpandedSubtaskIds,
+} from "@/lib/utils/subtask-expansion-preferences";
+import {
   MOCK_TASKS,
   mockProjectById,
   mockProjectTasks,
@@ -274,7 +278,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [projectCompletedExpanded, setProjectCompletedExpanded] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedSubtaskKey, setSelectedSubtaskKey] = useState<SubtaskKey | null>(null);
-  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(() => loadExpandedSubtaskIds());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchTasks, setSearchTasks] = useState<Task[]>([]);
@@ -817,6 +821,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId);
       else next.add(taskId);
+      saveExpandedSubtaskIds(next);
       return next;
     });
   }, []);

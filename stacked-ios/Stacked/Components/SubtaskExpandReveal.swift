@@ -5,11 +5,19 @@ import UIKit
 struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   let expanded: Bool
   let reduceMotion: Bool
+  /// Incrementar após conteúdo pesado ou restore — força remedição de altura.
+  let layoutPass: Int
   let content: Content
 
-  init(expanded: Bool, reduceMotion: Bool, @ViewBuilder content: () -> Content) {
+  init(
+    expanded: Bool,
+    reduceMotion: Bool,
+    layoutPass: Int = 0,
+    @ViewBuilder content: () -> Content
+  ) {
     self.expanded = expanded
     self.reduceMotion = reduceMotion
+    self.layoutPass = layoutPass
     self.content = content()
   }
 
@@ -32,7 +40,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
       hosting: hosting,
       width: width,
       expanded: expanded,
-      animated: !reduceMotion
+      animated: !reduceMotion,
+      layoutPass: layoutPass
     )
   }
 
@@ -68,6 +77,7 @@ final class SubtaskExpandContainerView: UIView {
   private var fullHeight: CGFloat = 0
   private var lastExpanded: Bool?
   private var lastAppliedWidth: CGFloat = 0
+  private var lastLayoutPass: Int = -1
   private var isAnimating = false
 
   override init(frame: CGRect) {
@@ -105,7 +115,8 @@ final class SubtaskExpandContainerView: UIView {
     hosting: UIHostingController<AnyView>,
     width: CGFloat,
     expanded: Bool,
-    animated: Bool
+    animated: Bool,
+    layoutPass: Int = 0
   ) {
     let fitWidth = max(width, 1)
     let widthChanged = abs(fitWidth - lastAppliedWidth) > 1
@@ -114,10 +125,20 @@ final class SubtaskExpandContainerView: UIView {
     }
 
     let stateChanged = lastExpanded != expanded
+    let layoutPassChanged = layoutPass != lastLayoutPass
+    if layoutPassChanged {
+      lastLayoutPass = layoutPass
+    }
 
-    // Mede ao abrir ou na primeira layout; congela durante animação e ao fechar.
+    if stateChanged && expanded {
+      fullHeight = 0
+    } else if layoutPassChanged && expanded {
+      fullHeight = 0
+    }
+
+    // Mede ao abrir, quando a largura muda, ou após conteúdo pesado/restauração.
     if !isAnimating {
-      let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded)
+      let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
       if needsMeasure {
         let measured = measureHeight(hosting: hosting, width: fitWidth)
         if measured > 0 { fullHeight = measured }
@@ -131,10 +152,30 @@ final class SubtaskExpandContainerView: UIView {
     lastExpanded = expanded
 
     let current = selfHeightConstraint?.constant ?? 0
-    guard stateChanged || abs(current - target) > 0.5 else { return }
+    if expanded && fullHeight <= 0 && fitWidth > 1 {
+      scheduleRemeasure(hosting: hosting, width: fitWidth, animated: animated)
+      return
+    }
 
-    let shouldAnimate = animated && stateChanged && !UIAccessibility.isReduceMotionEnabled
+    guard stateChanged || layoutPassChanged || abs(current - target) > 0.5 else { return }
+
+    let shouldAnimate = animated && stateChanged && expanded && !UIAccessibility.isReduceMotionEnabled
     applyVisibleHeight(target, expanded: expanded, animated: shouldAnimate)
+  }
+
+  private func scheduleRemeasure(
+    hosting: UIHostingController<AnyView>,
+    width: CGFloat,
+    animated: Bool
+  ) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.lastExpanded == true else { return }
+      let measured = self.measureHeight(hosting: hosting, width: width)
+      guard measured > 0 else { return }
+      self.fullHeight = measured
+      self.hostHeightConstraint?.constant = measured
+      self.applyVisibleHeight(measured, expanded: true, animated: false)
+    }
   }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {

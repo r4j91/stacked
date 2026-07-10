@@ -21,6 +21,7 @@ struct TaskRow: View {
 
   @State private var expanded = false
   @State private var subtaskRevealActive = false
+  @State private var subtaskRevealLayoutPass = 0
   @State private var displaySubtasks: [Subtask] = []
   @State private var subtasksDone: [Bool] = []
   @State private var labelCatalog: [TaskLabel] = []
@@ -46,17 +47,25 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear { syncSubtasks() }
+    .onAppear {
+      syncSubtasks()
+      restoreSubtaskExpansionIfNeeded()
+    }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onChange(of: task.id) { _, _ in
+      syncSubtasks()
+      restoreSubtaskExpansionIfNeeded()
+    }
     .task(id: expanded) {
       guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred, expanded, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      guard !deferred, expanded, subtaskRevealActive else { return }
       _Concurrency.Task {
         labelCatalog = await LabelCatalogCache.labels()
       }
+      bumpSubtaskRevealLayout()
     }
   }
 
@@ -79,18 +88,30 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear { syncSubtasks() }
+    .onAppear {
+      syncSubtasks()
+      restoreSubtaskExpansionIfNeeded()
+    }
     .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onChange(of: task.id) { _, _ in
+      syncSubtasks()
+      restoreSubtaskExpansionIfNeeded()
+    }
     .task(id: expanded) {
       guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred, expanded, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
+      guard !deferred, expanded, subtaskRevealActive else { return }
       _Concurrency.Task {
         labelCatalog = await LabelCatalogCache.labels()
       }
+      bumpSubtaskRevealLayout()
     }
+  }
+
+  private func bumpSubtaskRevealLayout() {
+    subtaskRevealLayoutPass &+= 1
   }
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
@@ -179,7 +200,11 @@ struct TaskRow: View {
   @ViewBuilder
   private var subtasksExpansion: some View {
     if task.hasSubtasks, subtaskRevealActive {
-      SubtaskExpandReveal(expanded: expanded, reduceMotion: reduceMotion) {
+      SubtaskExpandReveal(
+        expanded: expanded,
+        reduceMotion: reduceMotion,
+        layoutPass: subtaskRevealLayoutPass
+      ) {
         subtaskList
       }
     }
@@ -389,10 +414,12 @@ struct TaskRow: View {
         await _Concurrency.Task.yield()
         guard subtaskRevealActive else { return }
         expanded = true
+        ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
       }
       return
     }
     expanded.toggle()
+    ProjectDetailPreferences.setSubtaskListExpanded(expanded, taskId: task.id)
   }
 
   private func scheduleSubtaskRevealTeardown(afterCollapse collapsed: Bool) {
@@ -402,6 +429,32 @@ struct TaskRow: View {
       try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
       guard !expanded else { return }
       subtaskRevealActive = false
+    }
+  }
+
+  private func restoreSubtaskExpansionIfNeeded() {
+    guard task.hasSubtasks else {
+      expanded = false
+      subtaskRevealActive = false
+      return
+    }
+    let saved = ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id)
+    guard saved else {
+      expanded = false
+      subtaskRevealActive = false
+      return
+    }
+    // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
+    subtaskRevealActive = true
+    expanded = false
+    _Concurrency.Task { @MainActor in
+      await _Concurrency.Task.yield()
+      guard subtaskRevealActive,
+            ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id) else { return }
+      expanded = true
+      bumpSubtaskRevealLayout()
+      try? await _Concurrency.Task.sleep(for: .milliseconds(50))
+      bumpSubtaskRevealLayout()
     }
   }
 

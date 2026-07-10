@@ -29,4 +29,27 @@ enum ProjectDetailPreferences {
   static func setCompletedExpanded(_ value: Bool, projectId: String) {
     UserDefaults.standard.set(value, forKey: completedExpandedKey(projectId: projectId))
   }
+
+  // MARK: - Subtarefas inline expandidas (global)
+
+  private static let expandedSubtaskTasksKey = "subtask_expanded_task_ids"
+
+  static func expandedSubtaskTaskIds() -> Set<String> {
+    guard let raw = UserDefaults.standard.array(forKey: expandedSubtaskTasksKey) as? [String] else { return [] }
+    return Set(raw)
+  }
+
+  static func isSubtaskListExpanded(taskId: String) -> Bool {
+    expandedSubtaskTaskIds().contains(taskId)
+  }
+
+  static func setSubtaskListExpanded(_ expanded: Bool, taskId: String) {
+    var ids = expandedSubtaskTaskIds()
+    if expanded, !taskId.isEmpty {
+      ids.insert(taskId)
+    } else {
+      ids.remove(taskId)
+    }
+    UserDefaults.standard.set(Array(ids), forKey: expandedSubtaskTasksKey)
+  }
 }
