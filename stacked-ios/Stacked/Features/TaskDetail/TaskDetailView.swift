@@ -235,7 +235,7 @@ struct TaskDetailView: View {
       divider
       whatsappRoutineRow
 
-      fullDivider
+      divider
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
@@ -774,13 +774,6 @@ struct TaskDetailView: View {
   }
 
   private var divider: some View {
-    Rectangle()
-      .fill(theme.colors.textTertiary.opacity(0.12))
-      .frame(height: 1)
-      .padding(.leading, 50)
-  }
-
-  private var fullDivider: some View {
     Rectangle()
       .fill(theme.colors.textTertiary.opacity(0.12))
       .frame(height: 1)
