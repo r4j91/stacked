@@ -39,6 +39,7 @@ enum SubtaskListPatch {
       dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: snapshot.done) },
       labelIds: snapshot.labelIds
     )
+    subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)
   }
 }
 

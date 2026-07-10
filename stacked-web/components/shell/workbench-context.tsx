@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/toast-provider";
 import { LabelRepository } from "@/lib/repositories/label-repository";
 import { CommentRepository } from "@/lib/repositories/comment-repository";
 import { toDateStr, parseDueDate, formatTaskDate, startOfDay } from "@/lib/utils/date";
+import { sortSubtasksForDisplay } from "@/lib/utils/subtask-ordering";
 import {
   MOCK_TASKS,
   mockProjectById,
@@ -1088,16 +1089,29 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       if (!ctx) return;
       const { task, index, sub } = ctx;
       const newDone = !sub.done;
-      const subtasks = [...(task.subtasks ?? [])];
-      subtasks[index] = { ...sub, done: newDone };
+      const subtasks = sortSubtasksForDisplay(
+        [...(task.subtasks ?? [])].map((item, i) =>
+          i === index ? { ...sub, done: newDone } : item,
+        ),
+      );
       patchTaskInView(task.id, { subtasks });
+
+      if (sub.id) {
+        const newIndex = subtasks.findIndex((item) => item.id === sub.id);
+        if (newIndex >= 0) {
+          setSelectedSubtaskKey(`${task.id}:${newIndex}`);
+        }
+      }
 
       if (!usingMock && isSupabaseConfigured() && sub.id) {
         try {
           await new TaskRepository(createClient()).toggleSubtaskDone(sub.id, newDone);
         } catch {
-          subtasks[index] = sub;
-          patchTaskInView(task.id, { subtasks });
+          const rollback = sortSubtasksForDisplay(
+            [...(task.subtasks ?? [])].map((item, i) => (i === index ? sub : item)),
+          );
+          patchTaskInView(task.id, { subtasks: rollback });
+          setSelectedSubtaskKey(key);
         }
       }
     },

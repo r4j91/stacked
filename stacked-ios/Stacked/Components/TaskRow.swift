@@ -21,6 +21,7 @@ struct TaskRow: View {
 
   @State private var expanded = false
   @State private var subtaskRevealActive = false
+  @State private var displaySubtasks: [Subtask] = []
   @State private var subtasksDone: [Bool] = []
   @State private var labelCatalog: [TaskLabel] = []
 
@@ -281,7 +282,7 @@ struct TaskRow: View {
         Divider().overlay(c.surfaceVariant)
       }
 
-      ForEach(Array(task.subtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
+      ForEach(Array(displaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
         let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty
@@ -342,7 +343,7 @@ struct TaskRow: View {
         .padding(.leading, subtaskLeading)
         .padding(.trailing, 12)
 
-        if index < task.subtasks.count - 1 {
+        if index < displaySubtasks.count - 1 {
           TaskExpandDivider(
             indent: style == .card
               ? TaskExpandDividerStyle.cardSubtaskInset
@@ -405,7 +406,8 @@ struct TaskRow: View {
   }
 
   private func syncSubtasks() {
-    subtasksDone = task.subtasks.map(\.done)
+    displaySubtasks = TaskMapper.sortSubtasksForDisplay(task.subtasks)
+    subtasksDone = displaySubtasks.map(\.done)
   }
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
@@ -417,7 +419,24 @@ struct TaskRow: View {
     } else {
       HapticService.light()
     }
-    subtasksDone[index] = newDone
+    var updated = displaySubtasks
+    updated[index] = Subtask(
+      id: sub.id,
+      taskId: sub.taskId,
+      title: sub.title,
+      description: sub.description,
+      done: newDone,
+      priority: sub.priority,
+      order: sub.order,
+      valor: sub.valor,
+      dueDate: sub.dueDate,
+      time: sub.time,
+      dueDateChipLabel: sub.dueDateChipLabel,
+      dueDateChipColor: sub.dueDateChipColor,
+      labelIds: sub.labelIds
+    )
+    displaySubtasks = TaskMapper.sortSubtasksForDisplay(updated)
+    subtasksDone = displaySubtasks.map(\.done)
     _Concurrency.Task {
       try? await SubtaskRepository.shared.toggleDone(
         id: sub.id,

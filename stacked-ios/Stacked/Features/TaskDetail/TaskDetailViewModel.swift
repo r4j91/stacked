@@ -273,13 +273,14 @@ final class TaskDetailViewModel {
       time: subtask.time,
       labelIds: subtask.labelIds
     )
-    let newDone = subtasks[i].done
+    subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)
+    let newDone = subtasks.first(where: { $0.id == id })?.done ?? false
     _Concurrency.Task {
       try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
       if newDone {
         TaskCalendarSync.remove(subtaskId: id)
-      } else {
-        TaskCalendarSync.sync(subtasks[i])
+      } else if let synced = subtasks.first(where: { $0.id == id }) {
+        TaskCalendarSync.sync(synced)
       }
     }
   }

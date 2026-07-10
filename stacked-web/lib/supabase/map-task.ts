@@ -1,5 +1,6 @@
 import type { Priority, Subtask, Task } from "@/lib/types/task";
 import { formatTaskDate, parseDueDate, toDateStr } from "@/lib/utils/date";
+import { sortSubtasksForDisplay } from "@/lib/utils/subtask-ordering";
 
 type DbRow = Record<string, unknown>;
 
@@ -38,10 +39,9 @@ export function mapTaskRow(row: DbRow): Task {
       : null;
   const due = parseDueDate(row.data_vencimento);
 
-  const subtasks = ((row.subtasks as DbRow[] | null) ?? [])
-    .slice()
-    .sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0))
-    .map(mapSubtask);
+  const subtasks = sortSubtasksForDisplay(
+    ((row.subtasks as DbRow[] | null) ?? []).map(mapSubtask),
+  );
 
   const taskLabels = ((row.task_labels as DbRow[] | null) ?? []);
   const labelMeta = taskLabels

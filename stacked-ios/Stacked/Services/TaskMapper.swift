@@ -8,9 +8,8 @@ enum TaskMapper {
   }
 
   static func mapRow(_ row: TaskRowDTO) -> Task {
-    let subtasks = (row.subtasks ?? [])
-      .sorted { ($0.ordem ?? 0) < ($1.ordem ?? 0) }
-      .map { mapSubtask($0, taskId: row.id) }
+    let mappedSubtasks = (row.subtasks ?? []).map { mapSubtask($0, taskId: row.id) }
+    let subtasks = sortSubtasksForDisplay(mappedSubtasks)
 
     let labels: [TaskLabel] = (row.task_labels ?? []).compactMap { tl in
       guard let label = tl.labels,
@@ -314,5 +313,26 @@ enum TaskMapper {
     let overdueTasks = splitTodayPending(tasks, now: now).overdue.map { ScheduleItem.task($0) }
     let overdueSubtasks = splitTodayScheduledSubtasks(subtasks, now: now).overdue.map { ScheduleItem.subtask($0) }
     return (overdueTasks + overdueSubtasks).sorted { $0.sortDate < $1.sortDate }
+  }
+
+  /// Pendentes primeiro (vencimento → ordem), concluídas no final — ordem global de exibição.
+  static func sortSubtasksForDisplay(_ subtasks: [Subtask]) -> [Subtask] {
+    let pending = subtasks.filter { !$0.done }.sorted(by: pendingSubtaskSort)
+    let done = subtasks.filter(\.done).sorted { $0.order < $1.order }
+    return pending + done
+  }
+
+  private static func pendingSubtaskSort(_ a: Subtask, _ b: Subtask) -> Bool {
+    switch (a.dueDate, b.dueDate) {
+    case let (da?, db?):
+      if da != db { return da < db }
+      return a.order < b.order
+    case (nil, .some):
+      return false
+    case (.some, nil):
+      return true
+    case (nil, nil):
+      return a.order < b.order
+    }
   }
 }
