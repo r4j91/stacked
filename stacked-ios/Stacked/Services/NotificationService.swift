@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import Supabase
+import os
 
 // Paridade lib/services/notification_service.dart
 @MainActor
@@ -8,8 +9,37 @@ final class NotificationService {
   static let shared = NotificationService()
 
   private static let dailySummaryId = "daily-summary"
+  private static let logger = Logger(subsystem: "com.stacked.app", category: "Notifications")
+  private static let previewCacheTTL: TimeInterval = 60
+  /// iOS permite no máximo 64 notificações locais pendentes por app.
+  private static let maxItemNotifications = 60
+
+  private var previewCache: PreviewSnapshot?
 
   private init() {}
+
+  struct PreviewSnapshot: Equatable {
+    let items: [SchedulableNotificationItem]
+    let diagnostics: NotificationDiagnostics
+    let fetchedAt: Date
+
+    var isFresh: Bool {
+      Date().timeIntervalSince(fetchedAt) < NotificationService.previewCacheTTL
+    }
+  }
+
+  var cachedPreview: PreviewSnapshot? {
+    guard let previewCache, previewCache.isFresh else { return nil }
+    return previewCache
+  }
+
+  func invalidatePreviewCache() {
+    previewCache = nil
+  }
+
+  func prefetchPreview(limit: Int = 20) async {
+    _ = await fetchPreviewSnapshot(limit: limit, forceRefreshData: false)
+  }
 
   // MARK: - Permission & preferences
 
@@ -26,6 +56,9 @@ final class NotificationService {
     let settings = await UNUserNotificationCenter.current().notificationSettings()
     switch settings.authorizationStatus {
     case .authorized, .provisional, .ephemeral:
+      if settings.alertSetting == .disabled {
+        return false
+      }
       return true
     default:
       return false
@@ -42,6 +75,7 @@ final class NotificationService {
 
   func setEnabled(_ value: Bool) async {
     NotificationPreferences.enabled = value
+    invalidatePreviewCache()
     if !value {
       await cancelAllNotifications()
     } else {
@@ -65,7 +99,7 @@ final class NotificationService {
     title: String,
     dueDate: Date,
     time: String
-  ) async {
+  ) async -> Bool {
     await scheduleNotification(
       identifier: taskIdentifier(id),
       title: title,
@@ -79,20 +113,22 @@ final class NotificationService {
     title: String,
     dueDate: Date,
     time: String
-  ) async {
-    guard await isEnabled() else { return }
+  ) async -> Bool {
+    guard await isEnabled() else { return false }
+
+    guard let normalizedTime = TaskMapper.normalizeHora(time) else { return false }
 
     let now = Date()
     let cal = Calendar.current
     let today = cal.startOfDay(for: now)
     let due = cal.startOfDay(for: dueDate)
     let diff = cal.dateComponents([.day], from: today, to: due).day ?? 0
-    guard diff >= 0 else { return }
+    guard diff >= 0 else { return false }
 
-    guard let scheduled = TaskMapper.combinedDateTime(dueDate: dueDate, time: time) else { return }
-    guard scheduled > now else { return }
+    guard let scheduled = TaskMapper.combinedDateTime(dueDate: dueDate, time: normalizedTime) else { return false }
+    guard scheduled > now else { return false }
 
-    let timeLabel = TaskMapper.formatTimeDisplay(time)
+    let timeLabel = TaskMapper.formatTimeDisplay(normalizedTime)
     let body: String
     switch diff {
     case 0:
@@ -108,7 +144,10 @@ final class NotificationService {
     content.body = body
     content.sound = .default
 
-    let components = cal.dateComponents([.year, .month, .day, .hour, .minute], from: scheduled)
+    var components = cal.dateComponents([.year, .month, .day, .hour, .minute], from: scheduled)
+    components.second = 0
+    components.calendar = cal
+    components.timeZone = cal.timeZone
     let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     let request = UNNotificationRequest(
       identifier: identifier,
@@ -116,13 +155,32 @@ final class NotificationService {
       trigger: trigger
     )
 
-    try? await UNUserNotificationCenter.current().add(request)
+    return await addNotificationRequest(request, identifier: identifier)
+  }
+
+  private func addNotificationRequest(_ request: UNNotificationRequest, identifier: String) async -> Bool {
+    let center = UNUserNotificationCenter.current()
+    do {
+      try await center.add(request)
+      return true
+    } catch {
+      Self.logger.error("Failed to schedule \(identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
+      return false
+    }
   }
 
   func syncTaskNotification(id: String, title: String, dueDate: Date?, time: String?) async {
-    await cancelTaskNotification(id: id)
-    guard let dueDate, let time, !time.isEmpty else { return }
-    await scheduleTaskNotification(id: id, title: title, dueDate: dueDate, time: time)
+    guard let dueDate, let time, !time.isEmpty else {
+      await cancelTaskNotification(id: id)
+      invalidatePreviewCache()
+      return
+    }
+    guard await isEnabled() else {
+      await cancelTaskNotification(id: id)
+      invalidatePreviewCache()
+      return
+    }
+    _ = await rescheduleAllPending()
   }
 
   func syncTaskNotification(task: Task) async {
@@ -141,10 +199,17 @@ final class NotificationService {
     time: String?,
     done: Bool
   ) async {
-    await cancelSubtaskNotification(id: id)
-    guard !done else { return }
-    guard let dueDate, let time, !time.isEmpty else { return }
-    await scheduleSubtaskNotification(id: id, title: title, dueDate: dueDate, time: time)
+    if done || dueDate == nil || time?.isEmpty != false {
+      await cancelSubtaskNotification(id: id)
+      invalidatePreviewCache()
+      return
+    }
+    guard await isEnabled() else {
+      await cancelSubtaskNotification(id: id)
+      invalidatePreviewCache()
+      return
+    }
+    _ = await rescheduleAllPending()
   }
 
   func scheduleSubtaskNotification(
@@ -152,7 +217,7 @@ final class NotificationService {
     title: String,
     dueDate: Date,
     time: String
-  ) async {
+  ) async -> Bool {
     await scheduleNotification(
       identifier: subtaskIdentifier(id),
       title: title,
@@ -192,7 +257,7 @@ final class NotificationService {
       trigger: trigger
     )
 
-    try? await UNUserNotificationCenter.current().add(request)
+    _ = await addNotificationRequest(request, identifier: Self.dailySummaryId)
   }
 
   func scheduleDailySummaryIfNeeded() async {
@@ -217,10 +282,126 @@ final class NotificationService {
     }
   }
 
-  func rescheduleAllPending() async {
-    guard await isEnabled() else { return }
-    guard SupabaseService.client.auth.currentUser?.id != nil else { return }
+  struct RescheduleResult: Equatable {
+    let totalEligible: Int
+    let scheduled: Int
+    let registered: Int
+    let pendingAfter: Int
+    let failureReason: String?
+  }
 
+  private struct SchedulableCandidate: Equatable {
+    let identifier: String
+    let entityId: String
+    let kind: SchedulableNotificationItem.Kind
+    let title: String
+    let parentTitle: String?
+    let dueDate: Date
+    let time: String
+    let scheduledAt: Date
+  }
+
+  @discardableResult
+  func rescheduleAllPending() async -> RescheduleResult {
+    guard NotificationPreferences.enabled else {
+      return RescheduleResult(
+        totalEligible: 0,
+        scheduled: 0,
+        registered: 0,
+        pendingAfter: 0,
+        failureReason: "Ative notificações em Ajustes → Notificações no Stacked."
+      )
+    }
+    guard await hasSystemPermission() else {
+      return RescheduleResult(
+        totalEligible: 0,
+        scheduled: 0,
+        registered: 0,
+        pendingAfter: 0,
+        failureReason: "Permita alertas do Stacked em Ajustes → Notificações no iPhone."
+      )
+    }
+    guard SupabaseService.client.auth.currentUser?.id != nil else {
+      return RescheduleResult(
+        totalEligible: 0,
+        scheduled: 0,
+        registered: 0,
+        pendingAfter: 0,
+        failureReason: "Sessão expirada — abra o app e tente de novo."
+      )
+    }
+
+    do {
+      let candidates = try await fetchSchedulableCandidates()
+      let totalEligible = candidates.count
+      let toSchedule = Array(candidates.prefix(Self.maxItemNotifications))
+      let expectedIds = Set(toSchedule.map(\.identifier))
+
+      await cancelAllScheduledItemNotifications()
+
+      var scheduled = 0
+      for candidate in toSchedule {
+        let ok: Bool
+        switch candidate.kind {
+        case .task:
+          ok = await scheduleTaskNotification(
+            id: candidate.entityId,
+            title: candidate.title,
+            dueDate: candidate.dueDate,
+            time: candidate.time
+          )
+        case .subtask:
+          ok = await scheduleSubtaskNotification(
+            id: candidate.entityId,
+            title: candidate.title,
+            dueDate: candidate.dueDate,
+            time: candidate.time
+          )
+        }
+        if ok { scheduled += 1 }
+      }
+
+      await removeOrphanScheduledItemNotifications(keeping: expectedIds)
+      await scheduleDailySummaryIfNeeded()
+      invalidatePreviewCache()
+
+      let pendingIds = await pendingItemNotificationIdentifiers()
+      let registered = expectedIds.intersection(pendingIds).count
+      let pendingAfter = pendingIds.count
+
+      let failureReason: String?
+      if totalEligible == 0 {
+        failureReason = "Nenhuma tarefa com data e hora futuras para agendar."
+      } else if scheduled > 0, registered == 0 {
+        failureReason = simulatorRescheduleHint()
+      } else if scheduled > 0, registered < scheduled {
+        failureReason = "Só \(registered) de \(scheduled) alertas ficaram no iOS."
+      } else if totalEligible > Self.maxItemNotifications {
+        failureReason = nil // sucesso parcial — mensagem informativa no sheet
+      } else {
+        failureReason = nil
+      }
+
+      return RescheduleResult(
+        totalEligible: totalEligible,
+        scheduled: scheduled,
+        registered: registered,
+        pendingAfter: pendingAfter,
+        failureReason: failureReason
+      )
+    } catch {
+      Self.logger.error("rescheduleAllPending failed: \(error.localizedDescription, privacy: .public)")
+      return RescheduleResult(
+        totalEligible: 0,
+        scheduled: 0,
+        registered: 0,
+        pendingAfter: await pendingItemNotificationIdentifiers().count,
+        failureReason: "Erro ao buscar tarefas: \(error.localizedDescription)"
+      )
+    }
+  }
+
+  private func fetchSchedulableCandidates() async throws -> [SchedulableCandidate] {
     struct Row: Decodable {
       let id: String
       let titulo: String?
@@ -228,47 +409,88 @@ final class NotificationService {
       let hora: String?
     }
 
-    let today = TaskMapper.dateString(Date())
+    struct SubtaskRow: Decodable {
+      let id: String
+      let titulo: String?
+      let data_vencimento: String?
+      let hora: String?
+      let tasks: ParentRef?
 
-    do {
-      let rows: [Row] = try await SupabaseService.client
-        .from("tasks")
-        .select("id, titulo, data_vencimento, hora")
-        .eq("concluida", value: false)
-        .gte("data_vencimento", value: today)
-        .execute()
-        .value
-
-      let subRows: [Row] = try await SupabaseService.client
-        .from("subtasks")
-        .select("id, titulo, data_vencimento, hora")
-        .eq("concluida", value: false)
-        .gte("data_vencimento", value: today)
-        .execute()
-        .value
-
-      await cancelAllScheduledItemNotifications()
-
-      for row in rows {
-        guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
-        guard let hora = row.hora, !hora.isEmpty else { continue }
-        let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !title.isEmpty else { continue }
-        await scheduleTaskNotification(id: row.id, title: title, dueDate: due, time: hora)
+      struct ParentRef: Decodable {
+        let titulo: String?
       }
-
-      for row in subRows {
-        guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
-        guard let hora = row.hora, !hora.isEmpty else { continue }
-        let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !title.isEmpty else { continue }
-        await scheduleSubtaskNotification(id: row.id, title: title, dueDate: due, time: hora)
-      }
-
-      await scheduleDailySummaryIfNeeded()
-    } catch {
-      // ignore — reagendamento é best-effort no cold start
     }
+
+    let today = TaskMapper.dateString(Date())
+    let now = Date()
+
+    let rows: [Row] = try await SupabaseService.client
+      .from("tasks")
+      .select("id, titulo, data_vencimento, hora")
+      .eq("concluida", value: false)
+      .gte("data_vencimento", value: today)
+      .not("hora", operator: .is, value: "null")
+      .execute()
+      .value
+
+    let subRows: [SubtaskRow] = try await SupabaseService.client
+      .from("subtasks")
+      .select("id, titulo, data_vencimento, hora, tasks(titulo)")
+      .eq("concluida", value: false)
+      .gte("data_vencimento", value: today)
+      .not("hora", operator: .is, value: "null")
+      .execute()
+      .value
+
+    var candidates: [SchedulableCandidate] = []
+    candidates.reserveCapacity(rows.count + subRows.count)
+
+    for row in rows {
+      guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
+      guard let hora = TaskMapper.normalizeHora(row.hora) else { continue }
+      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: hora), scheduled > now else { continue }
+      let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      guard !title.isEmpty else { continue }
+      candidates.append(SchedulableCandidate(
+        identifier: taskIdentifier(row.id),
+        entityId: row.id,
+        kind: .task,
+        title: title,
+        parentTitle: nil,
+        dueDate: due,
+        time: hora,
+        scheduledAt: scheduled
+      ))
+    }
+
+    for row in subRows {
+      guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
+      guard let hora = TaskMapper.normalizeHora(row.hora) else { continue }
+      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: hora), scheduled > now else { continue }
+      let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      guard !title.isEmpty else { continue }
+      let parent = row.tasks?.titulo?.trimmingCharacters(in: .whitespacesAndNewlines)
+      candidates.append(SchedulableCandidate(
+        identifier: subtaskIdentifier(row.id),
+        entityId: row.id,
+        kind: .subtask,
+        title: title,
+        parentTitle: parent?.isEmpty == false ? parent : nil,
+        dueDate: due,
+        time: hora,
+        scheduledAt: scheduled
+      ))
+    }
+
+    return candidates.sorted { $0.scheduledAt < $1.scheduledAt }
+  }
+
+  private func simulatorRescheduleHint() -> String {
+    #if targetEnvironment(simulator)
+    return "O simulador não registrou os alertas. Abra Ajustes → Notificações → Stacked e ative \"Permitir Notificações\" e \"Alertas\". No iPhone físico costuma funcionar direto."
+    #else
+    return "O iPhone não registrou os alertas. Verifique Ajustes → Notificações → Stacked."
+    #endif
   }
 
   // MARK: - Cancel
@@ -301,11 +523,90 @@ final class NotificationService {
     UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
   }
 
+  private func removeOrphanScheduledItemNotifications(keeping expectedIds: Set<String>) async {
+    let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
+    let orphanIds = pending
+      .map(\.identifier)
+      .filter { ($0.hasPrefix("task-") || $0.hasPrefix("subtask-")) && !expectedIds.contains($0) }
+    guard !orphanIds.isEmpty else { return }
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: orphanIds)
+  }
+
+  private func pendingItemNotificationIdentifiers() async -> Set<String> {
+    let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
+    return Set(pending.map(\.identifier).filter { $0.hasPrefix("task-") || $0.hasPrefix("subtask-") })
+  }
+
   func cancelAllNotifications() async {
     UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
   }
 
   // MARK: - Preview helpers
+
+  struct NotificationDiagnostics: Equatable {
+    let userEnabled: Bool
+    let systemAuthorized: Bool
+    let pendingScheduledCount: Int
+    let totalWithTime: Int
+    let schedulingCap: Int
+
+    var canSchedule: Bool { userEnabled && systemAuthorized }
+  }
+
+  func fetchDiagnostics(totalWithTime: Int = 0) async -> NotificationDiagnostics {
+    let pending = await pendingItemNotificationIdentifiers()
+    return NotificationDiagnostics(
+      userEnabled: NotificationPreferences.enabled,
+      systemAuthorized: await hasSystemPermission(),
+      pendingScheduledCount: pending.count,
+      totalWithTime: totalWithTime,
+      schedulingCap: Self.maxItemNotifications
+    )
+  }
+
+  /// Pede permissão do iOS (se necessário) e reagenda tudo.
+  func requestPermissionAndReschedule() async -> Bool {
+    let granted = await requestPermission()
+    if granted {
+      NotificationPreferences.enabled = true
+      await rescheduleAllPending()
+    }
+    invalidatePreviewCache()
+    return granted
+  }
+
+  /// Lista + diagnóstico para o sheet "Próximas" — leve, com cache curto.
+  /// O status no iOS (`isRegisteredWithSystem`) é sempre recalculado; só a lista do Supabase usa cache.
+  func fetchPreviewSnapshot(limit: Int = 20, forceRefreshData: Bool = false) async -> PreviewSnapshot {
+    let candidates: [SchedulableCandidate]
+    if !forceRefreshData, let cached = previewCache, cached.isFresh {
+      candidates = (try? await fetchSchedulableCandidates()) ?? []
+    } else {
+      candidates = (try? await fetchSchedulableCandidates()) ?? []
+    }
+
+    let pendingIds = await isEnabled() ? await pendingItemNotificationIdentifiers() : Set<String>()
+    let capIds = Set(candidates.prefix(Self.maxItemNotifications).map(\.identifier))
+
+    let items = candidates.prefix(limit).map { candidate in
+      SchedulableNotificationItem(
+        id: candidate.identifier,
+        kind: candidate.kind,
+        title: candidate.title,
+        parentTitle: candidate.parentTitle,
+        dueDate: candidate.dueDate,
+        time: candidate.time,
+        scheduledAt: candidate.scheduledAt,
+        isWithinSchedulingCap: capIds.contains(candidate.identifier),
+        isRegisteredWithSystem: pendingIds.contains(candidate.identifier)
+      )
+    }
+
+    let diagnostics = await fetchDiagnostics(totalWithTime: candidates.count)
+    let snapshot = PreviewSnapshot(items: Array(items), diagnostics: diagnostics, fetchedAt: Date())
+    previewCache = snapshot
+    return snapshot
+  }
 
   /// Item exibido no sheet "Próximas" (tarefa ou subtarefa com data+hora futuras).
   struct SchedulableNotificationItem: Identifiable, Equatable {
@@ -319,72 +620,51 @@ final class NotificationService {
     let dueDate: Date
     let time: String
     let scheduledAt: Date
+    /// Dentro dos 60 alertas mais próximos que o iOS aceita agendar de uma vez.
+    let isWithinSchedulingCap: Bool
+    /// `true` quando o identificador existe em `UNUserNotificationCenter`.
+    let isRegisteredWithSystem: Bool
+
+    func withStatus(registered: Bool, withinCap: Bool) -> SchedulableNotificationItem {
+      SchedulableNotificationItem(
+        id: id,
+        kind: kind,
+        title: title,
+        parentTitle: parentTitle,
+        dueDate: dueDate,
+        time: time,
+        scheduledAt: scheduledAt,
+        isWithinSchedulingCap: withinCap,
+        isRegisteredWithSystem: registered
+      )
+    }
   }
 
-  func fetchSchedulableItems(limit: Int = 20) async -> [SchedulableNotificationItem] {
-    var items: [SchedulableNotificationItem] = []
-    let now = Date()
-
-    let tasks = (try? await TaskRepository.shared.fetchDatedPendingTasks()) ?? []
-    for task in tasks {
-      guard let due = task.dueDate, let time = task.time, !time.isEmpty else { continue }
-      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: time), scheduled > now else { continue }
-      let title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !title.isEmpty else { continue }
-      items.append(SchedulableNotificationItem(
-        id: "task-\(task.id)",
-        kind: .task,
-        title: title,
-        parentTitle: nil,
-        dueDate: due,
-        time: time,
-        scheduledAt: scheduled
-      ))
+  func fetchSchedulableItems(limit: Int = 20, pendingIds: Set<String>? = nil) async -> [SchedulableNotificationItem] {
+    guard let candidates = try? await fetchSchedulableCandidates() else { return [] }
+    let resolvedPendingIds: Set<String>
+    if let pendingIds {
+      resolvedPendingIds = pendingIds
+    } else if NotificationPreferences.enabled, await hasSystemPermission() {
+      resolvedPendingIds = await pendingItemNotificationIdentifiers()
+    } else {
+      resolvedPendingIds = []
     }
+    let capIds = Set(candidates.prefix(Self.maxItemNotifications).map(\.identifier))
 
-    struct SubtaskSchedulableRow: Decodable {
-      let id: String
-      let titulo: String?
-      let data_vencimento: String?
-      let hora: String?
-      let tasks: ParentRef?
-
-      struct ParentRef: Decodable {
-        let titulo: String?
-      }
+    return candidates.prefix(limit).map { candidate in
+      SchedulableNotificationItem(
+        id: candidate.identifier,
+        kind: candidate.kind,
+        title: candidate.title,
+        parentTitle: candidate.parentTitle,
+        dueDate: candidate.dueDate,
+        time: candidate.time,
+        scheduledAt: candidate.scheduledAt,
+        isWithinSchedulingCap: capIds.contains(candidate.identifier),
+        isRegisteredWithSystem: resolvedPendingIds.contains(candidate.identifier)
+      )
     }
-
-    let subRows: [SubtaskSchedulableRow] = (try? await SupabaseService.client
-      .from("subtasks")
-      .select("id, titulo, data_vencimento, hora, tasks(titulo)")
-      .eq("concluida", value: false)
-      .not("data_vencimento", operator: .is, value: "null")
-      .not("hora", operator: .is, value: "null")
-      .execute()
-      .value) ?? []
-
-    for row in subRows {
-      guard let due = TaskMapper.parseDueDate(row.data_vencimento) else { continue }
-      guard let hora = row.hora, !hora.isEmpty else { continue }
-      guard let scheduled = TaskMapper.combinedDateTime(dueDate: due, time: hora), scheduled > now else { continue }
-      let title = row.titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-      guard !title.isEmpty else { continue }
-      let parent = row.tasks?.titulo?.trimmingCharacters(in: .whitespacesAndNewlines)
-      items.append(SchedulableNotificationItem(
-        id: "subtask-\(row.id)",
-        kind: .subtask,
-        title: title,
-        parentTitle: parent?.isEmpty == false ? parent : nil,
-        dueDate: due,
-        time: hora,
-        scheduledAt: scheduled
-      ))
-    }
-
-    return items
-      .sorted { $0.scheduledAt < $1.scheduledAt }
-      .prefix(limit)
-      .map { $0 }
   }
 
   @available(*, deprecated, message: "Use fetchSchedulableItems — inclui subtarefas.")

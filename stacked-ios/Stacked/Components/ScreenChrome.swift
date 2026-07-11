@@ -157,6 +157,19 @@ enum SettingsChrome {
   static let rowPaddingV: CGFloat = 12
 }
 
+/// Toggle nativo (.switch) — padrão dos ajustes (ex.: FAB integrado na ilha).
+struct SettingsSwitchToggle: View {
+  @Binding var isOn: Bool
+  let tint: Color
+
+  var body: some View {
+    Toggle("", isOn: $isOn)
+      .labelsHidden()
+      .toggleStyle(.switch)
+      .tint(tint)
+  }
+}
+
 struct SettingsSectionHeader: View {
   @Environment(ThemeManager.self) private var theme
   let text: String

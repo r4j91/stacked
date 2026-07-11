@@ -94,6 +94,12 @@ final class DockTouchUIView: UIView {
   private var layoutConstraints: [NSLayoutConstraint] = []
   private var tabWidthConstraints: [NSLayoutConstraint] = []
   private var layoutSignature: Int?
+  private var lastLayoutBoundsWidth: CGFloat = 0
+  private var storedSafeBottom: CGFloat = 0
+  private var storedNavStyle: NavBarStyle = .classic
+  private var storedIslandExpanded = false
+  private var storedSelectedTab: NavTab = .home
+  private var storedFabIntegratedInIsland = false
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -149,6 +155,16 @@ final class DockTouchUIView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    if bounds.width > 0, abs(bounds.width - lastLayoutBoundsWidth) > 0.5 {
+      layoutSignature = nil
+      applyLayout(
+        safeBottom: storedSafeBottom,
+        navStyle: storedNavStyle,
+        islandExpanded: storedIslandExpanded,
+        selectedTab: storedSelectedTab,
+        fabIntegratedInIsland: storedFabIntegratedInIsland
+      )
+    }
     bringSubviewToFront(fabButton)
     bringSubviewToFront(islandFabButton)
     bringSubviewToFront(islandCompactButton)
@@ -191,6 +207,14 @@ final class DockTouchUIView: UIView {
     selectedTab: NavTab,
     fabIntegratedInIsland: Bool
   ) {
+    storedSafeBottom = safeBottom
+    storedNavStyle = navStyle
+    storedIslandExpanded = islandExpanded
+    storedSelectedTab = selectedTab
+    storedFabIntegratedInIsland = fabIntegratedInIsland
+
+    guard bounds.width > 0 else { return }
+
     let pillMarginBottom = ChromeLayout.pillMarginBottom(safeBottom: safeBottom)
     let fabMarginBottom = ChromeLayout.fabMarginBottom(safeBottom: safeBottom)
     let side = AppLayout.fabSideMargin
@@ -230,6 +254,7 @@ final class DockTouchUIView: UIView {
       return
     }
     layoutSignature = signature
+    lastLayoutBoundsWidth = bounds.width
 
     NSLayoutConstraint.deactivate(layoutConstraints)
     layoutConstraints = []

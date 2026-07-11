@@ -19,8 +19,8 @@ enum NotificationPreferences {
 struct NotificationsSettingsView: View {
   @Environment(ThemeManager.self) private var theme
 
-  @State private var enabled = false
-  @State private var dailySummary = false
+  @State private var enabled = NotificationPreferences.enabled
+  @State private var dailySummary = NotificationPreferences.dailySummary
   @State private var loading = true
   @State private var togglesReady = false
 
@@ -95,7 +95,7 @@ struct NotificationsSettingsView: View {
     HStack(spacing: 12) {
       settingsLabel(icon: icon, title: title, subtitle: subtitle)
       Spacer(minLength: 8)
-      StackedSwitchControl(isOn: isOn, colors: theme.colors)
+      SettingsSwitchToggle(isOn: isOn, tint: theme.colors.accent)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)

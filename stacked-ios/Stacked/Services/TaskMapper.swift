@@ -185,9 +185,8 @@ enum TaskMapper {
   }
 
   static func formatTimeDisplay(_ time: String) -> String {
-    let parts = time.split(separator: ":")
-    if parts.count >= 2 {
-      return "\(parts[0]):\(parts[1])"
+    if let normalized = normalizeHora(time) {
+      return normalized
     }
     return time
   }
@@ -216,7 +215,8 @@ enum TaskMapper {
 
   /// Combina data civil + string HH:mm em Date local.
   static func combinedDateTime(dueDate: Date, time: String) -> Date? {
-    let parts = time.split(separator: ":")
+    guard let normalized = normalizeHora(time) else { return nil }
+    let parts = normalized.split(separator: ":")
     guard parts.count >= 2,
           let h = Int(parts[0]),
           let m = Int(parts[1]) else { return nil }
@@ -224,7 +224,25 @@ enum TaskMapper {
     var comps = cal.dateComponents([.year, .month, .day], from: startOfDay(dueDate))
     comps.hour = h
     comps.minute = m
+    comps.second = 0
     return cal.date(from: comps)
+  }
+
+  /// Normaliza `hora` do Supabase (ex.: "09:00:00", espaços) para HH:mm.
+  static func normalizeHora(_ raw: String?) -> String? {
+    guard let raw else { return nil }
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+
+    let parts = trimmed.split(separator: ":")
+    if parts.count >= 2,
+       let h = Int(parts[0]),
+       let m = Int(parts[1]),
+       (0..<24).contains(h),
+       (0..<60).contains(m) {
+      return String(format: "%02d:%02d", h, m)
+    }
+    return nil
   }
 
   static func timeString(from date: Date) -> String {

@@ -3,15 +3,15 @@ import SwiftUI
 
 struct CalendarSettingsView: View {
   @Environment(ThemeManager.self) private var theme
-  @Bindable private var calendarService = EventKitCalendarService.shared
+  private let calendarService = EventKitCalendarService.shared
 
-  @State private var importEnabled = false
-  @State private var exportEnabled = false
-  @State private var exportAsAllDay = false
-  @State private var selectedIDs: Set<String> = []
+  @State private var importEnabled = CalendarPreferences.importEnabled
+  @State private var exportEnabled = CalendarPreferences.exportEnabled
+  @State private var exportAsAllDay = CalendarPreferences.exportAsAllDay
   @State private var loading = true
   @State private var togglesReady = false
   @State private var needsPermissionHint = false
+  @State private var selectedIDs: Set<String> = CalendarPreferences.selectedCalendarIDs
 
   var body: some View {
     let c = theme.colors
@@ -177,7 +177,7 @@ struct CalendarSettingsView: View {
     HStack(spacing: 12) {
       settingsLabel(icon: icon, title: title, subtitle: subtitle)
       Spacer(minLength: 8)
-      StackedSwitchControl(isOn: isOn, colors: theme.colors)
+      SettingsSwitchToggle(isOn: isOn, tint: theme.colors.accent)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
@@ -231,10 +231,6 @@ struct CalendarSettingsView: View {
 
   private func load() async {
     calendarService.refreshAuthorizationState()
-    togglesReady = false
-    importEnabled = CalendarPreferences.importEnabled
-    exportEnabled = CalendarPreferences.exportEnabled
-    exportAsAllDay = CalendarPreferences.exportAsAllDay
     selectedIDs = CalendarPreferences.selectedCalendarIDs
     loading = false
     togglesReady = true

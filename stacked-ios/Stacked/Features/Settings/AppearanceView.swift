@@ -190,23 +190,21 @@ struct AppearanceView: View {
   private func fabIntegratedInIslandRow() -> some View {
     let c = theme.colors
 
-    return Toggle(isOn: $fabIntegratedInIsland) {
-      HStack(spacing: 14) {
-        FabIntegratedInIslandPreview(integrated: fabIntegratedInIsland, colors: c)
-        VStack(alignment: .leading, spacing: 3) {
-          Text("FAB integrado na ilha")
-            .font(AppTypography.settingsTitle)
-            .foregroundStyle(isIslandNavStyle ? c.textPrimary : c.textTertiary)
-          Text("O botão + vira um segmento da pill em vez de flutuar acima dela.")
-            .font(AppTypography.taskPreview)
-            .foregroundStyle(c.textSecondary)
-        }
+    return HStack(spacing: 14) {
+      FabIntegratedInIslandPreview(integrated: fabIntegratedInIsland, colors: c)
+      VStack(alignment: .leading, spacing: 3) {
+        Text("FAB integrado na ilha")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(isIslandNavStyle ? c.textPrimary : c.textTertiary)
+        Text("O botão + vira um segmento da pill em vez de flutuar acima dela.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
       }
-      .frame(minHeight: 44)
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $fabIntegratedInIsland, tint: c.accent)
+        .disabled(!isIslandNavStyle)
     }
-    .toggleStyle(.switch)
-    .tint(c.accent)
-    .disabled(!isIslandNavStyle)
+    .frame(minHeight: 44)
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: fabIntegratedInIsland) { _, enabled in

@@ -665,7 +665,7 @@ struct TaskDetailView: View {
             .fill(c.textTertiary.opacity(0.35))
             .frame(width: 51, height: 31)
         } else {
-          StackedSwitchControl(isOn: binding, colors: c)
+          SettingsSwitchToggle(isOn: binding, tint: c.accent)
         }
       }
       .frame(width: 51, height: 44)

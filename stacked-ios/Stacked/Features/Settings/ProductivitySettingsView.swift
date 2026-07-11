@@ -17,7 +17,7 @@ struct ProductivitySettingsView: View {
               subtitle: "Campo de notas abaixo do título ao criar tarefas"
             )
             Spacer(minLength: 8)
-            StackedSwitchControl(
+            SettingsSwitchToggle(
               isOn: Binding(
                 get: { quickAddDescription },
                 set: { newValue in
@@ -26,7 +26,7 @@ struct ProductivitySettingsView: View {
                   HapticService.selection()
                 }
               ),
-              colors: c
+              tint: c.accent
             )
           }
           .padding(.horizontal, SettingsChrome.rowPaddingH)
