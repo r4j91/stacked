@@ -10,22 +10,21 @@ struct ProductivityView: View {
   @State private var tab = 0
   @State private var loading = true
   @State private var completionDates: [Date] = []
+  @State private var todayCompletedCount = 0
   @State private var totalCompleted = 0
   @State private var displayName = ""
+  @State private var taskStore = TaskStore.shared
 
+  private let repo = TaskRepository.shared
   private var client: SupabaseClient { SupabaseService.client }
 
   var body: some View {
     let c = theme.colors
 
     VStack(spacing: 0) {
-      Capsule()
-        .fill(c.textTertiary.opacity(0.35))
-        .frame(width: 36, height: 4)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
+      SheetDragHandle()
 
-      HStack {
+      HStack(alignment: .firstTextBaseline) {
         Text("Relatório")
           .font(AppTypography.sheetTitle)
           .foregroundStyle(c.textPrimary)
@@ -33,9 +32,10 @@ struct ProductivityView: View {
         ModalChrome.closeTextButton(dismiss: dismiss, accent: c.accent)
       }
       .padding(.horizontal, 16)
-      .padding(.top, 8)
+      .padding(.top, 4)
+      .padding(.bottom, 2)
 
-      if loading {
+      if loading && completionDates.isEmpty && todayCompletedCount == 0 {
         Spacer()
         ProgressView().tint(c.accent)
         Spacer()
@@ -53,7 +53,14 @@ struct ProductivityView: View {
     .background(c.background)
     .presentationDetents([.large])
     .presentationDragIndicator(.hidden)
-    .task { await load() }
+    .task { await load(initial: true) }
+    .onAppear { _Concurrency.Task { await load(initial: false) } }
+    .onChange(of: taskStore.todayCompleted.count) { _, _ in
+      _Concurrency.Task { await load(initial: false) }
+    }
+    .onChange(of: taskStore.inboxCompleted.count) { _, _ in
+      _Concurrency.Task { await load(initial: false) }
+    }
   }
 
   // MARK: - Profile
@@ -134,7 +141,7 @@ struct ProductivityView: View {
 
   private var dailyTab: some View {
     VStack(spacing: 10) {
-      productivityCard {
+      productivityCard(alignment: .center) {
         HStack(spacing: 8) {
           Image(systemName: "checkmark.circle")
             .font(.system(size: 18))
@@ -143,6 +150,8 @@ struct ProductivityView: View {
             .font(AppTypography.cardHeading)
             .foregroundStyle(theme.colors.textPrimary)
         }
+        .frame(maxWidth: .infinity)
+
         Text("\(todayCount)")
           .font(AppTypography.metricHero)
           .foregroundStyle(theme.colors.textPrimary)
@@ -238,11 +247,14 @@ struct ProductivityView: View {
     .padding(.top, 8)
   }
 
-  private func productivityCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
+  private func productivityCard<Content: View>(
+    alignment: HorizontalAlignment = .leading,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    VStack(alignment: alignment, spacing: 4) {
       content()
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : .leading)
     .padding(16)
     .background(theme.colors.surface)
     .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -255,7 +267,7 @@ struct ProductivityView: View {
   }
 
   private var todayCount: Int {
-    completionDates.filter { Calendar.current.isDate($0, inSameDayAs: today) }.count
+    todayCompletedCount
   }
 
   private var last7Days: [Int] {
@@ -292,9 +304,9 @@ struct ProductivityView: View {
 
   // MARK: - Data
 
-  private func load() async {
-    loading = true
-    defer { loading = false }
+  private func load(initial: Bool) async {
+    if initial { loading = true }
+    defer { if initial { loading = false } }
 
     let meta = client.auth.currentUser?.userMetadata ?? [:]
     let apelido = metadataString(meta["apelido"])
@@ -308,23 +320,25 @@ struct ProductivityView: View {
     }
 
     do {
-      struct Row: Decodable { let data_vencimento: String? }
-      let rows: [Row] = try await client
-        .from("tasks")
-        .select("data_vencimento")
-        .eq("concluida", value: true)
-        .not("data_vencimento", operator: .is, value: "null")
-        .order("data_vencimento", ascending: false)
-        .execute()
-        .value
+      let weekday = Calendar.current.component(.weekday, from: today)
+      let daysFromMonday = (weekday + 5) % 7
+      let thisMonday = Calendar.current.date(byAdding: .day, value: -daysFromMonday, to: today)!
+      let lastMonday = Calendar.current.date(byAdding: .day, value: -7, to: thisMonday)!
 
-      completionDates = rows.compactMap { row in
-        guard let raw = row.data_vencimento else { return nil }
-        return TaskMapper.parseDueDate(raw)
-      }
-      totalCompleted = completionDates.count
+      async let completionTimestamps = repo.fetchProductivityCompletionDates(since: lastMonday)
+      async let completedToday = repo.fetchCompletedTodayTasks()
+      async let totalCount = repo.countAllCompletedTasks()
+
+      let (timestamps, todayTasks, total) = try await (completionTimestamps, completedToday, totalCount)
+      completionDates = timestamps
+      todayCompletedCount = todayTasks.count
+      totalCompleted = total
     } catch {
+      if !initial {
+        return
+      }
       completionDates = []
+      todayCompletedCount = 0
       totalCompleted = 0
     }
   }

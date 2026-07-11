@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Hero unificado (conceitos)</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --priority-medium: #F5A623;
+      --tag-purple: #B18CF5;
+      --tag-green: #8FD46B;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --phone-w: 320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text-primary);
+      line-height: 1.4;
+      padding: 32px 24px 64px;
+    }
+
+    header {
+      max-width: 1180px;
+      margin: 0 auto 32px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 68ch;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-green { background: var(--tag-green); }
+    .dot-red { background: var(--priority-high); }
+    .dot-cyan { background: var(--accent); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 28px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .concept {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .concept-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .concept-head h2 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .concept-head p {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+      line-height: 1.45;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      margin-top: 8px;
+      background: rgba(95, 211, 220, 0.12);
+      color: var(--accent);
+    }
+
+    .phones { display: flex; flex-direction: column; }
+
+    .phone-wrap {
+      padding: 18px;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.04);
+    }
+
+    .phone-wrap:last-child { border-bottom: none; }
+
+    .state-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .phone {
+      width: var(--phone-w);
+      background: var(--bg);
+      border-radius: 24px;
+      border: 1px solid rgba(242, 243, 245, 0.08);
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .phone-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 8px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4a2040, #7a3060);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .toolbar-icons {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 4px 6px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .toolbar-icons span {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .phone-body { padding: 0 16px 14px; }
+
+    /* —— Shared concept card chrome —— */
+    .u-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--surface);
+      border: 1px solid rgba(242, 243, 245, 0.07);
+    }
+
+    .u-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    .u-card.accent-green::before {
+      background:
+        radial-gradient(ellipse 70% 80% at 100% 0%, rgba(143, 212, 107, 0.08), transparent 55%),
+        linear-gradient(135deg, rgba(143, 212, 107, 0.1) 0%, rgba(143, 212, 107, 0.04) 40%, transparent 70%);
+    }
+
+    .u-card.accent-green { border-color: rgba(143, 212, 107, 0.14); }
+
+    .u-card.accent-red::before {
+      background:
+        radial-gradient(ellipse 70% 80% at 100% 0%, rgba(239, 90, 95, 0.08), transparent 55%),
+        linear-gradient(135deg, rgba(239, 90, 95, 0.1) 0%, rgba(239, 90, 95, 0.04) 40%, transparent 70%);
+    }
+
+    .u-card.accent-red { border-color: rgba(239, 90, 95, 0.14); }
+
+    .u-card.accent-purple::before {
+      background:
+        radial-gradient(ellipse 70% 80% at 100% 0%, rgba(177, 140, 245, 0.08), transparent 55%),
+        linear-gradient(135deg, rgba(177, 140, 245, 0.1) 0%, rgba(177, 140, 245, 0.04) 40%, transparent 70%);
+    }
+
+    .u-card.accent-purple { border-color: rgba(177, 140, 245, 0.14); }
+
+    .u-card.accent-cyan::before {
+      background:
+        radial-gradient(ellipse 70% 80% at 100% 0%, rgba(95, 211, 220, 0.08), transparent 55%),
+        linear-gradient(135deg, rgba(95, 211, 220, 0.1) 0%, rgba(95, 211, 220, 0.04) 40%, transparent 70%);
+    }
+
+    .u-card.accent-cyan { border-color: rgba(95, 211, 220, 0.14); }
+
+    .u-card.accent-amber::before {
+      background:
+        radial-gradient(ellipse 70% 80% at 100% 0%, rgba(245, 166, 35, 0.08), transparent 55%),
+        linear-gradient(135deg, rgba(245, 166, 35, 0.1) 0%, rgba(245, 166, 35, 0.04) 40%, transparent 70%);
+    }
+
+    .u-card.accent-amber { border-color: rgba(245, 166, 35, 0.14); }
+
+    .u-card-inner {
+      position: relative;
+      z-index: 1;
+      padding: 12px 14px;
+    }
+
+    .u-card.tappable { cursor: pointer; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .chip-green {
+      background: rgba(143, 212, 107, 0.14);
+      color: rgba(143, 212, 107, 0.9);
+    }
+
+    .chip-red {
+      background: rgba(239, 90, 95, 0.14);
+      color: rgba(239, 90, 95, 0.92);
+    }
+
+    .chip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+
+    .eyebrow.purple { color: rgba(177, 140, 245, 0.72); }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.25;
+    }
+
+    .card-meta {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-meta .clock { opacity: 0.7; font-size: 11px; }
+
+    .card-footer {
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(242, 243, 245, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .card-footer .on { color: var(--text-secondary); }
+
+    .card-footer .warn { color: rgba(239, 90, 95, 0.8); }
+
+    .card-footer .ok { color: rgba(143, 212, 107, 0.75); }
+
+    .chevron {
+      color: var(--text-tertiary);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .u-card.accent-red .chevron { color: rgba(239, 90, 95, 0.7); }
+
+    /* Painel layout */
+    .painel-top { display: flex; gap: 10px; align-items: flex-start; }
+    .painel-body { flex: 1; min-width: 0; }
+
+    /* Bússola */
+    .bussola-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 76px;
+    }
+
+    .bussola-text { flex: 1; min-width: 0; }
+
+    .bussola-text .heading {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+
+    .bussola-text .status {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+    }
+
+    .bussola-text .status.ok { color: rgba(143, 212, 107, 0.88); }
+    .bussola-text .status.warn { color: rgba(239, 90, 95, 0.9); }
+
+    .bussola-text .detail {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    /* Fila */
+    .fila-head {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    .fila-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .fila-item + .fila-item { border-top: 1px solid rgba(242, 243, 245, 0.04); }
+
+    .fila-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .fila-dot.red { background: rgba(239, 90, 95, 0.85); }
+    .fila-dot.muted { background: rgba(107, 110, 118, 0.6); }
+    .fila-dot.cyan { background: rgba(95, 211, 220, 0.7); }
+
+    .fila-label {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .fila-label.red { color: rgba(239, 90, 95, 0.75); }
+    .fila-label.cyan { color: rgba(95, 211, 220, 0.75); }
+
+    .fila-more {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(242, 243, 245, 0.06);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    /* Termômetro */
+    .termo-row {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      padding: 4px 0 8px;
+    }
+
+    .termo-col .num {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .termo-col .num.dim { color: var(--text-tertiary); font-weight: 700; font-size: 18px; }
+    .termo-col .num.hot { color: rgba(239, 90, 95, 0.95); }
+    .termo-col .num.calm { color: rgba(143, 212, 107, 0.9); }
+
+    .termo-col .lbl {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .termo-caption {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding-top: 8px;
+      border-top: 1px solid rgba(242, 243, 245, 0.06);
+    }
+
+    .termo-caption.warn { color: rgba(239, 90, 95, 0.85); }
+    .termo-caption.ok { color: rgba(143, 212, 107, 0.8); }
+
+    /* Ritmo */
+    .ritmo-head {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .week-track {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .week-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .week-day span {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+
+    .week-day i {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .week-day i.on { background: rgba(245, 166, 35, 0.28); }
+    .week-day i.on::after {
+      content: "✓";
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(245, 166, 35, 0.9);
+      height: 100%;
+    }
+
+    .week-day i.off { background: rgba(242, 243, 245, 0.07); }
+
+    .ritmo-caption {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* Próximo passo */
+    .proximo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 72px;
+    }
+
+    .proximo-body { flex: 1; min-width: 0; }
+
+    .proximo-kicker {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(95, 211, 220, 0.7);
+      margin-bottom: 4px;
+    }
+
+    .proximo-hint {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(239, 90, 95, 0.75);
+      margin-top: 4px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin: 4px 0 6px;
+    }
+
+    .nav-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .nav-row .icon { width: 26px; text-align: center; color: var(--text-secondary); font-size: 16px; }
+    .nav-row .count { margin-left: auto; color: var(--text-tertiary); font-size: 14px; }
+    .nav-row .arr { color: var(--text-tertiary); opacity: 0.65; font-size: 12px; margin-left: 6px; }
+
+    footer.note {
+      max-width: 1180px;
+      margin: 32px auto 0;
+      padding: 16px 18px;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    footer.note strong { color: var(--text-primary); font-weight: 600; }
+    footer.note code {
+      font-size: 12px;
+      background: rgba(242, 243, 245, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hero unificado — novas opções</h1>
+    <p>
+      Conceitos novos no estilo premium dos cards Mensagem / Foco / Sequência:
+      surface + lavagem sutil + borda fina. Status (atrasada / tudo em dia) integrado
+      no mesmo card, sem faixa separada embaixo. Não substitui os estilos já existentes.
+    </p>
+    <div class="legend">
+      <span><i class="dot dot-green"></i> Tudo em dia</span>
+      <span><i class="dot dot-red"></i> Com atrasada</span>
+      <span><i class="dot dot-cyan"></i> Unificado (status + conteúdo)</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 1. Painel -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>1 — Painel</h2>
+        <p>Chip de status + foco do dia + métricas no rodapé. Resolve foco vs atrasada num só lugar.</p>
+        <span class="tag">Recomendado</span>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Tudo em dia</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-green">
+                <div class="u-card-inner">
+                  <div class="chip-row">
+                    <span class="eyebrow purple">Foco do dia</span>
+                    <span class="chip chip-green">✓ Tudo em dia</span>
+                  </div>
+                  <div class="card-title">Nada pendente para hoje</div>
+                  <div class="card-footer">
+                    <span class="ok">Hoje: 0</span>
+                    <span>·</span>
+                    <span class="on">Em breve: 4</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📥</span> Inbox <span class="count">0</span><span class="arr">›</span></div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">1 pendência atrasada</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-red tappable">
+                <div class="u-card-inner">
+                  <div class="chip-row">
+                    <span class="eyebrow purple">Foco do dia</span>
+                    <span class="chip chip-red">1 atrasada</span>
+                  </div>
+                  <div class="card-title">Revisar proposta do cliente</div>
+                  <div class="card-meta"><span class="clock">🕐</span> Ontem · 14:00</div>
+                  <div class="card-footer">
+                    <span class="warn">Hoje: 0</span>
+                    <span>·</span>
+                    <span class="on">Em breve: 4</span>
+                    <span class="chevron" style="margin-left:auto">›</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📥</span> Inbox <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2. Bússola -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>2 — Bússola</h2>
+        <p>Status como direção do dia. Alvo sutil à direita muda de cor conforme o estado.</p>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Tudo em dia</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-green">
+                <div class="u-card-inner">
+                  <div class="bussola-row">
+                    <div class="bussola-text">
+                      <div class="heading">Norte de hoje</div>
+                      <div class="status ok">Tudo em dia</div>
+                      <div class="detail">4 tarefas em breve · nada para hoje</div>
+                    </div>
+                    <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
+                      <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(143,212,107,0.18)" stroke-width="2"/>
+                      <circle cx="26" cy="26" r="14" fill="none" stroke="rgba(143,212,107,0.28)" stroke-width="2"/>
+                      <circle cx="26" cy="26" r="4" fill="rgba(143,212,107,0.45)"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">1 pendência atrasada</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-red tappable">
+                <div class="u-card-inner">
+                  <div class="bussola-row">
+                    <div class="bussola-text">
+                      <div class="heading">Norte de hoje</div>
+                      <div class="status warn">1 pendência atrasada</div>
+                      <div class="detail">Revisar proposta do cliente</div>
+                    </div>
+                    <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
+                      <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(239,90,95,0.18)" stroke-width="2"/>
+                      <circle cx="26" cy="26" r="14" fill="none" stroke="rgba(239,90,95,0.28)" stroke-width="2"/>
+                      <circle cx="26" cy="26" r="4" fill="rgba(239,90,95,0.5)"/>
+                      <path d="M34 18 L38 14 M38 14 L34 14 M38 14 L38 18" stroke="rgba(239,90,95,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3. Fila -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>3 — Fila</h2>
+        <p>A fila real do dia. Status embutido nas linhas, sem chip nem banner.</p>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Tudo em dia</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-cyan">
+                <div class="u-card-inner">
+                  <div class="fila-head">Sua fila</div>
+                  <div class="fila-item">
+                    <span class="fila-dot muted"></span>
+                    <span>Nada pendente para hoje</span>
+                  </div>
+                  <div class="fila-more">+ 4 em breve</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">1 pendência atrasada</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-red tappable">
+                <div class="u-card-inner">
+                  <div class="fila-head">Sua fila</div>
+                  <div class="fila-item">
+                    <span class="fila-dot red"></span>
+                    <span>Revisar proposta do cliente</span>
+                    <span class="fila-label red">atrasada</span>
+                  </div>
+                  <div class="fila-item">
+                    <span class="fila-dot cyan"></span>
+                    <span>Ligar fornecedor</span>
+                    <span class="fila-label cyan">hoje</span>
+                  </div>
+                  <div class="fila-more">+ 3 em breve</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4. Termômetro -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>4 — Termômetro</h2>
+        <p>Três números, um em destaque. Scan rápido sem lista.</p>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Tudo em dia</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-green">
+                <div class="u-card-inner">
+                  <div class="termo-row">
+                    <div class="termo-col">
+                      <div class="num dim">0</div>
+                      <div class="lbl">atrasadas</div>
+                    </div>
+                    <div class="termo-col">
+                      <div class="num calm">0</div>
+                      <div class="lbl">hoje</div>
+                    </div>
+                    <div class="termo-col">
+                      <div class="num dim">4</div>
+                      <div class="lbl">em breve</div>
+                    </div>
+                  </div>
+                  <div class="termo-caption ok">Tudo sob controle</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">1 pendência atrasada</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-red tappable">
+                <div class="u-card-inner">
+                  <div class="termo-row">
+                    <div class="termo-col">
+                      <div class="num hot">1</div>
+                      <div class="lbl">atrasadas</div>
+                    </div>
+                    <div class="termo-col">
+                      <div class="num dim">0</div>
+                      <div class="lbl">hoje</div>
+                    </div>
+                    <div class="termo-col">
+                      <div class="num dim">4</div>
+                      <div class="lbl">em breve</div>
+                    </div>
+                  </div>
+                  <div class="termo-caption warn">1 precisa de atenção ›</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 5. Ritmo -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>5 — Ritmo</h2>
+        <p>Semana de conclusões, tom factual. Alternativa mais sóbria à Sequência.</p>
+        <span class="tag" style="background:rgba(245,166,35,0.12);color:rgba(245,166,35,0.9)">Conteúdo · não unifica status</span>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Semana ativa</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-amber">
+                <div class="u-card-inner">
+                  <div class="ritmo-head">Esta semana</div>
+                  <div class="week-track">
+                    <div class="week-day"><span>S</span><i class="on"></i></div>
+                    <div class="week-day"><span>T</span><i class="on"></i></div>
+                    <div class="week-day"><span>Q</span><i class="off"></i></div>
+                    <div class="week-day"><span>Q</span><i class="on"></i></div>
+                    <div class="week-day"><span>S</span><i class="off"></i></div>
+                    <div class="week-day"><span>S</span><i class="off"></i></div>
+                    <div class="week-day"><span>D</span><i class="off"></i></div>
+                  </div>
+                  <div class="ritmo-caption">3 dias com conclusão</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">Com atrasada (status no chip)</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-amber">
+                <div class="u-card-inner">
+                  <div class="chip-row">
+                    <span class="ritmo-head" style="margin:0">Esta semana</span>
+                    <span class="chip chip-red">1 atrasada</span>
+                  </div>
+                  <div class="week-track">
+                    <div class="week-day"><span>S</span><i class="on"></i></div>
+                    <div class="week-day"><span>T</span><i class="on"></i></div>
+                    <div class="week-day"><span>Q</span><i class="off"></i></div>
+                    <div class="week-day"><span>Q</span><i class="on"></i></div>
+                    <div class="week-day"><span>S</span><i class="off"></i></div>
+                    <div class="week-day"><span>S</span><i class="off"></i></div>
+                    <div class="week-day"><span>D</span><i class="off"></i></div>
+                  </div>
+                  <div class="ritmo-caption">3 dias com conclusão</div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 6. Próximo passo -->
+    <article class="concept">
+      <div class="concept-head">
+        <h2>6 — Próximo passo</h2>
+        <p>Mínimo e acionável. Chevron indica que o card leva à ação.</p>
+        <span class="tag" style="background:rgba(95,211,220,0.12);color:var(--accent)">Semi-unificado</span>
+      </div>
+      <div class="phones">
+        <div class="phone-wrap">
+          <div class="state-label">Tudo em dia</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-cyan">
+                <div class="u-card-inner">
+                  <div class="proximo-row">
+                    <div class="proximo-body">
+                      <div class="proximo-kicker">Próximo</div>
+                      <div class="card-title">Nada pendente para hoje</div>
+                      <div class="card-meta">4 tarefas em breve</div>
+                    </div>
+                    <span class="chevron">›</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-wrap">
+          <div class="state-label">1 pendência atrasada</div>
+          <div class="phone">
+            <div class="phone-toolbar">
+              <div class="avatar"></div>
+              <div class="toolbar-icons"><span>🔔</span><span>⚙</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="u-card accent-red tappable">
+                <div class="u-card-inner">
+                  <div class="proximo-row">
+                    <div class="proximo-body">
+                      <div class="proximo-kicker">Próximo</div>
+                      <div class="card-title">Revisar proposta do cliente</div>
+                      <div class="proximo-hint">1 atrasada antes disso</div>
+                    </div>
+                    <span class="chevron">›</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-label">VISÃO GERAL</div>
+              <div class="nav-row"><span class="icon">📅</span> Hoje <span class="count">0</span><span class="arr">›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <footer class="note">
+    <strong>Como ver:</strong> abra no navegador
+    <code>docs/concepts/home-hero-unified-concepts.html</code>.
+  </footer>
+</body>
+</html>

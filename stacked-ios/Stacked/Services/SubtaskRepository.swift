@@ -18,8 +18,15 @@ final class SubtaskRepository {
   private init() {}
 
   func toggleDone(id: String?, taskId: String?, order: Int, done: Bool) async throws {
-    struct Payload: Encodable { let concluida: Bool }
-    _ = try await persistSubtask(id: id, taskId: taskId, order: order, payload: Payload(concluida: done))
+    struct Payload: Encodable {
+      let concluida: Bool
+      let data_conclusao: String?
+    }
+    let payload = Payload(
+      concluida: done,
+      data_conclusao: done ? TaskMapper.isoTimestamp(Date()) : nil
+    )
+    _ = try await persistSubtask(id: id, taskId: taskId, order: order, payload: payload)
   }
 
   func toggleDone(id: String, done: Bool) async throws {

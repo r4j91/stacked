@@ -8,7 +8,7 @@ Projeto: `gbpoenvogrcqhcqfjldd` · compartilhado entre **stacked-web** e **stack
 |--------|-----------|
 | `projects` | Projetos do usuário |
 | `sections` | Seções dentro de um projeto |
-| `tasks` | Tarefas (`data_vencimento` date, `hora` time) |
+| `tasks` | Tarefas (`data_vencimento` date, `hora` time, `data_conclusao` timestamptz) |
 | `subtasks` | Subtarefas (`data_vencimento` timestamptz, `hora` text) |
 | `labels` | Etiquetas |
 | `task_labels` | Vínculo tarefa ↔ etiqueta |
@@ -27,6 +27,9 @@ Arquivos em `supabase/migrations/` — ordem pelo prefixo de data:
 20260705200000_saved_filters.sql
 20260708200000_subtasks_hora.sql
 20260708220000_supabase_hygiene.sql
+20260708230000_labels_sort_order.sql
+20260709180000_tasks_whatsapp_rotina.sql
+20260711120000_task_completion_timestamp.sql
 ```
 
 > O schema base (tasks, projects, etc.) foi criado manualmente no SQL Editor antes do versionamento. Não recrie essas tabelas — use apenas migrations incrementais.

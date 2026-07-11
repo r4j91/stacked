@@ -13,8 +13,19 @@ final class HomeStore {
   private(set) var projects: [HomeProject] = []
   private(set) var isLoading = false
   private(set) var error: String?
+  private(set) var focusTaskTitle: String?
+  private(set) var focusTaskTime: String?
+  private(set) var primaryOverdueTitle: String?
+  private(set) var primaryOverdueTime: String?
+  private(set) var queueLines: [HomeHeroInsights.QueueLine] = []
+  private(set) var completionStreak = 0
+  private(set) var streakWeekCompleted: [Bool] = Array(repeating: false, count: 7)
 
   private init() {}
+
+  var motivationContent: (quote: String, footnote: String) {
+    HomeMotivationQuotes.forToday()
+  }
 
   var firstName: String {
     displayNameComponents.first ?? ""
@@ -91,6 +102,33 @@ final class HomeStore {
     return "Você está em dia com tudo."
   }
 
+  func overdueChipLabel(overdueCount: Int) -> String {
+    if overdueCount == 1 { return "1 atrasada" }
+    return "\(overdueCount) atrasadas"
+  }
+
+  var panelPrimaryTitle: String {
+    if overdueCount > 0 {
+      return primaryOverdueTitle ?? statusLabel(overdueCount: overdueCount)
+    }
+    return focusTaskTitle ?? "Nada pendente para hoje"
+  }
+
+  var panelPrimaryTime: String? {
+    overdueCount > 0 ? primaryOverdueTime : focusTaskTime
+  }
+
+  var nextStepTitle: String {
+    if overdueCount > 0 {
+      return primaryOverdueTitle ?? statusLabel(overdueCount: overdueCount)
+    }
+    return focusTaskTitle ?? "Nada pendente para hoje"
+  }
+
+  var completedDaysThisWeek: Int {
+    streakWeekCompleted.filter { $0 }.count
+  }
+
   func load() async {
     isLoading = projects.isEmpty
     error = nil
@@ -105,6 +143,7 @@ final class HomeStore {
       async let projectsReq = ProjectRepository.shared.fetchHomeProjects()
       async let upcomingReq = TaskRepository.shared.countUpcomingTasks(userId: userId, todayStr: today)
       async let pendingReq = TaskRepository.shared.fetchPendingTaskProjectIds(userId: userId)
+      async let heroInsightsReq = refreshHeroInsights(todayStr: today)
 
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
@@ -112,6 +151,7 @@ final class HomeStore {
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
+      _ = await heroInsightsReq
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
@@ -128,6 +168,7 @@ final class HomeStore {
       async let projectsReq = ProjectRepository.shared.fetchHomeProjects()
       async let upcomingReq = TaskRepository.shared.countUpcomingTasks(userId: userId, todayStr: today)
       async let pendingReq = TaskRepository.shared.fetchPendingTaskProjectIds(userId: userId)
+      async let heroInsightsReq = refreshHeroInsights(todayStr: today)
 
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
@@ -135,9 +176,44 @@ final class HomeStore {
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
+      _ = await heroInsightsReq
     } catch {
       if AsyncLoad.isCancellation(error) { return }
     }
+  }
+
+  private func refreshHeroInsights(todayStr: String) async {
+    let cal = Calendar.current
+    let today = TaskMapper.parseDueDate(todayStr) ?? cal.startOfDay(for: Date())
+    let streakSince = cal.date(byAdding: .day, value: -21, to: today) ?? today
+
+    async let todayTasksReq = TaskRepository.shared.fetchTodayTasks()
+    async let completionsReq = TaskRepository.shared.fetchProductivityCompletionDates(since: streakSince)
+
+    let todayTasks = (try? await todayTasksReq) ?? []
+    let completions = (try? await completionsReq) ?? []
+
+    if let focus = HomeHeroInsights.resolveFocusTask(from: todayTasks) {
+      focusTaskTitle = focus.title
+      focusTaskTime = focus.time
+    } else {
+      focusTaskTitle = nil
+      focusTaskTime = nil
+    }
+
+    if let overdue = HomeHeroInsights.resolvePrimaryOverdue(from: todayTasks) {
+      primaryOverdueTitle = overdue.title
+      primaryOverdueTime = overdue.time
+    } else {
+      primaryOverdueTitle = nil
+      primaryOverdueTime = nil
+    }
+
+    queueLines = HomeHeroInsights.resolveQueueLines(from: todayTasks)
+
+    let streak = HomeHeroInsights.streak(from: completions)
+    completionStreak = streak.days
+    streakWeekCompleted = streak.weekCompleted
   }
 }
 

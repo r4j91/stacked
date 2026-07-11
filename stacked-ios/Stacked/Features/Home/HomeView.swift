@@ -80,7 +80,8 @@ struct HomeView: View {
     }
     .sheet(isPresented: $showProductivity) {
       ProductivityView().environment(ThemeManager.shared)
-        .presentationDetents([.large]).presentationDragIndicator(.visible)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
     .sheet(isPresented: $showNotifications) {
       NotificationsPreviewSheet().environment(ThemeManager.shared)

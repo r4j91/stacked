@@ -112,6 +112,36 @@ enum TaskMapper {
     return f.string(from: local)
   }
 
+  static func isoTimestamp(_ date: Date) -> String {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter.string(from: date)
+  }
+
+  /// Limites [início, fim) do dia civil local em ISO8601 para filtros em `data_conclusao`.
+  static func completionDayBounds(for date: Date = Date()) -> (start: String, end: String) {
+    let cal = Calendar.current
+    let start = cal.startOfDay(for: date)
+    let end = cal.date(byAdding: .day, value: 1, to: start)!
+    return (isoTimestamp(start), isoTimestamp(end))
+  }
+
+  static func parseCompletionTimestamp(_ raw: String?) -> Date? {
+    guard let raw else { return nil }
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+
+    let withFraction = ISO8601DateFormatter()
+    withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = withFraction.date(from: trimmed) { return date }
+
+    let internet = ISO8601DateFormatter()
+    internet.formatOptions = [.withInternetDateTime]
+    if let date = internet.date(from: trimmed) { return date }
+
+    return parseDueDate(trimmed)
+  }
+
   /// Paridade today_screen — separa atrasadas vs hoje
   static func splitTodayPending(_ tasks: [Task], now: Date = Date()) -> (overdue: [Task], today: [Task]) {
     let todayStart = Calendar.current.startOfDay(for: now)

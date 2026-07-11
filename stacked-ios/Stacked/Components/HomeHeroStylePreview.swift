@@ -41,6 +41,30 @@ struct HomeHeroStylePreview: View {
       openPreview
     case .focus:
       focusPreview
+    case .motivation:
+      motivationPreview
+    case .focusDay:
+      focusDayPreview
+    case .streak:
+      streakPreview
+    case .motivationIntegrated:
+      motivationIntegratedPreview
+    case .focusDayIntegrated:
+      focusDayIntegratedPreview
+    case .streakIntegrated:
+      streakIntegratedPreview
+    case .panel:
+      panelPreview
+    case .compass:
+      compassPreview
+    case .queue:
+      queuePreview
+    case .thermometer:
+      thermometerPreview
+    case .rhythm:
+      rhythmPreview
+    case .nextStep:
+      nextStepPreview
     }
   }
 
@@ -166,5 +190,177 @@ struct HomeHeroStylePreview: View {
         .frame(width: 34, height: 2)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private func conceptPreviewSurface(accent: Color) -> some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 3)
+        .fill(colors.surface)
+      RoundedRectangle(cornerRadius: 3)
+        .fill(
+          LinearGradient(
+            colors: [accent.opacity(0.14), accent.opacity(0.04), .clear],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+    }
+    .overlay {
+      RoundedRectangle(cornerRadius: 3)
+        .strokeBorder(accent.opacity(0.16), lineWidth: 0.5)
+    }
+  }
+
+  private var motivationPreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: colors.accent)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.7)).frame(width: 24, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.55)).frame(width: 16, height: 2)
+      }
+      .padding(.leading, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var focusDayPreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: AppColors.tagPurple)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.45)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 28, height: 3)
+      }
+      .padding(.leading, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var streakPreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: colors.accent)
+      HStack(spacing: 3) {
+        Circle().fill(colors.accent.opacity(0.4)).frame(width: 6, height: 6)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.7)).frame(width: 14, height: 3)
+      }
+      .padding(.leading, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func integratedConceptPreview(accent: Color) -> some View {
+    ZStack(alignment: .bottomLeading) {
+      conceptPreviewSurface(accent: accent)
+      VStack(alignment: .leading, spacing: 0) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.7)).frame(width: 22, height: 3)
+          .padding(.leading, 4)
+          .padding(.top, 4)
+        Spacer(minLength: 0)
+        Rectangle().fill(colors.textPrimary.opacity(0.08)).frame(height: 1).padding(.horizontal, 3)
+        HStack(spacing: 2) {
+          Circle().fill(AppColors.tagGreen.opacity(0.6)).frame(width: 3, height: 3)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 14, height: 2)
+        }
+        .padding(.leading, 4)
+        .padding(.bottom, 3)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var motivationIntegratedPreview: some View {
+    integratedConceptPreview(accent: colors.accent)
+  }
+
+  private var focusDayIntegratedPreview: some View {
+    integratedConceptPreview(accent: AppColors.tagPurple)
+  }
+
+  private var streakIntegratedPreview: some View {
+    integratedConceptPreview(accent: colors.accent)
+  }
+
+  private var panelPreview: some View {
+    ZStack(alignment: .topLeading) {
+      conceptPreviewSurface(accent: AppColors.tagGreen)
+      VStack(alignment: .leading, spacing: 2) {
+        Capsule().fill(AppColors.tagGreen.opacity(0.3)).frame(width: 16, height: 4)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 26, height: 3)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.45)).frame(width: 20, height: 2)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var compassPreview: some View {
+    ZStack {
+      conceptPreviewSurface(accent: AppColors.tagGreen)
+      HStack(spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.5)).frame(width: 16, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagGreen.opacity(0.65)).frame(width: 18, height: 3)
+        }
+        Circle().strokeBorder(AppColors.tagGreen.opacity(0.35), lineWidth: 0.5).frame(width: 10, height: 10)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var queuePreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: colors.accent)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.5)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.7)).frame(width: 24, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.55)).frame(width: 20, height: 2)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var thermometerPreview: some View {
+    ZStack(alignment: .bottom) {
+      conceptPreviewSurface(accent: AppColors.tagGreen)
+      HStack(spacing: 6) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.45)).frame(width: 4, height: 6)
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagGreen.opacity(0.65)).frame(width: 4, height: 8)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.45)).frame(width: 4, height: 5)
+      }
+      .padding(.bottom, 5)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var rhythmPreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: colors.accent)
+      HStack(spacing: 2) {
+        ForEach(0..<5, id: \.self) { i in
+          Circle()
+            .fill(i < 3 ? colors.accent.opacity(0.35) : colors.textTertiary.opacity(0.2))
+            .frame(width: 4, height: 4)
+        }
+      }
+      .padding(.leading, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var nextStepPreview: some View {
+    ZStack(alignment: .leading) {
+      conceptPreviewSurface(accent: colors.accent)
+      HStack {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(colors.accent.opacity(0.5)).frame(width: 12, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 24, height: 3)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textTertiary.opacity(0.45)).frame(width: 3, height: 6)
+      }
+      .padding(.horizontal, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }

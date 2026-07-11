@@ -58,7 +58,124 @@ struct HomeHeroSection: View {
       overdueButton { openTypeHero }
     case .focus:
       overdueButton(clearAccessibility: focusClearAccessibility) { focusHero }
+    case .motivation:
+      conceptHeroLayout { motivationHero }
+    case .focusDay:
+      conceptHeroLayout { focusDayHero }
+    case .streak:
+      conceptHeroLayout { streakHero }
+    case .motivationIntegrated:
+      HomeHeroMotivationIntegratedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .focusDayIntegrated:
+      HomeHeroFocusDayIntegratedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .streakIntegrated:
+      HomeHeroStreakIntegratedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .panel:
+      HomeHeroPanelCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
+    case .compass:
+      HomeHeroCompassCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
+    case .queue:
+      HomeHeroQueueCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
+    case .thermometer:
+      HomeHeroThermometerCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
+    case .rhythm:
+      HomeHeroRhythmCard(store: store, metrics: metrics, isOverdue: isOverdue)
+    case .nextStep:
+      HomeHeroNextStepCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
     }
+  }
+
+  @ViewBuilder
+  private func conceptHeroLayout<Content: View>(@ViewBuilder card: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      card()
+      conceptStatusRow
+    }
+  }
+
+  private var conceptStatusRow: some View {
+    Group {
+      if isOverdue {
+        conceptOverdueBanner
+      } else {
+        conceptAllClearBanner
+      }
+    }
+  }
+
+  private func conceptStatusCardChrome(accent: Color) -> some View {
+    let c = theme.colors
+    return Group {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(c.surfaceVariant.opacity(c.isDark ? 0.65 : 0.85))
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(accent.opacity(c.isDark ? 0.07 : 0.06))
+    }
+  }
+
+  private func conceptStatusCardBorder(accent: Color) -> some View {
+    RoundedRectangle(cornerRadius: 12, style: .continuous)
+      .strokeBorder(accent.opacity(0.12), lineWidth: 1)
+  }
+
+  private var conceptAllClearBanner: some View {
+    let c = theme.colors
+    let accent = AppColors.tagGreen
+    return HStack(spacing: 10) {
+      ZStack {
+        Circle()
+          .fill(accent.opacity(c.isDark ? 0.14 : 0.12))
+          .frame(width: 28, height: 28)
+        Image(systemName: "checkmark")
+          .font(.system(size: 11, weight: .bold))
+          .foregroundStyle(accent.opacity(0.82))
+      }
+
+      Text("Tudo em dia")
+        .font(AppTypography.bodySemibold)
+        .foregroundStyle(c.textPrimary)
+
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
+    .background { conceptStatusCardChrome(accent: accent) }
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .overlay { conceptStatusCardBorder(accent: accent) }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Tudo em dia")
+  }
+
+  private var conceptOverdueBanner: some View {
+    let c = theme.colors
+    return Button {
+      HapticService.selection()
+      onOpenFilter(.overdue)
+    } label: {
+      HStack(spacing: 10) {
+        StackedIcons.image(.exclamation)
+          .foregroundStyle(AppColors.overdue.opacity(0.8))
+        Text(store.statusLabel(overdueCount: store.overdueCount))
+          .font(AppTypography.bodySemibold)
+          .foregroundStyle(c.textPrimary)
+        Spacer()
+        DisclosureChevron(color: c.textTertiary)
+      }
+      .padding(.horizontal, 14)
+      .padding(.vertical, 12)
+      .background { conceptStatusCardChrome(accent: AppColors.overdue) }
+      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .overlay { conceptStatusCardBorder(accent: AppColors.overdue) }
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(store.statusLabel(overdueCount: store.overdueCount))
+    .accessibilityHint("Abre tarefas atrasadas")
   }
 
   private var focusClearAccessibility: String {
@@ -322,6 +439,127 @@ struct HomeHeroSection: View {
           isOverdue ? AppColors.overdue.opacity(0.18) : c.textPrimary.opacity(c.isDark ? 0.07 : 0.06),
           lineWidth: 1
         )
+    }
+  }
+
+  // MARK: - Concept cards (mensagem / foco do dia / sequência)
+
+  private var motivationHero: some View {
+    let content = store.motivationContent
+    let m = metrics
+    let c = theme.colors
+    let accent = c.accent
+    return conceptCard(accent: accent) {
+      HStack(alignment: .top, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("\u{201C}")
+            .font(.system(size: 26, weight: .bold))
+            .foregroundStyle(accent.opacity(0.38))
+            .offset(y: -4)
+          Text(content.quote)
+            .font(.system(size: m.focusTitleSize, weight: .semibold))
+            .foregroundStyle(c.textPrimary)
+            .lineLimit(3)
+            .minimumScaleFactor(0.9)
+            .fixedSize(horizontal: false, vertical: true)
+          Text(content.footnote)
+            .font(.system(size: m.focusSubtitleSize, weight: .medium))
+            .foregroundStyle(c.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        HomeMotivationMountainArt(accent: accent)
+          .offset(x: 4, y: 2)
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("\(content.quote) \(content.footnote)")
+  }
+
+  private var focusDayHero: some View {
+    let m = metrics
+    let c = theme.colors
+    let accent = AppColors.tagPurple
+    let title = store.focusTaskTitle ?? "Nada pendente para hoje"
+    let time = store.focusTaskTime
+    return conceptCard(accent: accent) {
+      HStack(alignment: .center, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
+          Text("Foco do dia")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(accent.opacity(0.62))
+          Text(title)
+            .font(.system(size: m.focusTitleSize, weight: .bold))
+            .foregroundStyle(c.textPrimary)
+            .lineLimit(2)
+            .minimumScaleFactor(0.9)
+          if let time, !time.isEmpty {
+            HStack(spacing: 4) {
+              Image(systemName: "clock")
+                .font(.system(size: 11, weight: .semibold))
+              Text(time)
+                .font(.system(size: m.focusSubtitleSize, weight: .medium))
+            }
+            .foregroundStyle(c.textSecondary)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        HomeFocusTargetArt(accent: accent)
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(time.map { "Foco do dia: \(title), \($0)" } ?? "Foco do dia: \(title)")
+  }
+
+  private var streakHero: some View {
+    let m = metrics
+    let c = theme.colors
+    let accent = c.accent
+    let days = store.completionStreak
+    return conceptCard(accent: accent) {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(alignment: .top, spacing: 10) {
+          HomeStreakFlameArt(accent: accent)
+          VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+              Text("\(days)")
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(c.textPrimary)
+              Text(days == 1 ? "dia seguido" : "dias seguidos")
+                .font(.system(size: m.focusSubtitleSize, weight: .semibold))
+                .foregroundStyle(c.textSecondary)
+            }
+            Text(days > 0 ? "Constância conta." : "Conclua uma tarefa para começar.")
+              .font(.system(size: m.focusSubtitleSize))
+              .foregroundStyle(c.textTertiary)
+              .lineLimit(1)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        HomeStreakWeekTracker(
+          completed: store.streakWeekCompleted,
+          accent: accent,
+          labelColor: c.textTertiary,
+          emptyDotColor: c.textPrimary.opacity(c.isDark ? 0.07 : 0.06)
+        )
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(
+      days == 1 ? "1 dia seguido com conclusões" : "\(days) dias seguidos com conclusões"
+    )
+  }
+
+  private func conceptCard<Content: View>(
+    accent: Color,
+    @ViewBuilder content: @escaping () -> Content
+  ) -> some View {
+    HomeConceptCard(accent: accent, minHeight: 100, maxHeight: 100) {
+      content()
+        .padding(.horizontal, metrics.cardPaddingH)
+        .padding(.vertical, metrics.cardPaddingV)
     }
   }
 

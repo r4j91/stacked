@@ -9,7 +9,7 @@ import {
   buildPendingFilterResults,
 } from "@/lib/utils/filter-criteria";
 import { mapTaskRow, splitTodayPending } from "@/lib/supabase/map-task";
-import { addDays, parseDueDate, startOfDay, toDateStr } from "@/lib/utils/date";
+import { addDays, completionDayBounds, parseCompletionTimestamp, parseDueDate, startOfDay, toDateStr, toIsoTimestamp } from "@/lib/utils/date";
 import { toDbPriority } from "@/lib/utils/priority";
 import { requireAuthUserId } from "@/lib/supabase/require-auth-user";
 import { computeNextRecurrenceDate, parseRecurrence } from "@/lib/utils/recurrence";
@@ -47,12 +47,14 @@ export class TaskRepository {
   }
 
   async fetchCompletedTodayTasks(): Promise<Task[]> {
-    const todayStr = this.todayStr();
+    const bounds = completionDayBounds();
     const { data, error } = await this.client
       .from("tasks")
       .select(TASK_SELECT)
       .eq("concluida", true)
-      .or(`data_vencimento.is.null,data_vencimento.eq.${todayStr}`)
+      .gte("data_conclusao", bounds.start)
+      .lt("data_conclusao", bounds.end)
+      .order("data_conclusao", { ascending: false })
       .order("ordem", { ascending: true })
       .order("id", { ascending: true });
     if (error) throw error;
@@ -125,7 +127,13 @@ export class TaskRepository {
   }
 
   async toggleTaskDone(id: string, done: boolean): Promise<void> {
-    const { error } = await this.client.from("tasks").update({ concluida: done }).eq("id", id);
+    const { error } = await this.client
+      .from("tasks")
+      .update({
+        concluida: done,
+        data_conclusao: done ? toIsoTimestamp(new Date()) : null,
+      })
+      .eq("id", id);
     if (error) throw error;
   }
 
@@ -183,7 +191,13 @@ export class TaskRepository {
   }
 
   async toggleSubtaskDone(id: string, done: boolean): Promise<void> {
-    const { error } = await this.client.from("subtasks").update({ concluida: done }).eq("id", id);
+    const { error } = await this.client
+      .from("subtasks")
+      .update({
+        concluida: done,
+        data_conclusao: done ? toIsoTimestamp(new Date()) : null,
+      })
+      .eq("id", id);
     if (error) throw error;
   }
 
@@ -262,7 +276,8 @@ export class TaskRepository {
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("concluida", true)
-        .eq("data_vencimento", todayStr),
+        .gte("data_conclusao", completionDayBounds(now).start)
+        .lt("data_conclusao", completionDayBounds(now).end),
     ]);
     if (overdue.error) throw overdue.error;
     if (today.error) throw today.error;
@@ -291,9 +306,11 @@ export class TaskRepository {
       case "week":
         q = q.eq("concluida", false).gt("data_vencimento", todayStr).lte("data_vencimento", weekStr);
         break;
-      case "completedToday":
-        q = q.eq("concluida", true).eq("data_vencimento", todayStr);
+      case "completedToday": {
+        const bounds = completionDayBounds(now);
+        q = q.eq("concluida", true).gte("data_conclusao", bounds.start).lt("data_conclusao", bounds.end);
         break;
+      }
     }
 
     const { data, error } = await q

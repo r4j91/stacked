@@ -6,12 +6,9 @@ import { AnchoredPopover } from "@/components/ui/anchored-popover";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AppIcon } from "@/components/ui/app-icon";
 import { Cancel01Icon } from "@/lib/icons/nav-icons";
+import { parseCompletionTimestamp, startOfDay, toIsoTimestamp } from "@/lib/utils/date";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
 
 function dayKey(d: Date) {
   return startOfDay(d).getTime();
@@ -22,27 +19,42 @@ export function ProductivityPopover() {
   const [tab, setTab] = useState<0 | 1>(0);
   const [loading, setLoading] = useState(true);
   const [dates, setDates] = useState<Date[]>([]);
+  const [totalCompleted, setTotalCompleted] = useState(0);
 
   useEffect(() => {
     if (!productivityOpen) return;
     setLoading(true);
     if (!isSupabaseConfigured()) {
       setDates([]);
+      setTotalCompleted(0);
       setLoading(false);
       return;
     }
     void (async () => {
-      const { data } = await createClient()
-        .from("tasks")
-        .select("data_vencimento")
-        .eq("concluida", true)
-        .not("data_vencimento", "is", null)
-        .order("data_vencimento", { ascending: false });
+      const client = createClient();
+      const today = startOfDay(new Date());
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+      const lastMonday = new Date(monday);
+      lastMonday.setDate(monday.getDate() - 7);
+
+      const [{ data: completionRows }, { count: total }] = await Promise.all([
+        client
+          .from("tasks")
+          .select("data_conclusao")
+          .eq("concluida", true)
+          .not("data_conclusao", "is", null)
+          .gte("data_conclusao", toIsoTimestamp(lastMonday))
+          .order("data_conclusao", { ascending: false }),
+        client.from("tasks").select("id", { count: "exact", head: true }).eq("concluida", true),
+      ]);
+
       const parsed =
-        data
-          ?.map((r) => new Date(`${String(r.data_vencimento)}T12:00:00`))
-          .filter((d) => !Number.isNaN(d.getTime())) ?? [];
+        completionRows
+          ?.map((r) => parseCompletionTimestamp(r.data_conclusao))
+          .filter((d): d is Date => d != null) ?? [];
       setDates(parsed);
+      setTotalCompleted(total ?? 0);
       setLoading(false);
     })();
   }, [productivityOpen]);
@@ -75,8 +87,8 @@ export function ProductivityPopover() {
     });
     const weekDelta =
       lastWeek === 0 ? (thisWeek > 0 ? 100 : 0) : Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
-    return { todayCount, last7, thisWeek, lastWeek, weekByDay, weekDelta, total: dates.length };
-  }, [dates, todayKey]);
+    return { todayCount, last7, thisWeek, lastWeek, weekByDay, weekDelta, total: totalCompleted };
+  }, [dates, todayKey, totalCompleted]);
 
   const maxBar = Math.max(1, ...(tab === 0 ? stats.last7 : stats.weekByDay));
 

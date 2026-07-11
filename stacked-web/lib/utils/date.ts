@@ -33,6 +33,26 @@ export function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+export function toIsoTimestamp(d: Date): string {
+  return d.toISOString();
+}
+
+/** Limites [início, fim) do dia civil local em ISO8601 para `data_conclusao`. */
+export function completionDayBounds(for date = new Date()): { start: string; end: string } {
+  const start = startOfDay(date);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return { start: toIsoTimestamp(start), end: toIsoTimestamp(end) };
+}
+
+export function parseCompletionTimestamp(raw: unknown): Date | null {
+  if (raw == null) return null;
+  const str = String(raw).trim();
+  if (!str) return null;
+  const dt = new Date(str);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 export function parseDueDate(raw: unknown): Date | null {
   if (raw == null) return null;
   const str = String(raw).trim();

@@ -358,7 +358,10 @@ struct SubtaskDetailView: View {
         id: activeId,
         taskId: parentTaskId,
         order: subtask.order,
-        payload: TogglePayload(concluida: newValue)
+        payload: TogglePayload(
+          concluida: newValue,
+          data_conclusao: newValue ? TaskMapper.isoTimestamp(Date()) : nil
+        )
       )
       if let resolved {
         activeId = resolved
@@ -394,6 +397,7 @@ struct SubtaskDetailView: View {
 
   private struct TogglePayload: Encodable {
     let concluida: Bool
+    let data_conclusao: String?
   }
 
   private func flushPending() async {

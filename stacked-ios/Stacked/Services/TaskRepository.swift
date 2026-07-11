@@ -26,17 +26,45 @@ final class TaskRepository {
   }
 
   func fetchCompletedTodayTasks() async throws -> [Task] {
-    let today = TaskMapper.dateString(Date())
+    let bounds = TaskMapper.completionDayBounds()
     let rows: [TaskRowDTO] = try await client
       .from("tasks")
       .select(TaskSelect.unified)
       .eq("concluida", value: true)
-      .or("data_vencimento.is.null,data_vencimento.eq.\(today)")
+      .gte("data_conclusao", value: bounds.start)
+      .lt("data_conclusao", value: bounds.end)
+      .order("data_conclusao", ascending: false)
       .order("ordem", ascending: true)
       .order("id", ascending: true)
       .execute()
       .value
     return TaskMapper.mapList(rows)
+  }
+
+  /// Timestamps de conclusão de tarefas desde uma data (relatório de produtividade).
+  func fetchProductivityCompletionDates(since: Date) async throws -> [Date] {
+    struct Row: Decodable { let data_conclusao: String? }
+    let rows: [Row] = try await client
+      .from("tasks")
+      .select("data_conclusao")
+      .eq("concluida", value: true)
+      .not("data_conclusao", operator: .is, value: "null")
+      .gte("data_conclusao", value: TaskMapper.isoTimestamp(since))
+      .order("data_conclusao", ascending: false)
+      .execute()
+      .value
+    return rows.compactMap { TaskMapper.parseCompletionTimestamp($0.data_conclusao) }
+  }
+
+  func countAllCompletedTasks() async throws -> Int {
+    struct IdRow: Decodable { let id: String }
+    let rows: [IdRow] = try await client
+      .from("tasks")
+      .select("id")
+      .eq("concluida", value: true)
+      .execute()
+      .value
+    return rows.count
   }
 
   func fetchInboxTasks() async throws -> [Task] {
@@ -79,9 +107,17 @@ final class TaskRepository {
   }
 
   func toggleTaskDone(id: String, done: Bool) async throws {
+    struct Payload: Encodable {
+      let concluida: Bool
+      let data_conclusao: String?
+    }
+    let payload = Payload(
+      concluida: done,
+      data_conclusao: done ? TaskMapper.isoTimestamp(Date()) : nil
+    )
     try await client
       .from("tasks")
-      .update(["concluida": done])
+      .update(payload)
       .eq("id", value: id)
       .execute()
     if done {
@@ -309,13 +345,19 @@ final class TaskRepository {
       .execute()
       .value
 
-    async let completedReq: [IdRow] = client
-      .from("tasks")
-      .select("id")
-      .eq("concluida", value: true)
-      .eq("data_vencimento", value: todayStr)
-      .execute()
-      .value
+    async let completedReq: [IdRow] = {
+      let bounds = TaskMapper.completionDayBounds(
+        for: TaskMapper.parseDueDate(todayStr) ?? Date()
+      )
+      return try await client
+        .from("tasks")
+        .select("id")
+        .eq("concluida", value: true)
+        .gte("data_conclusao", value: bounds.start)
+        .lt("data_conclusao", value: bounds.end)
+        .execute()
+        .value
+    }()
 
     async let overdueSubReq = SubtaskRepository.shared.countOverdueScheduleEntries(todayStr: todayStr)
     async let todaySubReq = SubtaskRepository.shared.countDueTodayPending(todayStr: todayStr)
@@ -345,7 +387,13 @@ final class TaskRepository {
         .gt("data_vencimento", value: todayStr)
         .lte("data_vencimento", value: weekStr)
     case .completedToday:
-      query = query.eq("concluida", value: true).eq("data_vencimento", value: todayStr)
+      let bounds = TaskMapper.completionDayBounds(
+        for: TaskMapper.parseDueDate(todayStr) ?? Date()
+      )
+      query = query
+        .eq("concluida", value: true)
+        .gte("data_conclusao", value: bounds.start)
+        .lt("data_conclusao", value: bounds.end)
     }
 
     let rows: [TaskRowDTO] = try await query

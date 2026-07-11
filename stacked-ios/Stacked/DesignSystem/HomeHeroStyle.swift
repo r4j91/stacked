@@ -8,6 +8,18 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case capsule
   case openType
   case focus
+  case motivation
+  case focusDay
+  case streak
+  case motivationIntegrated
+  case focusDayIntegrated
+  case streakIntegrated
+  case panel
+  case compass
+  case queue
+  case thermometer
+  case rhythm
+  case nextStep
 
   var id: String { rawValue }
 
@@ -20,6 +32,18 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .capsule: "Cápsula"
     case .openType: "Aberto"
     case .focus: "Foco"
+    case .motivation: "Mensagem"
+    case .focusDay: "Foco do dia"
+    case .streak: "Sequência"
+    case .motivationIntegrated: "Mensagem integrada"
+    case .focusDayIntegrated: "Foco integrado"
+    case .streakIntegrated: "Sequência integrada"
+    case .panel: "Painel"
+    case .compass: "Bússola"
+    case .queue: "Fila"
+    case .thermometer: "Termômetro"
+    case .rhythm: "Ritmo"
+    case .nextStep: "Próximo passo"
     }
   }
 
@@ -32,6 +56,35 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .capsule: "Status em cápsula no topo"
     case .openType: "Tipografia direta no fundo"
     case .focus: "Status direto com bandeja"
+    case .motivation: "Frase motivacional do dia"
+    case .focusDay: "Próxima tarefa de hoje"
+    case .streak: "Dias seguidos com conclusões"
+    case .motivationIntegrated: "Mensagem com status no rodapé"
+    case .focusDayIntegrated: "Foco do dia com status no rodapé"
+    case .streakIntegrated: "Sequência com status no rodapé"
+    case .panel: "Foco, status e métricas num card"
+    case .compass: "Direção do dia com status integrado"
+    case .queue: "Fila de hoje com status nas linhas"
+    case .thermometer: "Contadores de atraso, hoje e breve"
+    case .rhythm: "Semana de conclusões, tom factual"
+    case .nextStep: "Próxima ação com contexto de status"
+    }
+  }
+
+  /// Cards conceito com faixa de status separada (legado).
+  var isConceptCard: Bool {
+    switch self {
+    case .motivation, .focusDay, .streak: true
+    default: false
+    }
+  }
+
+  /// Cards unificados: status no mesmo bloco.
+  var isUnifiedConceptCard: Bool {
+    switch self {
+    case .panel, .compass, .queue, .thermometer, .rhythm, .nextStep,
+         .motivationIntegrated, .focusDayIntegrated, .streakIntegrated: true
+    default: false
     }
   }
 }
@@ -148,6 +201,22 @@ struct HomeHeroMetrics {
         focusTitleSize: 16,
         focusSubtitleSize: 13,
         capsuleStatusSize: 11,
+        openVerticalPadding: 4,
+        dividerTopPadding: 10
+      )
+    case .motivation, .focusDay, .streak, .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
+         .panel, .compass, .queue, .thermometer, .rhythm, .nextStep:
+      return HomeHeroMetrics(
+        phraseSize: 12,
+        nameSize: 20,
+        statusSize: 12.5,
+        orbitalArtSize: 48,
+        cardPaddingH: 14,
+        cardPaddingV: 12,
+        rowSpacing: 12,
+        focusTitleSize: 15,
+        focusSubtitleSize: 12,
+        capsuleStatusSize: 10,
         openVerticalPadding: 4,
         dividerTopPadding: 10
       )
