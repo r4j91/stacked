@@ -284,30 +284,46 @@ struct HomeHeroGreetingWeatherCard: View {
 
 // MARK: - Layout helper
 
-enum GreetingIntegratedChrome {
+enum GreetingIntegratedChrome: Equatable {
   case standard(Color)
   case tinted(Color)
+  case open
 }
 
 @ViewBuilder
 private func greetingIntegratedCard<Main: View, Footer: View>(
   chrome: GreetingIntegratedChrome,
   minHeight: CGFloat,
+  openVerticalPadding: CGFloat = 6,
   @ViewBuilder main: @escaping () -> Main,
   @ViewBuilder footer: @escaping () -> Footer
 ) -> some View {
-  let layout = VStack(alignment: .leading, spacing: 0) {
-    main()
-    footer()
-  }
-  .padding(.horizontal, 14)
-  .padding(.top, 12)
-  .padding(.bottom, 10)
-
   switch chrome {
+  case .open:
+    VStack(alignment: .leading, spacing: 0) {
+      main()
+        .padding(.vertical, openVerticalPadding)
+      footer()
+    }
   case .standard(let accent):
+    let layout = VStack(alignment: .leading, spacing: 0) {
+      main()
+      footer()
+    }
+    .padding(.horizontal, 14)
+    .padding(.top, 12)
+    .padding(.bottom, 10)
+
     HomeConceptCard(accent: accent, minHeight: minHeight, maxHeight: nil) { layout }
   case .tinted(let accent):
+    let layout = VStack(alignment: .leading, spacing: 0) {
+      main()
+      footer()
+    }
+    .padding(.horizontal, 14)
+    .padding(.top, 12)
+    .padding(.bottom, 10)
+
     HomeGreetingTintedCard(accent: accent, minHeight: minHeight, maxHeight: nil) { layout }
   }
 }
@@ -319,14 +335,20 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
   let metrics: HomeHeroMetrics
   let isOverdue: Bool
   var onOpenFilter: (TaskFilterKind) -> Void
+  var chrome: GreetingIntegratedChrome?
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
   private var accent: Color { weather.tintAccent }
+  private var resolvedChrome: GreetingIntegratedChrome { chrome ?? .tinted(accent) }
 
   var body: some View {
     let c = theme.colors
 
-    greetingIntegratedCard(chrome: .tinted(accent), minHeight: 132) {
+    greetingIntegratedCard(
+      chrome: resolvedChrome,
+      minHeight: 132,
+      openVerticalPadding: metrics.openVerticalPadding
+    ) {
       HStack(alignment: .center, spacing: 14) {
         premiumGreetingBlock(colors: c)
 
@@ -357,6 +379,7 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
       HomeConceptIntegratedStatusFooter(
         isOverdue: isOverdue,
         statusLabel: store.statusLabel(overdueCount: store.overdueCount),
+        presentation: resolvedChrome == .open ? .open : .card,
         onTap: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
       )
     }
@@ -405,6 +428,23 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
     return Rectangle()
       .fill(c.textPrimary.opacity(c.isDark ? 0.1 : 0.08))
       .frame(width: 1, height: 10)
+  }
+}
+
+struct HomeHeroGreetingWeatherPremiumOpenCard: View {
+  let store: HomeStore
+  let metrics: HomeHeroMetrics
+  let isOverdue: Bool
+  var onOpenFilter: (TaskFilterKind) -> Void
+
+  var body: some View {
+    HomeHeroGreetingWeatherPremiumCard(
+      store: store,
+      metrics: metrics,
+      isOverdue: isOverdue,
+      onOpenFilter: onOpenFilter,
+      chrome: .open
+    )
   }
 }
 

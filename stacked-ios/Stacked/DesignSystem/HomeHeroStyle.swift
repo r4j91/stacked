@@ -23,6 +23,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case greetingFocusTinted
   case greetingWeatherTinted
   case greetingWeatherPremium
+  case greetingWeatherPremiumOpen
   case panel
   case compass
   case queue
@@ -56,6 +57,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingFocusTinted: "Foco (tom app)"
     case .greetingWeatherTinted: "Clima (tom app)"
     case .greetingWeatherPremium: "Clima premium"
+    case .greetingWeatherPremiumOpen: "Clima premium aberto"
     case .panel: "Painel"
     case .compass: "Bússola"
     case .queue: "Fila"
@@ -89,6 +91,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingFocusTinted: "Foco com fundo na cor do app"
     case .greetingWeatherTinted: "Clima real da localização com fundo temático"
     case .greetingWeatherPremium: "Clima ao vivo com cena ilustrada premium"
+    case .greetingWeatherPremiumOpen: "Clima premium sem card, direto no fundo"
     case .panel: "Foco, status e métricas num card"
     case .compass: "Direção do dia com status integrado"
     case .queue: "Fila de hoje com status nas linhas"
@@ -159,7 +162,7 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
-    case .orbitalOpen, .streakOpen, .streakOpenCentered:
+    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen:
       return HomeHeroMetrics(
         phraseSize: 14,
         nameSize: 26,

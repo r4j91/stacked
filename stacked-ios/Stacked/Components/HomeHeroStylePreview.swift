@@ -71,6 +71,8 @@ struct HomeHeroStylePreview: View {
       greetingWeatherTintedPreview
     case .greetingWeatherPremium:
       greetingWeatherPremiumPreview
+    case .greetingWeatherPremiumOpen:
+      greetingWeatherPremiumOpenPreview
     case .panel:
       panelPreview
     case .compass:
@@ -506,6 +508,44 @@ struct HomeHeroStylePreview: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherPremiumOpenPreview: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(colors.accent.opacity(0.45)).frame(width: 12, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 16, height: 3)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.45)).frame(width: 20, height: 2)
+        }
+        Spacer(minLength: 0)
+        VStack(alignment: .trailing, spacing: 2) {
+          RoundedRectangle(cornerRadius: 3)
+            .fill(
+              LinearGradient(
+                colors: [AppColors.priorityMedium.opacity(0.4), AppColors.priorityLow.opacity(0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+              )
+            )
+            .frame(width: 22, height: 14)
+            .overlay(alignment: .topLeading) {
+              Circle().fill(AppColors.priorityMedium.opacity(0.7)).frame(width: 4, height: 4).padding(3)
+            }
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 12, height: 3)
+        }
+      }
+      Rectangle()
+        .fill(colors.textPrimary.opacity(0.08))
+        .frame(height: 1)
+        .padding(.top, 3)
+      HStack(spacing: 2) {
+        Circle().fill(AppColors.overdue.opacity(0.55)).frame(width: 3, height: 3)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 16, height: 2)
+      }
+      .padding(.top, 2)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 
   private var panelPreview: some View {
