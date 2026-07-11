@@ -34,7 +34,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType, .orbitalOpen:
+    case .openType, .orbitalOpen, .streakOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -74,6 +74,10 @@ struct HomeHeroSection: View {
       )
     case .streakIntegrated:
       HomeHeroStreakIntegratedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .streakOpen:
+      HomeHeroStreakOpenCard(
         store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
       )
     case .panel:

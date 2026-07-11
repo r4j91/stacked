@@ -171,16 +171,29 @@ struct HomeStreakWeekTracker: View {
 
 // MARK: - Card chrome compartilhado
 
-/// Rodapé de status dentro do card (opção integrada).
+/// Rodapé de status integrado (dentro do card ou em layout aberto).
 struct HomeConceptIntegratedStatusFooter: View {
+  enum Presentation {
+    case card
+    case open
+  }
+
   @Environment(ThemeManager.self) private var theme
 
   let isOverdue: Bool
   let statusLabel: String
+  var presentation: Presentation = .card
   var onTap: (() -> Void)?
 
   var body: some View {
     let c = theme.colors
+    let dividerColor = presentation == .open
+      ? (isOverdue ? AppColors.overdue.opacity(0.12) : c.textPrimary.opacity(c.isDark ? 0.06 : 0.05))
+      : c.textPrimary.opacity(c.isDark ? 0.06 : 0.05)
+    let divider = Rectangle()
+      .fill(dividerColor)
+      .frame(height: 1)
+
     let row = HStack(spacing: 8) {
       Circle()
         .fill(isOverdue ? AppColors.overdue.opacity(0.88) : AppColors.tagGreen.opacity(0.72))
@@ -195,18 +208,19 @@ struct HomeConceptIntegratedStatusFooter: View {
       }
     }
     .padding(.top, 9)
-    .overlay(alignment: .top) {
-      Rectangle()
-        .fill(c.textPrimary.opacity(c.isDark ? 0.06 : 0.05))
-        .frame(height: 1)
+
+    let footer = VStack(spacing: 0) {
+      divider
+      row
     }
+    .padding(.top, presentation == .open ? 14 : 12)
 
     if isOverdue, let onTap {
-      Button(action: onTap) { row }
+      Button(action: onTap) { footer }
         .buttonStyle(.plain)
         .accessibilityHint("Abre tarefas atrasadas")
     } else {
-      row
+      footer
     }
   }
 }

@@ -166,6 +166,67 @@ struct HomeHeroStreakIntegratedCard: View {
   }
 }
 
+struct HomeHeroStreakOpenCard: View {
+  @Environment(ThemeManager.self) private var theme
+
+  let store: HomeStore
+  let metrics: HomeHeroMetrics
+  let isOverdue: Bool
+  var onOpenFilter: (TaskFilterKind) -> Void
+
+  var body: some View {
+    let c = theme.colors
+    let accent = c.accent
+    let days = store.completionStreak
+
+    VStack(alignment: .leading, spacing: 0) {
+      VStack(alignment: .leading, spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
+          HomeStreakFlameArt(accent: accent)
+            .scaleEffect(1.04)
+
+          VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+              Text("\(days)")
+                .font(.system(size: 28, weight: .heavy))
+                .foregroundStyle(c.textPrimary)
+              Text(days == 1 ? "dia seguido" : "dias seguidos")
+                .font(.system(size: metrics.focusSubtitleSize, weight: .semibold))
+                .foregroundStyle(c.textSecondary)
+            }
+            Text(days > 0 ? "Constância conta." : "Conclua uma tarefa para começar.")
+              .font(.system(size: metrics.focusSubtitleSize))
+              .foregroundStyle(c.textTertiary)
+              .lineLimit(1)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        HomeStreakWeekTracker(
+          completed: store.streakWeekCompleted,
+          accent: accent,
+          labelColor: c.textTertiary,
+          emptyDotColor: c.textPrimary.opacity(c.isDark ? 0.08 : 0.06)
+        )
+      }
+      .padding(.vertical, metrics.openVerticalPadding)
+
+      HomeConceptIntegratedStatusFooter(
+        isOverdue: isOverdue,
+        statusLabel: store.statusLabel(overdueCount: store.overdueCount),
+        presentation: .open,
+        onTap: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
+      )
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(
+      days == 1
+        ? "1 dia seguido. \(store.statusLabel(overdueCount: store.overdueCount))"
+        : "\(days) dias seguidos. \(store.statusLabel(overdueCount: store.overdueCount))"
+    )
+  }
+}
+
 // MARK: - Layout helper
 
 @ViewBuilder

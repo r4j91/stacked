@@ -53,6 +53,8 @@ struct HomeHeroStylePreview: View {
       focusDayIntegratedPreview
     case .streakIntegrated:
       streakIntegratedPreview
+    case .streakOpen:
+      streakOpenPreview
     case .panel:
       panelPreview
     case .compass:
@@ -277,6 +279,42 @@ struct HomeHeroStylePreview: View {
 
   private var streakIntegratedPreview: some View {
     integratedConceptPreview(accent: colors.accent)
+  }
+
+  private var streakOpenPreview: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 3) {
+        Image(systemName: "flame.fill")
+          .font(.system(size: 7, weight: .medium))
+          .foregroundStyle(colors.accent.opacity(0.5))
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1)
+            .fill(colors.textPrimary.opacity(0.75))
+            .frame(width: 18, height: 3)
+          RoundedRectangle(cornerRadius: 1)
+            .fill(colors.textTertiary.opacity(0.45))
+            .frame(width: 22, height: 2)
+        }
+      }
+      HStack(spacing: 2) {
+        ForEach(0..<7, id: \.self) { _ in
+          Circle()
+            .fill(colors.textPrimary.opacity(0.1))
+            .frame(width: 3, height: 3)
+        }
+      }
+      .padding(.top, 3)
+      Rectangle()
+        .fill(colors.textPrimary.opacity(0.08))
+        .frame(height: 1)
+        .padding(.top, 3)
+      HStack(spacing: 2) {
+        Circle().fill(AppColors.overdue.opacity(0.55)).frame(width: 3, height: 3)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 16, height: 2)
+      }
+      .padding(.top, 2)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 
   private var panelPreview: some View {
