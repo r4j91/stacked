@@ -15,6 +15,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case focusDayIntegrated
   case streakIntegrated
   case streakOpen
+  case streakOpenCentered
   case panel
   case compass
   case queue
@@ -40,6 +41,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .focusDayIntegrated: "Foco integrado"
     case .streakIntegrated: "Sequência integrada"
     case .streakOpen: "Sequência aberta"
+    case .streakOpenCentered: "Sequência centralizada"
     case .panel: "Painel"
     case .compass: "Bússola"
     case .queue: "Fila"
@@ -65,6 +67,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .focusDayIntegrated: "Foco do dia com status no rodapé"
     case .streakIntegrated: "Sequência com status no rodapé"
     case .streakOpen: "Sequência sem card, direto no fundo"
+    case .streakOpenCentered: "Sequência aberta com conteúdo ao centro"
     case .panel: "Foco, status e métricas num card"
     case .compass: "Direção do dia com status integrado"
     case .queue: "Fila de hoje com status nas linhas"
@@ -132,7 +135,7 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
-    case .orbitalOpen, .streakOpen:
+    case .orbitalOpen, .streakOpen, .streakOpenCentered:
       return HomeHeroMetrics(
         phraseSize: 14,
         nameSize: 26,
