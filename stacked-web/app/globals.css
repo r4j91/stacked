@@ -348,7 +348,10 @@ textarea:focus:not(:focus-visible) {
   --task-row-rail: 72px;
 }
 
+/* Task rows com grid — evita content-visibility quebrar paint dos filhos */
 .task-row-grid {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
   display: grid;
   align-items: start;
   column-gap: 8px;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppIcon } from "@/components/ui/app-icon";
+import { ClientPortal } from "@/components/ui/client-portal";
 import { Cancel01Icon } from "@/lib/icons/nav-icons";
 
 type WhatsAppCopyPreviewSheetProps = {
@@ -41,11 +42,12 @@ export function WhatsAppCopyPreviewSheet({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[var(--z-panel)] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
-      onClick={onClose}
-      role="presentation"
-    >
+    <ClientPortal>
+      <div
+        className="fixed inset-0 z-[var(--z-panel)] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+        onClick={onClose}
+        role="presentation"
+      >
       <div
         className="flex max-h-[min(90vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl sm:rounded-[var(--radius-lg)]"
         onClick={(e) => e.stopPropagation()}
@@ -84,5 +86,6 @@ export function WhatsAppCopyPreviewSheet({
         </footer>
       </div>
     </div>
+    </ClientPortal>
   );
 }

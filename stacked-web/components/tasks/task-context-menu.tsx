@@ -19,6 +19,7 @@ import {
   InboxIcon,
 } from "@/lib/icons/nav-icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ClientPortal } from "@/components/ui/client-portal";
 
 type TaskContextMenuProps = {
   task: Task;
@@ -199,31 +200,34 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
 
   if (confirmDelete) {
     return (
-      <ConfirmDialog
-        title="Excluir tarefa"
-        message={`Tem certeza que deseja excluir "${task.title}"?`}
-        confirmLabel="Excluir"
-        destructive
-        onCancel={() => {
-          setConfirmDelete(false);
-          onClose();
-        }}
-        onConfirm={() => {
-          void deleteTask(task.id);
-          setConfirmDelete(false);
-          onClose();
-        }}
-      />
+      <ClientPortal>
+        <ConfirmDialog
+          title="Excluir tarefa"
+          message={`Tem certeza que deseja excluir "${task.title}"?`}
+          confirmLabel="Excluir"
+          destructive
+          onCancel={() => {
+            setConfirmDelete(false);
+            onClose();
+          }}
+          onConfirm={() => {
+            void deleteTask(task.id);
+            setConfirmDelete(false);
+            onClose();
+          }}
+        />
+      </ClientPortal>
     );
   }
 
   return (
-    <div
-      ref={menuRef}
-      className="fixed z-[var(--z-menu)] flex items-start"
-      style={{ top: position.top, left: position.left }}
-      onContextMenu={(e: MouseEvent) => e.preventDefault()}
-    >
+    <ClientPortal>
+      <div
+        ref={menuRef}
+        className="fixed z-[var(--z-menu)] flex items-start"
+        style={{ top: position.top, left: position.left }}
+        onContextMenu={(e: MouseEvent) => e.preventDefault()}
+      >
       <div
         className="min-w-[220px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
         role="menu"
@@ -374,7 +378,8 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </ClientPortal>
   );
 }
 

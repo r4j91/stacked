@@ -159,7 +159,7 @@ export function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`group/reorder-row task-row task-row-grid scroll-list-item mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 ${
+          className={`group/reorder-row task-row task-row-grid mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 ${
             reorderHandleProps ? "task-row-grid--gutter" : ""
           } ${
             reorderDragOver
