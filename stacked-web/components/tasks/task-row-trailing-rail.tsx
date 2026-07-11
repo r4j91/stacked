@@ -19,7 +19,7 @@ export function TaskRowTrailingRail({
   onToggleSubtasks,
 }: TaskRowTrailingRailProps) {
   return (
-    <div className="task-row-rail mt-0.5 grid w-[var(--task-row-rail)] shrink-0 grid-cols-2 self-start">
+    <div className="task-row-rail grid w-[var(--task-row-rail)] shrink-0 grid-cols-2">
       <div className="flex justify-center">
         <WhatsAppTaskCopyButton
           task={task}

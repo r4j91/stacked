@@ -50,6 +50,7 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --task-row-rail: 72px;
+  --reorder-gutter: 16px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
@@ -353,13 +354,31 @@ textarea:focus:not(:focus-visible) {
   content-visibility: visible;
   contain-intrinsic-size: auto;
   display: grid;
-  align-items: start;
+  align-items: center;
   column-gap: 8px;
-  grid-template-columns: min-content minmax(0, 1fr) var(--task-row-rail);
+  grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr) var(--task-row-rail);
 }
 
-.task-row-grid--gutter {
-  grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr) var(--task-row-rail);
+.task-row-grid__content {
+  align-self: center;
+  min-width: 0;
+}
+
+.task-row-rail {
+  align-self: center;
+}
+
+.task-meta-line {
+  min-height: 22px;
+}
+
+.reorder-gutter {
+  width: var(--reorder-gutter);
+  flex-shrink: 0;
+}
+
+.task-row-grid--no-rail {
+  grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr);
 }
 
 .reorder-row-with-gutter {
@@ -370,11 +389,13 @@ textarea:focus:not(:focus-visible) {
   grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr) var(--task-row-rail);
 }
 
-.reorder-enabled-list .subtask-tree {
+.reorder-enabled-list .subtask-tree,
+.subtask-tree {
   margin-left: calc(var(--reorder-gutter) + 28px);
 }
 
-.reorder-enabled-list .subtask-tree-line {
+.reorder-enabled-list .subtask-tree-line,
+.subtask-tree-line {
   left: calc(var(--reorder-gutter) + 9px);
 }
 
@@ -386,14 +407,6 @@ textarea:focus:not(:focus-visible) {
 .project-task-list .reorder-handle:hover,
 .project-task-list .reorder-handle:focus-visible {
   opacity: 1;
-}
-
-.subtask-tree {
-  margin-left: 22px;
-}
-
-.subtask-tree-line {
-  left: 9px;
 }
 
 .reorder-source-placeholder {

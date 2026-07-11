@@ -55,8 +55,6 @@ export function ListSectionHeader({
       {...(reorderHoldProps ?? {})}
       data-task-drop-section={dropSectionId}
       className={`group/reorder-row flex items-center gap-2 px-2 pb-2 pt-4 ${
-        reorderHandleProps ? "reorder-row-with-gutter" : ""
-      } ${
         reorderDragOver
           ? reorderDropPosition === "after"
             ? "reorder-drop-target reorder-drop-target-after"
@@ -64,11 +62,11 @@ export function ListSectionHeader({
           : ""
       }`}
     >
-      {reorderHandleProps ? (
-        <div className="reorder-gutter flex shrink-0 items-center justify-center self-center">
+      <div className="reorder-gutter flex shrink-0 items-center justify-center" aria-hidden={!reorderHandleProps}>
+        {reorderHandleProps ? (
           <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar seção ${title}`} />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
       {onToggle != null && (
         <button
           type="button"

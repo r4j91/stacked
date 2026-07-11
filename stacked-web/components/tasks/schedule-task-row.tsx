@@ -45,6 +45,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
         }`}
         data-selected={selected ? "" : undefined}
       >
+        <div className="reorder-gutter" aria-hidden />
         <DoneCircle
           done={task.done}
           priority={task.priority}
@@ -54,7 +55,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
             onToggleDone(task.id);
           }}
         />
-        <div className="min-w-0 flex-1">
+        <div className="task-row-grid__content min-w-0 flex-1">
           <p
             className={`truncate text-[15.5px] font-semibold leading-snug ${
               task.done ? "text-[var(--color-text-tertiary)] line-through" : ""

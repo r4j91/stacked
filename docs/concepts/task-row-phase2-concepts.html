@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Task row Fase 2 (conceitos)</title>
+  <style>
+    :root {
+      --bg: #16161a;
+      --surface: #1c1c20;
+      --surface-variant: #2c2c32;
+      --inspector: #1c1c20;
+      --text: #f2f2f4;
+      --text-secondary: #9a9aa2;
+      --text-tertiary: #72727a;
+      --accent: #e8e8ec;
+      --done: #7ecc49;
+      --overdue: #ef5a5f;
+      --p3: #4d9fec;
+      --tag-green: #8fd46b;
+      --tag-purple: #b18cf5;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --hover: rgba(255, 255, 255, 0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --gutter: 16px;
+      --rail: 72px;
+      --row-h: 52px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text);
+      line-height: 1.45;
+      padding: 32px 24px 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header { max-width: 1100px; margin: 0 auto 28px; }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    header p { font-size: 14px; color: var(--text-secondary); max-width: 70ch; }
+
+    .note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(77, 159, 236, 0.08);
+      border: 1px solid rgba(77, 159, 236, 0.22);
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 70ch;
+    }
+    .note strong { color: #7eb8f7; }
+
+    .section-title {
+      max-width: 1100px;
+      margin: 40px auto 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .section-title:first-of-type { margin-top: 28px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-head h2 { font-size: 13px; font-weight: 700; }
+    .panel-head p { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .badge-now { background: rgba(239, 90, 95, 0.15); color: var(--overdue); }
+    .badge-rec { background: rgba(126, 204, 73, 0.12); color: var(--done); }
+    .badge-p1 { background: rgba(77, 159, 236, 0.12); color: #7eb8f7; }
+
+    .canvas { padding: 16px; background: var(--bg); }
+    .hint { font-size: 11px; color: var(--text-tertiary); margin-bottom: 10px; }
+
+    .view-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin: 12px 0 6px;
+    }
+    .view-label:first-child { margin-top: 0; }
+
+    .list { display: flex; flex-direction: column; gap: 4px; }
+
+    /* ── Row grid (Fase 1 base) ── */
+    .row {
+      display: grid;
+      column-gap: 8px;
+      min-height: var(--row-h);
+      padding: 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: default;
+    }
+    .row:hover { background: var(--hover); }
+
+    /* Fase 1: sem gutter unificado em Hoje */
+    .row--f1 { grid-template-columns: min-content minmax(0, 1fr) var(--rail); align-items: start; }
+    .row--f1.with-reorder { grid-template-columns: var(--gutter) min-content minmax(0, 1fr) var(--rail); }
+
+    /* Fase 2: gutter em todas as views + rail centrado */
+    .row--f2 { grid-template-columns: var(--gutter) min-content minmax(0, 1fr) var(--rail); align-items: center; }
+
+    .gutter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      opacity: 0.45;
+      height: 100%;
+    }
+    .gutter.empty { opacity: 0; pointer-events: none; }
+
+    .done {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--p3);
+      background: color-mix(in srgb, var(--p3) 8%, transparent);
+      flex-shrink: 0;
+    }
+    .row--f1 .done { margin-top: 2px; }
+
+    .content { min-width: 0; align-self: start; }
+    .row--f2 .content { align-self: center; }
+
+    .title-line { display: flex; align-items: flex-start; gap: 8px; }
+    .title {
+      flex: 1; min-width: 0;
+      font-size: 15.5px; font-weight: 600; line-height: 1.35;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .time {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+      color: var(--text-tertiary); margin-top: 2px;
+    }
+    .preview {
+      margin-top: 2px; font-size: 12.5px; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .meta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .meta-text { font-size: 12px; color: var(--text-tertiary); }
+    .chip {
+      font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px;
+      background: color-mix(in srgb, var(--tag-green) 18%, transparent); color: #b8e89a;
+    }
+    .chip-date { background: color-mix(in srgb, var(--overdue) 14%, transparent); color: #f5a0a3; }
+    .chip-tag { background: color-mix(in srgb, var(--tag-purple) 16%, transparent); color: #d4b8fa; }
+
+    .rail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: var(--rail);
+      justify-self: end;
+    }
+    .row--f1 .rail { align-self: start; margin-top: 2px; }
+    .row--f2 .rail { align-self: center; }
+
+    .icon-btn {
+      width: 32px; height: 32px;
+      border: none; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-tertiary);
+      display: grid; place-items: center; margin: 0 auto;
+      font-size: 14px;
+    }
+    .icon-btn.accent { color: var(--accent); }
+
+    /* Alignment guide */
+    .guide-wrap { position: relative; }
+    .guide-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: rgba(126, 204, 73, 0.55);
+      pointer-events: none;
+      z-index: 2;
+      border-radius: 1px;
+    }
+    .guide-line::after {
+      content: attr(data-label);
+      position: absolute;
+      top: -18px; left: -2px;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--done);
+      white-space: nowrap;
+    }
+
+  .guide-line--check { left: calc(16px + 8px + 0px); }
+    .guide-wrap.no-gutter .guide-line--check { left: calc(8px + 0px); }
+
+    /* Inspector mock */
+    .workbench {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      min-height: 220px;
+    }
+
+    .workbench-list { padding: 12px; background: var(--bg); border-right: 1px solid var(--border); }
+
+    .inspector {
+      background: var(--inspector);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .insp-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      min-height: 48px;
+    }
+
+    .insp-crumb {
+      flex: 1; min-width: 0;
+      font-size: 12px; color: var(--text-tertiary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .insp-crumb span { color: var(--text-secondary); }
+
+    .pill-wa {
+      flex-shrink: 0;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      color: var(--accent);
+      font-size: 11px; font-weight: 700;
+      padding: 4px 8px; border-radius: var(--radius-sm);
+    }
+
+    .pill-wa.icon-only {
+      width: 32px; height: 32px; padding: 0;
+      display: grid; place-items: center;
+      font-size: 14px;
+    }
+
+    .insp-close {
+      width: 32px; height: 32px; border: none; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-tertiary);
+      display: grid; place-items: center;
+    }
+
+    .insp-body { padding: 14px; font-size: 13px; color: var(--text-secondary); }
+
+    .controls {
+      max-width: 1100px;
+      margin: 20px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+    .controls label {
+      font-size: 12px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+    }
+    .controls input { accent-color: var(--done); }
+
+    .compare-stack {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+    .item-card h3 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+    .item-card p { font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px; }
+
+    .footer {
+      max-width: 1100px;
+      margin: 36px auto 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.65;
+    }
+    .footer ul { margin: 8px 0 0 18px; }
+    .footer li { margin-bottom: 5px; }
+
+    .arrow-demo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .arrow-demo .arr { font-size: 18px; color: var(--done); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Task row — Fase 2 (polish)</h1>
+    <p>
+      Complemento da <strong>Fase 1</strong> (trilho fixo, hora no título, menu no clique direito).
+      A Fase 2 não muda funcionalidade — só <strong>ritmo visual</strong>: alinhamento, centralização e consistência lista ↔ inspector.
+    </p>
+    <div class="note">
+      <strong>Quando implementar?</strong> Se ao alternar Hoje ↔ Projeto o checkbox “pula”, ou ícones parecem flutuar em tarefas altas. Cada item abaixo é independente — dá para fazer só o que incomodar.
+    </div>
+  </header>
+
+  <div class="controls">
+    <label><input type="checkbox" id="showGuides" checked /> Mostrar guias de alinhamento (linha verde no ○)</label>
+    <label><input type="checkbox" id="tallRows" /> Tarefas com preview + chips (linha alta)</label>
+  </div>
+
+  <!-- 1. Alinhamento Hoje vs Projeto -->
+  <p class="section-title">1 · Alinhamento do checkbox (Hoje vs Projeto)</p>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Fase 1 — hoje (produção)</h2>
+        <p>Hoje sem gutter · Projeto com gutter de 16px → ○ desalinhado entre telas</p>
+        <span class="badge badge-now">Problema</span>
+      </div>
+      <div class="canvas">
+        <p class="view-label">Hoje</p>
+        <div class="guide-wrap no-gutter" data-guide-wrap>
+          <div class="guide-line guide-line--check" data-guide data-label="○ Hoje"></div>
+          <div class="list">
+            <div class="row row--f1">
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line"><span class="title">Revisar Palmeirense</span><span class="time">🕐 13:00</span></div>
+                <div class="meta meta-line"><span class="meta-text">Casa</span><span class="chip chip-date">Hoje</span></div>
+              </div>
+              <div class="rail"><div class="icon-btn accent">⎘</div><div class="icon-btn">⌄</div></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="view-label">Projeto Snoop</p>
+        <div class="guide-wrap" data-guide-wrap>
+          <div class="guide-line guide-line--check" data-guide style="left: calc(16px + 8px + 8px)" data-label="○ Projeto"></div>
+          <div class="list">
+            <div class="row row--f1 with-reorder">
+              <div class="gutter">⠿</div>
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+                <div class="meta meta-line"><span class="meta-text">Snoop</span><span class="chip chip-date">14 jul</span></div>
+              </div>
+              <div class="rail"><div class="icon-btn accent">⎘</div><div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow-demo"><span>○ não coincide</span><span class="arr">≠</span><span>16px de diferença</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Fase 2 — gutter unificado</h2>
+        <p>16px reservados em todas as listas; vazio em Hoje, handle em Projeto</p>
+        <span class="badge badge-rec">Recomendado</span>
+      </div>
+      <div class="canvas">
+        <p class="view-label">Hoje</p>
+        <div class="guide-wrap" data-guide-wrap>
+          <div class="guide-line guide-line--check" data-guide style="left: calc(16px + 8px + 8px)" data-label="○ alinhado"></div>
+          <div class="list">
+            <div class="row row--f2">
+              <div class="gutter empty" aria-hidden></div>
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line"><span class="title">Revisar Palmeirense</span><span class="time">🕐 13:00</span></div>
+                <div class="meta meta-line"><span class="meta-text">Casa</span><span class="chip chip-date">Hoje</span></div>
+              </div>
+              <div class="rail"><div class="icon-btn accent">⎘</div><div class="icon-btn">⌄</div></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="view-label">Projeto Snoop</p>
+        <div class="guide-wrap" data-guide-wrap>
+          <div class="guide-line guide-line--check" data-guide style="left: calc(16px + 8px + 8px)" data-label="○ alinhado"></div>
+          <div class="list">
+            <div class="row row--f2">
+              <div class="gutter">⠿</div>
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+                <div class="meta meta-line"><span class="meta-text">Snoop</span><span class="chip chip-date">14 jul</span></div>
+              </div>
+              <div class="rail"><div class="icon-btn accent">⎘</div><div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow-demo"><span>○ coincide</span><span class="arr">✓</span><span>texto na mesma coluna</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Centralização vertical do trilho -->
+  <p class="section-title">2 · Trilho centrado na altura da linha</p>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Fase 1 — rail no topo</h2>
+        <p><code>align-items: start</code> — ícones grudados no título</p>
+        <span class="badge badge-now">Em tarefas altas</span>
+      </div>
+      <div class="canvas">
+        <div class="list" id="tall-f1">
+          <div class="row row--f1 with-reorder">
+            <div class="gutter">⠿</div>
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+              <p class="preview tall-only" style="display:none">*SALDOS DO DIA* · Pão · Verdura · Frios…</p>
+              <div class="meta meta-line">
+                <span class="meta-text">Snoop</span>
+                <span class="chip chip-date">14 jul</span>
+                <span class="chip chip-tag tall-only" style="display:none">Rotina</span>
+              </div>
+            </div>
+            <div class="rail"><div class="icon-btn accent">⎘</div><div class="icon-btn">⌄</div></div>
+          </div>
+        </div>
+        <p class="hint tall-hint" style="display:none">↑ Ícones no topo — parecem “flutuar” longe do centro da linha</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Fase 2 — rail centrado</h2>
+        <p><code>align-items: center</code> no grid · conteúdo pode crescer</p>
+        <span class="badge badge-rec">Recomendado</span>
+      </div>
+      <div class="canvas">
+        <div class="list" id="tall-f2">
+          <div class="row row--f2">
+            <div class="gutter empty"></div>
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+              <p class="preview tall-only" style="display:none">*SALDOS DO DIA* · Pão · Verdura · Frios…</p>
+              <div class="meta meta-line">
+                <span class="meta-text">Snoop</span>
+                <span class="chip chip-date">14 jul</span>
+                <span class="chip chip-tag tall-only" style="display:none">Rotina</span>
+              </div>
+            </div>
+            <div class="rail"><div class="icon-btn accent">⎘</div><div class="icon-btn">⌄</div></div>
+          </div>
+        </div>
+        <p class="hint tall-hint" style="display:none">↑ Ícones no meio óptico — melhor para polegar e leitura</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Inspector vs lista -->
+  <p class="section-title">3 · Lista ↔ Inspector (mesmo vocabulário)</p>
+  <div class="compare-stack">
+    <div class="item-card">
+      <h3>Fase 1 — ações diferentes</h3>
+      <p>Lista usa ícone de copiar; inspector usa pill “WhatsApp” com texto</p>
+      <div class="workbench">
+        <div class="workbench-list">
+          <div class="row row--f1">
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+            </div>
+            <div class="rail"><div class="icon-btn accent">⎘</div><div></div></div>
+          </div>
+        </div>
+        <div class="inspector">
+          <div class="insp-header">
+            <div class="insp-crumb"><span>Snoop</span> › Saldos - Terça-Feira</div>
+            <button type="button" class="pill-wa">WhatsApp</button>
+            <button type="button" class="insp-close">✕</button>
+          </div>
+          <div class="insp-body">Descrição da rotina…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="item-card">
+      <h3>Fase 2 — ícone igual nos dois lugares <span class="badge badge-p1" style="margin-left:6px;vertical-align:middle">Opcional</span></h3>
+      <p>Mesmo ícone ⎘ no trilho e no header do inspector (pill vira ícone)</p>
+      <div class="workbench">
+        <div class="workbench-list">
+          <div class="row row--f2">
+            <div class="gutter empty"></div>
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line"><span class="title">Saldos - Terça-Feira</span><span class="time">🕐 22:30</span></div>
+            </div>
+            <div class="rail"><div class="icon-btn accent">⎘</div><div></div></div>
+          </div>
+        </div>
+        <div class="inspector">
+          <div class="insp-header">
+            <div class="insp-crumb"><span>Snoop</span> › Saldos - Terça-Feira</div>
+            <button type="button" class="pill-wa icon-only" title="Copiar para WhatsApp">⎘</button>
+            <button type="button" class="insp-close">✕</button>
+          </div>
+          <div class="insp-body">Descrição da rotina…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumo -->
+  <p class="section-title">Resumo — o que entra na Fase 2</p>
+  <div class="compare-stack">
+    <div class="panel">
+      <div class="canvas" style="padding:18px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="color:var(--text-tertiary);font-size:11px;text-align:left">
+              <th style="padding:8px 10px;border-bottom:1px solid var(--border)">Item</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--border)">Impacto visual</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--border)">Prioridade</th>
+            </tr>
+          </thead>
+          <tbody style="color:var(--text-secondary)">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">Gutter 16px em todas as listas</td>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">○ e título na mesma coluna em Hoje/Projeto</td>
+              <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--done)">Alta</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">Rail com <code>align-items: center</code></td>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">Ícones não “flutuam” em linhas altas</td>
+              <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--done)">Alta</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">Meta line estável</td>
+              <td style="padding:10px;border-bottom:1px solid var(--border)">Chips com altura previsível, menos salto</td>
+              <td style="padding:10px;border-bottom:1px solid var(--border);color:#f5a623">Média</td>
+            </tr>
+            <tr>
+              <td style="padding:10px">Inspector = ícone copiar (não pill)</td>
+              <td style="padding:10px">Mesma linguagem visual lista ↔ painel</td>
+              <td style="padding:10px;color:var(--text-tertiary)">Opcional</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>Fase 1 vs Fase 2 em uma frase:</strong>
+    Fase 1 arrumou <em>onde</em> ficam as ações; Fase 2 arruma <em>como a linha respira</em> quando muda de tela ou cresce de altura.
+    <ul>
+      <li><strong>Esforço:</strong> pequeno — quase só CSS/grid, sem mudar fluxos.</li>
+      <li><strong>Risco:</strong> muito baixo — nada de novo para o usuário aprender.</li>
+      <li><strong>iOS:</strong> não afetado (só web).</li>
+    </ul>
+    <p style="margin-top:14px">Arquivo: <code>docs/concepts/task-row-phase2-concepts.html</code></p>
+  </div>
+
+  <script>
+    const showGuides = document.getElementById('showGuides');
+    const tallRows = document.getElementById('tallRows');
+
+    function updateGuides() {
+      document.querySelectorAll('[data-guide]').forEach((g) => {
+        g.style.display = showGuides.checked ? 'block' : 'none';
+      });
+    }
+
+    function updateTall() {
+      const show = tallRows.checked;
+      document.querySelectorAll('.tall-only').forEach((el) => {
+        el.style.display = show ? '' : 'none';
+      });
+      document.querySelectorAll('.tall-hint').forEach((el) => {
+        el.style.display = show ? 'block' : 'none';
+      });
+    }
+
+    showGuides.addEventListener('change', updateGuides);
+    tallRows.addEventListener('change', updateTall);
+    updateGuides();
+    updateTall();
+  </script>
+</body>
+</html>

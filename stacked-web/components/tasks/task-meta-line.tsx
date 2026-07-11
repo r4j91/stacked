@@ -77,7 +77,7 @@ export function TaskMetaLine({ task, hideDate }: TaskMetaLineProps) {
   if (!items.length) return task.done ? <span className="text-xs text-[var(--color-text-tertiary)]">—</span> : null;
 
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+    <div className="task-meta-line mt-1.5 flex min-h-[22px] flex-wrap items-center gap-1.5">
       {items}
     </div>
   );

@@ -160,8 +160,6 @@ export function TaskRow({
             }
           }}
           className={`group/reorder-row task-row task-row-grid mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 ${
-            reorderHandleProps ? "task-row-grid--gutter" : ""
-          } ${
             reorderDragOver
               ? reorderDropPosition === "after"
                 ? "reorder-drop-target reorder-drop-target-after border-transparent"
@@ -175,11 +173,11 @@ export function TaskRow({
           data-task-id={task.id}
           data-selected={isSelected ? "" : undefined}
         >
-          {reorderHandleProps ? (
-            <div className="reorder-gutter flex items-center justify-center self-center">
+          <div className="reorder-gutter flex items-center justify-center" aria-hidden={!reorderHandleProps}>
+            {reorderHandleProps ? (
               <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar ${task.title}`} />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           <DoneCircle
             done={task.done}
             priority={task.priority}
@@ -189,7 +187,7 @@ export function TaskRow({
               toggleTaskDone(task.id);
             }}
           />
-          <div className="min-w-0 flex-1">
+          <div className="task-row-grid__content min-w-0 flex-1">
             <div className="flex items-start gap-2">
               <p className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${task.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}>
                 {task.title}

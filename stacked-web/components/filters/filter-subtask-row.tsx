@@ -36,10 +36,11 @@ export function FilterSubtaskRow({
               openSubtaskInspector();
             }
           }}
-          className={`task-row flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-transparent px-2 py-2 ${
+          className={`task-row task-row-grid task-row-grid--no-rail min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border border-transparent px-2 py-2 ${
             subtask.done ? "opacity-65" : ""
           }`}
         >
+          <div className="reorder-gutter" aria-hidden />
           <DoneCircle
             done={subtask.done}
             priority={subtask.priority}
@@ -49,7 +50,7 @@ export function FilterSubtaskRow({
               toggleSubtaskDone(key);
             }}
           />
-          <div className="min-w-0 flex-1">
+          <div className="task-row-grid__content min-w-0 flex-1">
             <div className="flex items-start gap-2">
               <p
                 className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
