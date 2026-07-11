@@ -16,6 +16,13 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case streakIntegrated
   case streakOpen
   case streakOpenCentered
+  case greetingProgress
+  case greetingFocus
+  case greetingWeather
+  case greetingProgressTinted
+  case greetingFocusTinted
+  case greetingWeatherTinted
+  case greetingWeatherPremium
   case panel
   case compass
   case queue
@@ -42,6 +49,13 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .streakIntegrated: "Sequência integrada"
     case .streakOpen: "Sequência aberta"
     case .streakOpenCentered: "Sequência centralizada"
+    case .greetingProgress: "Saudação e progresso"
+    case .greetingFocus: "Saudação e foco"
+    case .greetingWeather: "Saudação e clima"
+    case .greetingProgressTinted: "Progresso (tom app)"
+    case .greetingFocusTinted: "Foco (tom app)"
+    case .greetingWeatherTinted: "Clima (tom app)"
+    case .greetingWeatherPremium: "Clima premium"
     case .panel: "Painel"
     case .compass: "Bússola"
     case .queue: "Fila"
@@ -68,6 +82,13 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .streakIntegrated: "Sequência com status no rodapé"
     case .streakOpen: "Sequência sem card, direto no fundo"
     case .streakOpenCentered: "Sequência aberta com conteúdo ao centro"
+    case .greetingProgress: "Bom dia com barra de progresso do dia"
+    case .greetingFocus: "Saudação com cartão de foco do dia"
+    case .greetingWeather: "Saudação com clima ilustrativo do dia"
+    case .greetingProgressTinted: "Progresso com fundo na cor do app"
+    case .greetingFocusTinted: "Foco com fundo na cor do app"
+    case .greetingWeatherTinted: "Clima real da localização com fundo temático"
+    case .greetingWeatherPremium: "Clima ao vivo com cena ilustrada premium"
     case .panel: "Foco, status e métricas num card"
     case .compass: "Direção do dia com status integrado"
     case .queue: "Fila de hoje com status nas linhas"
@@ -89,7 +110,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   var isUnifiedConceptCard: Bool {
     switch self {
     case .panel, .compass, .queue, .thermometer, .rhythm, .nextStep,
-         .motivationIntegrated, .focusDayIntegrated, .streakIntegrated: true
+         .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
+         .greetingProgress, .greetingFocus, .greetingWeather,
+         .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
+         .greetingWeatherPremium: true
     default: false
     }
   }
@@ -211,10 +235,13 @@ struct HomeHeroMetrics {
         dividerTopPadding: 10
       )
     case .motivation, .focusDay, .streak, .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
+         .greetingProgress, .greetingFocus, .greetingWeather,
+         .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
+         .greetingWeatherPremium,
          .panel, .compass, .queue, .thermometer, .rhythm, .nextStep:
       return HomeHeroMetrics(
         phraseSize: 12,
-        nameSize: 20,
+        nameSize: 22,
         statusSize: 12.5,
         orbitalArtSize: 48,
         cardPaddingH: 14,

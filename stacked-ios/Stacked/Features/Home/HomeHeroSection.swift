@@ -84,6 +84,34 @@ struct HomeHeroSection: View {
       HomeHeroStreakOpenCenteredCard(
         store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
       )
+    case .greetingProgress:
+      HomeHeroGreetingProgressCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingFocus:
+      HomeHeroGreetingFocusCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeather:
+      HomeHeroGreetingWeatherCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingProgressTinted:
+      HomeHeroGreetingProgressTintedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingFocusTinted:
+      HomeHeroGreetingFocusTintedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherTinted:
+      HomeHeroGreetingWeatherTintedCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherPremium:
+      HomeHeroGreetingWeatherPremiumCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
     case .panel:
       HomeHeroPanelCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)
     case .compass:

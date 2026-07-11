@@ -57,6 +57,20 @@ struct HomeHeroStylePreview: View {
       streakOpenPreview
     case .streakOpenCentered:
       streakOpenCenteredPreview
+    case .greetingProgress:
+      greetingProgressPreview
+    case .greetingFocus:
+      greetingFocusPreview
+    case .greetingWeather:
+      greetingWeatherPreview
+    case .greetingProgressTinted:
+      greetingProgressTintedPreview
+    case .greetingFocusTinted:
+      greetingFocusTintedPreview
+    case .greetingWeatherTinted:
+      greetingWeatherTintedPreview
+    case .greetingWeatherPremium:
+      greetingWeatherPremiumPreview
     case .panel:
       panelPreview
     case .compass:
@@ -354,6 +368,144 @@ struct HomeHeroStylePreview: View {
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+  }
+
+  private var greetingProgressPreview: some View {
+    ZStack(alignment: .bottomLeading) {
+      conceptPreviewSurface(accent: AppColors.tagPurple)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.45)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 20, height: 3)
+        Capsule().fill(AppColors.tagPurple.opacity(0.55)).frame(width: 24, height: 2).padding(.top, 2)
+        Rectangle().fill(colors.textPrimary.opacity(0.08)).frame(height: 1).padding(.top, 2)
+        HStack(spacing: 2) {
+          Circle().fill(AppColors.tagGreen.opacity(0.6)).frame(width: 3, height: 3)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 14, height: 2)
+        }
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingFocusPreview: some View {
+    ZStack(alignment: .topLeading) {
+      conceptPreviewSurface(accent: AppColors.tagPurple)
+      HStack(alignment: .top, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.45)).frame(width: 12, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 18, height: 3)
+        }
+        RoundedRectangle(cornerRadius: 2)
+          .strokeBorder(AppColors.tagPurple.opacity(0.3), lineWidth: 0.5)
+          .frame(width: 14, height: 10)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherPreview: some View {
+    ZStack(alignment: .topTrailing) {
+      conceptPreviewSurface(accent: AppColors.priorityMedium)
+      VStack(alignment: .trailing, spacing: 2) {
+        Circle().fill(AppColors.priorityMedium.opacity(0.45)).frame(width: 6, height: 6)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.7)).frame(width: 12, height: 3)
+        Capsule().fill(colors.textTertiary.opacity(0.35)).frame(width: 18, height: 4)
+      }
+      .padding(4)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.45)).frame(width: 12, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 16, height: 3)
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingProgressTintedPreview: some View {
+    ZStack(alignment: .bottomLeading) {
+      RoundedRectangle(cornerRadius: 4)
+        .fill(
+          LinearGradient(
+            colors: [colors.accent.opacity(0.35), colors.surfaceVariant.opacity(0.9)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+      greetingProgressPreview
+        .padding(1)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingFocusTintedPreview: some View {
+    ZStack(alignment: .topLeading) {
+      RoundedRectangle(cornerRadius: 4)
+        .fill(
+          LinearGradient(
+            colors: [AppColors.tagPurple.opacity(0.32), colors.surfaceVariant.opacity(0.9)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+      greetingFocusPreview
+        .padding(1)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherTintedPreview: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 4)
+        .fill(
+          LinearGradient(
+            colors: [AppColors.priorityLow.opacity(0.3), colors.surfaceVariant.opacity(0.9)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+      greetingWeatherPreview
+        .padding(1)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherPremiumPreview: some View {
+    ZStack(alignment: .topTrailing) {
+      RoundedRectangle(cornerRadius: 4)
+        .fill(
+          LinearGradient(
+            colors: [AppColors.priorityLow.opacity(0.35), colors.surfaceVariant.opacity(0.92)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+      VStack(alignment: .trailing, spacing: 2) {
+        RoundedRectangle(cornerRadius: 3)
+          .fill(
+            LinearGradient(
+              colors: [AppColors.priorityMedium.opacity(0.4), AppColors.priorityLow.opacity(0.15)],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
+          )
+          .frame(width: 22, height: 14)
+          .overlay(alignment: .topLeading) {
+            Circle().fill(AppColors.priorityMedium.opacity(0.7)).frame(width: 4, height: 4).padding(3)
+          }
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 12, height: 3)
+      }
+      .padding(4)
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.accent.opacity(0.45)).frame(width: 12, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.75)).frame(width: 16, height: 3)
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   private var panelPreview: some View {

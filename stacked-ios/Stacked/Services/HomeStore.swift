@@ -8,6 +8,8 @@ final class HomeStore {
 
   private(set) var overdueCount = 0
   private(set) var todayPending = 0
+  private(set) var todayDone = 0
+  private(set) var todayTotal = 0
   private(set) var inboxCount = 0
   private(set) var upcomingCount = 0
   private(set) var projects: [HomeProject] = []
@@ -20,6 +22,7 @@ final class HomeStore {
   private(set) var queueLines: [HomeHeroInsights.QueueLine] = []
   private(set) var completionStreak = 0
   private(set) var streakWeekCompleted: [Bool] = Array(repeating: false, count: 7)
+  private(set) var weatherSnapshot: HomeHeroInsights.WeatherSnapshot = HomeHeroInsights.placeholderWeather(for: .current)
 
   private init() {}
 
@@ -129,6 +132,30 @@ final class HomeStore {
     streakWeekCompleted.filter { $0 }.count
   }
 
+  var formattedLongDate: String {
+    HomeHeroInsights.formattedLongDate()
+  }
+
+  var todayProgressPercent: Int {
+    guard todayTotal > 0 else { return todayPending == 0 && overdueCount == 0 ? 100 : 0 }
+    return Int((Double(todayDone) / Double(todayTotal) * 100).rounded())
+  }
+
+  var greetingProgressSubtitle: String {
+    if overdueCount > 0 { return "Algumas pendências precisam de atenção." }
+    if todayTotal == 0 { return "Nenhuma tarefa agendada para hoje." }
+    if todayDone == todayTotal { return "Tudo em dia! Continue assim." }
+    return "Você está avançando no dia."
+  }
+
+  var greetingFocusSubtitle: String {
+    "Foco é fazer o importante acontecer."
+  }
+
+  var greetingFocusCardTitle: String {
+    focusTaskTitle ?? "Avançar no que importa."
+  }
+
   func load() async {
     isLoading = projects.isEmpty
     error = nil
@@ -148,6 +175,8 @@ final class HomeStore {
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
       todayPending = summary.todayPending
+      todayDone = summary.todayDone
+      todayTotal = summary.todayTotal
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
@@ -173,6 +202,8 @@ final class HomeStore {
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
       todayPending = summary.todayPending
+      todayDone = summary.todayDone
+      todayTotal = summary.todayTotal
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
@@ -214,6 +245,8 @@ final class HomeStore {
     let streak = HomeHeroInsights.streak(from: completions)
     completionStreak = streak.days
     streakWeekCompleted = streak.weekCompleted
+
+    weatherSnapshot = await HomeWeatherService.shared.snapshot(fallbackTimeOfDay: timeOfDay)
   }
 }
 
