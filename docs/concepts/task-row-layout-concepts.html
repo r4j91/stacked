@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Task row layout (conceitos)</title>
+  <style>
+    :root {
+      --bg: #16161a;
+      --surface: #1c1c20;
+      --surface-variant: #2c2c32;
+      --text: #f2f2f4;
+      --text-secondary: #9a9aa2;
+      --text-tertiary: #72727a;
+      --accent: #e8e8ec;
+      --done: #7ecc49;
+      --overdue: #ef5a5f;
+      --p3: #4d9fec;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --hover: rgba(255, 255, 255, 0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --rail: 72px;
+      --row-h: 52px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text);
+      line-height: 1.45;
+      padding: 32px 24px 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto 28px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 68ch;
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(126, 204, 73, 0.08);
+      border: 1px solid rgba(126, 204, 73, 0.2);
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 68ch;
+    }
+
+    .note strong { color: var(--done); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-head h2 {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .panel-head p {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .badge-now { background: rgba(239, 90, 95, 0.15); color: var(--overdue); }
+    .badge-rec { background: rgba(126, 204, 73, 0.12); color: var(--done); }
+    .badge-alt { background: rgba(77, 159, 236, 0.12); color: var(--p3); }
+
+    .canvas {
+      padding: 16px;
+      background: var(--bg);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .hint kbd {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Task row primitives ── */
+
+    .list { display: flex; flex-direction: column; gap: 4px; }
+
+    .row-wrap {
+      position: relative;
+      border-radius: var(--radius-md);
+    }
+
+    .row-wrap.hover-demo:hover .hover-actions,
+    .row-wrap.force-hover .hover-actions {
+      opacity: 1;
+    }
+
+  .hover-actions {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding-right: 4px;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      pointer-events: none;
+    }
+
+    .row-wrap.hover-demo:hover .hover-actions,
+    .row-wrap.force-hover .hover-actions {
+      pointer-events: auto;
+    }
+
+    .row {
+      display: grid;
+      align-items: start;
+      min-height: var(--row-h);
+      padding: 8px 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.12s ease-out;
+    }
+
+    .row:hover { background: var(--hover); }
+    .row.selected {
+      background: var(--hover);
+      border-color: var(--border-strong);
+    }
+
+    /* Atual: flex + overlay */
+    .row--atual {
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      padding: 8px 2px 8px 4px;
+    }
+
+    /* Proposta: grid com trilho */
+    .row--proposta {
+      grid-template-columns: auto 1fr var(--rail);
+      gap: 8px;
+    }
+
+    .row--proposta.with-gutter {
+      grid-template-columns: 16px auto 1fr var(--rail);
+    }
+
+    .gutter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.45;
+      color: var(--text-tertiary);
+      align-self: center;
+    }
+
+    .gutter svg { display: block; }
+
+    .done {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--p3);
+      background: color-mix(in srgb, var(--p3) 8%, transparent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .done.filled {
+      border-color: var(--done);
+      background: color-mix(in srgb, var(--done) 15%, transparent);
+      display: grid;
+      place-items: center;
+      color: var(--done);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .content { min-width: 0; }
+
+    .title-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .title {
+      flex: 1;
+      min-width: 0;
+      font-size: 15.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Hora — opção atual (discreta, ao lado do título) */
+    .time-a {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .time-a svg { opacity: 0.7; }
+
+    /* Hora — opção B: sufixo inline no título (sem chip) */
+    .title-with-time {
+      flex: 1;
+      min-width: 0;
+      font-size: 15.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .title-with-time .sep {
+      color: var(--text-tertiary);
+      font-weight: 500;
+      margin: 0 0.35em;
+    }
+
+    .title-with-time .t {
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-tertiary);
+    }
+
+    /* Hora — opção C: coluna estreita entre conteúdo e trilho */
+    .time-col {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding-top: 2px;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-tertiary);
+      width: 44px;
+      flex-shrink: 0;
+    }
+
+    .row--time-col {
+      grid-template-columns: auto 1fr 44px var(--rail);
+      gap: 8px;
+    }
+
+    .preview {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .meta {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .meta-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--tag-green, #8fd46b) 18%, transparent);
+      color: #b8e89a;
+    }
+
+    .chip-date {
+      background: color-mix(in srgb, var(--overdue) 14%, transparent);
+      color: #f5a0a3;
+    }
+
+    /* Trilho de ações (só ícones utilitários) */
+    .rail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      align-self: start;
+      margin-top: 2px;
+      width: var(--rail);
+      justify-items: center;
+    }
+
+    .rail.single { grid-template-columns: 1fr; }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-tertiary);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .icon-btn:hover {
+      background: var(--hover);
+      color: var(--text-secondary);
+    }
+
+    .icon-btn.accent { color: var(--accent); }
+
+    .icon-btn .chev {
+      transition: transform 0.2s ease-out;
+    }
+
+    .icon-btn.expanded .chev { transform: rotate(180deg); }
+
+    .action-chip {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+    }
+
+    .action-chip.done { color: var(--done); }
+    .action-chip.danger { color: var(--overdue); }
+
+    /* Callout overlay problem */
+    .problem-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-md);
+      pointer-events: none;
+      border: 1px dashed rgba(239, 90, 95, 0.35);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .row-wrap.hover-demo:hover .problem-layer,
+    .row-wrap.force-hover .problem-layer {
+      opacity: 1;
+    }
+
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+      max-width: 1080px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @media (max-width: 720px) {
+      .compare-row { grid-template-columns: 1fr; }
+    }
+
+    .section-title {
+      max-width: 1080px;
+      margin: 36px auto 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .time-options {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .time-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+
+    .time-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .time-card p {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      min-height: 2.6em;
+    }
+
+    .pick {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--done);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .controls {
+      max-width: 1080px;
+      margin: 20px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .controls label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .controls input { accent-color: var(--done); }
+
+    .footer {
+      max-width: 1080px;
+      margin: 32px auto 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.6;
+    }
+
+    .footer ul { margin: 8px 0 0 18px; }
+    .footer li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Task row — layout (web)</h1>
+    <p>
+      Comparação visual do layout <strong>atual</strong> vs <strong>proposta</strong>.
+      Foco: trilho fixo à direita, sem duplicar “concluir” no hover, hora discreta (não vira chip na meta line).
+    </p>
+    <div class="note">
+      <strong>Recomendação:</strong> manter a hora na linha do título (opção A) e separar só
+      <em>ações</em> (WhatsApp, chevron) no trilho fixo. Isso resolve o “botão fora do lugar” sem
+      poluir a meta line com mais chips.
+    </div>
+  </header>
+
+  <div class="controls">
+    <label><input type="checkbox" id="forceHover" /> Forçar estado hover (desktop)</label>
+    <label><input type="checkbox" id="showGutter" checked /> Mostrar gutter de reorder (projeto)</label>
+  </div>
+
+  <p class="section-title">Comparação lado a lado</p>
+  <div class="compare-row">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Atual (produção)</h2>
+        <p>Hover com 3 botões por cima · hora e ícones competem à direita</p>
+        <span class="badge badge-now">Problema</span>
+      </div>
+      <div class="canvas">
+        <p class="hint">Passe o mouse na linha ou marque <kbd>Forçar hover</kbd></p>
+        <div class="list" id="list-atual">
+          <div class="row-wrap hover-demo">
+            <div class="problem-layer" aria-hidden></div>
+            <div class="hover-actions">
+              <span class="action-chip done" title="Concluir">✓</span>
+              <span class="action-chip" title="Adiar">⏰</span>
+              <span class="action-chip danger" title="Excluir">🗑</span>
+            </div>
+            <div class="row row--atual">
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line">
+                  <span class="title">Revisar Palmeirense</span>
+                  <span class="time-a"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>13:00</span>
+                </div>
+                <div class="meta">
+                  <span class="meta-text">Casa</span>
+                  <span class="chip chip-date">Hoje</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:0;margin-top:2px">
+                <button type="button" class="icon-btn accent" aria-label="WhatsApp">⎘</button>
+                <button type="button" class="icon-btn" aria-label="Subtarefas"><span class="chev">⌄</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-wrap hover-demo">
+            <div class="problem-layer" aria-hidden></div>
+            <div class="hover-actions" style="right:40px">
+              <span class="action-chip done">✓</span>
+              <span class="action-chip">⏰</span>
+              <span class="action-chip danger">🗑</span>
+            </div>
+            <div class="row row--atual">
+              <div class="done"></div>
+              <div class="content">
+                <div class="title-line">
+                  <span class="title">IPTU Bressanone / Pagamento</span>
+                  <span class="time-a"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>12:00</span>
+                </div>
+                <div class="meta"><span class="meta-text">Finanças</span></div>
+              </div>
+              <div style="display:flex;margin-top:2px">
+                <button type="button" class="icon-btn" aria-label="Subtarefas"><span class="chev">⌄</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row row--atual selected">
+            <div class="done filled">✓</div>
+            <div class="content">
+              <div class="title-line">
+                <span class="title" style="color:var(--text-tertiary);text-decoration:line-through">Revisar Freezer Estoque</span>
+                <span class="time-a">13:45</span>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Proposta (recomendada)</h2>
+        <p>Trilho fixo 72px · concluir só no círculo · hover sem overlay</p>
+        <span class="badge badge-rec">Recomendado</span>
+      </div>
+      <div class="canvas">
+        <p class="hint">Mesmas tarefas — note o alinhamento estável da coluna direita</p>
+        <div class="list" id="list-proposta">
+          <div class="row row--proposta with-gutter">
+            <div class="gutter" data-gutter><svg width="8" height="12" fill="currentColor"><circle cx="2" cy="2" r="1"/><circle cx="6" cy="2" r="1"/><circle cx="2" cy="6" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="2" cy="10" r="1"/><circle cx="6" cy="10" r="1"/></svg></div>
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line">
+                <span class="title">Revisar Palmeirense</span>
+                <span class="time-a"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>13:00</span>
+              </div>
+              <div class="meta">
+                <span class="meta-text">Casa</span>
+                <span class="chip chip-date">Hoje</span>
+              </div>
+            </div>
+            <div class="rail">
+              <button type="button" class="icon-btn accent">⎘</button>
+              <button type="button" class="icon-btn expanded"><span class="chev">⌄</span></button>
+            </div>
+          </div>
+
+          <div class="row row--proposta with-gutter">
+            <div class="gutter" data-gutter><svg width="8" height="12" fill="currentColor"><circle cx="2" cy="2" r="1"/><circle cx="6" cy="2" r="1"/><circle cx="2" cy="6" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="2" cy="10" r="1"/><circle cx="6" cy="10" r="1"/></svg></div>
+            <div class="done"></div>
+            <div class="content">
+              <div class="title-line">
+                <span class="title">IPTU Bressanone / Pagamento</span>
+                <span class="time-a"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>12:00</span>
+              </div>
+              <div class="meta"><span class="meta-text">Finanças</span></div>
+            </div>
+            <div class="rail single">
+              <span></span>
+              <button type="button" class="icon-btn"><span class="chev">⌄</span></button>
+            </div>
+          </div>
+
+          <div class="row row--proposta with-gutter selected">
+            <div class="gutter" data-gutter></div>
+            <div class="done filled">✓</div>
+            <div class="content">
+              <div class="title-line">
+                <span class="title" style="color:var(--text-tertiary);text-decoration:line-through">Revisar Freezer Estoque</span>
+                <span class="time-a">13:45</span>
+              </div>
+            </div>
+            <div class="rail single"><span></span><span></span></div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:12px">Adiar / Excluir: menu de contexto (clique direito) ou swipe no mobile — não no hover.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Hora: três opções (sem chip na meta line)</p>
+  <div class="time-options">
+    <div class="time-card">
+      <h3>A — Ao lado do título <span class="pick">★ recomendada</span></h3>
+      <p>Como hoje: ícone + tabular, terciário. Fica no bloco de conteúdo, separado do trilho de ações.</p>
+      <div class="row row--proposta" style="background:var(--surface);padding:10px 12px">
+        <div class="done"></div>
+        <div class="content">
+          <div class="title-line">
+            <span class="title">Revisar Palmeirense</span>
+            <span class="time-a"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>13:00</span>
+          </div>
+        </div>
+        <div class="rail single"><button type="button" class="icon-btn"><span class="chev">⌄</span></button></div>
+      </div>
+    </div>
+
+    <div class="time-card">
+      <h3>B — Sufixo no título</h3>
+      <p>Mesma linha, separador · — ainda discreto, menos “coluna” à direita do texto.</p>
+      <div class="row row--proposta" style="background:var(--surface);padding:10px 12px">
+        <div class="done"></div>
+        <div class="content">
+          <p class="title-with-time">Revisar Palmeirense<span class="sep">·</span><span class="t">13:00</span></p>
+        </div>
+        <div class="rail single"><button type="button" class="icon-btn"><span class="chev">⌄</span></button></div>
+      </div>
+    </div>
+
+    <div class="time-card">
+      <h3>C — Mini-coluna antes do trilho</h3>
+      <p>Hora alinhada à direita do conteúdo, 44px fixos. Útil se o título for muito longo.</p>
+      <div class="row row--time-col" style="background:var(--surface);padding:10px 12px">
+        <div class="done"></div>
+        <div class="content">
+          <p class="title">Revisar Palmeirense</p>
+        </div>
+        <div class="time-col">13:00</div>
+        <div class="rail single"><button type="button" class="icon-btn"><span class="chev">⌄</span></button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>O que muda na fluidez?</strong>
+    <ul>
+      <li><strong>Visual:</strong> linhas param de “pular” quando há ou não WhatsApp; hover não cobre texto.</li>
+      <li><strong>Interação:</strong> uma ação primária (círculo); menos cliques acidentais.</li>
+      <li><strong>Performance:</strong> quase nenhum impacto — isso é CSS/grid, não fetch.</li>
+    </ul>
+    <p style="margin-top:12px">Abra este arquivo no navegador: <code>docs/concepts/task-row-layout-concepts.html</code></p>
+  </div>
+
+  <script>
+    const forceHover = document.getElementById('forceHover');
+    const showGutter = document.getElementById('showGutter');
+
+    forceHover.addEventListener('change', () => {
+      document.querySelectorAll('.row-wrap.hover-demo').forEach((el) => {
+        el.classList.toggle('force-hover', forceHover.checked);
+      });
+    });
+
+    function updateGutter() {
+      const show = showGutter.checked;
+      document.querySelectorAll('[data-gutter]').forEach((g) => {
+        g.style.visibility = show ? 'visible' : 'hidden';
+      });
+      document.querySelectorAll('.row--proposta.with-gutter, .row--time-col').forEach((row) => {
+        if (!show) {
+          row.style.gridTemplateColumns = row.classList.contains('row--time-col')
+            ? 'auto 1fr 44px var(--rail)'
+            : 'auto 1fr var(--rail)';
+        } else {
+          row.style.gridTemplateColumns = row.classList.contains('row--time-col')
+            ? '16px auto 1fr 44px var(--rail)'
+            : '16px auto 1fr var(--rail)';
+        }
+      });
+    }
+
+    showGutter.addEventListener('change', updateGutter);
+    updateGutter();
+  </script>
+</body>
+</html>

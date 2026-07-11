@@ -36,7 +36,7 @@ export function FilterSubtaskRow({
               openSubtaskInspector();
             }
           }}
-          className={`task-row flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-transparent py-2 pl-1 pr-3 ${
+          className={`task-row flex min-h-[52px] cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-transparent px-2 py-2 ${
             subtask.done ? "opacity-65" : ""
           }`}
         >

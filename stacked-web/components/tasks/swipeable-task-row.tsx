@@ -17,8 +17,6 @@ type SwipeableTaskRowProps = {
   allowOverflow?: boolean;
   /** Desativa hit-test enquanto arrasta (pointer passa para alvos abaixo) */
   dragGhost?: boolean;
-  /** Espaço reservado à direita (ex.: botão expandir subtarefas) */
-  reserveRight?: number;
 };
 
 export function SwipeableTaskRow({
@@ -29,7 +27,6 @@ export function SwipeableTaskRow({
   disabled,
   allowOverflow = false,
   dragGhost = false,
-  reserveRight = 0,
 }: SwipeableTaskRowProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -98,22 +95,6 @@ export function SwipeableTaskRow({
       } ${dragGhost ? "pointer-events-none" : ""}`}
       data-reorder-dragging={dragGhost ? "" : undefined}
     >
-      <div
-        className="absolute top-0 z-10 hidden h-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover:opacity-100 lg:flex"
-        style={{ right: reserveRight }}
-        aria-hidden={false}
-      >
-        <ActionButton tone="done" label="Concluir" onClick={onComplete}>
-          <AppIcon icon={Tick01Icon} size={15} />
-        </ActionButton>
-        <ActionButton tone="neutral" label="Adiar" onClick={onDefer}>
-          <AppIcon icon={Clock01Icon} size={15} />
-        </ActionButton>
-        <ActionButton tone="danger" label="Excluir" onClick={onDelete}>
-          <AppIcon icon={Delete01Icon} size={15} />
-        </ActionButton>
-      </div>
-
       <div className="absolute left-0 top-0 flex h-full lg:hidden" style={{ width: revealRight }} aria-hidden>
         <SwipeAction tone="done" width={revealRight} onClick={onComplete}>
           <AppIcon icon={Tick01Icon} size={16} />
@@ -158,33 +139,6 @@ const swipeToneBg: Record<ActionTone, string> = {
   neutral: "color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-surface))",
   danger: "color-mix(in srgb, var(--color-overdue) 12%, var(--color-surface))",
 };
-
-function ActionButton({
-  children,
-  label,
-  tone,
-  onClick,
-}: {
-  children: ReactNode;
-  label: string;
-  tone: ActionTone;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className={`flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors ${toneStyles[tone]}`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function SwipeAction({
   children,
