@@ -16,6 +16,19 @@ final class MobileChromeController {
 
   private init() {}
 
+  var fabIntegratedInIsland: Bool {
+    FabIntegratedInIslandStorage.isEnabled
+  }
+
+  /// FAB_INTEGRADO_ETAPA2 — trava expand/collapse da ilha enquanto o menu "+" está aberto.
+  var islandNavLockedByFabMenu: Bool {
+    navBarStyle == .island && fabIntegratedInIsland && fabOpen
+  }
+
+  var usesIntegratedIslandFab: Bool {
+    navBarStyle == .island && fabIntegratedInIsland
+  }
+
   var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(
       from: UserDefaults.standard.string(forKey: NavBarStyleStorage.key)
@@ -25,6 +38,7 @@ final class MobileChromeController {
 
   func expandIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
     guard navBarStyle == .island else { return }
+    guard !islandNavLockedByFabMenu else { return }
     fabOpen = false
     AppMotion.animate(AppMotion.islandNavSpring, reduceMotion: reduceMotion) {
       islandNavExpanded = true
@@ -33,6 +47,7 @@ final class MobileChromeController {
 
   func collapseIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
     guard islandNavExpanded else { return }
+    guard !islandNavLockedByFabMenu else { return }
     AppMotion.animate(AppMotion.islandNavSpring, reduceMotion: reduceMotion) {
       islandNavExpanded = false
     }

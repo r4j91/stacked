@@ -8,9 +8,14 @@ struct AppearanceView: View {
   @State private var iconErrorMessage: String?
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
 
   private var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(from: navBarStyleRaw)
+  }
+
+  private var isIslandNavStyle: Bool {
+    navBarStyle == .island
   }
 
   private var homeHeroStyle: HomeHeroStyle {
@@ -48,11 +53,21 @@ struct AppearanceView: View {
                 SettingsCardDivider(leadingPadding: 56)
               }
             }
+            SettingsCardDivider(leadingPadding: 56)
+            fabIntegratedInIslandRow()
           }
         }
         .settingsListCardRow(top: 4, bottom: 4)
       } header: {
         SettingsSectionHeader(text: "Barra de navegação")
+      } footer: {
+        if !isIslandNavStyle {
+          Text("FAB integrado na ilha está disponível apenas com a navbar em Ilha.")
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(theme.colors.textTertiary)
+            .settingsListCardRow(top: 0, bottom: 8)
+            .listRowBackground(Color.clear)
+        }
       }
 
       Section {
@@ -170,6 +185,35 @@ struct AppearanceView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  private func fabIntegratedInIslandRow() -> some View {
+    let c = theme.colors
+
+    return Toggle(isOn: $fabIntegratedInIsland) {
+      HStack(spacing: 14) {
+        FabIntegratedInIslandPreview(integrated: fabIntegratedInIsland, colors: c)
+        VStack(alignment: .leading, spacing: 3) {
+          Text("FAB integrado na ilha")
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(isIslandNavStyle ? c.textPrimary : c.textTertiary)
+          Text("O botão + vira um segmento da pill em vez de flutuar acima dela.")
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+        }
+      }
+      .frame(minHeight: 44)
+    }
+    .toggleStyle(.switch)
+    .tint(c.accent)
+    .disabled(!isIslandNavStyle)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: fabIntegratedInIsland) { _, enabled in
+      if enabled {
+        HapticService.selection()
+      }
+    }
   }
 
   private func homeHeroStyleRow(_ style: HomeHeroStyle) -> some View {

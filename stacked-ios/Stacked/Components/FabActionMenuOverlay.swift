@@ -6,6 +6,9 @@ struct FabActionMenuOverlay: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let safeBottom: CGFloat
+  var screenWidth: CGFloat = 0
+  var fabIntegratedInIsland: Bool = false
+  var islandExpanded: Bool = false
   @Binding var isOpen: Bool
   var onNewTask: () -> Void
   var onNewProject: () -> Void
@@ -27,7 +30,29 @@ struct FabActionMenuOverlay: View {
   }
 
   private var menuBottomInset: CGFloat {
-    fabBottom + AppLayout.fabSize + fabMenuGap
+    if fabIntegratedInIsland {
+      let pillBottom = ChromeLayout.pillMarginBottom(safeBottom: safeBottom)
+      let inner = ChromeLayout.pillInnerPadding
+      let pillHeight = IslandNavMetrics.pillHeight + inner * 2
+      return pillBottom + pillHeight + fabMenuGap
+    }
+    return fabBottom + AppLayout.fabSize + fabMenuGap
+  }
+
+  private var menuTrailingInset: CGFloat {
+    guard fabIntegratedInIsland, screenWidth > 0 else {
+      return AppLayout.fabSideMargin
+    }
+    let side = AppLayout.fabSideMargin
+    let inner = ChromeLayout.pillInnerPadding
+    let fabCenterX = IslandNavLayout.fabSegmentCenterX(
+      screenWidth: screenWidth,
+      sideMargin: side,
+      innerPadding: inner,
+      expanded: islandExpanded,
+      fabIntegrated: true
+    )
+    return max(AppLayout.fabSideMargin, screenWidth - fabCenterX - rowHeight / 2)
   }
 
   private var menuEntries: [(String, StackedIconKey, () -> Void)] {
@@ -50,7 +75,7 @@ struct FabActionMenuOverlay: View {
           )
       }
     }
-    .padding(.trailing, AppLayout.fabSideMargin)
+    .padding(.trailing, menuTrailingInset)
     .padding(.bottom, menuBottomInset)
     .allowsHitTesting(isOpen)
     .onAppear { syncVisibility(isOpen) }

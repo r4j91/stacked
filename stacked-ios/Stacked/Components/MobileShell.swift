@@ -6,6 +6,7 @@ struct MobileShell<Content: View>: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   var hideBottomChrome: Bool = false
   var onNewTask: () -> Void = {}
   var onSearch: () -> Void = {}
@@ -30,6 +31,7 @@ struct MobileShell<Content: View>: View {
     @Bindable var chrome = chrome
     let c = theme.colors
     let navBarStyle = NavBarStyleStorage.style(from: navBarStyleRaw)
+    let usesIntegratedIslandFab = navBarStyle == .island && fabIntegratedInIsland
 
     ZStack(alignment: .bottomTrailing) {
       // Conteúdo fora do GeometryReader — o reader não reavalia filhos quando só o tab muda.
@@ -48,7 +50,10 @@ struct MobileShell<Content: View>: View {
             Color.clear
               .ignoresSafeArea()
               .contentShape(Rectangle())
-              .onTapGesture { chrome.collapseIslandNav() }
+              .onTapGesture {
+                guard !chrome.islandNavLockedByFabMenu else { return }
+                chrome.collapseIslandNav()
+              }
               .frame(width: geo.size.width, height: geo.size.height)
               .transition(.opacity)
           }
@@ -72,6 +77,9 @@ struct MobileShell<Content: View>: View {
 
             FabActionMenuOverlay(
               safeBottom: safeBottom,
+              screenWidth: geo.size.width,
+              fabIntegratedInIsland: usesIntegratedIslandFab,
+              islandExpanded: chrome.islandNavExpanded,
               isOpen: $chrome.fabOpen,
               onNewTask: onNewTask,
               onNewProject: onNewProject,
@@ -94,10 +102,16 @@ struct MobileShell<Content: View>: View {
 
 private struct BottomChromeBar: View {
   @Environment(MobileChromeController.self) private var chrome
+  @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   let safeBottom: CGFloat
   let pillBottom: CGFloat
   let fabBottom: CGFloat
   let size: CGSize
+
+  private var usesIntegratedIslandFab: Bool {
+    NavBarStyleStorage.style(from: navBarStyleRaw) == .island && fabIntegratedInIsland
+  }
 
   var body: some View {
     @Bindable var chrome = chrome
@@ -111,10 +125,13 @@ private struct BottomChromeBar: View {
         .frame(maxWidth: .infinity, alignment: .bottom)
         .allowsHitTesting(false)
 
-      ExpandableFAB(isOpen: $chrome.fabOpen)
-        .padding(.trailing, AppLayout.fabSideMargin)
-        .padding(.bottom, fabBottom)
-        .allowsHitTesting(false)
+      if !usesIntegratedIslandFab {
+        ExpandableFAB(isOpen: $chrome.fabOpen)
+          .padding(.trailing, AppLayout.fabSideMargin)
+          .padding(.bottom, fabBottom)
+          .allowsHitTesting(false)
+      }
+      // FAB_INTEGRADO_ETAPA2 — ExpandableFAB flutuante oculto quando integrado na ilha.
 
       DockTouchOverlay(safeBottom: safeBottom)
         .frame(

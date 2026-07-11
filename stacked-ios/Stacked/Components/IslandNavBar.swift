@@ -6,10 +6,17 @@ struct IslandNavBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @Binding var selectedTab: NavTab
 
   private let tabs = NavTab.allCases
   private let pillShape = Capsule()
+
+  private var fabIntegrated: Bool { fabIntegratedInIsland }
+
+  private var navDimmed: Bool {
+    fabIntegrated && chrome.fabOpen
+  }
 
   var body: some View {
     if reduceTransparency {
@@ -27,7 +34,11 @@ struct IslandNavBar: View {
 
     return GeometryReader { geo in
       let trackWidth = geo.size.width
-      let pillWidth = isExpanded ? trackWidth : trackWidth * IslandNavMetrics.compactWidthRatio
+      let pillWidth = IslandNavLayout.pillWidth(
+        trackWidth: trackWidth,
+        expanded: isExpanded,
+        fabIntegrated: fabIntegrated
+      )
 
       HStack(spacing: 0) {
         Spacer(minLength: 0)
@@ -36,6 +47,7 @@ struct IslandNavBar: View {
         Spacer(minLength: 0)
       }
       .animation(islandAnimation, value: isExpanded)
+      .animation(islandAnimation, value: fabIntegrated)
     }
     .frame(height: IslandNavMetrics.pillHeight)
     .padding(ChromeLayout.pillInnerPadding)
@@ -54,12 +66,21 @@ struct IslandNavBar: View {
     pillWidth: CGFloat,
     useGlass: Bool
   ) -> some View {
-    Group {
-      if isExpanded {
-        expandedItems(colors: colors)
-          .opacity(expandedItemsOpacity)
-      } else {
-        collapsedSummary(colors: colors, tab: selectedTab)
+    HStack(spacing: 0) {
+      Group {
+        if isExpanded {
+          expandedItems(colors: colors)
+            .opacity(expandedItemsOpacity)
+        } else {
+          collapsedSummary(colors: colors, tab: selectedTab)
+        }
+      }
+      .frame(maxWidth: .infinity)
+      .opacity(navDimmed ? IslandNavMetrics.fabMenuDimOpacity : 1)
+      .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: navDimmed)
+
+      if fabIntegrated {
+        islandFabSegment(colors: colors)
       }
     }
     .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
@@ -116,6 +137,22 @@ struct IslandNavBar: View {
     .animation(nil, value: selectedTab)
   }
 
+  private func islandFabSegment(colors: AppThemeColors) -> some View {
+    HStack(spacing: 0) {
+      Rectangle()
+        .fill(colors.textPrimary.opacity(0.08))
+        .frame(width: IslandNavLayout.fabDividerWidth, height: 28)
+
+      StackedIcons.image(.plus)
+        .font(.system(size: 20, weight: .medium))
+        .foregroundStyle(colors.accent)
+        .rotationEffect(.degrees(chrome.fabOpen ? 45 : 0))
+        .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: chrome.fabOpen)
+        .frame(width: IslandNavLayout.fabSegmentWidth, height: IslandNavMetrics.pillHeight)
+        .accessibilityLabel(chrome.fabOpen ? "Fechar menu de ações" : "Criar novo")
+    }
+  }
+
   private func expandedItems(colors: AppThemeColors) -> some View {
     HStack(spacing: 0) {
       ForEach(tabs) { tab in
@@ -170,6 +207,8 @@ enum IslandNavMetrics {
   // AJUSTADO_ISLAND_FADE
   static let itemsFadeInDelay: TimeInterval = 0.06
   static let itemsFadeInDuration: TimeInterval = 0.15
+  /// FAB_INTEGRADO_ETAPA2 — opacidade dos itens de navegação com menu "+" aberto.
+  static let fabMenuDimOpacity: CGFloat = 0.38
 }
 
 // MARK: - Item expandido
