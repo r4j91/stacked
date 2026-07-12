@@ -159,9 +159,9 @@ final class HomeStore {
   func load() async {
     isLoading = projects.isEmpty
     error = nil
+    defer { isLoading = false }
     guard let userId = SupabaseService.client.auth.currentUser?.id else {
       error = "Sessão inválida. Faça login novamente."
-      isLoading = false
       return
     }
     let today = TaskMapper.dateString(Date())
@@ -170,7 +170,6 @@ final class HomeStore {
       async let projectsReq = ProjectRepository.shared.fetchHomeProjects()
       async let upcomingReq = TaskRepository.shared.countUpcomingTasks(userId: userId, todayStr: today)
       async let pendingReq = TaskRepository.shared.fetchPendingTaskProjectIds(userId: userId)
-      async let heroInsightsReq = refreshHeroInsights(todayStr: today)
 
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
@@ -180,12 +179,11 @@ final class HomeStore {
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
-      _ = await heroInsightsReq
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
     }
-    isLoading = false
+    await refreshHeroInsights(todayStr: today)
   }
 
   /// Atualiza badges da Home sem spinner — usado após mutações em outras abas.

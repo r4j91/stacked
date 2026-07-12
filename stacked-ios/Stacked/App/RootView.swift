@@ -39,6 +39,7 @@ struct RootView: View {
     }
     .onChange(of: scenePhase) { _, phase in
       guard didBootstrap, phase == .active else { return }
+      WidgetSnapshotSync.refreshFromCachedToday()
       _Concurrency.Task {
         await NotificationService.shared.rescheduleAllPending()
       }

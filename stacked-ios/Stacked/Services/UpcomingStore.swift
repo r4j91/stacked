@@ -114,6 +114,7 @@ final class UpcomingStore {
   func load() async {
     isLoading = tasks.isEmpty
     error = nil
+    defer { isLoading = false }
     do {
       async let taskReq = repo.fetchDatedPendingTasks()
       async let subtaskReq = SubtaskRepository.shared.fetchDatedPendingScheduleEntries()
@@ -126,7 +127,7 @@ final class UpcomingStore {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
     }
-    isLoading = false
+    WidgetSnapshotSync.refreshAll()
   }
 
   func toggleDaySelection(_ day: Date) {

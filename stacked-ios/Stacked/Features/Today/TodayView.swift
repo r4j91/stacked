@@ -6,6 +6,7 @@ struct TodayView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
   @State private var store = TaskStore.shared
+  @State private var router = AppNavigationRouter.shared
   @State private var completedExpanded = false
   @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
@@ -118,6 +119,8 @@ struct TodayView: View {
     .background(c.background)
     .refreshable { await store.loadToday() }
     .stackedListRowWorkGate($allowRowHeavyWork)
+    .onAppear { openPendingTaskIfNeeded() }
+    .onChange(of: router.pendingTaskId) { _, _ in openPendingTaskIfNeeded() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
         await store.loadToday()
@@ -139,6 +142,12 @@ struct TodayView: View {
 
   private var rowInsets: EdgeInsets {
     EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  }
+
+  private func openPendingTaskIfNeeded() {
+    guard let id = router.consumeTaskId() else { return }
+    guard TaskIdentity.isValidUUID(id) else { return }
+    detailRoute = TaskDetailRoute(taskId: id)
   }
 
   @ViewBuilder

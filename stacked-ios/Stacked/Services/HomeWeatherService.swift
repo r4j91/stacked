@@ -21,7 +21,7 @@ final class HomeWeatherService: NSObject {
       return cachedSnapshot
     }
 
-    guard let location = await requestLocation() else {
+    guard let location = await requestLocation(timeout: 5) else {
       return HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
     }
 
@@ -31,6 +31,24 @@ final class HomeWeatherService: NSObject {
     cachedSnapshot = resolved
     cacheExpiry = Date().addingTimeInterval(30 * 60)
     return resolved
+  }
+
+  private func requestLocation(timeout seconds: TimeInterval) async -> CLLocation? {
+    await withTaskGroup(of: CLLocation?.self) { group in
+      group.addTask { @MainActor in
+        await self.requestLocation()
+      }
+      group.addTask {
+        let ns = UInt64(max(seconds, 0.1) * 1_000_000_000)
+        try? await _Concurrency.Task.sleep(nanoseconds: ns)
+        return nil
+      }
+      let result = await group.next() ?? nil
+      group.cancelAll()
+      locationContinuation?.resume(returning: nil)
+      locationContinuation = nil
+      return result
+    }
   }
 
   private func requestLocation() async -> CLLocation? {

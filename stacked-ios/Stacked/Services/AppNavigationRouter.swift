@@ -7,6 +7,7 @@ final class AppNavigationRouter {
 
   var pendingTab: NavTab?
   var pendingOpenSearch = false
+  var pendingTaskId: String?
 
   private init() {}
 
@@ -18,6 +19,15 @@ final class AppNavigationRouter {
     pendingOpenSearch = true
   }
 
+  func openTask(id: String) {
+    guard TaskIdentity.isValidUUID(id) else {
+      open(tab: .today)
+      return
+    }
+    pendingTaskId = id
+    open(tab: .today)
+  }
+
   func handle(url: URL) {
     guard url.scheme == "stacked" else { return }
     switch url.host {
@@ -27,6 +37,13 @@ final class AppNavigationRouter {
     case "filters": open(tab: .filters)
     case "home", "navigate": open(tab: .home)
     case "search": openSearch()
+    case "task":
+      let id = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+      if TaskIdentity.isValidUUID(id) {
+        openTask(id: id)
+      } else {
+        open(tab: .today)
+      }
     default: open(tab: .home)
     }
   }
@@ -39,5 +56,10 @@ final class AppNavigationRouter {
   func consumeSearch() -> Bool {
     defer { pendingOpenSearch = false }
     return pendingOpenSearch
+  }
+
+  func consumeTaskId() -> String? {
+    defer { pendingTaskId = nil }
+    return pendingTaskId
   }
 }

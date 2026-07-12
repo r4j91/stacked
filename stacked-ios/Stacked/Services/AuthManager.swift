@@ -23,6 +23,15 @@ final class AuthManager {
     for await (_, session) in SupabaseService.client.auth.authStateChanges {
       self.session = session
       isLoading = false
+      if session != nil {
+        _Concurrency.Task {
+          await TaskStore.shared.loadToday()
+          await UpcomingStore.shared.load()
+          WidgetSnapshotSync.refreshAll()
+        }
+      } else {
+        WidgetSnapshotSync.clear()
+      }
     }
   }
 

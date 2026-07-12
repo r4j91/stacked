@@ -70,6 +70,7 @@ final class TaskStore {
     let generation = loadTodayGeneration
     todayLoading = todayPending.isEmpty && todayCompleted.isEmpty
     todayError = nil
+    defer { todayLoading = false }
     do {
       async let pending = repo.fetchTodayTasks()
       async let completed = repo.fetchCompletedTodayTasks()
@@ -87,7 +88,6 @@ final class TaskStore {
       guard generation == loadTodayGeneration else { return }
       todayError = error.localizedDescription
     }
-    todayLoading = false
   }
 
   func loadInbox() async {
@@ -95,6 +95,7 @@ final class TaskStore {
     let generation = loadInboxGeneration
     inboxLoading = inboxPending.isEmpty && inboxCompleted.isEmpty
     inboxError = nil
+    defer { inboxLoading = false }
     do {
       async let pending = repo.fetchInboxTasks()
       async let completed = repo.fetchCompletedInboxTasks()
@@ -107,7 +108,6 @@ final class TaskStore {
       guard generation == loadInboxGeneration else { return }
       inboxError = error.localizedDescription
     }
-    inboxLoading = false
   }
 
   func completeScheduledSubtask(_ entry: SubtaskScheduleEntry) {
