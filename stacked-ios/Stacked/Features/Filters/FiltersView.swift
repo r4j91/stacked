@@ -212,28 +212,32 @@ struct FiltersView: View {
             EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
               .stackedListEmptyStateRow()
           } else {
-            ForEach(store.projects) { project in
-              Button {
-                HapticService.selection()
-                let projectId = project.id
-                ProjectDetailCache.shared.prefetch(projectId: projectId)
-                selectedProject = ProjectRoute(
-                  id: projectId,
-                  name: project.name,
-                  snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
-                )
-              } label: {
-                projectRow(project)
+            filtersDashboardCard {
+              VStack(spacing: 0) {
+                ForEach(Array(store.projects.enumerated()), id: \.element.id) { index, project in
+                  Button {
+                    HapticService.selection()
+                    let projectId = project.id
+                    ProjectDetailCache.shared.prefetch(projectId: projectId)
+                    selectedProject = ProjectRoute(
+                      id: projectId,
+                      name: project.name,
+                      snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+                    )
+                  } label: {
+                    projectRow(project)
+                  }
+                  .buttonStyle(.plain)
+
+                  if index < store.projects.count - 1 {
+                    filtersCardDivider(leadingPadding: 66)
+                  }
+                }
               }
-              .buttonStyle(.plain)
-              .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
-              .listRowSeparator(.hidden)
-              .listRowBackground(
-                RoundedRectangle(cornerRadius: 14)
-                  .fill(theme.colors.surface)
-                  .padding(.vertical, 2)
-              )
             }
+            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
           }
         } header: {
           projectsHeader
@@ -407,9 +411,7 @@ struct FiltersView: View {
       Text("\(item.pendingCount)")
         .font(AppTypography.navRowCount)
         .foregroundStyle(c.textTertiary)
-      StackedIcons.image(.chevronRight)
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(c.textTertiary.opacity(0.7))
+      DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
@@ -502,9 +504,7 @@ struct FiltersView: View {
         .font(AppTypography.navRowCount)
         .foregroundStyle(project.pending > 0 ? c.textSecondary : c.textTertiary)
 
-      StackedIcons.image(.chevronRight)
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(c.textTertiary.opacity(0.7))
+      DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
