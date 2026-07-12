@@ -99,7 +99,7 @@ struct ClassicNavBar: View {
     if ClassicNavGlassPhase.morphEnabled {
       return .bouncy(duration: 0.45)
     }
-    return AppMotion.navMorph(reduceMotion: false)
+    return AppMotion.navMorph(reduceMotion: reduceMotion)
   }
 
   /// Esqueleto comprovado BottomNavPill: indicador abaixo, ícones acima.

@@ -303,8 +303,12 @@ final class TaskDetailViewModel {
         }
       } else {
         self.subtaskSortHoldId = nil
-        withAnimation(AppMotion.smooth) {
+        if UIAccessibility.isReduceMotionEnabled {
           self.subtasks = TaskMapper.sortSubtasksForDisplay(self.subtasks)
+        } else {
+          withAnimation(AppMotion.smooth) {
+            self.subtasks = TaskMapper.sortSubtasksForDisplay(self.subtasks)
+          }
         }
       }
 

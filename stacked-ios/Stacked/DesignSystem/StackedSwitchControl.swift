@@ -6,6 +6,7 @@ struct StackedSwitchControl: View {
   var onTrack: Color
   var offTrack: Color
 
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var animateChanges = false
 
   private let width: CGFloat = 51
@@ -29,7 +30,7 @@ struct StackedSwitchControl: View {
           .padding(2)
       }
       .frame(width: width, height: height)
-      .animation(animateChanges ? .snappy(duration: 0.2) : nil, value: isOn)
+      .animation(animateChanges && !reduceMotion ? .snappy(duration: 0.2) : nil, value: isOn)
     }
     .buttonStyle(.plain)
     .frame(minWidth: 44, minHeight: 44)

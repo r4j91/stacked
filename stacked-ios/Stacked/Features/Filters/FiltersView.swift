@@ -376,6 +376,7 @@ struct FiltersView: View {
             .foregroundStyle(c.accent)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Criar filtro")
       }
 
       if store.savedFilters.isEmpty {

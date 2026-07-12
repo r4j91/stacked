@@ -680,7 +680,7 @@ struct TaskDetailView: View {
   private func showPriorityMenu(anchor: CGRect) {
     presentAnchoredPopover(anchorRect: anchor, items: [
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
-                      selected: vm.priority == nil, iconColor: Color(hex: 0x6B6E76)),
+                      selected: vm.priority == nil, iconColor: theme.colors.textTertiary),
       PopoverMenuItem(id: "high", icon: Hugeicons.flag01, label: "Prioridade 1",
                       selected: vm.priority == .high, iconColor: AppColors.priorityHigh),
       PopoverMenuItem(id: "medium", icon: Hugeicons.flag01, label: "Prioridade 2",

@@ -334,6 +334,7 @@ extension View {
 struct DrillDownGlassIconButton: View {
   @Environment(ThemeManager.self) private var theme
   let icon: StackedIconKey
+  var accessibilityLabel: String = "Voltar"
   let action: () -> Void
 
   var body: some View {
@@ -346,6 +347,7 @@ struct DrillDownGlassIconButton: View {
       }
     }
     .buttonStyle(PressableStyle(cornerRadius: 20))
+    .accessibilityLabel(accessibilityLabel)
   }
 }
 
