@@ -172,10 +172,10 @@ struct SearchView: View {
             .foregroundStyle(c.accent)
         }
       }
+      .stackedListRowWorkGate($allowRowHeavyWork)
       .task {
         await NavigationPushMotion.awaitSettle()
         guard !_Concurrency.Task.isCancelled else { return }
-        allowRowHeavyWork = true
         await store.load()
         searchFocused = true
       }
@@ -210,8 +210,8 @@ struct SearchView: View {
       onSubtaskTap: { sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
-      onSubtaskChanged: {
-        _Concurrency.Task { await store.load() }
+      onSubtaskChanged: { snapshot in
+        store.applySubtaskPatch(snapshot)
       }
     )
     .id(task.id)

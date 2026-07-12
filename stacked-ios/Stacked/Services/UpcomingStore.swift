@@ -55,14 +55,16 @@ final class UpcomingStore {
     }
   }
 
-  var groupedSchedule: [(day: Date, items: [ScheduleItem])] {
+  private(set) var groupedSchedule: [(day: Date, items: [ScheduleItem])] = []
+
+  private func rebuildScheduleDerived() {
     let events: [CalendarEvent]
     if let selectedDay {
       events = calendarEvents.filter { TaskMapper.isSameDay($0.day, selectedDay) }
     } else {
       events = calendarEvents
     }
-    return TaskMapper.groupScheduleItems(
+    groupedSchedule = TaskMapper.groupScheduleItems(
       tasks: filteredTasks,
       subtasks: filteredSubtasks,
       events: events
@@ -86,6 +88,7 @@ final class UpcomingStore {
 
   func reloadCalendarEvents() async {
     calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
+    rebuildScheduleDerived()
   }
 
   var agendaPeriodLabel: String {
@@ -105,6 +108,7 @@ final class UpcomingStore {
         $0.parent.id == snapshot.parentTaskId && $0.subtask.order == snapshot.order
       }
     }
+    rebuildScheduleDerived()
   }
 
   func load() async {
@@ -117,6 +121,7 @@ final class UpcomingStore {
       tasks = fetchedTasks
       scheduledSubtasks = fetchedSubs
       calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
+      rebuildScheduleDerived()
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       self.error = error.localizedDescription
@@ -131,11 +136,13 @@ final class UpcomingStore {
     } else {
       selectedDay = normalized
     }
+    rebuildScheduleDerived()
   }
 
   func completeScheduledSubtask(_ entry: SubtaskScheduleEntry) {
     guard let subId = entry.subtask.id else { return }
     scheduledSubtasks.removeAll { $0.id == entry.id }
+    rebuildScheduleDerived()
     HapticService.taskCompleted()
 
     _Concurrency.Task {
@@ -172,6 +179,7 @@ final class UpcomingStore {
     TaskCompletionMotion.afterDwell(
       animatedRemoval: { [self] in
         tasks.removeAll { $0.id == taskId }
+        rebuildScheduleDerived()
       },
       persist: {
         if let newId = try await self.repo.completeTask(snapshot) {
@@ -185,12 +193,14 @@ final class UpcomingStore {
         var restored = snapshot
         restored.done = false
         tasks.insert(restored, at: min(originalIndex, tasks.count))
+        rebuildScheduleDerived()
       }
     )
   }
 
   func delete(_ task: Task) {
     tasks.removeAll { $0.id == task.id }
+    rebuildScheduleDerived()
     TaskCalendarSync.remove(taskId: task.id)
     _Concurrency.Task {
       try? await repo.deleteTask(id: task.id)

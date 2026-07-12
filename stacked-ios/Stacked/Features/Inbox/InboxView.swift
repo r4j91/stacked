@@ -139,8 +139,8 @@ struct InboxView: View {
       detailRoute = TaskDetailRoute(taskId: task.id)
     }, onSubtaskTap: { sub in
       subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-    }, onSubtaskChanged: {
-      _Concurrency.Task { await store.loadInbox() }
+    }, onSubtaskChanged: { snapshot in
+      store.applySubtaskPatch(snapshot)
     })
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)

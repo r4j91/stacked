@@ -23,19 +23,22 @@ final class TaskStore {
 
   private init() {}
 
-  var todayOverdue: [Task] { TaskMapper.splitTodayPending(todayPending).overdue }
+  private(set) var todayOverdue: [Task] = []
+  private(set) var todayOverdueItems: [ScheduleItem] = []
+  private(set) var todayOnly: [Task] = []
+  private(set) var todayTimeline: [ScheduleItem] = []
 
-  var todayOverdueItems: [ScheduleItem] {
-    TaskMapper.overdueScheduleItems(tasks: todayPending, subtasks: todayScheduledSubtasks)
-  }
-
-  var todayOnly: [Task] { TaskMapper.splitTodayPending(todayPending).today }
-
-  var todayTimeline: [ScheduleItem] {
-    let todayTasks = TaskMapper.splitTodayPending(todayPending).today
+  private func rebuildTodayDerived() {
+    let split = TaskMapper.splitTodayPending(todayPending)
+    todayOverdue = split.overdue
+    todayOnly = split.today
+    todayOverdueItems = TaskMapper.overdueScheduleItems(
+      tasks: todayPending,
+      subtasks: todayScheduledSubtasks
+    )
     let todaySubtasks = TaskMapper.splitTodayScheduledSubtasks(todayScheduledSubtasks).today
-    return TaskMapper.todayTimeline(
-      tasks: todayTasks,
+    todayTimeline = TaskMapper.todayTimeline(
+      tasks: split.today,
       subtasks: todaySubtasks,
       events: todayCalendarEvents
     )
@@ -43,6 +46,7 @@ final class TaskStore {
 
   func reloadCalendarEvents() async {
     todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
+    rebuildTodayDerived()
   }
 
   private var loadTodayGeneration = 0
@@ -58,6 +62,7 @@ final class TaskStore {
         $0.parent.id == snapshot.parentTaskId && $0.subtask.order == snapshot.order
       }
     }
+    rebuildTodayDerived()
   }
 
   func loadToday() async {
@@ -75,6 +80,7 @@ final class TaskStore {
       todayCompleted = c
       todayScheduledSubtasks = subs
       todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
+      rebuildTodayDerived()
       WidgetSnapshotSync.updateFromToday(pending: p, completed: c)
     } catch {
       if AsyncLoad.isCancellation(error) { return }
@@ -109,6 +115,7 @@ final class TaskStore {
     guard todayScheduledSubtasks.contains(where: { $0.id == entry.id }) else { return }
 
     todayScheduledSubtasks.removeAll { $0.id == entry.id }
+    rebuildTodayDerived()
     HapticService.taskCompleted()
 
     _Concurrency.Task {
@@ -152,6 +159,7 @@ final class TaskStore {
           todayCompleted.insert(updated, at: 0)
         }
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+        rebuildTodayDerived()
       },
       persist: {
         if let newId = try await self.repo.completeTask(snapshot) {
@@ -167,6 +175,7 @@ final class TaskStore {
         restored.done = false
         todayPending.insert(restored, at: min(originalIndex, todayPending.count))
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+        rebuildTodayDerived()
       }
     )
   }
@@ -213,6 +222,7 @@ final class TaskStore {
     let wasPending = todayPending.contains { $0.id == task.id }
     todayPending.removeAll { $0.id == task.id }
     todayCompleted.removeAll { $0.id == task.id }
+    rebuildTodayDerived()
     HapticService.taskDeleted()
     WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
     _Concurrency.Task {
@@ -237,6 +247,7 @@ final class TaskStore {
     let iso = TaskMapper.postponedDateISO(for: task)
     try await repo.updateTaskDate(id: task.id, isoDate: iso)
     todayPending.removeAll { $0.id == task.id }
+    rebuildTodayDerived()
     await loadToday()
   }
 

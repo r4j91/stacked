@@ -16,7 +16,7 @@ struct TaskRow: View {
   var onToggle: () -> Void
   var onTap: (() -> Void)?
   var onSubtaskTap: ((Subtask) -> Void)?
-  var onSubtaskChanged: (() -> Void)?
+  var onSubtaskChanged: ((SubtaskSaveSnapshot) -> Void)?
   var onWhatsAppCopy: (() -> Void)?
 
   @State private var expanded = false
@@ -78,14 +78,9 @@ struct TaskRow: View {
       rowHeader(expandTrailing: 12, expandTop: 8)
         .opacity(task.done ? 0.45 : 1)
 
-      subtasksExpansion
+      TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
 
-      if !(task.hasSubtasks && (expanded || subtaskRevealActive)) {
-        TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
-      }
-    }
-    .onChange(of: expanded) { _, isExpanded in
-      scheduleSubtaskRevealTeardown(afterCollapse: !isExpanded)
+      subtasksExpansion
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
@@ -294,13 +289,9 @@ struct TaskRow: View {
     let betweenAlpha: CGFloat = (style == .card && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
 
     return VStack(spacing: 0) {
-      if flatSubtaskPanel || style == .list {
-        TaskExpandDivider(
-          indent: style == .card
-            ? TaskExpandDividerStyle.cardSubtaskInset
-            : TaskExpandDividerStyle.listParentInset
-        )
-      } else {
+      if flatSubtaskPanel {
+        TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
+      } else if style == .card {
         Divider().overlay(c.surfaceVariant)
       }
 
@@ -421,16 +412,6 @@ struct TaskRow: View {
       expanded.toggle()
     }
     ProjectDetailPreferences.setSubtaskListExpanded(expanded, taskId: task.id)
-  }
-
-  private func scheduleSubtaskRevealTeardown(afterCollapse collapsed: Bool) {
-    guard collapsed, subtaskRevealActive else { return }
-    let delayMs = reduceMotion ? 0 : 230
-    _Concurrency.Task { @MainActor in
-      try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
-      guard !expanded else { return }
-      subtaskRevealActive = false
-    }
   }
 
   private func restoreSubtaskExpansionIfNeeded() {
@@ -557,8 +538,23 @@ struct TaskRow: View {
           ))
         }
       }
-      onSubtaskChanged?()
+      onSubtaskChanged?(subtaskSnapshot(sub, done: newDone))
     }
+  }
+
+  private func subtaskSnapshot(_ sub: Subtask, done: Bool) -> SubtaskSaveSnapshot {
+    SubtaskSaveSnapshot(
+      parentTaskId: task.id,
+      order: sub.order,
+      resolvedId: sub.id,
+      title: sub.title,
+      description: sub.description,
+      done: done,
+      priority: sub.priority,
+      dueDate: sub.dueDate,
+      time: sub.time,
+      labelIds: sub.labelIds
+    )
   }
 
   private var taskAccessibilityLabel: String {

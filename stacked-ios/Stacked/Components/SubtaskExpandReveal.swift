@@ -159,7 +159,7 @@ final class SubtaskExpandContainerView: UIView {
 
     guard stateChanged || layoutPassChanged || abs(current - target) > 0.5 else { return }
 
-    let shouldAnimate = animated && stateChanged && expanded && !UIAccessibility.isReduceMotionEnabled
+    let shouldAnimate = animated && stateChanged && !UIAccessibility.isReduceMotionEnabled
     applyVisibleHeight(target, expanded: expanded, animated: shouldAnimate)
   }
 
@@ -197,9 +197,6 @@ final class SubtaskExpandContainerView: UIView {
       guard let self else { return }
       self.selfHeightConstraint?.constant = height
       self.invalidateIntrinsicContentSize()
-      // Sem beginUpdates/endUpdates — UITableView recalcula via intrinsic size sem forçar relayout brusco.
-      self.superview?.setNeedsLayout()
-      self.superview?.layoutIfNeeded()
     }
 
     guard animated else {

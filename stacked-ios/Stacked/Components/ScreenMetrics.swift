@@ -68,6 +68,9 @@ struct ScreenBoundsReader: UIViewRepresentable {
 
 final class ScreenBoundsCaptureView: UIView {
   var onUpdate: ((CGRect) -> Void)?
+  /// Quando `false`, só captura via `capture()` explícito (scroll não dispara @State).
+  var autoCaptureOnLayout = true
+  private var lastReportedRect: CGRect?
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -80,12 +83,41 @@ final class ScreenBoundsCaptureView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    capture()
+    if autoCaptureOnLayout { capture() }
   }
 
   func capture() {
     guard let window else { return }
     let inWindow = convert(bounds, to: window)
-    onUpdate?(window.convert(inWindow, to: nil))
+    let rect = window.convert(inWindow, to: nil)
+    guard rect.width > 1, rect.height > 1 else { return }
+    if let last = lastReportedRect, last.equalTo(rect) { return }
+    lastReportedRect = rect
+    onUpdate?(rect)
+  }
+}
+
+/// Captura frame de tela sob demanda — evita UIView → @State em cada frame de scroll.
+struct OnDemandScreenBoundsReader: UIViewRepresentable {
+  let captureGeneration: Int
+  @Binding var rect: CGRect
+
+  final class Coordinator {
+    var lastGeneration = -1
+  }
+
+  func makeCoordinator() -> Coordinator { Coordinator() }
+
+  func makeUIView(context: Context) -> ScreenBoundsCaptureView {
+    let view = ScreenBoundsCaptureView()
+    view.autoCaptureOnLayout = false
+    return view
+  }
+
+  func updateUIView(_ uiView: ScreenBoundsCaptureView, context: Context) {
+    guard captureGeneration != context.coordinator.lastGeneration else { return }
+    context.coordinator.lastGeneration = captureGeneration
+    uiView.onUpdate = { rect = $0 }
+    uiView.capture()
   }
 }

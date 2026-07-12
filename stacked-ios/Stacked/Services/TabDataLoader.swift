@@ -87,6 +87,8 @@ struct QuickAddSaveSummary: Sendable {
 /// Atualiza contagens globais (Home + Filtros) sem recarregar listas inteiras.
 @MainActor
 enum GlobalDataRefresh {
+  private static var refreshTask: _Concurrency.Task<Void, Never>?
+
   static func refreshDashboardCounts() async {
     async let home: Void = HomeStore.shared.refreshCounts()
     async let filters: Void = FiltersStore.shared.refreshDashboardCounts()
@@ -99,7 +101,10 @@ enum GlobalDataRefresh {
     for tab in tabs {
       TabRefreshPolicy.invalidate(tab)
     }
-    _Concurrency.Task {
+    refreshTask?.cancel()
+    refreshTask = _Concurrency.Task {
+      try? await _Concurrency.Task.sleep(for: .milliseconds(280))
+      guard !_Concurrency.Task.isCancelled else { return }
       await refreshDashboardCounts()
     }
   }

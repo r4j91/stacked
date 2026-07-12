@@ -29,12 +29,13 @@ struct TaskContextMenu: ViewModifier {
   var onRefresh: () -> Void
 
   @State private var anchorFrame: CGRect = .zero
+  @State private var anchorCaptureGeneration = 0
   @State private var liftPhase: TaskContextLiftPhase = .normal
 
   func body(content: Content) -> some View {
     content
-      .overlay {
-        ScreenBoundsReader(rect: $anchorFrame)
+      .background {
+        OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .allowsHitTesting(false)
       }
@@ -71,18 +72,25 @@ struct TaskContextMenu: ViewModifier {
     AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
       liftPhase = .menuOpen
     }
-    let screenH = ScreenMetrics.bounds.height
-    let preferAbove = anchorFrame.midY > screenH * 0.55
-    presentAnchoredPopover(
-      anchorRect: anchorFrame,
-      items: menuItems,
-      preferAbove: preferAbove
-    ) { result in
-      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-        liftPhase = .normal
+    let generation = anchorCaptureGeneration + 1
+    anchorCaptureGeneration = generation
+    _Concurrency.Task { @MainActor in
+      // Um frame para o reader capturar o anchor antes do popover.
+      await _Concurrency.Task.yield()
+      guard generation == anchorCaptureGeneration else { return }
+      let screenH = ScreenMetrics.bounds.height
+      let preferAbove = anchorFrame.midY > screenH * 0.55
+      presentAnchoredPopover(
+        anchorRect: anchorFrame,
+        items: menuItems,
+        preferAbove: preferAbove
+      ) { result in
+        AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
+          liftPhase = .normal
+        }
+        guard let result else { return }
+        handle(result)
       }
-      guard let result else { return }
-      handle(result)
     }
   }
 

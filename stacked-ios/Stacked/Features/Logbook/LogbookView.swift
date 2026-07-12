@@ -55,10 +55,10 @@ struct LogbookView: View {
     .navigationTitle("Registro")
     .navigationBarTitleDisplayMode(.large)
     .refreshable { await load() }
+    .stackedListRowWorkGate($allowRowHeavyWork)
     .task {
       await NavigationPushMotion.awaitSettle()
       guard !_Concurrency.Task.isCancelled else { return }
-      allowRowHeavyWork = true
       await load()
     }
     .fullScreenCover(item: $detailRoute, onDismiss: {
@@ -91,8 +91,8 @@ struct LogbookView: View {
       onSubtaskTap: { sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
-      onSubtaskChanged: {
-        _Concurrency.Task { await load() }
+      onSubtaskChanged: { snapshot in
+        patchLogbookSubtask(snapshot)
       }
     )
     .id(task.id)

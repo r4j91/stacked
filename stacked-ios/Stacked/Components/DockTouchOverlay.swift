@@ -42,10 +42,15 @@ struct DockTouchOverlay: UIViewRepresentable {
       islandExpanded: chrome.islandNavExpanded,
       fabIntegratedInIsland: usesIntegratedIslandFab
     )
-    uiView.bindActions()
+    if !context.coordinator.actionsBound {
+      uiView.bindActions()
+      context.coordinator.actionsBound = true
+    }
   }
 
   final class Coordinator: NSObject {
+    var actionsBound = false
+
     @MainActor
     @objc func tabTouchDown(_ sender: UIButton) {
       guard let tab = NavTab(rawValue: sender.tag) else { return }
