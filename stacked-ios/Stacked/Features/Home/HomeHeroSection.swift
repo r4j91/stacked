@@ -34,7 +34,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen:
+    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -115,6 +115,82 @@ struct HomeHeroSection: View {
     case .greetingWeatherPremiumOpen:
       HomeHeroGreetingWeatherPremiumOpenCard(
         store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherPremiumScene:
+      HomeHeroGreetingWeatherSceneCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherPremiumSceneOpen:
+      HomeHeroGreetingWeatherSceneOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherMinimal:
+      HomeHeroGreetingWeatherMinimalCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherMinimalOpen:
+      HomeHeroGreetingWeatherMinimalOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherRefined:
+      HomeHeroGreetingWeatherRefinedCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherRefinedOpen:
+      HomeHeroGreetingWeatherRefinedOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherTint:
+      HomeHeroGreetingWeatherTintCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherTintOpen:
+      HomeHeroGreetingWeatherTintOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .journeyDaily:
+      HomeHeroJourneyDailyCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .journeyMist:
+      HomeHeroJourneyCard(
+        store: store, metrics: metrics, art: .mist, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .journeyForest:
+      HomeHeroJourneyCard(
+        store: store, metrics: metrics, art: .forest, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .journeySummit:
+      HomeHeroJourneyCard(
+        store: store, metrics: metrics, art: .summit, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .auroraCalm:
+      HomeHeroAuroraCard(
+        store: store, metrics: metrics, art: .calm, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .auroraDusk:
+      HomeHeroAuroraCard(
+        store: store, metrics: metrics, art: .dusk, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .auroraEmber:
+      HomeHeroAuroraCard(
+        store: store, metrics: metrics, art: .ember, isOverdue: isOverdue, onOpenFilter: onOpenFilter
       )
     case .panel:
       HomeHeroPanelCard(store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter)

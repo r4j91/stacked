@@ -209,6 +209,7 @@ final class TaskDetailViewModel {
         dueDate: dueDate,
         time: savedTime
       )
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: Self.tabsAffected(dueDateISO: iso))
     }
   }
 
@@ -217,6 +218,7 @@ final class TaskDetailViewModel {
     projectName = project?.name ?? "Sem projeto"
     _Concurrency.Task {
       await TaskDetailPersistence.autosaveProject(taskId: taskId, projectId: project?.id)
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
     }
   }
 
@@ -263,6 +265,7 @@ final class TaskDetailViewModel {
           done: done
         )
       }
+      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
     }
   }
 
@@ -411,5 +414,14 @@ final class TaskDetailViewModel {
   var dueTimeDate: Date? {
     guard let dueDate, let time else { return nil }
     return TaskMapper.combinedDateTime(dueDate: dueDate, time: time)
+  }
+
+  private static func tabsAffected(dueDateISO: String?) -> [NavTab] {
+    let today = TaskMapper.dateString(Date())
+    guard let dueDateISO else { return [.inbox] }
+    var tabs: [NavTab] = []
+    if dueDateISO <= today { tabs.append(.today) }
+    if dueDateISO > today { tabs.append(.upcoming) }
+    return tabs
   }
 }

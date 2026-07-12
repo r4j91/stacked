@@ -229,17 +229,27 @@ struct HomeHeroGreetingWeatherCard: View {
     let c = theme.colors
     let cardAccent: Color = {
       if case .tinted(let color) = chrome { return color }
-      return AppColors.tagPurple
+      return c.accent
     }()
 
     greetingIntegratedCard(chrome: chrome, minHeight: 128) {
       HStack(alignment: .top, spacing: 10) {
-        HomeGreetingNameBlock(
-          store: store,
-          metrics: metrics,
-          subtitle: store.formattedLongDate,
-          accent: cardAccent
-        )
+        VStack(alignment: .leading, spacing: 8) {
+          HomeGreetingNameBlock(
+            store: store,
+            metrics: metrics,
+            subtitle: store.formattedLongDate,
+            accent: cardAccent
+          )
+
+          HomeHeroWeatherStatusIndicator(
+            isOverdue: isOverdue,
+            statusLabel: store.statusLabel(overdueCount: store.overdueCount),
+            clearTone: accent,
+            onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
+          )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         VStack(alignment: .trailing, spacing: 6) {
           HomeGreetingWeatherArt(accent: accent, style: weather.style)
@@ -269,11 +279,7 @@ struct HomeHeroGreetingWeatherCard: View {
         }
       }
     } footer: {
-      HomeConceptIntegratedStatusFooter(
-        isOverdue: isOverdue,
-        statusLabel: store.statusLabel(overdueCount: store.overdueCount),
-        onTap: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
-      )
+      EmptyView()
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(
@@ -350,7 +356,17 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
       openVerticalPadding: metrics.openVerticalPadding
     ) {
       HStack(alignment: .center, spacing: 14) {
-        premiumGreetingBlock(colors: c)
+        VStack(alignment: .leading, spacing: 8) {
+          premiumGreetingBlock(colors: c)
+
+          HomeHeroWeatherStatusIndicator(
+            isOverdue: isOverdue,
+            statusLabel: store.statusLabel(overdueCount: store.overdueCount),
+            clearTone: accent,
+            onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
+          )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         VStack(alignment: .trailing, spacing: 7) {
           HomeGreetingWeatherPremiumArt(accent: accent, style: weather.style)
@@ -376,12 +392,7 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
         .layoutPriority(1)
       }
     } footer: {
-      HomeConceptIntegratedStatusFooter(
-        isOverdue: isOverdue,
-        statusLabel: store.statusLabel(overdueCount: store.overdueCount),
-        presentation: resolvedChrome == .open ? .open : .card,
-        onTap: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
-      )
+      EmptyView()
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(
@@ -393,7 +404,7 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
     VStack(alignment: .leading, spacing: 6) {
       Text(store.greetingPhrase)
         .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(c.accent.opacity(0.82))
+        .foregroundStyle(HomeHeroWeatherChrome.greetingPhraseColor(colors: c))
       if !store.firstName.isEmpty {
         Text(store.firstName)
           .font(.system(size: 25, weight: .heavy))

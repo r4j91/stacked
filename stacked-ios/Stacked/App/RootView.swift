@@ -42,6 +42,7 @@ struct RootView: View {
       WidgetSnapshotSync.refreshFromCachedToday()
       _Concurrency.Task {
         await NotificationService.shared.rescheduleAllPending()
+        await GlobalDataRefresh.refreshDashboardCounts()
       }
     }
     .sheet(isPresented: $showSearch) {

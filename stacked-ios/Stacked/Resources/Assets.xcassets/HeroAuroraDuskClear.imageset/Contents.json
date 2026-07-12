@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "hero-aurora-dusk-clear.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

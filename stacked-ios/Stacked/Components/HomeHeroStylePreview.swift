@@ -73,6 +73,36 @@ struct HomeHeroStylePreview: View {
       greetingWeatherPremiumPreview
     case .greetingWeatherPremiumOpen:
       greetingWeatherPremiumOpenPreview
+    case .greetingWeatherPremiumScene:
+      greetingWeatherScenePreview
+    case .greetingWeatherPremiumSceneOpen:
+      greetingWeatherSceneOpenPreview
+    case .greetingWeatherMinimal:
+      greetingWeatherMinimalPreview
+    case .greetingWeatherMinimalOpen:
+      greetingWeatherMinimalOpenPreview
+    case .greetingWeatherRefined:
+      greetingWeatherRefinedPreview
+    case .greetingWeatherRefinedOpen:
+      greetingWeatherRefinedOpenPreview
+    case .greetingWeatherTint:
+      greetingWeatherTintPreview
+    case .greetingWeatherTintOpen:
+      greetingWeatherTintOpenPreview
+    case .journeyDaily:
+      journeyDailyPreview
+    case .journeyMist:
+      journeyVariantPreview(asset: "HeroJourneyMistClear")
+    case .journeyForest:
+      journeyVariantPreview(asset: "HeroJourneyForestClear")
+    case .journeySummit:
+      journeyVariantPreview(asset: "HeroJourneySummitClear")
+    case .auroraCalm:
+      auroraPreview(asset: "HeroAuroraCalmClear")
+    case .auroraDusk:
+      auroraPreview(asset: "HeroAuroraDuskClear")
+    case .auroraEmber:
+      auroraPreview(asset: "HeroAuroraEmberClear")
     case .panel:
       panelPreview
     case .compass:
@@ -546,6 +576,206 @@ struct HomeHeroStylePreview: View {
       .padding(.top, 2)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
+  private var greetingWeatherScenePreview: some View {
+    ZStack(alignment: .leading) {
+      Image("HeroWeatherClear")
+        .resizable()
+        .scaledToFill()
+      LinearGradient(
+        colors: [colors.background.opacity(0.95), colors.background.opacity(0.35), .clear],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        Spacer(minLength: 0)
+      }
+      .padding(4)
+      VStack(alignment: .trailing, spacing: 1) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.85)).frame(width: 10, height: 4)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 14, height: 2)
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherSceneOpenPreview: some View {
+    greetingWeatherScenePreview
+  }
+
+  private var greetingWeatherMinimalPreview: some View {
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 4).fill(colors.surface.opacity(0.9))
+      HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 3)
+          .fill(colors.surfaceVariant)
+          .frame(width: 18, height: 18)
+          .overlay {
+            Image("HeroMinimalWeatherPartlyCloudy")
+              .resizable()
+              .scaledToFill()
+              .clipShape(RoundedRectangle(cornerRadius: 3))
+          }
+      }
+      .padding(4)
+      VStack {
+        Spacer()
+        RoundedRectangle(cornerRadius: 2).fill(colors.surfaceVariant.opacity(0.9)).frame(height: 5)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherMinimalOpenPreview: some View {
+    greetingWeatherMinimalPreview
+  }
+
+  private var greetingWeatherRefinedPreview: some View {
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 4).fill(colors.surface.opacity(0.9))
+      HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 3)
+          .fill(colors.surfaceVariant)
+          .frame(width: 19, height: 19)
+          .overlay {
+            Image("HeroRefinedWeatherPartlyCloudy")
+              .resizable()
+              .scaledToFill()
+              .clipShape(RoundedRectangle(cornerRadius: 3))
+          }
+          .shadow(color: colors.background.opacity(0.3), radius: 1, y: 1)
+      }
+      .padding(4)
+      VStack {
+        Spacer()
+        RoundedRectangle(cornerRadius: 2).fill(colors.surfaceVariant.opacity(0.9)).frame(height: 5)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherRefinedOpenPreview: some View {
+    greetingWeatherRefinedPreview
+  }
+
+  private var greetingWeatherTintPreview: some View {
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 4).fill(colors.surface.opacity(0.9))
+      HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 3)
+          .fill(colors.surfaceVariant)
+          .frame(width: 19, height: 19)
+          .overlay {
+            Image("HeroTintWeatherPartlyCloudy")
+              .resizable()
+              .scaledToFill()
+              .clipShape(RoundedRectangle(cornerRadius: 3))
+          }
+          .shadow(color: AppColors.priorityLow.opacity(0.25), radius: 1, y: 1)
+      }
+      .padding(4)
+      VStack {
+        Spacer()
+        RoundedRectangle(cornerRadius: 2).fill(colors.surfaceVariant.opacity(0.9)).frame(height: 5)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherTintOpenPreview: some View {
+    greetingWeatherTintPreview
+  }
+
+  private var journeyDailyPreview: some View {
+    ZStack(alignment: .leading) {
+      Image("HeroJourneyClear")
+        .resizable()
+        .scaledToFill()
+      LinearGradient(
+        colors: [colors.background.opacity(0.95), colors.background.opacity(0.4), .clear],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 18, height: 3)
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 2).fill(colors.surface.opacity(0.8)).frame(height: 6)
+      }
+      .padding(4)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func journeyVariantPreview(asset: String) -> some View {
+    ZStack(alignment: .leading) {
+      Image(asset)
+        .resizable()
+        .scaledToFill()
+      LinearGradient(
+        colors: [colors.background.opacity(0.95), colors.background.opacity(0.45), .clear],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.55)).frame(width: 10, height: 2)
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 2).fill(colors.surface.opacity(0.8)).frame(height: 6)
+      }
+      .padding(4)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func auroraPreview(asset: String) -> some View {
+    ZStack(alignment: .leading) {
+      Image(asset)
+        .resizable()
+        .scaledToFill()
+      LinearGradient(
+        colors: [colors.background.opacity(0.92), colors.background.opacity(0.35), .clear],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.5)).frame(width: 8, height: 2)
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 2).fill(colors.surface.opacity(0.8)).frame(height: 6)
+      }
+      .padding(4)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   private var panelPreview: some View {

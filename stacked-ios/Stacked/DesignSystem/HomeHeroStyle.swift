@@ -24,6 +24,21 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case greetingWeatherTinted
   case greetingWeatherPremium
   case greetingWeatherPremiumOpen
+  case greetingWeatherPremiumScene
+  case greetingWeatherPremiumSceneOpen
+  case greetingWeatherMinimal
+  case greetingWeatherMinimalOpen
+  case greetingWeatherRefined
+  case greetingWeatherRefinedOpen
+  case greetingWeatherTint
+  case greetingWeatherTintOpen
+  case journeyDaily
+  case journeyMist
+  case journeyForest
+  case journeySummit
+  case auroraCalm
+  case auroraDusk
+  case auroraEmber
   case panel
   case compass
   case queue
@@ -58,6 +73,21 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherTinted: "Clima (tom app)"
     case .greetingWeatherPremium: "Clima premium"
     case .greetingWeatherPremiumOpen: "Clima premium aberto"
+    case .greetingWeatherPremiumScene: "Clima cena premium"
+    case .greetingWeatherPremiumSceneOpen: "Clima cena aberto"
+    case .greetingWeatherMinimal: "Clima minimal"
+    case .greetingWeatherMinimalOpen: "Clima minimal aberto"
+    case .greetingWeatherRefined: "Clima refinado"
+    case .greetingWeatherRefinedOpen: "Clima refinado aberto"
+    case .greetingWeatherTint: "Clima refinado tom"
+    case .greetingWeatherTintOpen: "Clima refinado tom aberto"
+    case .journeyDaily: "Jornada diária"
+    case .journeyMist: "Jornada neblina"
+    case .journeyForest: "Jornada floresta"
+    case .journeySummit: "Jornada cume"
+    case .auroraCalm: "Aurora teal"
+    case .auroraDusk: "Aurora violeta"
+    case .auroraEmber: "Aurora titanium"
     case .panel: "Painel"
     case .compass: "Bússola"
     case .queue: "Fila"
@@ -92,6 +122,21 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherTinted: "Clima real da localização com fundo temático"
     case .greetingWeatherPremium: "Clima ao vivo com cena ilustrada premium"
     case .greetingWeatherPremiumOpen: "Clima premium sem card, direto no fundo"
+    case .greetingWeatherPremiumScene: "Clima ao vivo com cena ilustrada no card"
+    case .greetingWeatherPremiumSceneOpen: "Cena ilustrada sem card, direto no fundo"
+    case .greetingWeatherMinimal: "Ícone !Weather sutil com card escuro"
+    case .greetingWeatherMinimalOpen: "Clima minimal sem card, direto no fundo"
+    case .greetingWeatherRefined: "Ícone monocromático premium com profundidade"
+    case .greetingWeatherRefinedOpen: "Clima refinado sem card, direto no fundo"
+    case .greetingWeatherTint: "Ícone refinado com cor sutil e sombras suaves"
+    case .greetingWeatherTintOpen: "Clima refinado tom sem card, direto no fundo"
+    case .journeyDaily: "Ilustração editorial com trilha e status do dia"
+    case .journeyMist: "Vale enevoado com temperatura ao vivo"
+    case .journeyForest: "Trilha na mata com clima em tempo real"
+    case .journeySummit: "Crista montanhosa com condições do dia"
+    case .auroraCalm: "Ondas teal suaves como no conceito"
+    case .auroraDusk: "Ribbons violeta e roxo premium"
+    case .auroraEmber: "Brilho titanium cinza monocromático"
     case .panel: "Foco, status e métricas num card"
     case .compass: "Direção do dia com status integrado"
     case .queue: "Fila de hoje com status nas linhas"
@@ -116,7 +161,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
          .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium: true
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
     default: false
     }
   }
@@ -162,7 +207,7 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
-    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen:
+    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
       return HomeHeroMetrics(
         phraseSize: 14,
         nameSize: 26,
@@ -240,7 +285,9 @@ struct HomeHeroMetrics {
     case .motivation, .focusDay, .streak, .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium,
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint,
+         .journeyDaily, .journeyMist, .journeyForest, .journeySummit,
+         .auroraCalm, .auroraDusk, .auroraEmber,
          .panel, .compass, .queue, .thermometer, .rhythm, .nextStep:
       return HomeHeroMetrics(
         phraseSize: 12,

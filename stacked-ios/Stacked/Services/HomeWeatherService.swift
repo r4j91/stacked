@@ -29,7 +29,7 @@ final class HomeWeatherService: NSObject {
       ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
 
     cachedSnapshot = resolved
-    cacheExpiry = Date().addingTimeInterval(30 * 60)
+    cacheExpiry = Date().addingTimeInterval(15 * 60)
     return resolved
   }
 
