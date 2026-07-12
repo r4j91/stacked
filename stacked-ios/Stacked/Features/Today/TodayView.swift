@@ -123,8 +123,10 @@ struct TodayView: View {
     .onChange(of: router.pendingTaskId) { _, _ in openPendingTaskIfNeeded() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
-        await store.loadToday()
-        await store.loadInbox()
+        await TaskDetailDismissRefresh.afterDismiss(tab: .today) {
+          await store.loadToday()
+          await store.loadInbox()
+        }
       }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {

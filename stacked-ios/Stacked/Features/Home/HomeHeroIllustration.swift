@@ -5,6 +5,7 @@ import SwiftUI
 struct HomeOrbitalStackIllustration: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.isTabActive) private var isTabActive
 
   let isOverdue: Bool
   let overdueCount: Int
@@ -51,6 +52,9 @@ struct HomeOrbitalStackIllustration: View {
     .frame(width: artSize, height: artSize)
     .onAppear { startAnimations() }
     .onChange(of: isOverdue) { _, _ in startAnimations() }
+    .onChange(of: isTabActive) { _, active in
+      if active { startAnimations() } else { stopAnimations() }
+    }
     .accessibilityHidden(true)
   }
 
@@ -126,13 +130,18 @@ struct HomeOrbitalStackIllustration: View {
   private func startAnimations() {
     breathe = false
     floatUp = false
-    guard !reduceMotion else { return }
+    guard isTabActive, !reduceMotion else { return }
     withAnimation(.easeInOut(duration: 4.5).repeatForever(autoreverses: true)) {
       breathe = true
     }
     withAnimation(.easeInOut(duration: 5).repeatForever(autoreverses: true)) {
       floatUp = true
     }
+  }
+
+  private func stopAnimations() {
+    breathe = false
+    floatUp = false
   }
 }
 
@@ -141,6 +150,7 @@ struct HomeOrbitalStackIllustration: View {
 struct HomeHorizonGlyphIllustration: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.isTabActive) private var isTabActive
 
   let timeOfDay: HomeTimeOfDay
   let isOverdue: Bool
@@ -187,14 +197,19 @@ struct HomeHorizonGlyphIllustration: View {
       }
     }
     .frame(width: 44, height: 44)
-    .onAppear {
-      breathe = false
-      guard !reduceMotion else { return }
-      withAnimation(.easeInOut(duration: 5).repeatForever(autoreverses: true)) {
-        breathe = true
-      }
+    .onAppear { restartBreathe() }
+    .onChange(of: isTabActive) { _, active in
+      if active { restartBreathe() } else { breathe = false }
     }
     .accessibilityHidden(true)
+  }
+
+  private func restartBreathe() {
+    breathe = false
+    guard isTabActive, !reduceMotion else { return }
+    withAnimation(.easeInOut(duration: 5).repeatForever(autoreverses: true)) {
+      breathe = true
+    }
   }
 
   private var clearFlag: some View {

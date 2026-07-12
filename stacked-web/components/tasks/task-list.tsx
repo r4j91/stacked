@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import type { Label } from "@/lib/types/label";
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench, type SubtaskKey } from "@/components/shell/workbench-context";
 import { SwipeableTaskRow } from "@/components/tasks/swipeable-task-row";
@@ -95,8 +96,9 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   );
 }
 
-export function TaskRow({
+export const TaskRow = memo(function TaskRow({
   task,
+  labels,
   keyboardFocused,
   embedded,
   reorderDropProps,
@@ -108,6 +110,7 @@ export function TaskRow({
   onReorderConsumeClick,
 }: {
   task: Task;
+  labels?: Label[];
   keyboardFocused?: boolean;
   /** Lista embutida (ex.: drill-down de filtros) — sem borda de seleção do inspector */
   embedded?: boolean;
@@ -199,7 +202,7 @@ export function TaskRow({
                 {task.preview}
               </p>
             )}
-            <TaskMetaLine task={task} />
+            <TaskMetaLine task={task} labels={labels} />
           </div>
           <TaskRowTrailingRail
             task={task}
@@ -219,19 +222,21 @@ export function TaskRow({
       {menu}
     </>
   );
-}
+});
 
 function Section({
   title,
   count,
   overdue,
   tasks,
+  labels,
   focusedTaskId,
 }: {
   title: string;
   count?: number;
   overdue?: boolean;
   tasks: Task[];
+  labels?: Label[];
   focusedTaskId?: string | null;
 }) {
   if (!tasks.length) return null;
@@ -239,7 +244,7 @@ function Section({
     <section className="mt-2">
       <ListSectionHeader title={title} count={count} overdue={overdue} />
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} keyboardFocused={focusedTaskId === t.id} />
+        <TaskRow key={t.id} task={t} labels={labels} keyboardFocused={focusedTaskId === t.id} />
       ))}
     </section>
   );
@@ -275,6 +280,7 @@ export function TaskList() {
     calendarEvents,
     calendarError,
     googleCalendar,
+    labels,
   } = useWorkbench();
 
   const showCompleted = isShowCompleted();
@@ -356,7 +362,7 @@ export function TaskList() {
 
       {view === "today" && (
         <>
-          <Section title="Atrasadas" count={viewTasks.overdue?.length} overdue tasks={viewTasks.overdue ?? []} focusedTaskId={focusedTaskId} />
+          <Section title="Atrasadas" count={viewTasks.overdue?.length} overdue tasks={viewTasks.overdue ?? []} labels={labels} focusedTaskId={focusedTaskId} />
           {(todayTimeline.length > 0 || (viewTasks.today ?? viewTasks.pending).length > 0) && (
             <section>
               {(viewTasks.overdue?.length ?? 0) > 0 && (
@@ -366,22 +372,22 @@ export function TaskList() {
                 item.kind === "calendar" ? (
                   <CalendarEventRow key={item.event.id} event={item.event} />
                 ) : (
-                  <TaskRow key={item.task.id} task={item.task} keyboardFocused={focusedTaskId === item.task.id} />
+                  <TaskRow key={item.task.id} task={item.task} labels={labels} keyboardFocused={focusedTaskId === item.task.id} />
                 ),
               )}
             </section>
           )}
           {showCompleted && completedTasks.length > 0 && (
-            <Section title="Concluídas hoje" tasks={completedTasks} focusedTaskId={focusedTaskId} />
+            <Section title="Concluídas hoje" tasks={completedTasks} labels={labels} focusedTaskId={focusedTaskId} />
           )}
         </>
       )}
 
       {view === "inbox" && (
         <>
-          <Section title="Inbox" tasks={viewTasks.pending} focusedTaskId={focusedTaskId} />
+          <Section title="Inbox" tasks={viewTasks.pending} labels={labels} focusedTaskId={focusedTaskId} />
           {showCompleted && completedTasks.length > 0 && (
-            <Section title="Concluídas" tasks={completedTasks} focusedTaskId={focusedTaskId} />
+            <Section title="Concluídas" tasks={completedTasks} labels={labels} focusedTaskId={focusedTaskId} />
           )}
         </>
       )}
@@ -391,7 +397,7 @@ export function TaskList() {
       {view === "done" &&
         (viewTasks.completed.length ? (
           logbookGroups(viewTasks.completed).map((g) => (
-            <Section key={g.title} title={g.title} tasks={g.tasks} focusedTaskId={focusedTaskId} />
+            <Section key={g.title} title={g.title} tasks={g.tasks} labels={labels} focusedTaskId={focusedTaskId} />
           ))
         ) : (
           <EmptyState

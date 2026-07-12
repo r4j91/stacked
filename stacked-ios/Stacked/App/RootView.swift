@@ -159,6 +159,7 @@ struct RootTabContent: View {
 
     return AnyView(
       content()
+        .environment(\.isTabActive, isActive)
         .opacity(isActive ? 1 : 0)
         .animation(.linear(duration: 0.08), value: isActive)
         .zIndex(isActive ? 1 : 0)

@@ -785,6 +785,7 @@ private struct HomeHeroStatusCapsule: View {
 
 private struct HomeHeroAccentLine: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.isTabActive) private var isTabActive
   let isOverdue: Bool
   let reduceMotion: Bool
 
@@ -806,19 +807,18 @@ private struct HomeHeroAccentLine: View {
       )
       .frame(height: 2)
       .clipShape(Capsule())
-      .onAppear {
-        pulse = false
-        guard !reduceMotion else { return }
-        withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
-          pulse = true
-        }
+      .onAppear { restartPulse() }
+      .onChange(of: isOverdue) { _, _ in restartPulse() }
+      .onChange(of: isTabActive) { _, active in
+        if active { restartPulse() } else { pulse = false }
       }
-      .onChange(of: isOverdue) { _, _ in
-        pulse = false
-        guard !reduceMotion else { return }
-        withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
-          pulse = true
-        }
-      }
+  }
+
+  private func restartPulse() {
+    pulse = false
+    guard isTabActive, !reduceMotion else { return }
+    withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
+      pulse = true
+    }
   }
 }

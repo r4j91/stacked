@@ -571,6 +571,20 @@ final class TaskRepository {
     return TaskMapper.mapList(rows)
   }
 
+  /// Busca global — projeção leve, limitada para abertura rápida do sheet.
+  func fetchPendingTasksForSearch(limit: Int = 400) async throws -> [Task] {
+    let rows: [TaskRowDTO] = try await client
+      .from("tasks")
+      .select(TaskSelect.search)
+      .eq("concluida", value: false)
+      .order("ordem", ascending: true)
+      .order("id", ascending: true)
+      .limit(limit)
+      .execute()
+      .value
+    return TaskMapper.mapList(rows)
+  }
+
   // MARK: - Create / duplicate / logbook
 
   struct CreateTaskInput {

@@ -107,8 +107,10 @@ struct InboxView: View {
     .stackedListRowWorkGate($allowRowHeavyWork)
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
-        await store.loadInbox()
-        await store.loadToday()
+        await TaskDetailDismissRefresh.afterDismiss(tab: .inbox) {
+          await store.loadInbox()
+          await store.loadToday()
+        }
       }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {

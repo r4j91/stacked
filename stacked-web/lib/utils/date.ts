@@ -38,7 +38,7 @@ export function toIsoTimestamp(d: Date): string {
 }
 
 /** Limites [início, fim) do dia civil local em ISO8601 para `data_conclusao`. */
-export function completionDayBounds(for date = new Date()): { start: string; end: string } {
+export function completionDayBounds(date = new Date()): { start: string; end: string } {
   const start = startOfDay(date);
   const end = new Date(start);
   end.setDate(end.getDate() + 1);

@@ -102,7 +102,11 @@ struct UpcomingView: View {
     .refreshable { await store.load() }
     .stackedListRowWorkGate($allowRowHeavyWork)
     .fullScreenCover(item: $detailRoute, onDismiss: {
-      _Concurrency.Task { await store.load() }
+      _Concurrency.Task {
+        await TaskDetailDismissRefresh.afterDismiss(tab: .upcoming) {
+          await store.load()
+        }
+      }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
         TaskDetailView(taskId: route.taskId)

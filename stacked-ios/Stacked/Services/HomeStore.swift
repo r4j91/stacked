@@ -195,7 +195,6 @@ final class HomeStore {
       async let projectsReq = ProjectRepository.shared.fetchHomeProjects()
       async let upcomingReq = TaskRepository.shared.countUpcomingTasks(userId: userId, todayStr: today)
       async let pendingReq = TaskRepository.shared.fetchPendingTaskProjectIds(userId: userId)
-      async let heroInsightsReq = refreshHeroInsights(todayStr: today)
 
       let summary = try await summaryReq
       overdueCount = summary.overdueCount
@@ -205,7 +204,6 @@ final class HomeStore {
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
-      _ = await heroInsightsReq
     } catch {
       if AsyncLoad.isCancellation(error) { return }
     }

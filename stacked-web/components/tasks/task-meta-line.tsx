@@ -1,5 +1,6 @@
 "use client";
 
+import type { Label } from "@/lib/types/label";
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { parseDueDate, formatTaskDate, dueDateChipColor } from "@/lib/utils/date";
@@ -11,10 +12,12 @@ type TaskMetaLineProps = {
   task: Task;
   /** Em breve: tarefas já agrupadas por dia — omitir chip de data */
   hideDate?: boolean;
+  labels?: Label[];
 };
 
-export function TaskMetaLine({ task, hideDate }: TaskMetaLineProps) {
-  const { labels: allLabels } = useWorkbench();
+export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLineProps) {
+  const { labels: contextLabels } = useWorkbench();
+  const allLabels = labelsProp ?? contextLabels;
   const subs = task.subtasks ?? [];
   const due = parseDueDate(task.dueDate);
 

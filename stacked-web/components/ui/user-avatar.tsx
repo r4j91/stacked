@@ -27,7 +27,6 @@ export function UserAvatar({ name, email, avatarUrl, size = 40, className = "" }
         height={size}
         className={`shrink-0 rounded-full object-cover ${className}`}
         style={{ width: size, height: size }}
-        unoptimized
       />
     );
   }

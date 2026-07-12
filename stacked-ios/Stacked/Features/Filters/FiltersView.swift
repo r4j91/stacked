@@ -210,34 +210,30 @@ struct FiltersView: View {
         Section {
           if store.projects.isEmpty {
             EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
-            .stackedListEmptyStateRow()
+              .stackedListEmptyStateRow()
           } else {
-            filtersDashboardCard {
-              VStack(spacing: 0) {
-                ForEach(Array(store.projects.enumerated()), id: \.element.id) { index, project in
-                  Button {
-                    HapticService.selection()
-                    let projectId = project.id
-                    ProjectDetailCache.shared.prefetch(projectId: projectId)
-                    selectedProject = ProjectRoute(
-                      id: projectId,
-                      name: project.name,
-                      snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
-                    )
-                  } label: {
-                    projectRow(project)
-                  }
-                  .buttonStyle(.plain)
-
-                  if index < store.projects.count - 1 {
-                    filtersCardDivider(leadingPadding: 66)
-                  }
-                }
+            ForEach(store.projects) { project in
+              Button {
+                HapticService.selection()
+                let projectId = project.id
+                ProjectDetailCache.shared.prefetch(projectId: projectId)
+                selectedProject = ProjectRoute(
+                  id: projectId,
+                  name: project.name,
+                  snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+                )
+              } label: {
+                projectRow(project)
               }
+              .buttonStyle(.plain)
+              .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
+              .listRowSeparator(.hidden)
+              .listRowBackground(
+                RoundedRectangle(cornerRadius: 14)
+                  .fill(theme.colors.surface)
+                  .padding(.vertical, 2)
+              )
             }
-            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: 4, trailing: AppSpacing.lg))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
           }
         } header: {
           projectsHeader

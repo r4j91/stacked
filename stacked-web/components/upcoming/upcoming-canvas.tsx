@@ -208,9 +208,17 @@ export function UpcomingCanvas() {
   );
 
   const filteredSchedule = useMemo(() => {
-    if (!selectedDayKey) return [...scheduleByDay.entries()].sort(([a], [b]) => a.localeCompare(b));
-    const items = scheduleByDay.get(selectedDayKey);
-    return items ? [[selectedDayKey, items] as const] : [];
+    if (selectedDayKey) {
+      const items = scheduleByDay.get(selectedDayKey);
+      return items ? [[selectedDayKey, items] as const] : [];
+    }
+    const today = startOfDay(new Date());
+    const horizon = new Date(today);
+    horizon.setDate(horizon.getDate() + 14);
+    const horizonKey = dateKey(horizon);
+    return [...scheduleByDay.entries()]
+      .filter(([key]) => key >= dateKey(today) && key <= horizonKey)
+      .sort(([a], [b]) => a.localeCompare(b));
   }, [scheduleByDay, selectedDayKey]);
 
   if (loading) return <TaskListSkeleton />;
