@@ -17,8 +17,8 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
 
-  private let cornerRadius: CGFloat = 16
-  private let cardHeight: CGFloat = 184
+  private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
+  private let cardHeight: CGFloat = HomeHeroLayout.weatherCardHeight
 
   var body: some View {
     let c = theme.colors

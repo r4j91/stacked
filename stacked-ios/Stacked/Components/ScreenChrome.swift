@@ -86,6 +86,7 @@ struct ListSectionHeader: View {
       .font(AppTypography.sectionLabel)
       .foregroundStyle(theme.colors.textTertiary)
       .tracking(0.6)
+      .padding(.leading, AppSpacing.xs)
   }
 }
 

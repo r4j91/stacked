@@ -144,7 +144,7 @@ final class HomeStore {
   var greetingProgressSubtitle: String {
     if overdueCount > 0 { return "Algumas pendências precisam de atenção." }
     if todayTotal == 0 { return "Nenhuma tarefa agendada para hoje." }
-    if todayDone == todayTotal { return "Tudo em dia! Continue assim." }
+    if todayDone == todayTotal { return "Tudo em dia." }
     return "Você está avançando no dia."
   }
 

@@ -27,7 +27,7 @@ struct AppearanceView: View {
     let themes = AppThemeId.allCases
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
-    let heroStyles = HomeHeroStyle.allCases
+    let heroGroups = HomeHeroStyleGroup.allCases
 
     List {
       Section {
@@ -70,20 +70,25 @@ struct AppearanceView: View {
         }
       }
 
-      Section {
-        SettingsCardSurface {
-          VStack(spacing: 0) {
-            ForEach(Array(heroStyles.enumerated()), id: \.element) { index, style in
-              homeHeroStyleRow(style)
-              if index < heroStyles.count - 1 {
-                SettingsCardDivider(leadingPadding: 56)
+      ForEach(heroGroups) { group in
+        let styles = HomeHeroStyle.styles(in: group)
+        if !styles.isEmpty {
+          Section {
+            SettingsCardSurface {
+              VStack(spacing: 0) {
+                ForEach(Array(styles.enumerated()), id: \.element) { index, style in
+                  homeHeroStyleRow(style)
+                  if index < styles.count - 1 {
+                    SettingsCardDivider(leadingPadding: 56)
+                  }
+                }
               }
             }
+            .settingsListCardRow(top: group == heroGroups.first ? 4 : 0, bottom: 4)
+          } header: {
+            SettingsSectionHeader(text: group == .recommended ? "Hero da Home" : group.displayName)
           }
         }
-        .settingsListCardRow(top: 4, bottom: 4)
-      } header: {
-        SettingsSectionHeader(text: "Hero da Home")
       }
 
       if iconManager.isSupported {

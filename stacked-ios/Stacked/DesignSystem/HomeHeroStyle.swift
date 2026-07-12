@@ -124,7 +124,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherPremiumOpen: "Clima premium sem card, direto no fundo"
     case .greetingWeatherPremiumScene: "Clima ao vivo com cena ilustrada no card"
     case .greetingWeatherPremiumSceneOpen: "Cena ilustrada sem card, direto no fundo"
-    case .greetingWeatherMinimal: "Ícone !Weather sutil com card escuro"
+    case .greetingWeatherMinimal: "Ícone minimal com card escuro"
     case .greetingWeatherMinimalOpen: "Clima minimal sem card, direto no fundo"
     case .greetingWeatherRefined: "Ícone monocromático premium com profundidade"
     case .greetingWeatherRefinedOpen: "Clima refinado sem card, direto no fundo"
@@ -164,6 +164,49 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
          .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
     default: false
     }
+  }
+}
+
+enum HomeHeroStyleGroup: String, CaseIterable, Identifiable {
+  case recommended
+  case weather
+  case journey
+  case aurora
+  case experimental
+
+  var id: String { rawValue }
+
+  var displayName: String {
+    switch self {
+    case .recommended: "Recomendado"
+    case .weather: "Clima"
+    case .journey: "Jornada"
+    case .aurora: "Aurora"
+    case .experimental: "Experimental"
+    }
+  }
+}
+
+extension HomeHeroStyle {
+  var pickerGroup: HomeHeroStyleGroup {
+    switch self {
+    case .classic, .panel, .greetingWeatherRefined, .journeyDaily:
+      return .recommended
+    case .greetingWeather, .greetingWeatherTinted, .greetingWeatherPremium, .greetingWeatherPremiumOpen,
+         .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimal,
+         .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen:
+      return .weather
+    case .journeyMist, .journeyForest, .journeySummit:
+      return .journey
+    case .auroraCalm, .auroraDusk, .auroraEmber:
+      return .aurora
+    default:
+      return .experimental
+    }
+  }
+
+  static func styles(in group: HomeHeroStyleGroup) -> [HomeHeroStyle] {
+    allCases.filter { $0.pickerGroup == group }
   }
 }
 

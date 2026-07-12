@@ -17,15 +17,15 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
 
-  private let cornerRadius: CGFloat = 16
-  private let cardHeight: CGFloat = 188
+  private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
+  private let cardHeight: CGFloat = HomeHeroLayout.weatherCardHeight
 
   var body: some View {
     let c = theme.colors
-    let verticalPadding: CGFloat = presentation == .open ? metrics.openVerticalPadding + 8 : 14
+    let verticalPadding: CGFloat = presentation == .open ? metrics.openVerticalPadding + 8 : AppSpacing.md + 2
 
     VStack(alignment: .leading, spacing: 0) {
-      HStack(alignment: .top, spacing: 12) {
+      HStack(alignment: .top, spacing: AppSpacing.md) {
         greetingBlock(colors: c)
           .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -33,9 +33,9 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
           .layoutPriority(1)
       }
 
-      Spacer(minLength: 8)
+      Spacer(minLength: 0)
     }
-    .padding(.horizontal, 16)
+    .padding(.horizontal, AppSpacing.lg)
     .padding(.vertical, verticalPadding)
     .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
     .background { cardBackground(colors: c) }
@@ -117,7 +117,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
   }
 
   private func weatherColumn(colors c: AppThemeColors) -> some View {
-    VStack(alignment: .trailing, spacing: 8) {
+    VStack(alignment: .trailing, spacing: AppSpacing.sm) {
       HomeWeatherRefinedArt(
         style: weather.style,
         isNight: store.timeOfDay == .night
@@ -149,6 +149,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
         Capsule().strokeBorder(c.textPrimary.opacity(c.isDark ? 0.06 : 0.05), lineWidth: 1)
       }
     }
+    .padding(.bottom, AppSpacing.xs)
     .frame(minWidth: 92, alignment: .trailing)
   }
 

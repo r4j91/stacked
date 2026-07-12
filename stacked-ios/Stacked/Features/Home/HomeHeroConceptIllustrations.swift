@@ -764,7 +764,7 @@ struct HomeConceptStatusChip: View {
   var body: some View {
     let accent = isOverdue ? AppColors.overdue : AppColors.tagGreen
     let label = isOverdue
-      ? (overdueCount == 1 ? "1 atrasada" : "\(overdueCount) atrasadas")
+      ? (overdueCount == 1 ? "1 pendência atrasada" : "\(overdueCount) pendências atrasadas")
       : "Tudo em dia"
     Text(label)
       .font(.system(size: 10, weight: .semibold))

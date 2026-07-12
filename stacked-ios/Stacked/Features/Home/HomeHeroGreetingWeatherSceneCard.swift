@@ -24,8 +24,8 @@ struct HomeHeroGreetingWeatherSceneCard: View {
     return HomeHeroWeatherSceneImages.assetName(for: weather.style)
   }
 
-  private let cornerRadius: CGFloat = 16
-  private let cardHeight: CGFloat = 188
+  private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
+  private let cardHeight: CGFloat = HomeHeroLayout.weatherCardHeight
 
   var body: some View {
     let c = theme.colors
@@ -56,13 +56,6 @@ struct HomeHeroGreetingWeatherSceneCard: View {
         startPoint: .center,
         endPoint: .bottom
       )
-
-      LinearGradient(
-        colors: [accent.opacity(0.07), .clear],
-        startPoint: .bottomTrailing,
-        endPoint: .topLeading
-      )
-      .blendMode(.plusLighter)
 
       VStack(alignment: .leading, spacing: 0) {
         HStack(alignment: .top, spacing: 12) {
@@ -127,7 +120,6 @@ struct HomeHeroGreetingWeatherSceneCard: View {
         .font(.system(size: 28, weight: .heavy))
         .foregroundStyle(c.textPrimary)
         .tracking(-0.8)
-        .shadow(color: c.background.opacity(0.45), radius: 6, y: 2)
 
       Text(weather.condition)
         .font(.system(size: 12, weight: .semibold))

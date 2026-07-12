@@ -12,12 +12,6 @@ struct HomeHeroAuroraCard: View {
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
 
-  private let cardHeight: CGFloat = 172
-  private let cornerRadius: CGFloat = 16
-
-  private var overdueAccent: Color { Color(hex: art.overdueAccent) }
-  private var overdueAccentDeep: Color { Color(hex: art.overdueAccentDeep) }
-
   private var imageName: String {
     isOverdue ? art.overdueAssetName() : art.clearAssetName()
   }
@@ -31,7 +25,7 @@ struct HomeHeroAuroraCard: View {
         .interpolation(.high)
         .antialiased(true)
         .scaledToFill()
-        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
+        .frame(maxWidth: .infinity, minHeight: HomeHeroLayout.sceneCardHeight, maxHeight: HomeHeroLayout.sceneCardHeight)
         .clipped()
         .accessibilityHidden(true)
 
@@ -52,50 +46,25 @@ struct HomeHeroAuroraCard: View {
         endPoint: .bottom
       )
 
-      if isOverdue {
-        LinearGradient(
-          colors: [
-            overdueAccentDeep.opacity(0.04),
-            overdueAccent.opacity(0.055),
-            .clear,
-          ],
-          startPoint: .topTrailing,
-          endPoint: .bottomLeading
-        )
-        .blendMode(.plusLighter)
-      }
-
       VStack(alignment: .leading, spacing: 0) {
         greetingBlock(colors: c)
-        Spacer(minLength: 10)
+        Spacer(minLength: AppSpacing.sm + 2)
         HomeHeroSceneStatusFooter.pill(
           colors: c,
           isOverdue: isOverdue,
-          overdueCount: store.overdueCount,
+          statusLabel: store.statusLabel(overdueCount: store.overdueCount),
           onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
         )
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 14)
-
-      if isOverdue {
-        VStack {
-          HStack {
-            Spacer()
-            overdueBadge
-          }
-          Spacer()
-        }
-        .padding(12)
-        .allowsHitTesting(false)
-      }
+      .padding(.horizontal, HomeHeroLayout.scenePaddingH)
+      .padding(.vertical, HomeHeroLayout.scenePaddingV)
     }
-    .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    .frame(maxWidth: .infinity, minHeight: HomeHeroLayout.sceneCardHeight, maxHeight: HomeHeroLayout.sceneCardHeight)
+    .clipShape(RoundedRectangle(cornerRadius: HomeHeroLayout.cornerRadius, style: .continuous))
     .overlay {
-      RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+      RoundedRectangle(cornerRadius: HomeHeroLayout.cornerRadius, style: .continuous)
         .strokeBorder(
-          (isOverdue ? overdueAccent : AppColors.tagGreen).opacity(isOverdue ? 0.12 : 0.14),
+          (isOverdue ? AppColors.overdue : AppColors.tagGreen).opacity(isOverdue ? 0.14 : 0.14),
           lineWidth: 1
         )
     }
@@ -104,29 +73,15 @@ struct HomeHeroAuroraCard: View {
     .accessibilityHint(isOverdue ? "Abre tarefas atrasadas" : "")
   }
 
-  private var overdueBadge: some View {
-    ZStack {
-      Circle()
-        .fill(Color(hex: 0xEF5A5F).opacity(0.12))
-        .frame(width: 30, height: 30)
-        .blur(radius: 6)
-
-      Image(systemName: "exclamationmark.triangle.fill")
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(Color(hex: 0xEF5A5F).opacity(0.75))
-        .shadow(color: Color(hex: 0xEF5A5F).opacity(0.2), radius: 3)
-    }
-  }
-
   private func greetingBlock(colors c: AppThemeColors) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(store.greetingPhrase)
         .font(.system(size: metrics.phraseSize, weight: .semibold))
-        .foregroundStyle(AppColors.tagPurple.opacity(0.82))
+        .foregroundStyle(HomeHeroWeatherChrome.greetingPhraseColor(colors: c))
 
       if !store.firstName.isEmpty {
         Text(store.firstName)
-          .font(.system(size: 25, weight: .heavy))
+          .font(.system(size: metrics.nameSize + 3, weight: .heavy))
           .foregroundStyle(c.textPrimary)
           .tracking(-0.35)
           .lineLimit(1)

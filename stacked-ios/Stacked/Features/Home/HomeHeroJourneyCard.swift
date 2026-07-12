@@ -12,16 +12,11 @@ struct HomeHeroJourneyCard: View {
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
 
-  private let cardHeight: CGFloat = 172
-  private let cornerRadius: CGFloat = 16
-  private let overdueAccent = Color(hex: 0x7A5BA8)
-  private let overdueAccentDeep = Color(hex: 0x4A3568)
-
-  private var narrativeSubtitle: String {
-    if isOverdue {
-      return "Pendências no caminho — hora de retomar."
+  private var factualSubtitle: String {
+    if art.showsWeather {
+      return weather.condition
     }
-    return "Siga em frente, você está no caminho certo."
+    return store.formattedLongDate
   }
 
   private var imageName: String {
@@ -37,14 +32,14 @@ struct HomeHeroJourneyCard: View {
         .interpolation(.high)
         .antialiased(true)
         .scaledToFill()
-        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
+        .frame(maxWidth: .infinity, minHeight: HomeHeroLayout.sceneCardHeight, maxHeight: HomeHeroLayout.sceneCardHeight)
         .clipped()
         .accessibilityHidden(true)
 
       LinearGradient(
         colors: [
           c.background.opacity(isOverdue ? 0.98 : 0.97),
-          c.background.opacity(isOverdue ? 0.88 : 0.82),
+          c.background.opacity(isOverdue ? 0.9 : 0.82),
           c.background.opacity(0.4),
           .clear,
         ],
@@ -58,38 +53,25 @@ struct HomeHeroJourneyCard: View {
         endPoint: .bottom
       )
 
-      if isOverdue {
-        LinearGradient(
-          colors: [
-            overdueAccentDeep.opacity(0.04),
-            overdueAccent.opacity(0.06),
-            .clear,
-          ],
-          startPoint: .bottomTrailing,
-          endPoint: .topLeading
-        )
-        .blendMode(.plusLighter)
-      }
-
       VStack(alignment: .leading, spacing: 0) {
         greetingBlock(colors: c)
-        Spacer(minLength: 10)
+        Spacer(minLength: AppSpacing.sm + 2)
         HomeHeroSceneStatusFooter.pill(
           colors: c,
           isOverdue: isOverdue,
-          overdueCount: store.overdueCount,
+          statusLabel: store.statusLabel(overdueCount: store.overdueCount),
           onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
         )
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 14)
+      .padding(.horizontal, HomeHeroLayout.scenePaddingH)
+      .padding(.vertical, HomeHeroLayout.scenePaddingV)
     }
-    .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    .frame(maxWidth: .infinity, minHeight: HomeHeroLayout.sceneCardHeight, maxHeight: HomeHeroLayout.sceneCardHeight)
+    .clipShape(RoundedRectangle(cornerRadius: HomeHeroLayout.cornerRadius, style: .continuous))
     .overlay {
-      RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+      RoundedRectangle(cornerRadius: HomeHeroLayout.cornerRadius, style: .continuous)
         .strokeBorder(
-          (isOverdue ? overdueAccent : AppColors.tagGreen).opacity(isOverdue ? 0.1 : 0.14),
+          (isOverdue ? AppColors.overdue : AppColors.tagGreen).opacity(isOverdue ? 0.14 : 0.14),
           lineWidth: 1
         )
     }
@@ -103,11 +85,11 @@ struct HomeHeroJourneyCard: View {
     VStack(alignment: .leading, spacing: 6) {
       Text(store.greetingPhrase)
         .font(.system(size: metrics.phraseSize, weight: .semibold))
-        .foregroundStyle(AppColors.tagPurple.opacity(0.82))
+        .foregroundStyle(HomeHeroWeatherChrome.greetingPhraseColor(colors: c))
 
       if !store.firstName.isEmpty {
         Text(store.firstName)
-          .font(.system(size: 25, weight: .heavy))
+          .font(.system(size: metrics.nameSize + 3, weight: .heavy))
           .foregroundStyle(c.textPrimary)
           .tracking(-0.35)
           .lineLimit(1)
@@ -117,7 +99,7 @@ struct HomeHeroJourneyCard: View {
       if art.showsWeather {
         weatherLine(colors: c)
       } else {
-        Text(narrativeSubtitle)
+        Text(factualSubtitle)
           .font(.system(size: metrics.focusSubtitleSize, weight: .medium))
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
@@ -136,7 +118,7 @@ struct HomeHeroJourneyCard: View {
         .foregroundStyle(c.textPrimary)
         .tracking(-0.4)
 
-      Text(weather.condition)
+      Text(factualSubtitle)
         .font(.system(size: metrics.focusSubtitleSize, weight: .medium))
         .foregroundStyle(c.textSecondary)
         .lineLimit(2)
@@ -151,6 +133,6 @@ struct HomeHeroJourneyCard: View {
     if art.showsWeather {
       return "\(store.greetingPhrase)\(name) \(weather.temperatureC) graus, \(weather.condition). \(store.statusLabel(overdueCount: store.overdueCount))"
     }
-    return "\(store.greetingPhrase)\(name) \(narrativeSubtitle). \(store.statusLabel(overdueCount: store.overdueCount))"
+    return "\(store.greetingPhrase)\(name) \(factualSubtitle). \(store.statusLabel(overdueCount: store.overdueCount))"
   }
 }

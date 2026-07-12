@@ -19,6 +19,10 @@ struct HomeView: View {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
   }
 
+  private var homeListRowInsets: EdgeInsets {
+    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+  }
+
   var body: some View {
     let c = theme.colors
 
@@ -147,13 +151,13 @@ struct HomeView: View {
           } label: {
             projectRow(project)
           }
-          .buttonStyle(.plain)
+          .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
           .contextMenu {
             Button("Opções do projeto") {
               projectOptions = ProjectRoute(id: project.id, name: project.name)
             }
           }
-          .listRowInsets(EdgeInsets(top: 6, leading: AppSpacing.xl, bottom: 6, trailing: AppSpacing.xl))
+          .listRowInsets(homeListRowInsets)
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
         }
@@ -166,17 +170,17 @@ struct HomeView: View {
   private func navRow(icon: StackedIconKey, label: String, count: Int, tab: NavTab) -> some View {
     let c = theme.colors
     return Button { onNavigateToTab(tab) } label: {
-      HStack(spacing: 14) {
+      HStack(spacing: AppSpacing.md + 2) {
         StackedIcons.image(icon).font(.system(size: 20)).foregroundStyle(c.textSecondary).frame(width: 28)
         Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
         Spacer()
         Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
         DisclosureChevron(color: c.textTertiary.opacity(0.7))
       }
-      .padding(.vertical, 10)
+      .padding(.vertical, AppSpacing.sm + 2)
     }
-    .buttonStyle(.plain)
-    .listRowInsets(EdgeInsets(top: 2, leading: AppSpacing.xl, bottom: 2, trailing: AppSpacing.xl))
+    .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
+    .listRowInsets(homeListRowInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
   }
@@ -184,7 +188,7 @@ struct HomeView: View {
   private func projectRow(_ project: HomeProject) -> some View {
     let c = theme.colors
     let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.accent)
-    return HStack(spacing: 14) {
+    return HStack(spacing: AppSpacing.md + 2) {
       StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
         .font(.system(size: 20)).foregroundStyle(color).frame(width: 28)
       Text(project.name).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
@@ -192,6 +196,6 @@ struct HomeView: View {
       Text("\(project.taskCount)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
       DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
-    .padding(.vertical, 10)
+    .padding(.vertical, AppSpacing.sm + 2)
   }
 }

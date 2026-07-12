@@ -17,7 +17,9 @@ struct HomeHeroSection: View {
     Section {
       Group {
         if store.isLoading {
-          ProgressView().frame(maxWidth: .infinity, minHeight: 44)
+          ProgressView()
+            .tint(theme.colors.accent)
+            .frame(maxWidth: .infinity, minHeight: 44)
         } else if let err = store.error {
           LoadErrorView(message: err, onRetry: onRetry)
         } else {
@@ -333,7 +335,7 @@ struct HomeHeroSection: View {
         Text(store.greeting)
           .font(AppTypography.screenGreeting)
           .foregroundStyle(c.textPrimary)
-        Text("Vamos focar no que realmente importa hoje.")
+        Text(store.formattedLongDate)
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
