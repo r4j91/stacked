@@ -291,7 +291,7 @@ export function UpcomingCanvas() {
 
       <div
         data-upcoming-scroll
-        className="scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-2"
+        className="scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-4 lg:pb-2"
       >
         {!filteredSchedule.length ? (
           <p className="px-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">

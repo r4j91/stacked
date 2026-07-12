@@ -43,7 +43,6 @@
   --z-command: 80;
   --z-toast: 90;
   --inspector-width: 400px;
-  --content-max-width: 920px;
   --sidebar-expanded: 260px;
   --sidebar-collapsed: 56px;
   --radius-sm: 8px;
@@ -52,6 +51,27 @@
   --task-row-rail: 72px;
   --reorder-gutter: 16px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+/* Conteúdo centralizado — paridade iOS AppLayout (640 / 720 / 920) */
+:root {
+  --content-max-width: 640px;
+  --mobile-scroll-inset: calc(env(safe-area-inset-bottom, 0px) + 150px);
+  --mobile-pill-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  --mobile-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --content-max-width: 720px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --content-max-width: 920px;
+    --mobile-scroll-inset: 0px;
+  }
 }
 
 html,
@@ -345,6 +365,11 @@ textarea:focus:not(:focus-visible) {
 }
 
 .reorder-enabled-list {
+  --reorder-gutter: 16px;
+  --task-row-rail: 72px;
+}
+
+.task-list-shell {
   --reorder-gutter: 16px;
   --task-row-rail: 72px;
 }

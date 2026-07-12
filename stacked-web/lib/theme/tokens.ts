@@ -20,9 +20,14 @@ export const layout = {
   sidebarExpanded: 260,
   sidebarCollapsed: 56,
   inspectorWidth: 400,
+  /** Desktop; phone/tablet usam --content-max-width em globals.css */
   contentMaxWidth: 920,
+  contentMaxWidthTablet: 720,
+  contentMaxWidthPhone: 640,
   contentMinWidth: 280,
   desktopBreakpoint: 1024,
+  mobileFabSize: 56,
+  mobileNavPillHeight: 62,
   /** sidebar expandida + inspector + padding mínimo do canvas */
   desktopChromeMin: 260 + 400 + 48,
 } as const;

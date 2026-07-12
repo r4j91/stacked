@@ -106,8 +106,8 @@ export function CanvasArea() {
           data-workbench-scroll
           className={
             view === "upcoming"
-              ? "flex min-h-0 flex-1 flex-col overflow-hidden pb-8 pt-1"
-              : "scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-8 pt-1"
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden pb-4 pt-1 lg:pb-8"
+              : "scroll-hidden scroll-pane min-h-0 flex-1 overflow-y-auto pb-4 pt-1 lg:pb-8"
           }
         >
           {view === "project" && !loading && !currentProject ? (

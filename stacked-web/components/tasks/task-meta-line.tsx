@@ -5,6 +5,7 @@ import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { parseDueDate, formatTaskDate, dueDateChipColor } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
+import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { AppIcon } from "@/components/ui/app-icon";
 import { TaskDone01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
 
@@ -40,6 +41,10 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
         {task.project}
       </span>,
     );
+  }
+
+  if (task.time) {
+    items.push(<TaskRowTime key="time" time={task.time} />);
   }
 
   for (const label of taskLabels.slice(0, 3)) {
@@ -128,6 +133,10 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
         />,
       );
     }
+  }
+
+  if (sub.time) {
+    items.push(<TaskRowTime key="time" time={sub.time} />);
   }
 
   if (!items.length) return null;

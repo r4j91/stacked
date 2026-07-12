@@ -42,7 +42,7 @@ export function HomeCanvas() {
           </p>
         </header>
 
-        <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-8 pt-4">
+        <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-4 pt-4 lg:pb-8">
           {filterCounts.overdue > 0 && (
             <Link
               href="/filters?kind=overdue"
