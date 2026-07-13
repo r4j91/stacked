@@ -53,7 +53,13 @@ struct TaskRow: View {
       syncSubtasks()
       restoreSubtaskExpansionIfNeeded()
     }
-    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onChange(of: task.subtasks) { _, newSubs in
+      let previousCount = displaySubtasks.count
+      syncSubtasks()
+      if expanded, newSubs.count != previousCount {
+        bumpSubtaskRevealLayout()
+      }
+    }
     .onChange(of: task.id) { _, _ in
       syncSubtasks()
       restoreSubtaskExpansionIfNeeded()
@@ -61,13 +67,16 @@ struct TaskRow: View {
     .task(id: expanded) {
       guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
+      bumpSubtaskRevealLayout()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
       guard !deferred, expanded, subtaskRevealActive else { return }
-      _Concurrency.Task {
-        labelCatalog = await LabelCatalogCache.labels()
+      _Concurrency.Task { @MainActor in
+        if allLabels.isEmpty, labelCatalog.isEmpty {
+          labelCatalog = await LabelCatalogCache.labels()
+        }
+        bumpSubtaskRevealLayout()
       }
-      bumpSubtaskRevealLayout()
     }
   }
 
@@ -89,7 +98,13 @@ struct TaskRow: View {
       syncSubtasks()
       restoreSubtaskExpansionIfNeeded()
     }
-    .onChange(of: task.subtasks) { _, _ in syncSubtasks() }
+    .onChange(of: task.subtasks) { _, newSubs in
+      let previousCount = displaySubtasks.count
+      syncSubtasks()
+      if expanded, newSubs.count != previousCount {
+        bumpSubtaskRevealLayout()
+      }
+    }
     .onChange(of: task.id) { _, _ in
       syncSubtasks()
       restoreSubtaskExpansionIfNeeded()
@@ -97,13 +112,16 @@ struct TaskRow: View {
     .task(id: expanded) {
       guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
       labelCatalog = await LabelCatalogCache.labels()
+      bumpSubtaskRevealLayout()
     }
     .onChange(of: deferHeavyWork) { _, deferred in
       guard !deferred, expanded, subtaskRevealActive else { return }
-      _Concurrency.Task {
-        labelCatalog = await LabelCatalogCache.labels()
+      _Concurrency.Task { @MainActor in
+        if allLabels.isEmpty, labelCatalog.isEmpty {
+          labelCatalog = await LabelCatalogCache.labels()
+        }
+        bumpSubtaskRevealLayout()
       }
-      bumpSubtaskRevealLayout()
     }
   }
 
@@ -408,10 +426,24 @@ struct TaskRow: View {
       }
       return
     }
+    let willExpand = !expanded
     AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
-      expanded.toggle()
+      expanded = willExpand
     }
-    ProjectDetailPreferences.setSubtaskListExpanded(expanded, taskId: task.id)
+    ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
+    if !willExpand {
+      scheduleSubtaskRevealTeardown()
+    }
+  }
+
+  /// Desmonta o UIHostingController após o collapse — evita updateUIView pesado no scroll.
+  private func scheduleSubtaskRevealTeardown() {
+    let delayMs = reduceMotion ? 0 : 230
+    _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
+      guard !expanded else { return }
+      subtaskRevealActive = false
+    }
   }
 
   private func restoreSubtaskExpansionIfNeeded() {

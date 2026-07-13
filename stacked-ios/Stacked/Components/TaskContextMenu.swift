@@ -47,7 +47,7 @@ struct TaskContextMenu: ViewModifier {
         y: isLifted && !reduceMotion ? TaskContextLift.shadowY : 0
       )
       .zIndex(isLifted ? 1 : 0)
-      .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: liftPhase)
+      .animation(isLifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: liftPhase)
       // TaskRow usa long-press exclusivo antes do tap na área de conteúdo; aqui só expõe a ação.
       .environment(\.openTaskContextMenu, openContextMenu)
   }

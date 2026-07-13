@@ -42,8 +42,9 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
           selected
             ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]"
             : "border-transparent"
-        }`}
+        } ${task.done ? "opacity-65" : ""}`}
         data-selected={selected ? "" : undefined}
+        data-completing={task.done ? "true" : undefined}
       >
         <div className="reorder-gutter" aria-hidden />
         <DoneCircle

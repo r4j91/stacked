@@ -150,6 +150,9 @@ final class TaskStore {
     let taskId = task.id
 
     todayPending[i].done = true
+    // Rebuild já no dwell — a UI lê todayTimeline/todayOverdueItems (cópias).
+    // Sem isso o DoneCircle nunca vê done=true e a animação some.
+    rebuildTodayDerived()
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(

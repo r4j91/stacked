@@ -175,6 +175,9 @@ final class UpcomingStore {
     let taskId = task.id
 
     tasks[i].done = true
+    // Rebuild já no dwell — a UI lê groupedSchedule (cópias).
+    // Sem isso o DoneCircle nunca vê done=true e a animação some.
+    rebuildScheduleDerived()
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(

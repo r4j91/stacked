@@ -17,57 +17,57 @@ struct TaskMetaLine: View {
   var projectName: String?
   var maxLabels: Int = 3
 
+  private var showsProject: Bool {
+    guard let projectName, !projectName.isEmpty else { return false }
+    return projectName != "Sem projeto"
+  }
+
+  private var hasMeta: Bool {
+    showsProject
+      || !labels.isEmpty
+      || priority != nil
+      || dueDate != nil
+      || subtasksTotal > 0
+      || commentCount > 0
+  }
+
   var body: some View {
-    let items = metaItems
-    if items.isEmpty {
-      EmptyView()
-    } else {
+    if hasMeta {
+      let c = theme.colors
       FlowLayout(spacing: 6, lineSpacing: 4) {
-        ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-          item
+        if showsProject, let projectName {
+          Text(projectName)
+            .font(AppTypography.metaSmall)
+            .foregroundStyle(c.textTertiary)
+            .lineLimit(1)
+        }
+
+        ForEach(Array(labels.prefix(maxLabels))) { label in
+          TagChip(label: label.name, color: label.color)
+        }
+
+        if labels.count > maxLabels {
+          TagChip(label: "+\(labels.count - maxLabels)", color: c.textTertiary, showIcon: false)
+        }
+
+        if let priority {
+          TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)
+        }
+
+        if let dueDate {
+          dueDateChip(dueDate)
+        }
+
+        if subtasksTotal > 0 {
+          metaCounter(icon: .logbook, value: "\(subtasksDone)/\(subtasksTotal)")
+        }
+
+        if commentCount > 0 {
+          metaCounter(icon: .comment, value: "\(commentCount)")
         }
       }
       .padding(.top, 4)
     }
-  }
-
-  private var metaItems: [AnyView] {
-    var result: [AnyView] = []
-    let c = theme.colors
-
-    if let projectName, !projectName.isEmpty, projectName != "Sem projeto" {
-      result.append(AnyView(
-        Text(projectName)
-          .font(AppTypography.metaSmall)
-          .foregroundStyle(c.textTertiary)
-          .lineLimit(1)
-      ))
-    }
-
-    for label in labels.prefix(maxLabels) {
-      result.append(AnyView(TagChip(label: label.name, color: label.color)))
-    }
-    if labels.count > maxLabels {
-      result.append(AnyView(TagChip(label: "+\(labels.count - maxLabels)", color: c.textTertiary, showIcon: false)))
-    }
-
-    if let priority {
-      result.append(AnyView(TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)))
-    }
-
-    if let dueDate {
-      result.append(AnyView(dueDateChip(dueDate)))
-    }
-
-    if subtasksTotal > 0 {
-      result.append(AnyView(metaCounter(icon: .logbook, value: "\(subtasksDone)/\(subtasksTotal)")))
-    }
-
-    if commentCount > 0 {
-      result.append(AnyView(metaCounter(icon: .comment, value: "\(commentCount)")))
-    }
-
-    return result
   }
 
   private func dueDateChip(_ date: Date) -> some View {
@@ -75,17 +75,6 @@ struct TaskMetaLine: View {
     let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
     return TagChip(label: label, color: color, icon: .calendar)
   }
-
-  // SUBSTITUIDO_FASE5: formatação inline no body a cada render
-  // private func dueDateChipLabel(_ date: Date) -> String {
-  //   let today = Calendar.current.startOfDay(for: Date())
-  //   let due = Calendar.current.startOfDay(for: date)
-  //   if due == today { return "Hoje" }
-  //   let monthLabels = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-  //   let day = Calendar.current.component(.day, from: date)
-  //   let month = Calendar.current.component(.month, from: date)
-  //   return "\(day) \(monthLabels[month - 1])"
-  // }
 
   private func metaCounter(icon: StackedIconKey, value: String) -> some View {
     HStack(alignment: .center, spacing: 3) {

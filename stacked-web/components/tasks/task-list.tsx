@@ -170,6 +170,7 @@ export const TaskRow = memo(function TaskRow({
                   : "border-transparent"
           } ${task.done ? "opacity-65" : ""}`}
           data-task-id={task.id}
+          data-completing={task.done ? "true" : undefined}
           data-selected={isSelected ? "" : undefined}
         >
           <div className="reorder-gutter flex items-center justify-center" aria-hidden={!reorderHandleProps}>

@@ -248,7 +248,9 @@ struct ProjectDetailView: View {
     )
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
-        await SubtaskSaveHandler.handle(snapshot, patch: store.applySubtaskPatch) { await store.load() }
+        guard let snapshot else { return }
+        TaskStore.shared.applySubtaskPatch(snapshot)
+        store.applySubtaskPatch(snapshot)
       }
       .environment(ThemeManager.shared)
     }

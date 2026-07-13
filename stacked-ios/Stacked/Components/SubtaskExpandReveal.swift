@@ -35,7 +35,14 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     let width = uiView.bounds.width > 1 ? uiView.bounds.width : context.coordinator.lastWidth
     context.coordinator.lastWidth = width
     let hosting = context.coordinator.hosting(in: uiView)
-    context.coordinator.updateContent(AnyView(content), hosting: hosting)
+
+    // Collapse: não reescreve o tree SwiftUI a cada frame do scroll — só na abertura/expansão.
+    let shouldPushContent = expanded || context.coordinator.wasExpanded
+    if shouldPushContent {
+      context.coordinator.updateContent(AnyView(content), hosting: hosting)
+    }
+    context.coordinator.wasExpanded = expanded
+
     uiView.configure(
       hosting: hosting,
       width: width,
@@ -49,6 +56,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     weak var container: SubtaskExpandContainerView?
     private var host: UIHostingController<AnyView>?
     var lastWidth: CGFloat = 320
+    var wasExpanded = false
 
     func hosting(in container: SubtaskExpandContainerView) -> UIHostingController<AnyView> {
       if let host { return host }
@@ -130,13 +138,13 @@ final class SubtaskExpandContainerView: UIView {
       lastLayoutPass = layoutPass
     }
 
+    // Só zera altura ao abrir — remedir com layoutPass não deve colapsar a célula (evita jump no scroll).
     if stateChanged && expanded {
-      fullHeight = 0
-    } else if layoutPassChanged && expanded {
       fullHeight = 0
     }
 
     // Mede ao abrir, quando a largura muda, ou após conteúdo pesado/restauração.
+    // Nunca remedir durante animação — invalida List no meio do gesto.
     if !isAnimating {
       let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
       if needsMeasure {
@@ -170,12 +178,22 @@ final class SubtaskExpandContainerView: UIView {
   ) {
     DispatchQueue.main.async { [weak self] in
       guard let self, self.lastExpanded == true else { return }
-      let measured = self.measureHeight(hosting: hosting, width: width)
-      guard measured > 0 else { return }
-      self.fullHeight = measured
-      self.hostHeightConstraint?.constant = measured
-      self.applyVisibleHeight(measured, expanded: true, animated: false)
+      self.remeasureExpanded(hosting: hosting, width: width, animated: animated)
     }
+  }
+
+  private func remeasureExpanded(
+    hosting: UIHostingController<AnyView>,
+    width: CGFloat,
+    animated: Bool
+  ) {
+    guard !isAnimating else { return }
+    let measured = measureHeight(hosting: hosting, width: width)
+    guard measured > 0 else { return }
+    guard abs(measured - fullHeight) > 0.5 else { return }
+    fullHeight = measured
+    hostHeightConstraint?.constant = measured
+    applyVisibleHeight(measured, expanded: true, animated: animated)
   }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {

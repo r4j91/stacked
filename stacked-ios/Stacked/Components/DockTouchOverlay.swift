@@ -27,6 +27,17 @@ struct DockTouchOverlay: UIViewRepresentable {
 
   func updateUIView(_ uiView: DockTouchUIView, context: Context) {
     let chrome = MobileChromeController.shared
+    let signature = Coordinator.UpdateSignature(
+      safeBottom: safeBottom,
+      navStyle: navBarStyle,
+      islandExpanded: chrome.islandNavExpanded,
+      selectedTab: chrome.selectedTab,
+      fabOpen: chrome.fabOpen,
+      fabIntegratedInIsland: usesIntegratedIslandFab
+    )
+    guard signature != context.coordinator.lastUpdateSignature else { return }
+    context.coordinator.lastUpdateSignature = signature
+
     uiView.coordinator = context.coordinator
     uiView.applyLayout(
       safeBottom: safeBottom,
@@ -50,6 +61,16 @@ struct DockTouchOverlay: UIViewRepresentable {
 
   final class Coordinator: NSObject {
     var actionsBound = false
+    fileprivate var lastUpdateSignature: UpdateSignature?
+
+    fileprivate struct UpdateSignature: Hashable {
+      let safeBottom: CGFloat
+      let navStyle: NavBarStyle
+      let islandExpanded: Bool
+      let selectedTab: NavTab
+      let fabOpen: Bool
+      let fabIntegratedInIsland: Bool
+    }
 
     @MainActor
     @objc func tabTouchDown(_ sender: UIButton) {

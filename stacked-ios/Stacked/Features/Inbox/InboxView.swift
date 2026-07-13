@@ -91,12 +91,6 @@ struct InboxView: View {
         }
       }
 
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)

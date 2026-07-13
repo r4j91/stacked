@@ -131,9 +131,7 @@ struct SettingsView: View {
         }
       }
       Spacer(minLength: 0)
-      StackedIcons.image(.chevronRight)
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(c.textTertiary)
+      DisclosureChevron(size: 14, color: c.textTertiary)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
@@ -172,9 +170,7 @@ struct SettingsView: View {
           .foregroundStyle(c.textTertiary)
       }
       Spacer(minLength: 0)
-      StackedIcons.image(.chevronRight)
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(c.textTertiary)
+      DisclosureChevron(size: 12, color: c.textTertiary)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)

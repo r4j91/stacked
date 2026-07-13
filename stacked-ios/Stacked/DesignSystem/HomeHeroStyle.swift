@@ -34,6 +34,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case greetingWeatherRefinedOpen
   case greetingWeatherTint
   case greetingWeatherTintOpen
+  case greetingWeatherSculpt
+  case greetingWeatherSculptOpen
+  case greetingWeatherSculptLift
+  case greetingWeatherSculptLiftOpen
   case journeyDaily
   case journeyMist
   case journeyForest
@@ -85,6 +89,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherRefinedOpen: "Clima refinado aberto"
     case .greetingWeatherTint: "Clima refinado tom"
     case .greetingWeatherTintOpen: "Clima refinado tom aberto"
+    case .greetingWeatherSculpt: "Clima refinado escultura"
+    case .greetingWeatherSculptOpen: "Clima escultura aberto"
+    case .greetingWeatherSculptLift: "Clima escultura destaque"
+    case .greetingWeatherSculptLiftOpen: "Clima escultura destaque aberto"
     case .journeyDaily: "Jornada diária"
     case .journeyMist: "Jornada neblina"
     case .journeyForest: "Jornada floresta"
@@ -136,6 +144,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherRefinedOpen: "Clima refinado sem card, direto no fundo"
     case .greetingWeatherTint: "Ícone refinado com cor sutil e sombras suaves"
     case .greetingWeatherTintOpen: "Clima refinado tom sem card, direto no fundo"
+    case .greetingWeatherSculpt: "Ícones em relevo clay no mesmo card do tom"
+    case .greetingWeatherSculptOpen: "Escultura sem card, direto no fundo"
+    case .greetingWeatherSculptLift: "Arte maior como âncora, saudação e status à esquerda"
+    case .greetingWeatherSculptLiftOpen: "Escultura destaque sem card, direto no fundo"
     case .journeyDaily: "Ilustração editorial com trilha e status do dia"
     case .journeyMist: "Vale enevoado com temperatura ao vivo"
     case .journeyForest: "Trilha na mata com clima em tempo real"
@@ -167,7 +179,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
          .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .greetingWeatherSculpt, .greetingWeatherSculptLift, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
     default: false
     }
   }
@@ -202,7 +214,9 @@ extension HomeHeroStyle {
          .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen,
          .greetingWeatherPremiumSceneMono, .greetingWeatherPremiumSceneMonoOpen,
          .greetingWeatherMinimal,
-         .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen:
+         .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen,
+         .greetingWeatherSculpt, .greetingWeatherSculptOpen,
+         .greetingWeatherSculptLift, .greetingWeatherSculptLiftOpen:
       return .weather
     case .journeyMist, .journeyForest, .journeySummit:
       return .journey
@@ -214,7 +228,51 @@ extension HomeHeroStyle {
   }
 
   static func styles(in group: HomeHeroStyleGroup) -> [HomeHeroStyle] {
-    allCases.filter { $0.pickerGroup == group }
+    allCases.filter { $0.pickerGroup == group && !HomeHeroStyleStorage.isHidden($0) }
+  }
+
+  /// Estilos que ainda podem ser ocultados pelo usuário (não remove o Clássico).
+  var canHideFromPicker: Bool {
+    self != .classic
+  }
+}
+
+enum HomeHeroStyleStorage {
+  static let key = "homeHeroStyle"
+  static let hiddenKey = "homeHeroStyleHidden"
+
+  static var defaultRawValue: String { HomeHeroStyle.classic.rawValue }
+
+  static func style(from rawValue: String) -> HomeHeroStyle {
+    let style = HomeHeroStyle(rawValue: rawValue) ?? .classic
+    return isHidden(style) ? .classic : style
+  }
+
+  static func isHidden(_ style: HomeHeroStyle) -> Bool {
+    hiddenRawValues().contains(style.rawValue)
+  }
+
+  static func hide(_ style: HomeHeroStyle) {
+    guard style.canHideFromPicker else { return }
+    var set = hiddenRawValues()
+    set.insert(style.rawValue)
+    UserDefaults.standard.set(Array(set).sorted().joined(separator: ","), forKey: hiddenKey)
+  }
+
+  static func unhide(_ style: HomeHeroStyle) {
+    var set = hiddenRawValues()
+    set.remove(style.rawValue)
+    UserDefaults.standard.set(Array(set).sorted().joined(separator: ","), forKey: hiddenKey)
+  }
+
+  static func hiddenStyles() -> [HomeHeroStyle] {
+    hiddenRawValues().compactMap(HomeHeroStyle.init(rawValue:)).sorted { $0.displayName < $1.displayName }
+  }
+
+  private static func hiddenRawValues() -> Set<String> {
+    let raw = UserDefaults.standard.string(forKey: hiddenKey) ?? ""
+    guard !raw.isEmpty else { return [] }
+    return Set(raw.split(separator: ",").map(String.init))
   }
 }
 
@@ -228,16 +286,6 @@ enum HomeTimeOfDay {
     if hour < 12 { return .morning }
     if hour < 18 { return .afternoon }
     return .night
-  }
-}
-
-enum HomeHeroStyleStorage {
-  static let key = "homeHeroStyle"
-
-  static var defaultRawValue: String { HomeHeroStyle.classic.rawValue }
-
-  static func style(from rawValue: String) -> HomeHeroStyle {
-    HomeHeroStyle(rawValue: rawValue) ?? .classic
   }
 }
 
@@ -258,7 +306,7 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
-    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
+    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen, .greetingWeatherSculptOpen, .greetingWeatherSculptLiftOpen:
       return HomeHeroMetrics(
         phraseSize: 14,
         nameSize: 26,
@@ -336,7 +384,7 @@ struct HomeHeroMetrics {
     case .motivation, .focusDay, .streak, .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint,
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .greetingWeatherSculpt, .greetingWeatherSculptLift,
          .journeyDaily, .journeyMist, .journeyForest, .journeySummit,
          .auroraCalm, .auroraDusk, .auroraEmber,
          .panel, .compass, .queue, .thermometer, .rhythm, .nextStep:

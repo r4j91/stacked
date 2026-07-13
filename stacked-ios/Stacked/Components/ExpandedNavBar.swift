@@ -109,6 +109,7 @@ struct ExpandedNavBar: View {
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
+      .compositingGroup()
       .background {
         pillShape
           .fill(.clear)

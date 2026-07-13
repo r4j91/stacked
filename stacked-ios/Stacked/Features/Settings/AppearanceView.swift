@@ -8,7 +8,9 @@ struct AppearanceView: View {
   @State private var iconErrorMessage: String?
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
+  @AppStorage(HomeHeroStyleStorage.hiddenKey) private var homeHeroStyleHiddenRaw = ""
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @State private var stylePendingHide: HomeHeroStyle?
 
   private var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(from: navBarStyleRaw)
@@ -87,7 +89,40 @@ struct AppearanceView: View {
             .settingsListCardRow(top: group == heroGroups.first ? 4 : 0, bottom: 4)
           } header: {
             SettingsSectionHeader(text: group == .recommended ? "Hero da Home" : group.displayName)
+          } footer: {
+            if group == .weather {
+              Text("Em cada estilo, use o menu ⋯ para excluir só aquele card.")
+                .font(AppTypography.taskPreview)
+                .foregroundStyle(theme.colors.textTertiary)
+                .settingsListCardRow(top: 0, bottom: 4)
+                .listRowBackground(Color.clear)
+            }
           }
+        }
+      }
+
+      let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
+      if !hiddenStyles.isEmpty {
+        Section {
+          SettingsCardSurface {
+            VStack(spacing: 0) {
+              ForEach(Array(hiddenStyles.enumerated()), id: \.element) { index, style in
+                hiddenHeroStyleRow(style)
+                if index < hiddenStyles.count - 1 {
+                  SettingsCardDivider(leadingPadding: 16)
+                }
+              }
+            }
+          }
+          .settingsListCardRow(top: 0, bottom: 4)
+        } header: {
+          SettingsSectionHeader(text: "Estilos ocultos")
+        } footer: {
+          Text("Restaure um estilo para ele voltar ao menu de cards.")
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(theme.colors.textTertiary)
+            .settingsListCardRow(top: 0, bottom: 8)
+            .listRowBackground(Color.clear)
         }
       }
 
@@ -123,6 +158,23 @@ struct AppearanceView: View {
     .navigationTitle("Aparência")
     .navigationBarTitleDisplayMode(.inline)
     .onAppear { iconManager.syncFromSystem() }
+    .alert(
+      "Excluir este estilo?",
+      isPresented: Binding(
+        get: { stylePendingHide != nil },
+        set: { if !$0 { stylePendingHide = nil } }
+      ),
+      presenting: stylePendingHide
+    ) { style in
+      Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+        hideHeroStyle(style)
+      }
+      Button("Cancelar", role: .cancel) {
+        stylePendingHide = nil
+      }
+    } message: { style in
+      Text("Só “\(style.displayName)” some do menu. Você pode restaurar depois em Estilos ocultos.")
+    }
     .alert("Não foi possível trocar o ícone", isPresented: Binding(
       get: { iconErrorMessage != nil },
       set: { if !$0 { iconErrorMessage = nil } }
@@ -223,26 +275,96 @@ struct AppearanceView: View {
     let c = theme.colors
     let isSelected = homeHeroStyle == style
 
+    return HStack(spacing: 0) {
+      Button {
+        guard !isSelected else { return }
+        HapticService.selection()
+        homeHeroStyleRaw = style.rawValue
+      } label: {
+        HStack(spacing: 14) {
+          HomeHeroStylePreview(style: style, colors: c, selected: isSelected)
+          VStack(alignment: .leading, spacing: 3) {
+            Text(style.displayName)
+              .font(AppTypography.settingsTitle)
+              .foregroundStyle(c.textPrimary)
+            Text(style.subtitle)
+              .font(AppTypography.taskPreview)
+              .foregroundStyle(c.textSecondary)
+          }
+          Spacer(minLength: 8)
+          if isSelected {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundStyle(c.accent)
+          }
+        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .contextMenu {
+        if style.canHideFromPicker {
+          Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+            stylePendingHide = style
+          }
+        }
+      } preview: {
+        homeHeroStyleContextPreview(style)
+      }
+
+      if style.canHideFromPicker {
+        Menu {
+          Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+            stylePendingHide = style
+          }
+        } label: {
+          Image(systemName: "ellipsis.circle")
+            .font(.system(size: 18, weight: .regular))
+            .foregroundStyle(c.textTertiary)
+            .frame(width: 36, height: 44)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+      }
+    }
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+  }
+
+  private func homeHeroStyleContextPreview(_ style: HomeHeroStyle) -> some View {
+    let c = theme.colors
+    return HStack(spacing: 12) {
+      HomeHeroStylePreview(style: style, colors: c, selected: false)
+      VStack(alignment: .leading, spacing: 3) {
+        Text(style.displayName)
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text(style.subtitle)
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(14)
+    .frame(width: 280, alignment: .leading)
+    .background(c.surface)
+  }
+
+  private func hiddenHeroStyleRow(_ style: HomeHeroStyle) -> some View {
+    let c = theme.colors
     return Button {
-      guard !isSelected else { return }
       HapticService.selection()
-      homeHeroStyleRaw = style.rawValue
+      HomeHeroStyleStorage.unhide(style)
+      homeHeroStyleHiddenRaw = UserDefaults.standard.string(forKey: HomeHeroStyleStorage.hiddenKey) ?? ""
     } label: {
       HStack(spacing: 14) {
-        HomeHeroStylePreview(style: style, colors: c, selected: isSelected)
-        VStack(alignment: .leading, spacing: 3) {
-          Text(style.displayName)
-            .font(AppTypography.settingsTitle)
-            .foregroundStyle(c.textPrimary)
-          Text(style.subtitle)
-            .font(AppTypography.taskPreview)
-            .foregroundStyle(c.textSecondary)
-        }
+        Text(style.displayName)
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
         Spacer()
-        if isSelected {
-          Image(systemName: "checkmark.circle.fill")
-            .foregroundStyle(c.accent)
-        }
+        Text("Restaurar")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.accent)
       }
       .frame(minHeight: 44)
       .padding(.horizontal, SettingsChrome.rowPaddingH)
@@ -250,6 +372,16 @@ struct AppearanceView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  private func hideHeroStyle(_ style: HomeHeroStyle) {
+    HapticService.selection()
+    HomeHeroStyleStorage.hide(style)
+    homeHeroStyleHiddenRaw = UserDefaults.standard.string(forKey: HomeHeroStyleStorage.hiddenKey) ?? ""
+    if homeHeroStyleRaw == style.rawValue {
+      homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
+    }
+    stylePendingHide = nil
   }
 
   private func iconRow(_ iconId: AppIconId) -> some View {

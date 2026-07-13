@@ -64,19 +64,50 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
   useLayoutEffect(() => {
     const el = menuRef.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const flyoutW = submenu ? flyoutRef.current?.getBoundingClientRect().width ?? 200 : 0;
-    const sectionW = sectionFlyout ? sectionFlyoutRef.current?.getBoundingClientRect().width ?? 200 : 0;
-    const pad = 12;
-    let top = y;
-    let left = x;
-    if (top + rect.height > window.innerHeight - pad) {
-      top = Math.max(pad, window.innerHeight - rect.height - pad);
+
+    function place() {
+      const menu = menuRef.current;
+      if (!menu) return;
+      const rect = menu.getBoundingClientRect();
+      const flyoutW = submenu ? flyoutRef.current?.getBoundingClientRect().width ?? 200 : 0;
+      const sectionW = sectionFlyout
+        ? sectionFlyoutRef.current?.getBoundingClientRect().width ?? 200
+        : 0;
+      const pad = 12;
+      const gap = 4;
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const totalW = rect.width + (flyoutW || 0) + (sectionW || 0) + (flyoutW || sectionW ? 16 : 0);
+
+      let top = y;
+      let left = x;
+
+      // Prefere abrir abaixo do cursor; se não couber, abre para cima (ancorado no cursor).
+      const spaceBelow = vh - pad - y;
+      const spaceAbove = y - pad;
+      if (rect.height + gap > spaceBelow && spaceAbove > spaceBelow) {
+        top = y - rect.height;
+      } else if (top + rect.height > vh - pad) {
+        top = vh - rect.height - pad;
+      }
+      top = Math.min(Math.max(pad, top), Math.max(pad, vh - rect.height - pad));
+
+      if (left + totalW > vw - pad) {
+        left = Math.max(pad, vw - totalW - pad);
+      }
+      left = Math.min(Math.max(pad, left), Math.max(pad, vw - rect.width - pad));
+
+      setPosition((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
     }
-    if (left + rect.width + flyoutW + sectionW + 16 > window.innerWidth - pad) {
-      left = Math.max(pad, window.innerWidth - rect.width - flyoutW - sectionW - 16);
-    }
-    setPosition({ top, left });
+
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    window.addEventListener("resize", place);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", place);
+    };
   }, [x, y, submenu, sectionFlyout, confirmDelete]);
 
   useEffect(() => {

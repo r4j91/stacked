@@ -162,10 +162,14 @@ struct RootTabContent: View {
       content()
         .environment(\.isTabActive, isActive)
         .opacity(isActive ? 1 : 0)
-        .animation(.linear(duration: 0.08), value: isActive)
+        .animation(nil, value: isActive)
         .zIndex(isActive ? 1 : 0)
         .allowsHitTesting(isActive)
         .accessibilityHidden(!isActive)
+        // Congela composição da aba oculta — reduz custo GPU com heroes/listas sob o scroll ativo.
+        .transaction { transaction in
+          if !isActive { transaction.disablesAnimations = true }
+        }
     )
   }
 }

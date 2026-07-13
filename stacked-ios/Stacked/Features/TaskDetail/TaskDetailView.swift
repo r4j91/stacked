@@ -115,7 +115,6 @@ struct TaskDetailView: View {
           parentTaskTitle: vm.title
         ) { snapshot in
           if let snapshot { vm.applySubtaskPatch(snapshot) }
-          await vm.load()
         }
         .environment(ThemeManager.shared)
         .presentationBackground(c.background)

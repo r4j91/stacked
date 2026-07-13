@@ -87,13 +87,14 @@ struct MobileShell<Content: View>: View {
             )
             .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomTrailing)
             .transition(.opacity)
+            .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: chrome.fabOpen)
           }
         }
         .frame(width: geo.size.width, height: geo.size.height, alignment: .bottom)
       }
       .zIndex(20)
     }
-    .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: chrome.fabOpen)
+    // Animação do FAB restrita ao overlay — evita invalidar conteúdo e navbar.
     // REMOVIDO_A1_ETAPA2 — .animation(AppMotion.islandNavMorph(reduceMotion: reduceMotion), value: chrome.islandNavExpanded)
     .ignoresSafeArea(edges: .bottom)
     .background(c.background.ignoresSafeArea(.all))

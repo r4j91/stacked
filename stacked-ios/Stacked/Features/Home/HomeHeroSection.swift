@@ -36,7 +36,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
+    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen, .greetingWeatherSculptOpen, .greetingWeatherSculptLiftOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -181,6 +181,30 @@ struct HomeHeroSection: View {
       )
     case .greetingWeatherTintOpen:
       HomeHeroGreetingWeatherTintOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherSculpt:
+      HomeHeroGreetingWeatherSculptCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherSculptOpen:
+      HomeHeroGreetingWeatherSculptOpenCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherSculptLift:
+      HomeHeroGreetingWeatherSculptLiftCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherSculptLiftOpen:
+      HomeHeroGreetingWeatherSculptLiftOpenCard(
         store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
       )
     case .journeyDaily:

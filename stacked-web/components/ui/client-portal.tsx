@@ -1,15 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+/** Portal síncrono no client — evita perder o 1º useLayoutEffect (ex.: menus). */
 export function ClientPortal({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  if (typeof document === "undefined") return null;
   return createPortal(children, document.body);
 }

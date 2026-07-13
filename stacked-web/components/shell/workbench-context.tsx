@@ -48,7 +48,22 @@ import { SectionRepository } from "@/lib/repositories/section-repository";
 import { TaskRepository } from "@/lib/repositories/task-repository";
 import { TaskPersistence } from "@/lib/repositories/task-persistence";
 import { splitTodayPending } from "@/lib/supabase/map-task";
-import { reclassifyTaskDoneInView } from "@/lib/utils/view-tasks";
+import { markTaskDoneInPlace, reclassifyTaskDoneInView } from "@/lib/utils/view-tasks";
+
+/** Paridade iOS AppMotion.taskCompleteDwell (300ms). */
+const TASK_COMPLETE_DWELL_MS = 300;
+/** Paridade iOS AppMotion.subtaskCompleteReorderDelay (340ms). */
+const SUBTASK_COMPLETE_REORDER_MS = 340;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export type NavCounts = { inbox: number; today: number };
 export type SubtaskKey = `${string}:${number}`;
@@ -1100,11 +1115,24 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const task = allTasks.find((t) => t.id === id);
       if (!task) return;
       const newDone = !task.done;
-      applyViewTasksUpdate(
-        (prev) => reclassifyTaskDoneInView(prev, task, newDone, view),
-        task.projectId,
-      );
       setSelectedSubtaskKey(null);
+
+      if (newDone) {
+        // 1) Done in-place → DoneCircle anima
+        applyViewTasksUpdate((prev) => markTaskDoneInPlace(prev, id, true), task.projectId);
+        const dwell = prefersReducedMotion() ? 0 : TASK_COMPLETE_DWELL_MS;
+        if (dwell > 0) await sleep(dwell);
+        // 2) Sai da lista pendente → completed
+        applyViewTasksUpdate(
+          (prev) => reclassifyTaskDoneInView(prev, { ...task, done: true }, true, view),
+          task.projectId,
+        );
+      } else {
+        applyViewTasksUpdate(
+          (prev) => reclassifyTaskDoneInView(prev, task, false, view),
+          task.projectId,
+        );
+      }
 
       if (!usingMock && isSupabaseConfigured()) {
         try {
@@ -1139,11 +1167,16 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       if (!ctx) return;
       const { task, index, sub } = ctx;
       const newDone = !sub.done;
-      const subtasks = sortSubtasksForDisplay(
-        [...(task.subtasks ?? [])].map((item, i) =>
-          i === index ? { ...sub, done: newDone } : item,
-        ),
+      const flipped = [...(task.subtasks ?? [])].map((item, i) =>
+        i === index ? { ...sub, done: newDone } : item,
       );
+      // 1) Flip in-place → DoneCircle anima antes do reorder
+      patchTaskInView(task.id, { subtasks: flipped });
+
+      const reorderDelay = prefersReducedMotion() || !newDone ? 0 : SUBTASK_COMPLETE_REORDER_MS;
+      if (reorderDelay > 0) await sleep(reorderDelay);
+
+      const subtasks = sortSubtasksForDisplay(flipped);
       patchTaskInView(task.id, { subtasks });
 
       if (sub.id) {

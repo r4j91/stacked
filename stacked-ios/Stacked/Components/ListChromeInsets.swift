@@ -18,12 +18,25 @@ extension AppLayout {
       .first(where: \.isKeyWindow)?
       .safeAreaInsets.bottom ?? 0
   }
+
+  /// Cache — evita enumerar UIWindows a cada body do `ListTailSpacer` durante o scroll.
+  private static var _cachedSafeBottom: CGFloat?
+  static var windowSafeBottomInsetCached: CGFloat {
+    if let cached = _cachedSafeBottom { return cached }
+    let value = windowSafeBottomInset
+    _cachedSafeBottom = value
+    return value
+  }
+
+  static func refreshSafeBottomCache() {
+    _cachedSafeBottom = windowSafeBottomInset
+  }
 }
 
 struct ListTailSpacer: View {
   var body: some View {
     Color.clear
-      .frame(height: AppLayout.listTailInset(safeBottom: AppLayout.windowSafeBottomInset))
+      .frame(height: AppLayout.listTailInset(safeBottom: AppLayout.windowSafeBottomInsetCached))
   }
 }
 

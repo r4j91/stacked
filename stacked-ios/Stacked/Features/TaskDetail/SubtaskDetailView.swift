@@ -125,7 +125,7 @@ struct SubtaskDetailView: View {
         ToolbarItem(placement: .cancellationAction) {
           Button("Fechar") {
             _Concurrency.Task {
-              await flushPending()
+              await flushPending(playSaveHaptic: true)
               dismiss()
             }
           }
@@ -133,7 +133,7 @@ struct SubtaskDetailView: View {
         ToolbarItem(placement: .confirmationAction) {
           Button("Salvar") {
             _Concurrency.Task {
-              await flushPending()
+              await flushPending(playSaveHaptic: true)
               if saveError == nil { dismiss() }
             }
           }
@@ -400,7 +400,7 @@ struct SubtaskDetailView: View {
     let data_conclusao: String?
   }
 
-  private func flushPending() async {
+  private func flushPending(playSaveHaptic: Bool = false) async {
     saving = true
     saveError = nil
     defer { saving = false }
@@ -481,7 +481,9 @@ struct SubtaskDetailView: View {
       }
 
       await notifyChanged(resolvedId: activeId)
-      HapticService.saved()
+      if playSaveHaptic {
+        HapticService.saved()
+      }
     } catch {
       saveError = error.localizedDescription
     }

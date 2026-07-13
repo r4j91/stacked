@@ -46,7 +46,6 @@ struct LogbookView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .stackedListTailInset()
-        .stackedScrollEdgeChrome()
       }
     }
     .stackedTabletCentered()

@@ -76,6 +76,7 @@ struct IslandNavBar: View {
         }
       }
       .frame(maxWidth: .infinity)
+      .animation(nil, value: isExpanded)
       .opacity(navDimmed ? IslandNavMetrics.fabMenuDimOpacity : 1)
       .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: navDimmed)
 
@@ -85,26 +86,11 @@ struct IslandNavBar: View {
     }
     .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
     .clipped()
+    // Isola o conteúdo da ilha — sem isso o glass/live backdrop “arrasta” o scroll por baixo.
     .compositingGroup()
     .background {
-      if useGlass {
-        pillShape
-          .fill(.clear)
-          .glassEffect(
-            .regular.tint(colors.navBar.opacity(LiquidGlass.navTrackTintOpacity)),
-            in: pillShape
-          )
-          .clipShape(pillShape)
-          .overlay {
-            pillShape.strokeBorder(
-              colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-              lineWidth: LiquidGlass.navSelectionStrokeWidth
-            )
-          }
-      } else {
-        pillShape
-          .fill(colors.navBar)
-      }
+      IslandNavGlassShell(colors: colors, useGlass: useGlass)
+        .equatable()
     }
     .allowsHitTesting(false)
   }
@@ -159,8 +145,7 @@ struct IslandNavBar: View {
         IslandNavExpandedItem(
           tab: tab,
           selected: tab == selectedTab,
-          colors: colors,
-          itemsVisible: expandedItemsOpacity > 0.01
+          colors: colors
         )
         .frame(maxWidth: .infinity)
       }
@@ -179,6 +164,7 @@ struct IslandNavBar: View {
 
   private func syncExpandedItemsOpacity(isExpanded: Bool, animated: Bool) {
     guard isExpanded else {
+      // Fecha: some o conteúdo expandido na hora — evita ícones “fantasma” atrás do glass.
       expandedItemsOpacity = 0
       return
     }
@@ -186,11 +172,13 @@ struct IslandNavBar: View {
       expandedItemsOpacity = 1
       return
     }
-    // SUBSTITUIDO_A1_ETAPA2 — expandedItemsOpacity = 0
-    // SUBSTITUIDO_A1_ETAPA2 — withAnimation(.easeIn(duration: IslandNavMetrics.itemsFadeInDuration).delay(IslandNavMetrics.itemsFadeInDelay)) {
-    // SUBSTITUIDO_A1_ETAPA2 —   expandedItemsOpacity = 1
-    // SUBSTITUIDO_A1_ETAPA2 — }
-    expandedItemsOpacity = 1
+    expandedItemsOpacity = 0
+    withAnimation(
+      .easeIn(duration: IslandNavMetrics.itemsFadeInDuration)
+        .delay(IslandNavMetrics.itemsFadeInDelay)
+    ) {
+      expandedItemsOpacity = 1
+    }
   }
 }
 
@@ -211,6 +199,41 @@ enum IslandNavMetrics {
   static let fabMenuDimOpacity: CGFloat = 0.38
 }
 
+// MARK: - Glass shell (isolado do conteúdo animado da ilha)
+
+private struct IslandNavGlassShell: View, Equatable {
+  let colors: AppThemeColors
+  let useGlass: Bool
+  private let pillShape = Capsule()
+
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.useGlass == rhs.useGlass
+      && lhs.colors.navBar == rhs.colors.navBar
+      && lhs.colors.textPrimary == rhs.colors.textPrimary
+  }
+
+  var body: some View {
+    if useGlass {
+      pillShape
+        .fill(.clear)
+        .glassEffect(
+          .regular.tint(colors.navBar.opacity(LiquidGlass.navTrackTintOpacity)),
+          in: pillShape
+        )
+        .clipShape(pillShape)
+        .overlay {
+          pillShape.strokeBorder(
+            colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
+            lineWidth: LiquidGlass.navSelectionStrokeWidth
+          )
+        }
+    } else {
+      pillShape
+        .fill(colors.navBar)
+    }
+  }
+}
+
 // MARK: - Item expandido
 
 private struct IslandNavExpandedItem: View {
@@ -219,7 +242,6 @@ private struct IslandNavExpandedItem: View {
   let tab: NavTab
   let selected: Bool
   let colors: AppThemeColors
-  let itemsVisible: Bool
 
   private var isPressed: Bool { chrome.pressedTab == tab }
 
@@ -236,7 +258,6 @@ private struct IslandNavExpandedItem: View {
         .lineLimit(1)
         .minimumScaleFactor(0.8)
         .frame(height: labelHeight)
-        .opacity(itemsVisible ? 1 : 0)
     }
     .frame(minHeight: IslandNavMetrics.minTouchSize)
     .frame(height: IslandNavMetrics.pillHeight)

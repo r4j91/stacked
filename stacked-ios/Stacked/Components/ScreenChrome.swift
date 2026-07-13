@@ -295,16 +295,15 @@ extension View {
 
 private struct StackedTabletCenteredModifier: ViewModifier {
   func body(content: Content) -> some View {
-    GeometryReader { geo in
-      let isTablet = geo.size.width >= AppLayout.breakpointPhone
-      let contentWidth = isTablet
-        ? AppLayout.tabletContentMaxWidth(screenWidth: geo.size.width)
-        : geo.size.width
+    // Sem GeometryReader envolvendo o List — consulta pontual da largura da janela.
+    let screenWidth = ScreenMetrics.bounds.width
+    let maxContentWidth: CGFloat = screenWidth >= AppLayout.breakpointPhone
+      ? AppLayout.tabletContentMaxWidth(screenWidth: screenWidth)
+      : .infinity
 
-      content
-        .frame(width: contentWidth)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    }
+    content
+      .frame(maxWidth: maxContentWidth)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 }
 

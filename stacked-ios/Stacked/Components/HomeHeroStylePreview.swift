@@ -93,6 +93,14 @@ struct HomeHeroStylePreview: View {
       greetingWeatherTintPreview
     case .greetingWeatherTintOpen:
       greetingWeatherTintOpenPreview
+    case .greetingWeatherSculpt:
+      greetingWeatherSculptPreview
+    case .greetingWeatherSculptOpen:
+      greetingWeatherSculptOpenPreview
+    case .greetingWeatherSculptLift:
+      greetingWeatherSculptLiftPreview
+    case .greetingWeatherSculptLiftOpen:
+      greetingWeatherSculptLiftOpenPreview
     case .journeyDaily:
       journeyDailyPreview
     case .journeyMist:
@@ -749,6 +757,72 @@ struct HomeHeroStylePreview: View {
 
   private var greetingWeatherTintOpenPreview: some View {
     greetingWeatherTintPreview
+  }
+
+  private var greetingWeatherSculptPreview: some View {
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 4).fill(colors.surface.opacity(0.9))
+      HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 14, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 3)
+          .fill(colors.surfaceVariant)
+          .frame(width: 19, height: 19)
+          .overlay {
+            Image("HeroSculptWeatherSunny")
+              .resizable()
+              .scaledToFill()
+              .clipShape(RoundedRectangle(cornerRadius: 3))
+          }
+          .shadow(color: AppColors.priorityMedium.opacity(0.25), radius: 1, y: 1)
+      }
+      .padding(4)
+      VStack {
+        Spacer()
+        RoundedRectangle(cornerRadius: 2).fill(colors.surfaceVariant.opacity(0.9)).frame(height: 5)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherSculptOpenPreview: some View {
+    greetingWeatherSculptPreview
+  }
+
+  private var greetingWeatherSculptLiftPreview: some View {
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 4).fill(colors.surface.opacity(0.9))
+      HStack(alignment: .center, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
+          RoundedRectangle(cornerRadius: 1).fill(AppColors.tagPurple.opacity(0.5)).frame(width: 12, height: 2)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 14, height: 3)
+          RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.45)).frame(width: 18, height: 2)
+          Spacer(minLength: 0)
+          RoundedRectangle(cornerRadius: 2).fill(AppColors.tagGreen.opacity(0.55)).frame(width: 16, height: 4)
+        }
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 4)
+          .fill(colors.surfaceVariant)
+          .frame(width: 24, height: 24)
+          .overlay {
+            Image("HeroSculptWeatherSunny")
+              .resizable()
+              .scaledToFill()
+              .clipShape(RoundedRectangle(cornerRadius: 4))
+          }
+          .shadow(color: AppColors.priorityMedium.opacity(0.28), radius: 1.5, y: 1)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherSculptLiftOpenPreview: some View {
+    greetingWeatherSculptLiftPreview
   }
 
   private var journeyDailyPreview: some View {
