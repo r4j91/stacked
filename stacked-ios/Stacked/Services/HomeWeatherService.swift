@@ -7,17 +7,33 @@ final class HomeWeatherService: NSObject {
 
   private let manager = CLLocationManager()
   private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
+  private var authorizationContinuation: CheckedContinuation<Bool, Never>?
   private var cachedSnapshot: HomeHeroInsights.WeatherSnapshot?
   private var cacheExpiry: Date?
 
+  private var didRequestAuthorization = false
+
   private static let persistedSnapshotKey = "homeWeatherPersistedSnapshot"
   private static let persistedExpiryKey = "homeWeatherPersistedExpiry"
+  private static let persistedLatitudeKey = "homeWeatherPersistedLatitude"
+  private static let persistedLongitudeKey = "homeWeatherPersistedLongitude"
+  private static let persistedLocationDateKey = "homeWeatherPersistedLocationDate"
+
+  private static let cacheInterval: TimeInterval = 30 * 60
+  private static let persistedLocationMaxAge: TimeInterval = 7 * 24 * 60 * 60
+  private static let recentManagerLocationMaxAge: TimeInterval = 20 * 60
+  private static let locationFixTimeout: TimeInterval = 8
 
   private override init() {
     super.init()
     manager.delegate = self
     manager.desiredAccuracy = kCLLocationAccuracyKilometer
     restorePersistedCache()
+  }
+
+  var needsRefresh: Bool {
+    guard let cacheExpiry else { return true }
+    return cacheExpiry <= Date()
   }
 
   /// Snapshot síncrono para evitar flash de placeholder na abertura.
@@ -28,26 +44,37 @@ final class HomeWeatherService: NSObject {
     return HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
   }
 
+  /// Atualiza o clima apenas quando o cache expirou — ideal para foreground/appear.
+  func refreshIfStale(fallbackTimeOfDay: HomeTimeOfDay) async -> HomeHeroInsights.WeatherSnapshot? {
+    guard needsRefresh else { return nil }
+    return await snapshot(fallbackTimeOfDay: fallbackTimeOfDay)
+  }
+
   func snapshot(fallbackTimeOfDay: HomeTimeOfDay) async -> HomeHeroInsights.WeatherSnapshot {
     if let cachedSnapshot, let cacheExpiry, cacheExpiry > Date() {
       return cachedSnapshot
     }
 
-    guard let location = await requestLocation(timeout: 5) else {
-      return cachedSnapshot ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
+    if let location = await resolveLocation() {
+      persistCoordinates(location)
+      if let resolved = await fetchOpenMeteo(location: location) {
+        storeCache(resolved)
+        return resolved
+      }
     }
 
-    let resolved = await fetchOpenMeteo(location: location)
-      ?? cachedSnapshot
-      ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
+    if let persisted = persistedLocation(),
+       let resolved = await fetchOpenMeteo(location: persisted) {
+      storeCache(resolved)
+      return resolved
+    }
 
-    storeCache(resolved)
-    return resolved
+    return cachedSnapshot ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
   }
 
   private func storeCache(_ snapshot: HomeHeroInsights.WeatherSnapshot) {
     cachedSnapshot = snapshot
-    let expiry = Date().addingTimeInterval(15 * 60)
+    let expiry = Date().addingTimeInterval(Self.cacheInterval)
     cacheExpiry = expiry
     persistCache(snapshot: snapshot, expiry: expiry)
   }
@@ -79,39 +106,93 @@ final class HomeWeatherService: NSObject {
     UserDefaults.standard.removeObject(forKey: Self.persistedExpiryKey)
   }
 
-  private func requestLocation(timeout seconds: TimeInterval) async -> CLLocation? {
+  private func persistCoordinates(_ location: CLLocation) {
+    UserDefaults.standard.set(location.coordinate.latitude, forKey: Self.persistedLatitudeKey)
+    UserDefaults.standard.set(location.coordinate.longitude, forKey: Self.persistedLongitudeKey)
+    UserDefaults.standard.set(location.timestamp, forKey: Self.persistedLocationDateKey)
+  }
+
+  private func persistedLocation() -> CLLocation? {
+    guard UserDefaults.standard.object(forKey: Self.persistedLatitudeKey) != nil else { return nil }
+    let lat = UserDefaults.standard.double(forKey: Self.persistedLatitudeKey)
+    let lon = UserDefaults.standard.double(forKey: Self.persistedLongitudeKey)
+    let savedAt = UserDefaults.standard.object(forKey: Self.persistedLocationDateKey) as? Date ?? .distantPast
+    guard Date().timeIntervalSince(savedAt) <= Self.persistedLocationMaxAge else { return nil }
+    return CLLocation(latitude: lat, longitude: lon)
+  }
+
+  private func resolveLocation() async -> CLLocation? {
+    switch manager.authorizationStatus {
+    case .authorizedWhenInUse, .authorizedAlways:
+      if let recent = recentManagerLocation() {
+        return recent
+      }
+      return await fetchLocationFix()
+
+    case .notDetermined:
+      if didRequestAuthorization {
+        return nil
+      }
+      if persistedLocation() != nil {
+        return nil
+      }
+      didRequestAuthorization = true
+      let granted = await requestAuthorization()
+      guard granted else { return nil }
+      if let recent = recentManagerLocation() {
+        return recent
+      }
+      return await fetchLocationFix()
+
+    case .denied, .restricted:
+      return nil
+
+    @unknown default:
+      return nil
+    }
+  }
+
+  private func recentManagerLocation() -> CLLocation? {
+    guard let location = manager.location else { return nil }
+    guard abs(location.timestamp.timeIntervalSinceNow) <= Self.recentManagerLocationMaxAge else { return nil }
+    return location
+  }
+
+  private func requestAuthorization() async -> Bool {
+    await withCheckedContinuation { continuation in
+      authorizationContinuation = continuation
+      manager.requestWhenInUseAuthorization()
+    }
+  }
+
+  private func fetchLocationFix() async -> CLLocation? {
     await withTaskGroup(of: CLLocation?.self) { group in
       group.addTask { @MainActor in
-        await self.requestLocation()
+        await withCheckedContinuation { continuation in
+          self.locationContinuation = continuation
+          self.manager.requestLocation()
+        }
       }
       group.addTask {
-        let ns = UInt64(max(seconds, 0.1) * 1_000_000_000)
+        let ns = UInt64(Self.locationFixTimeout * 1_000_000_000)
         try? await _Concurrency.Task.sleep(nanoseconds: ns)
         return nil
       }
       let result = await group.next() ?? nil
       group.cancelAll()
-      locationContinuation?.resume(returning: nil)
-      locationContinuation = nil
+      resumeLocationContinuation(with: nil)
       return result
     }
   }
 
-  private func requestLocation() async -> CLLocation? {
-    switch manager.authorizationStatus {
-    case .notDetermined:
-      return await withCheckedContinuation { continuation in
-        locationContinuation = continuation
-        manager.requestWhenInUseAuthorization()
-      }
-    case .authorizedWhenInUse, .authorizedAlways:
-      return await withCheckedContinuation { continuation in
-        locationContinuation = continuation
-        manager.requestLocation()
-      }
-    default:
-      return nil
-    }
+  private func resumeLocationContinuation(with location: CLLocation?) {
+    locationContinuation?.resume(returning: location)
+    locationContinuation = nil
+  }
+
+  private func resumeAuthorizationContinuation(granted: Bool) {
+    authorizationContinuation?.resume(returning: granted)
+    authorizationContinuation = nil
   }
 
   private func fetchOpenMeteo(location: CLLocation) async -> HomeHeroInsights.WeatherSnapshot? {
@@ -150,26 +231,33 @@ extension HomeWeatherService: CLLocationManagerDelegate {
   nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
     _Concurrency.Task { @MainActor in
       let status = manager.authorizationStatus
-      if status == .authorizedWhenInUse || status == .authorizedAlways {
-        manager.requestLocation()
-      } else if status == .denied || status == .restricted {
-        locationContinuation?.resume(returning: nil)
-        locationContinuation = nil
+      switch status {
+      case .authorizedWhenInUse, .authorizedAlways:
+        resumeAuthorizationContinuation(granted: true)
+        if locationContinuation != nil {
+          manager.requestLocation()
+        }
+      case .denied, .restricted:
+        resumeAuthorizationContinuation(granted: false)
+        resumeLocationContinuation(with: nil)
+      case .notDetermined:
+        break
+      @unknown default:
+        resumeAuthorizationContinuation(granted: false)
+        resumeLocationContinuation(with: nil)
       }
     }
   }
 
   nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
     _Concurrency.Task { @MainActor in
-      locationContinuation?.resume(returning: locations.first)
-      locationContinuation = nil
+      resumeLocationContinuation(with: locations.first)
     }
   }
 
   nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
     _Concurrency.Task { @MainActor in
-      locationContinuation?.resume(returning: nil)
-      locationContinuation = nil
+      resumeLocationContinuation(with: nil)
     }
   }
 }

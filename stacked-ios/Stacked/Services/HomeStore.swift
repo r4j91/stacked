@@ -187,6 +187,14 @@ final class HomeStore {
     await refreshHeroInsights(todayStr: today)
   }
 
+  /// Atualiza clima ao vivo quando o cache expirou, sem recarregar a Home inteira.
+  func refreshWeatherIfNeeded() async {
+    guard let next = await HomeWeatherService.shared.refreshIfStale(fallbackTimeOfDay: timeOfDay) else {
+      return
+    }
+    applyWeatherSnapshotIfNeeded(next)
+  }
+
   /// Atualiza badges da Home sem spinner — usado após mutações em outras abas.
   func refreshCounts() async {
     guard let userId = SupabaseService.client.auth.currentUser?.id else { return }

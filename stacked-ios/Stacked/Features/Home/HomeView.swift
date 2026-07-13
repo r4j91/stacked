@@ -62,6 +62,7 @@ struct HomeView: View {
       .refreshable { await store.load() }
       .task {
         await NotificationService.shared.prefetchPreview()
+        await store.refreshWeatherIfNeeded()
       }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(

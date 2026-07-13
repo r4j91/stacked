@@ -43,6 +43,7 @@ struct RootView: View {
       _Concurrency.Task {
         await NotificationService.shared.rescheduleAllPending()
         await GlobalDataRefresh.refreshDashboardCounts()
+        await HomeStore.shared.refreshWeatherIfNeeded()
       }
     }
     .sheet(isPresented: $showSearch) {
