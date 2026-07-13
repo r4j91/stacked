@@ -356,6 +356,7 @@ final class SubtaskRepository {
         time: row.hora,
         dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
         dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: row.concluida ?? false) },
+        timeDisplay: row.hora.map { TaskMapper.formatTimeDisplay($0) },
         labelIds: row.label_ids ?? []
       )
       return SubtaskScheduleEntry(subtask: subtask, parent: parent)

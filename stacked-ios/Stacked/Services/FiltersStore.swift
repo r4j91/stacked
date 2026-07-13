@@ -414,6 +414,7 @@ final class FiltersStore {
           time: subtask.time,
           dueDateChipLabel: subtask.dueDateChipLabel,
           dueDateChipColor: subtask.dueDateChipColor,
+          timeDisplay: subtask.timeDisplay,
           labelIds: subtask.labelIds
         )
         filterCompletedResults.insert(.subtask(doneSub, parent: parentTask, index: subIndex), at: 0)

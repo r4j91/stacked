@@ -31,13 +31,21 @@ struct TaskContextMenu: ViewModifier {
   @State private var anchorFrame: CGRect = .zero
   @State private var anchorCaptureGeneration = 0
   @State private var liftPhase: TaskContextLiftPhase = .normal
+  /// PERF_FASEB2_ETAPA4: UIViewRepresentable só após long-press — zero custo no scroll idle.
+  @State private var needsAnchorReader = false
 
   func body(content: Content) -> some View {
     content
       .background {
-        OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .allowsHitTesting(false)
+        // PERF_FASEB2_ETAPA4: OnDemandScreenBoundsReader sempre no background de cada célula.
+        // OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
+        //   .frame(maxWidth: .infinity, maxHeight: .infinity)
+        //   .allowsHitTesting(false)
+        if needsAnchorReader {
+          OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+        }
       }
       .scaleEffect(liftScale)
       .offset(y: liftOffset)
@@ -69,13 +77,16 @@ struct TaskContextMenu: ViewModifier {
   private func openContextMenu() {
     HapticService.prepareContextMenu()
     HapticService.medium()
+    // Instala o reader antes do yield de captura.
+    needsAnchorReader = true
     AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
       liftPhase = .menuOpen
     }
     let generation = anchorCaptureGeneration + 1
     anchorCaptureGeneration = generation
     _Concurrency.Task { @MainActor in
-      // Um frame para o reader capturar o anchor antes do popover.
+      // Dois yields: monta o reader + captura o anchor antes do popover.
+      await _Concurrency.Task.yield()
       await _Concurrency.Task.yield()
       guard generation == anchorCaptureGeneration else { return }
       let screenH = ScreenMetrics.bounds.height

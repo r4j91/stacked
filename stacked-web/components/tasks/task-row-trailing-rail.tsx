@@ -19,32 +19,32 @@ export function TaskRowTrailingRail({
   onToggleSubtasks,
 }: TaskRowTrailingRailProps) {
   return (
-    <div className="task-row-rail grid w-[var(--task-row-rail)] shrink-0 grid-cols-2">
-      <div className="flex justify-center">
+    <div className="task-row-rail flex w-[var(--task-row-rail)] shrink-0 flex-col items-end gap-1 self-stretch">
+      {hasSubtasks ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSubtasks();
+          }}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
+        >
+          <AppIcon
+            icon={ArrowDown01Icon}
+            size={18}
+            className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      ) : (
+        <span className="h-8 w-8 shrink-0" aria-hidden />
+      )}
+      <div className="mt-auto flex justify-end">
         <WhatsAppTaskCopyButton
           task={task}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-accent)] hover:bg-[var(--color-hover-overlay)]"
         />
-      </div>
-      <div className="flex justify-center">
-        {hasSubtasks ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSubtasks();
-            }}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)]"
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
-          >
-            <AppIcon
-              icon={ArrowDown01Icon}
-              size={18}
-              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-            />
-          </button>
-        ) : null}
       </div>
     </div>
   );

@@ -18,12 +18,15 @@ enum SubtaskListPatch {
   static func apply(_ snapshot: SubtaskSaveSnapshot, to tasks: inout [Task]) {
     guard let taskIndex = tasks.firstIndex(where: { $0.id == snapshot.parentTaskId }) else { return }
     apply(snapshot, to: &tasks[taskIndex].subtasks)
+    // PERF_FASEB2_ETAPA4: mantém contador memoizado após patch otimista.
+    TaskMapper.refreshSubtaskCounters(on: &tasks[taskIndex])
   }
 
   static func apply(_ snapshot: SubtaskSaveSnapshot, to subtasks: inout [Subtask]) {
     guard let subIndex = subtasks.firstIndex(where: { $0.order == snapshot.order }) else { return }
     let previous = subtasks[subIndex]
     let due = snapshot.dueDate
+    let time = snapshot.time
     subtasks[subIndex] = Subtask(
       id: snapshot.resolvedId ?? previous.id,
       taskId: snapshot.parentTaskId,
@@ -34,9 +37,10 @@ enum SubtaskListPatch {
       order: snapshot.order,
       valor: previous.valor,
       dueDate: due,
-      time: snapshot.time,
+      time: time,
       dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
       dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: snapshot.done) },
+      timeDisplay: time.map { TaskMapper.formatTimeDisplay($0) },
       labelIds: snapshot.labelIds
     )
     subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)

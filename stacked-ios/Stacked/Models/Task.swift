@@ -23,14 +23,31 @@ struct Task: Identifiable, Equatable {
   var commentCount: Int
   var recurrence: String?
   var whatsappRoutine: Bool = false
+  /// PERF_FASEB2_ETAPA4: contadores memoizados — zero filter no body da row.
+  var subtasksDoneCount: Int = 0
+  var subtasksTotalCount: Int = 0
+  var subtasksCounterLabel: String? = nil
 
   var tags: [String] { labels.map(\.name) }
-  var subtasksDone: Int { subtasks.filter(\.done).count }
-  var subtasksTotal: Int { subtasks.count }
+  // PERF_FASEB2_ETAPA4: var subtasksDone: Int { subtasks.filter(\.done).count }
+  // PERF_FASEB2_ETAPA4: var subtasksTotal: Int { subtasks.count }
+  var subtasksDone: Int { subtasksDoneCount }
+  var subtasksTotal: Int { subtasksTotalCount }
   var hasSubtasks: Bool { !subtasks.isEmpty }
   var hasPendingSubtasks: Bool { subtasks.contains { !$0.done } }
   var hasDescription: Bool {
     guard let description else { return false }
     return !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  /// Meta line visível — espelha TaskMetaLine.hasMeta sem montar a view.
+  var hasMetaLine: Bool {
+    let showsProject = !project.isEmpty && project != "Sem projeto"
+    return showsProject
+      || !labels.isEmpty
+      || priority != nil
+      || dueDate != nil
+      || subtasksTotalCount > 0
+      || commentCount > 0
   }
 }

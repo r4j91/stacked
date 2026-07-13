@@ -37,13 +37,17 @@ struct TaskRow: View {
 
   private var cardBody: some View {
     let c = theme.colors
+    let headerHeight = exactHeaderHeight
 
     return VStack(spacing: 0) {
       rowHeader(expandTrailing: 8, expandTop: 8)
+        // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
+        .frame(height: headerHeight)
 
       subtasksExpansion
     }
-    .frame(minHeight: AppLayout.taskRowHeight)
+    // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
+    .frame(minHeight: headerHeight)
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 12))
     .accessibilityElement(children: .combine)
@@ -82,10 +86,13 @@ struct TaskRow: View {
 
   private var listBody: some View {
     let c = theme.colors
+    let headerHeight = exactHeaderHeight
 
     return VStack(spacing: 0) {
       rowHeader(expandTrailing: 12, expandTop: 8)
         .opacity(task.done ? 0.45 : 1)
+        // PERF_FASEB2_ETAPA3: altura exata do header
+        .frame(height: headerHeight)
 
       TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
 
@@ -125,14 +132,34 @@ struct TaskRow: View {
     }
   }
 
+  /// PERF_FASEB2_ETAPA3: altura determinística — (tem desc?, tem meta?).
+  private var exactHeaderHeight: CGFloat {
+    AppLayout.taskRowHeaderHeight(
+      hasDescription: task.hasDescription,
+      hasMeta: rowShowsMeta
+    )
+  }
+
+  private var rowShowsMeta: Bool {
+    let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
+    return showsProject
+      || !task.labels.isEmpty
+      || task.priority != nil
+      || task.dueDate != nil
+      || task.subtasksTotalCount > 0
+      || task.commentCount > 0
+  }
+
   private func bumpSubtaskRevealLayout() {
     subtaskRevealLayoutPass &+= 1
   }
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
     let showsWhatsApp = showsWhatsAppCopyButton
-    let expandReserve: CGFloat = (task.hasSubtasks ? 40 : 0) + (showsWhatsApp ? 40 : 0)
+    // Empilhados na rail: só uma coluna (~40pt), não 80pt lado a lado.
+    let expandReserve: CGFloat = (task.hasSubtasks || showsWhatsApp) ? 40 : 0
     let centerTitle = centersTitleInRow
+    let trailingBottom: CGFloat = 6
 
     return ZStack(alignment: centerTitle ? .leading : .topLeading) {
       taskContentTapArea(expandReserve: expandReserve)
@@ -149,20 +176,25 @@ struct TaskRow: View {
 
         Spacer(minLength: 0)
 
-        if showsWhatsApp, let onWhatsAppCopy {
-          whatsAppCopyButton(action: onWhatsAppCopy)
-            .padding(.trailing, task.hasSubtasks ? 0 : expandTrailing)
-            .padding(.top, expandTop)
-        }
-        if task.hasSubtasks {
-          expandButton
-            .padding(.trailing, expandTrailing)
-            .padding(.top, expandTop)
-            .disabled(!rowInteractionsEnabled)
+        if task.hasSubtasks || showsWhatsApp {
+          VStack(spacing: 0) {
+            if task.hasSubtasks {
+              expandButton
+                .padding(.top, expandTop)
+                .disabled(!rowInteractionsEnabled)
+            }
+            Spacer(minLength: 0)
+            if showsWhatsApp, let onWhatsAppCopy {
+              whatsAppCopyButton(action: onWhatsAppCopy)
+                .padding(.bottom, trailingBottom)
+            }
+          }
+          .padding(.trailing, expandTrailing)
         }
       }
     }
-    .frame(minHeight: AppLayout.taskRowHeight)
+    // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight) — altura vem do pai.
+    .frame(maxHeight: .infinity)
   }
 
   private var showsWhatsAppCopyButton: Bool {
@@ -195,7 +227,7 @@ struct TaskRow: View {
         Color.clear.frame(width: expandReserve)
       }
     }
-    .frame(maxWidth: .infinity, minHeight: AppLayout.taskRowHeight)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .contentShape(Rectangle())
 
     if let onTap, let openTaskContextMenu, rowInteractionsEnabled {
@@ -234,7 +266,9 @@ struct TaskRow: View {
         Text(desc)
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textTertiary)
-          .lineLimit(2)
+          // PERF_FASEB2_ETAPA3: .lineLimit(2)
+          .lineLimit(1)
+          .truncationMode(.tail)
           .padding(.top, 4)
       }
       TaskMetaLine(
@@ -245,6 +279,7 @@ struct TaskRow: View {
         dateDone: task.done,
         subtasksDone: displayedSubtasksDone,
         subtasksTotal: displayedSubtasksTotal,
+        subtasksCounterLabel: displayedSubtasksCounterLabel,
         commentCount: task.commentCount,
         projectName: showProject ? task.project : nil
       )
@@ -253,7 +288,7 @@ struct TaskRow: View {
 
   private var centersTitleInRow: Bool {
     guard !task.hasSubtasks else { return false }
-    if let desc = task.description, !desc.isEmpty { return false }
+    if task.hasDescription { return false }
     if task.timeDisplay != nil { return false }
     if !task.labels.isEmpty { return false }
     if task.dueDate != nil { return false }
@@ -269,7 +304,9 @@ struct TaskRow: View {
         .font(AppTypography.taskTitle)
         .foregroundStyle(task.done ? c.textTertiary : c.textPrimary)
         .strikethrough(task.done, color: c.textTertiary)
-        .lineLimit(2)
+        // PERF_FASEB2_ETAPA3: lineLimit(2) → 1 para altura determinística na List.
+        .lineLimit(1)
+        .truncationMode(.tail)
         .layoutPriority(1)
 
       Spacer(minLength: 4)
@@ -405,11 +442,21 @@ struct TaskRow: View {
   }
 
   private var displayedSubtasksDone: Int {
-    subtasksDone.isEmpty ? task.subtasks.filter(\.done).count : subtasksDone.filter { $0 }.count
+    // PERF_FASEB2_ETAPA4: subtasksDone.isEmpty ? task.subtasks.filter(\.done).count : ...
+    subtasksDone.isEmpty ? task.subtasksDoneCount : subtasksDone.filter { $0 }.count
   }
 
   private var displayedSubtasksTotal: Int {
-    subtasksDone.isEmpty ? task.subtasks.count : subtasksDone.count
+    // PERF_FASEB2_ETAPA4: subtasksDone.isEmpty ? task.subtasks.count : ...
+    subtasksDone.isEmpty ? task.subtasksTotalCount : subtasksDone.count
+  }
+
+  private var displayedSubtasksCounterLabel: String? {
+    guard displayedSubtasksTotal > 0 else { return nil }
+    if subtasksDone.isEmpty, let memo = task.subtasksCounterLabel {
+      return memo
+    }
+    return "\(displayedSubtasksDone)/\(displayedSubtasksTotal)"
   }
 
   private func toggleSubtaskExpansion() {
@@ -503,7 +550,8 @@ struct TaskRow: View {
       dueDate: sub.dueDate,
       time: sub.time,
       dueDateChipLabel: sub.dueDateChipLabel,
-      dueDateChipColor: sub.dueDateChipColor,
+      dueDateChipColor: sub.dueDate.map { TaskMapper.dateColor(for: $0, done: done) } ?? sub.dueDateChipColor,
+      timeDisplay: sub.timeDisplay,
       labelIds: sub.labelIds
     )
   }
@@ -566,6 +614,9 @@ struct TaskRow: View {
             valor: sub.valor,
             dueDate: sub.dueDate,
             time: sub.time,
+            dueDateChipLabel: sub.dueDateChipLabel,
+            dueDateChipColor: sub.dueDateChipColor,
+            timeDisplay: sub.timeDisplay,
             labelIds: sub.labelIds
           ))
         }

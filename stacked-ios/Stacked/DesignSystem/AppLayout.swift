@@ -19,6 +19,18 @@ enum AppLayout {
 
   /// Altura alvo da linha de tarefa — paridade task_tile.dart (~52–56px)
   static let taskRowHeight: CGFloat = 54
+  /// PERF_FASEB2_ETAPA3: blocos extras com desc/meta em 1 linha (medidos no visual atual).
+  static let taskRowDescBlock: CGFloat = 22
+  static let taskRowMetaBlock: CGFloat = 26
+  static let taskRowListDivider: CGFloat = 0.5
+
+  /// Altura exata do header da TaskRow (sem subtarefas expandidas).
+  static func taskRowHeaderHeight(hasDescription: Bool, hasMeta: Bool) -> CGFloat {
+    var height = taskRowHeight
+    if hasDescription { height += taskRowDescBlock }
+    if hasMeta { height += taskRowMetaBlock }
+    return height
+  }
 
   static func tabletContentMaxWidth(screenWidth: CGFloat) -> CGFloat {
     screenWidth >= breakpointTabletWide ? 720 : 640

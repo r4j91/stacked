@@ -51,6 +51,8 @@ enum TaskCalendarSync {
       recurrence: nil
     )
     if let title { task.title = title }
+    // PERF_FASEB2_ETAPA2: memos mesmo em Task auxiliar de sync.
+    TaskMapper.applyDisplayMemos(to: &task)
     sync(task)
   }
 
@@ -73,6 +75,9 @@ enum TaskCalendarSync {
       valor: nil,
       dueDate: dueDate,
       time: time,
+      dueDateChipLabel: dueDate.map { TaskMapper.dueDateChipLabel(for: $0) },
+      dueDateChipColor: dueDate.map { TaskMapper.dateColor(for: $0, done: done) },
+      timeDisplay: time.map { TaskMapper.formatTimeDisplay($0) },
       labelIds: []
     )
     sync(subtask)

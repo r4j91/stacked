@@ -235,7 +235,7 @@ final class TaskDetailViewModel {
     HapticService.success()
     _Concurrency.Task {
       if becomingDone {
-        let snapshot = Task(
+        var snapshot = Task(
           id: taskId,
           title: title,
           description: descriptionText.isEmpty ? nil : descriptionText,
@@ -251,6 +251,8 @@ final class TaskDetailViewModel {
           commentCount: comments.count,
           recurrence: recurrence
         )
+        // PERF_FASEB2_ETAPA2: snapshot de complete também leva memos.
+        TaskMapper.applyDisplayMemos(to: &snapshot)
         if let newId = try? await TaskRepository.shared.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
         }
@@ -285,6 +287,9 @@ final class TaskDetailViewModel {
       valor: subtask.valor,
       dueDate: subtask.dueDate,
       time: subtask.time,
+      dueDateChipLabel: subtask.dueDateChipLabel,
+      dueDateChipColor: subtask.dueDate.map { TaskMapper.dateColor(for: $0, done: newDone) },
+      timeDisplay: subtask.timeDisplay,
       labelIds: subtask.labelIds
     )
 

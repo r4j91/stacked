@@ -7,15 +7,17 @@ struct TaskMetaLine: View {
   let labels: [TaskLabel]
   var dueDate: Date?
   var priority: Priority?
-  /// FASE5: quando presentes, evitam formatação no body.
+  /// FASE5 / PERF_FASEB2_ETAPA2: memos obrigatórios — sem formatação no body.
   var dueDateLabel: String? = nil
   var dueDateColor: Color? = nil
-  var dateDone: Bool = false
+  var dateDone: Bool = false // reservado — cor vem do memo dueDateColor
   var subtasksDone: Int = 0
   var subtasksTotal: Int = 0
+  /// PERF_FASEB2_ETAPA4: "2/5" pré-computado; se nil, monta a partir dos ints (sem DateFormatter).
+  var subtasksCounterLabel: String? = nil
   var commentCount: Int = 0
   var projectName: String?
-  var maxLabels: Int = 3
+  var maxLabels: Int = 2
 
   private var showsProject: Bool {
     guard let projectName, !projectName.isEmpty else { return false }
@@ -31,49 +33,89 @@ struct TaskMetaLine: View {
       || commentCount > 0
   }
 
+  private var visibleLabels: [TaskLabel] {
+    Array(labels.prefix(maxLabels))
+  }
+
+  private var overflowLabelCount: Int {
+    max(0, labels.count - visibleLabels.count)
+  }
+
+  private var resolvedSubtasksLabel: String? {
+    if let subtasksCounterLabel, !subtasksCounterLabel.isEmpty { return subtasksCounterLabel }
+    guard subtasksTotal > 0 else { return nil }
+    return "\(subtasksDone)/\(subtasksTotal)"
+  }
+
   var body: some View {
     if hasMeta {
       let c = theme.colors
-      FlowLayout(spacing: 6, lineSpacing: 4) {
-        if showsProject, let projectName {
-          Text(projectName)
-            .font(AppTypography.metaSmall)
-            .foregroundStyle(c.textTertiary)
-            .lineLimit(1)
+      // PERF_FASEB2_ETAPA3: uma linha — FlowLayout multi-linha removido do path quente.
+      // PERF_FASEB2_ETAPA3 (legado FlowLayout):
+      // FlowLayout(spacing: 6, lineSpacing: 4) {
+      //   if showsProject, let projectName { Text(projectName)... }
+      //   ForEach(Array(labels.prefix(maxLabels))) { ... }
+      //   if labels.count > maxLabels { TagChip("+N") }
+      //   if let priority { TagChip(...) }
+      //   if let dueDate { dueDateChip(dueDate) }
+      //   if subtasksTotal > 0 { metaCounter(...) }
+      //   if commentCount > 0 { metaCounter(...) }
+      // }
+      // .padding(.top, 4)
+      HStack(spacing: 6) {
+        // Prioridade de exibição: data → subtarefas → resto; labels colapsam primeiro via +N.
+        if dueDate != nil {
+          dueDateChip
         }
 
-        ForEach(Array(labels.prefix(maxLabels))) { label in
-          TagChip(label: label.name, color: label.color)
+        if let counter = resolvedSubtasksLabel {
+          metaCounter(icon: .logbook, value: counter)
         }
 
-        if labels.count > maxLabels {
-          TagChip(label: "+\(labels.count - maxLabels)", color: c.textTertiary, showIcon: false)
+        if commentCount > 0 {
+          metaCounter(icon: .comment, value: "\(commentCount)")
         }
 
         if let priority {
           TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)
         }
 
-        if let dueDate {
-          dueDateChip(dueDate)
+        if showsProject, let projectName {
+          Text(projectName)
+            .font(AppTypography.metaSmall)
+            .foregroundStyle(c.textTertiary)
+            .lineLimit(1)
+            .layoutPriority(-1)
         }
 
-        if subtasksTotal > 0 {
-          metaCounter(icon: .logbook, value: "\(subtasksDone)/\(subtasksTotal)")
+        ForEach(visibleLabels) { label in
+          TagChip(label: label.name, color: label.color)
+            .layoutPriority(-1)
         }
 
-        if commentCount > 0 {
-          metaCounter(icon: .comment, value: "\(commentCount)")
+        if overflowLabelCount > 0 {
+          TagChip(label: "+\(overflowLabelCount)", color: c.textTertiary, showIcon: false)
         }
       }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .clipped()
       .padding(.top, 4)
     }
   }
 
-  private func dueDateChip(_ date: Date) -> some View {
-    let color = dueDateColor ?? TaskMapper.dateColor(for: date, done: dateDone)
-    let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
-    return TagChip(label: label, color: color, icon: .calendar)
+  @ViewBuilder
+  private var dueDateChip: some View {
+    // PERF_FASEB2_ETAPA2: sem fallback TaskMapper no body.
+    // let color = dueDateColor ?? TaskMapper.dateColor(for: date, done: dateDone)
+    // let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
+    if let label = dueDateLabel, let color = dueDateColor {
+      TagChip(label: label, color: color, icon: .calendar)
+    } else {
+      // Placeholder de largura estável se memo ausente (não deve ocorrer após Etapa 2).
+      TagChip(label: "···", color: theme.colors.textTertiary, icon: .calendar)
+        .opacity(0.45)
+        .accessibilityHidden(true)
+    }
   }
 
   private func metaCounter(icon: StackedIconKey, value: String) -> some View {
@@ -110,7 +152,9 @@ struct TagChip: View {
   }
 }
 
-// Layout simples para chips em linha com quebra — paridade Wrap crossAxisAlignment: center
+// PERF_FASEB2_ETAPA3: FlowLayout multi-linha — path quente substituído por HStack 1 linha.
+// Mantido comentado para rollback; não usado nas listas de tarefa.
+/*
 struct FlowLayout: Layout {
   var spacing: CGFloat = 6
   var lineSpacing: CGFloat = 4
@@ -169,3 +213,4 @@ struct FlowLayout: Layout {
     }
   }
 }
+*/

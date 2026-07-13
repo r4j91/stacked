@@ -26,7 +26,7 @@ enum TaskMapper {
     let due = parseDueDate(row.data_vencimento)
     let timeDisplay = row.hora.map { formatTimeDisplay($0) }
 
-    return Task(
+    var task = Task(
       id: row.id,
       title: row.titulo ?? "",
       description: row.descricao,
@@ -46,10 +46,14 @@ enum TaskMapper {
       recurrence: row.recorrencia,
       whatsappRoutine: row.whatsapp_rotina ?? false
     )
+    // PERF_FASEB2_ETAPA2/4: garante contadores mesmo se chips já vieram preenchidos.
+    refreshSubtaskCounters(on: &task)
+    return task
   }
 
   static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
     let due = parseDueDate(row.data_vencimento)
+    let time = row.hora
     return Subtask(
       id: row.id,
       taskId: taskId,
@@ -60,11 +64,38 @@ enum TaskMapper {
       order: row.ordem ?? 0,
       valor: row.valor,
       dueDate: due,
-      time: row.hora,
+      time: time,
       dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
       dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
+      timeDisplay: time.map { formatTimeDisplay($0) },
       labelIds: row.label_ids ?? []
     )
+  }
+
+  /// PERF_FASEB2_ETAPA2: preenche memos de display em Tasks criadas fora de mapRow.
+  static func applyDisplayMemos(to task: inout Task) {
+    if let time = task.time, !time.isEmpty {
+      task.timeDisplay = formatTimeDisplay(time)
+    } else {
+      task.timeDisplay = nil
+    }
+    if let due = task.dueDate {
+      task.dueDateChipLabel = dueDateChipLabel(for: due)
+      task.dueDateChipColor = dateColor(for: due, done: task.done)
+    } else {
+      task.dueDateChipLabel = nil
+      task.dueDateChipColor = nil
+    }
+    refreshSubtaskCounters(on: &task)
+  }
+
+  /// PERF_FASEB2_ETAPA4: contadores "2/5" no model, não no body.
+  static func refreshSubtaskCounters(on task: inout Task) {
+    let done = task.subtasks.filter(\.done).count
+    let total = task.subtasks.count
+    task.subtasksDoneCount = done
+    task.subtasksTotalCount = total
+    task.subtasksCounterLabel = total > 0 ? "\(done)/\(total)" : nil
   }
 
   static func parseDueDate(_ raw: String?) -> Date? {

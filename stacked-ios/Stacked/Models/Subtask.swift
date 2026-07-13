@@ -16,6 +16,8 @@ struct Subtask: Identifiable, Equatable {
   /// FASE5: chip de vencimento memoizado em TaskMapper.mapSubtask.
   var dueDateChipLabel: String? = nil
   var dueDateChipColor: Color? = nil
+  /// PERF_FASEB2_ETAPA4: hora memoizada — evita formatTimeDisplay no body.
+  var timeDisplay: String? = nil
   let labelIds: [String]
 
   var idOrFallback: String {
@@ -24,8 +26,9 @@ struct Subtask: Identifiable, Equatable {
     return "sub-\(order)-\(title)"
   }
 
-  var timeDisplay: String? {
-    guard let time, !time.isEmpty else { return nil }
-    return TaskMapper.formatTimeDisplay(time)
-  }
+  // PERF_FASEB2_ETAPA4:
+  // var timeDisplay: String? {
+  //   guard let time, !time.isEmpty else { return nil }
+  //   return TaskMapper.formatTimeDisplay(time)
+  // }
 }
