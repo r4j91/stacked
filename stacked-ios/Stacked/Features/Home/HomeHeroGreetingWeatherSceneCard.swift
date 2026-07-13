@@ -7,21 +7,29 @@ struct HomeHeroGreetingWeatherSceneCard: View {
     case open
   }
 
+  enum ScenePalette {
+    case color
+    case monochrome
+  }
+
   @Environment(ThemeManager.self) private var theme
 
   let store: HomeStore
   let metrics: HomeHeroMetrics
   let isOverdue: Bool
   let presentation: Presentation
+  var palette: ScenePalette = .color
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
-  private var accent: Color { weather.tintAccent }
+  private var isNight: Bool { store.timeOfDay == .night }
+  private var accent: Color {
+    palette == .monochrome
+      ? theme.colors.textSecondary
+      : weather.displayTintAccent(isNight: isNight)
+  }
   private var sceneImageName: String {
-    if weather.style == .sunny, store.timeOfDay == .night {
-      return HomeHeroWeatherSceneImages.assetName(for: .clear)
-    }
-    return HomeHeroWeatherSceneImages.assetName(for: weather.style)
+    HomeHeroWeatherSceneImages.assetName(for: weather.resolvedStyle(isNight: isNight))
   }
 
   private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
@@ -33,12 +41,7 @@ struct HomeHeroGreetingWeatherSceneCard: View {
     let verticalPadding: CGFloat = presentation == .open ? metrics.openVerticalPadding + 8 : 14
 
     ZStack(alignment: .leading) {
-      Image(sceneImageName)
-        .resizable()
-        .scaledToFill()
-        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
-        .clipped()
-        .accessibilityHidden(true)
+      sceneBackground(colors: c)
 
       LinearGradient(
         colors: [
@@ -49,6 +52,16 @@ struct HomeHeroGreetingWeatherSceneCard: View {
         ],
         startPoint: .leading,
         endPoint: .trailing
+      )
+
+      LinearGradient(
+        colors: [
+          c.background.opacity(palette == .monochrome ? 0.62 : 0.48),
+          c.background.opacity(palette == .monochrome ? 0.28 : 0.18),
+          .clear,
+        ],
+        startPoint: .topTrailing,
+        endPoint: .bottomLeading
       )
 
       LinearGradient(
@@ -82,11 +95,29 @@ struct HomeHeroGreetingWeatherSceneCard: View {
     .accessibilityHint(isOverdue ? "Abre tarefas atrasadas" : "")
   }
 
+  @ViewBuilder
+  private func sceneBackground(colors c: AppThemeColors) -> some View {
+    let image = Image(sceneImageName)
+      .resizable()
+      .scaledToFill()
+      .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight)
+      .clipped()
+      .accessibilityHidden(true)
+
+    if palette == .monochrome {
+      image
+        .saturation(0)
+        .contrast(c.isDark ? 1.08 : 1.04)
+    } else {
+      image
+    }
+  }
+
   private func greetingBlock(colors c: AppThemeColors) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(store.greetingPhrase)
         .font(.system(size: metrics.phraseSize, weight: .semibold))
-        .foregroundStyle(HomeHeroWeatherChrome.greetingPhraseColor(colors: c))
+        .foregroundStyle(greetingPhraseColor(colors: c))
 
       if !store.firstName.isEmpty {
         Text(store.firstName)
@@ -114,15 +145,21 @@ struct HomeHeroGreetingWeatherSceneCard: View {
     }
   }
 
+  private func greetingPhraseColor(colors c: AppThemeColors) -> Color {
+    palette == .monochrome
+      ? c.textSecondary.opacity(c.isDark ? 0.9 : 0.82)
+      : HomeHeroWeatherChrome.greetingPhraseColor(colors: c)
+  }
+
   private func weatherPanel(colors c: AppThemeColors) -> some View {
     VStack(alignment: .trailing, spacing: 6) {
       Text("\(weather.temperatureC)°")
-        .font(.system(size: 28, weight: .heavy))
+        .font(.system(size: 26, weight: .heavy))
         .foregroundStyle(c.textPrimary)
-        .tracking(-0.8)
+        .tracking(-0.7)
 
-      Text(weather.condition)
-        .font(.system(size: 12, weight: .semibold))
+      Text(weather.displayCondition(isNight: isNight))
+        .font(.system(size: 11.5, weight: .semibold))
         .foregroundStyle(c.textSecondary)
         .lineLimit(1)
         .minimumScaleFactor(0.85)
@@ -133,15 +170,19 @@ struct HomeHeroGreetingWeatherSceneCard: View {
         weatherStatDivider(colors: c)
         weatherStat(icon: "drop.fill", value: "\(weather.humidityPercent)%", colors: c)
       }
-      .padding(.horizontal, 8)
-      .padding(.vertical, 5)
-      .background(c.surface.opacity(0.55))
-      .clipShape(Capsule())
-      .overlay {
-        Capsule().strokeBorder(c.textPrimary.opacity(c.isDark ? 0.08 : 0.06), lineWidth: 1)
-      }
     }
-    .frame(minWidth: 88, alignment: .trailing)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 8)
+    .background {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(c.surface.opacity(c.isDark ? 0.9 : 0.94))
+    }
+    .overlay {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .strokeBorder(c.textPrimary.opacity(c.isDark ? 0.1 : 0.08), lineWidth: 1)
+    }
+    .shadow(color: c.background.opacity(c.isDark ? 0.45 : 0.18), radius: 8, y: 3)
+    .frame(minWidth: 92, alignment: .trailing)
   }
 
   private func weatherStat(icon: String, value: String, colors c: AppThemeColors) -> some View {
@@ -161,7 +202,8 @@ struct HomeHeroGreetingWeatherSceneCard: View {
   }
 
   private var accessibilityLabel: String {
-    "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
+    let condition = weather.displayCondition(isNight: isNight)
+    return "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
   }
 }
 
@@ -169,6 +211,7 @@ struct HomeHeroGreetingWeatherSceneOpenCard: View {
   let store: HomeStore
   let metrics: HomeHeroMetrics
   let isOverdue: Bool
+  var palette: HomeHeroGreetingWeatherSceneCard.ScenePalette = .color
   var onOpenFilter: (TaskFilterKind) -> Void
 
   var body: some View {
@@ -177,6 +220,7 @@ struct HomeHeroGreetingWeatherSceneOpenCard: View {
       metrics: metrics,
       isOverdue: isOverdue,
       presentation: .open,
+      palette: palette,
       onOpenFilter: onOpenFilter
     )
   }

@@ -11,10 +11,11 @@ struct HomeHeroJourneyCard: View {
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
+  private var isNight: Bool { store.timeOfDay == .night }
 
   private var factualSubtitle: String {
     if art.showsWeather {
-      return weather.condition
+      return weather.displayCondition(isNight: isNight)
     }
     return store.formattedLongDate
   }
@@ -131,7 +132,7 @@ struct HomeHeroJourneyCard: View {
   private var accessibilityLabel: String {
     let name = store.firstName.isEmpty ? "" : " \(store.firstName)."
     if art.showsWeather {
-      return "\(store.greetingPhrase)\(name) \(weather.temperatureC) graus, \(weather.condition). \(store.statusLabel(overdueCount: store.overdueCount))"
+      return "\(store.greetingPhrase)\(name) \(weather.temperatureC) graus, \(weather.displayCondition(isNight: isNight)). \(store.statusLabel(overdueCount: store.overdueCount))"
     }
     return "\(store.greetingPhrase)\(name) \(factualSubtitle). \(store.statusLabel(overdueCount: store.overdueCount))"
   }

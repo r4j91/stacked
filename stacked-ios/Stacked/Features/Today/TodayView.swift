@@ -30,7 +30,7 @@ struct TodayView: View {
           .listRowBackground(Color.clear)
       }
 
-      if store.todayLoading {
+      if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
         Section {
           ProgressView()
             .tint(c.accent)

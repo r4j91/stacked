@@ -87,7 +87,7 @@ enum HomeHeroInsights {
     return StreakSnapshot(days: streak, weekCompleted: weekCompleted)
   }
 
-  struct WeatherSnapshot: Equatable {
+  struct WeatherSnapshot: Equatable, Codable {
     let temperatureC: Int
     let condition: String
     let windKmh: Int
@@ -95,7 +95,7 @@ enum HomeHeroInsights {
     let style: Style
     var isLive: Bool = false
 
-    enum Style: Equatable {
+    enum Style: String, Equatable, Codable {
       case sunny
       case partlyCloudy
       case cloudy
@@ -104,17 +104,44 @@ enum HomeHeroInsights {
       case snowy
       case foggy
       case clear
+
+      func resolved(isNight: Bool) -> Style {
+        self == .sunny && isNight ? .clear : self
+      }
+
+      var tintAccent: Color {
+        switch self {
+        case .sunny: AppColors.priorityMedium
+        case .partlyCloudy, .cloudy: AppColors.priorityLow
+        case .rainy, .stormy: AppColors.priorityLow
+        case .snowy: AppColors.priorityLow
+        case .foggy: AppColors.textTertiary
+        case .clear: AppColors.tagPurple
+        }
+      }
     }
 
-    var tintAccent: Color {
-      switch style {
-      case .sunny: AppColors.priorityMedium
-      case .partlyCloudy, .cloudy: AppColors.priorityLow
-      case .rainy, .stormy: AppColors.priorityLow
-      case .snowy: AppColors.priorityLow
-      case .foggy: AppColors.textTertiary
-      case .clear: AppColors.tagPurple
-      }
+    var tintAccent: Color { style.tintAccent }
+
+    func resolvedStyle(isNight: Bool) -> Style {
+      style.resolved(isNight: isNight)
+    }
+
+    func displayCondition(isNight: Bool) -> String {
+      HomeHeroInsights.portugueseCondition(for: resolvedStyle(isNight: isNight))
+    }
+
+    func displayTintAccent(isNight: Bool) -> Color {
+      resolvedStyle(isNight: isNight).tintAccent
+    }
+
+    /// Campos que afetam a UI — ignora `isLive` para evitar flash visual.
+    var visualFingerprint: (temperatureC: Int, condition: String, windKmh: Int, humidityPercent: Int, style: Style) {
+      (temperatureC, condition, windKmh, humidityPercent, style)
+    }
+
+    func hasSameVisualContent(as other: WeatherSnapshot) -> Bool {
+      visualFingerprint == other.visualFingerprint
     }
   }
 

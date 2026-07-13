@@ -36,7 +36,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
+    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -129,6 +129,23 @@ struct HomeHeroSection: View {
     case .greetingWeatherPremiumSceneOpen:
       HomeHeroGreetingWeatherSceneOpenCard(
         store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherPremiumSceneMono:
+      HomeHeroGreetingWeatherSceneCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        presentation: .card,
+        palette: .monochrome,
+        onOpenFilter: onOpenFilter
+      )
+    case .greetingWeatherPremiumSceneMonoOpen:
+      HomeHeroGreetingWeatherSceneOpenCard(
+        store: store,
+        metrics: metrics,
+        isOverdue: isOverdue,
+        palette: .monochrome,
+        onOpenFilter: onOpenFilter
       )
     case .greetingWeatherMinimal:
       HomeHeroGreetingWeatherMinimalCard(

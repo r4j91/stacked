@@ -68,7 +68,10 @@ final class TaskStore {
   func loadToday() async {
     loadTodayGeneration += 1
     let generation = loadTodayGeneration
-    todayLoading = todayPending.isEmpty && todayCompleted.isEmpty
+    todayLoading = todayPending.isEmpty
+      && todayCompleted.isEmpty
+      && todayScheduledSubtasks.isEmpty
+      && todayCalendarEvents.isEmpty
     todayError = nil
     defer { todayLoading = false }
     do {

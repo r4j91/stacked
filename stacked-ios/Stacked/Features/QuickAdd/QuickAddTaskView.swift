@@ -112,9 +112,6 @@ struct QuickAddTaskView: View {
         .padding(.horizontal, 16)
         .padding(.top, 0)
         .padding(.bottom, 6)
-        .onSubmit {
-          if hasTitle { _Concurrency.Task { await save() } }
-        }
 
       if showDescriptionField {
         TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)

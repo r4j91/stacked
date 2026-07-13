@@ -22,7 +22,8 @@ final class HomeStore {
   private(set) var queueLines: [HomeHeroInsights.QueueLine] = []
   private(set) var completionStreak = 0
   private(set) var streakWeekCompleted: [Bool] = Array(repeating: false, count: 7)
-  private(set) var weatherSnapshot: HomeHeroInsights.WeatherSnapshot = HomeHeroInsights.placeholderWeather(for: .current)
+  private(set) var weatherSnapshot: HomeHeroInsights.WeatherSnapshot =
+    HomeWeatherService.shared.startupSnapshot(fallbackTimeOfDay: .current)
 
   private init() {}
 
@@ -242,7 +243,18 @@ final class HomeStore {
     completionStreak = streak.days
     streakWeekCompleted = streak.weekCompleted
 
-    weatherSnapshot = await HomeWeatherService.shared.snapshot(fallbackTimeOfDay: timeOfDay)
+    let nextWeather = await HomeWeatherService.shared.snapshot(fallbackTimeOfDay: timeOfDay)
+    applyWeatherSnapshotIfNeeded(nextWeather)
+  }
+
+  private func applyWeatherSnapshotIfNeeded(_ next: HomeHeroInsights.WeatherSnapshot) {
+    if weatherSnapshot.hasSameVisualContent(as: next) {
+      if !weatherSnapshot.isLive, next.isLive {
+        weatherSnapshot.isLive = true
+      }
+      return
+    }
+    weatherSnapshot = next
   }
 }
 

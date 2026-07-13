@@ -3,7 +3,7 @@ import SwiftUI
 /// Tokens compartilhados dos heroes ilustrados e de clima.
 enum HomeHeroLayout {
   static let sceneCardHeight: CGFloat = 176
-  static let weatherCardHeight: CGFloat = 184
+  static let weatherCardHeight: CGFloat = 188
   static let cornerRadius: CGFloat = 16
   static let scenePaddingH: CGFloat = AppSpacing.lg
   static let scenePaddingV: CGFloat = 14

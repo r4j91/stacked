@@ -11,6 +11,7 @@ struct HomeHeroAuroraCard: View {
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
+  private var isNight: Bool { store.timeOfDay == .night }
 
   private var imageName: String {
     isOverdue ? art.overdueAssetName() : art.clearAssetName()
@@ -100,7 +101,7 @@ struct HomeHeroAuroraCard: View {
         .foregroundStyle(c.textPrimary)
         .tracking(-0.4)
 
-      Text(weather.condition)
+      Text(weather.displayCondition(isNight: isNight))
         .font(.system(size: metrics.focusSubtitleSize, weight: .medium))
         .foregroundStyle(c.textSecondary)
         .lineLimit(2)
@@ -112,6 +113,6 @@ struct HomeHeroAuroraCard: View {
 
   private var accessibilityLabel: String {
     let name = store.firstName.isEmpty ? "" : " \(store.firstName)."
-    return "\(store.greetingPhrase)\(name) \(weather.temperatureC) graus, \(weather.condition). \(store.statusLabel(overdueCount: store.overdueCount))"
+    return "\(store.greetingPhrase)\(name) \(weather.temperatureC) graus, \(weather.displayCondition(isNight: isNight)). \(store.statusLabel(overdueCount: store.overdueCount))"
   }
 }

@@ -10,10 +10,22 @@ final class HomeWeatherService: NSObject {
   private var cachedSnapshot: HomeHeroInsights.WeatherSnapshot?
   private var cacheExpiry: Date?
 
+  private static let persistedSnapshotKey = "homeWeatherPersistedSnapshot"
+  private static let persistedExpiryKey = "homeWeatherPersistedExpiry"
+
   private override init() {
     super.init()
     manager.delegate = self
     manager.desiredAccuracy = kCLLocationAccuracyKilometer
+    restorePersistedCache()
+  }
+
+  /// Snapshot síncrono para evitar flash de placeholder na abertura.
+  func startupSnapshot(fallbackTimeOfDay: HomeTimeOfDay) -> HomeHeroInsights.WeatherSnapshot {
+    if let cachedSnapshot, let cacheExpiry, cacheExpiry > Date() {
+      return cachedSnapshot
+    }
+    return HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
   }
 
   func snapshot(fallbackTimeOfDay: HomeTimeOfDay) async -> HomeHeroInsights.WeatherSnapshot {
@@ -22,15 +34,49 @@ final class HomeWeatherService: NSObject {
     }
 
     guard let location = await requestLocation(timeout: 5) else {
-      return HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
+      return cachedSnapshot ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
     }
 
     let resolved = await fetchOpenMeteo(location: location)
+      ?? cachedSnapshot
       ?? HomeHeroInsights.placeholderWeather(for: fallbackTimeOfDay)
 
-    cachedSnapshot = resolved
-    cacheExpiry = Date().addingTimeInterval(15 * 60)
+    storeCache(resolved)
     return resolved
+  }
+
+  private func storeCache(_ snapshot: HomeHeroInsights.WeatherSnapshot) {
+    cachedSnapshot = snapshot
+    let expiry = Date().addingTimeInterval(15 * 60)
+    cacheExpiry = expiry
+    persistCache(snapshot: snapshot, expiry: expiry)
+  }
+
+  private func restorePersistedCache() {
+    guard
+      let data = UserDefaults.standard.data(forKey: Self.persistedSnapshotKey),
+      let snapshot = try? JSONDecoder().decode(HomeHeroInsights.WeatherSnapshot.self, from: data)
+    else { return }
+
+    let expiry = UserDefaults.standard.object(forKey: Self.persistedExpiryKey) as? Date
+    guard let expiry, expiry > Date() else {
+      clearPersistedCache()
+      return
+    }
+
+    cachedSnapshot = snapshot
+    cacheExpiry = expiry
+  }
+
+  private func persistCache(snapshot: HomeHeroInsights.WeatherSnapshot, expiry: Date) {
+    guard let data = try? JSONEncoder().encode(snapshot) else { return }
+    UserDefaults.standard.set(data, forKey: Self.persistedSnapshotKey)
+    UserDefaults.standard.set(expiry, forKey: Self.persistedExpiryKey)
+  }
+
+  private func clearPersistedCache() {
+    UserDefaults.standard.removeObject(forKey: Self.persistedSnapshotKey)
+    UserDefaults.standard.removeObject(forKey: Self.persistedExpiryKey)
   }
 
   private func requestLocation(timeout seconds: TimeInterval) async -> CLLocation? {

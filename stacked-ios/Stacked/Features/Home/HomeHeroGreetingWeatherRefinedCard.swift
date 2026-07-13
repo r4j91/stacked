@@ -16,6 +16,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
+  private var isNight: Bool { store.timeOfDay == .night }
 
   private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
   private let cardHeight: CGFloat = HomeHeroLayout.weatherCardHeight
@@ -38,14 +39,17 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
     .padding(.horizontal, AppSpacing.lg)
     .padding(.vertical, verticalPadding)
     .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
-    .background { cardBackground(colors: c) }
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    .background {
+      if presentation == .card {
+        cardBackground(colors: c)
+          .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+      }
+    }
     .overlay {
-      RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .strokeBorder(
-          c.textPrimary.opacity(presentation == .card ? 0.09 : 0.05),
-          lineWidth: 1
-        )
+      if presentation == .card {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+          .strokeBorder(c.textPrimary.opacity(0.09), lineWidth: 1)
+      }
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityLabel)
@@ -109,7 +113,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
       HomeHeroWeatherStatusIndicator(
         isOverdue: isOverdue,
         statusLabel: store.statusLabel(overdueCount: store.overdueCount),
-        clearTone: weather.tintAccent,
+        clearTone: weather.displayTintAccent(isNight: isNight),
         onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
       )
       .padding(.top, 2)
@@ -120,7 +124,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
     VStack(alignment: .trailing, spacing: AppSpacing.sm) {
       HomeWeatherRefinedArt(
         style: weather.style,
-        isNight: store.timeOfDay == .night
+        isNight: isNight
       )
 
       VStack(alignment: .trailing, spacing: 2) {
@@ -129,7 +133,7 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
           .foregroundStyle(c.textPrimary)
           .tracking(-0.6)
 
-        Text(weather.condition)
+        Text(weather.displayCondition(isNight: isNight))
           .font(.system(size: 11.5, weight: .semibold))
           .foregroundStyle(c.textSecondary)
           .lineLimit(1)
@@ -149,7 +153,6 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
         Capsule().strokeBorder(c.textPrimary.opacity(c.isDark ? 0.06 : 0.05), lineWidth: 1)
       }
     }
-    .padding(.bottom, AppSpacing.xs)
     .frame(minWidth: 92, alignment: .trailing)
   }
 
@@ -170,7 +173,8 @@ struct HomeHeroGreetingWeatherRefinedCard: View {
   }
 
   private var accessibilityLabel: String {
-    "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
+    let condition = weather.displayCondition(isNight: isNight)
+    return "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
   }
 }
 

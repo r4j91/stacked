@@ -221,8 +221,9 @@ struct HomeHeroGreetingWeatherCard: View {
   var usesLiveWeather: Bool = false
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
+  private var isNight: Bool { store.timeOfDay == .night }
   private var accent: Color {
-    usesLiveWeather || weather.isLive ? weather.tintAccent : AppColors.priorityMedium
+    usesLiveWeather || weather.isLive ? weather.displayTintAccent(isNight: isNight) : AppColors.priorityMedium
   }
 
   var body: some View {
@@ -258,7 +259,7 @@ struct HomeHeroGreetingWeatherCard: View {
             Text("\(weather.temperatureC)°C")
               .font(.system(size: 22, weight: .heavy))
               .foregroundStyle(c.textPrimary)
-            Text(weather.condition)
+            Text(weather.displayCondition(isNight: isNight))
               .font(.system(size: metrics.focusSubtitleSize, weight: .medium))
               .foregroundStyle(c.textSecondary)
           }
@@ -283,7 +284,7 @@ struct HomeHeroGreetingWeatherCard: View {
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(
-      "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.condition). \(store.statusLabel(overdueCount: store.overdueCount))"
+      "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.displayCondition(isNight: isNight)). \(store.statusLabel(overdueCount: store.overdueCount))"
     )
   }
 }
@@ -344,7 +345,8 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
   var chrome: GreetingIntegratedChrome?
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
-  private var accent: Color { weather.tintAccent }
+  private var isNight: Bool { store.timeOfDay == .night }
+  private var accent: Color { weather.displayTintAccent(isNight: isNight) }
   private var resolvedChrome: GreetingIntegratedChrome { chrome ?? .tinted(accent) }
 
   var body: some View {
@@ -376,7 +378,7 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
               .font(.system(size: 24, weight: .heavy))
               .foregroundStyle(c.textPrimary)
               .tracking(-0.5)
-            Text(weather.condition)
+            Text(weather.displayCondition(isNight: isNight))
               .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(c.textSecondary)
               .lineLimit(1)
@@ -396,7 +398,7 @@ struct HomeHeroGreetingWeatherPremiumCard: View {
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(
-      "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
+      "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.displayCondition(isNight: isNight)). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
     )
   }
 

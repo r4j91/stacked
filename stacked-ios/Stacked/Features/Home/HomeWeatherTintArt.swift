@@ -10,19 +10,11 @@ struct HomeWeatherTintArt: View {
   private let size: CGFloat = 80
 
   private var imageName: String {
-    HomeHeroWeatherTintImages.assetName(for: style, isNight: isNight)
+    HomeHeroWeatherTintImages.assetName(for: style.resolved(isNight: isNight), isNight: isNight)
   }
 
   private var accent: Color {
-    let effective: HomeHeroInsights.WeatherSnapshot.Style =
-      style == .sunny && isNight ? .clear : style
-    return HomeHeroInsights.WeatherSnapshot(
-      temperatureC: 0,
-      condition: "",
-      windKmh: 0,
-      humidityPercent: 0,
-      style: effective
-    ).tintAccent
+    style.resolved(isNight: isNight).tintAccent
   }
 
   var body: some View {

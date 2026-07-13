@@ -77,6 +77,10 @@ struct HomeHeroStylePreview: View {
       greetingWeatherScenePreview
     case .greetingWeatherPremiumSceneOpen:
       greetingWeatherSceneOpenPreview
+    case .greetingWeatherPremiumSceneMono:
+      greetingWeatherSceneMonoPreview
+    case .greetingWeatherPremiumSceneMonoOpen:
+      greetingWeatherSceneMonoOpenPreview
     case .greetingWeatherMinimal:
       greetingWeatherMinimalPreview
     case .greetingWeatherMinimalOpen:
@@ -607,6 +611,43 @@ struct HomeHeroStylePreview: View {
 
   private var greetingWeatherSceneOpenPreview: some View {
     greetingWeatherScenePreview
+  }
+
+  private var greetingWeatherSceneMonoPreview: some View {
+    ZStack(alignment: .leading) {
+      Image("HeroWeatherClear")
+        .resizable()
+        .scaledToFill()
+        .saturation(0)
+        .contrast(1.06)
+      LinearGradient(
+        colors: [colors.background.opacity(0.95), colors.background.opacity(0.35), .clear],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+      LinearGradient(
+        colors: [colors.background.opacity(0.55), colors.background.opacity(0.2), .clear],
+        startPoint: .topTrailing,
+        endPoint: .bottomLeading
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        RoundedRectangle(cornerRadius: 1).fill(colors.textSecondary.opacity(0.55)).frame(width: 14, height: 2)
+        RoundedRectangle(cornerRadius: 1).fill(colors.textPrimary.opacity(0.8)).frame(width: 16, height: 3)
+        Spacer(minLength: 0)
+      }
+      .padding(4)
+      VStack(alignment: .trailing, spacing: 1) {
+        RoundedRectangle(cornerRadius: 2).fill(colors.surface.opacity(0.9)).frame(width: 16, height: 10)
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var greetingWeatherSceneMonoOpenPreview: some View {
+    greetingWeatherSceneMonoPreview
   }
 
   private var greetingWeatherMinimalPreview: some View {

@@ -16,6 +16,7 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var weather: HomeHeroInsights.WeatherSnapshot { store.weatherSnapshot }
+  private var isNight: Bool { store.timeOfDay == .night }
 
   private let cornerRadius: CGFloat = HomeHeroLayout.cornerRadius
   private let cardHeight: CGFloat = HomeHeroLayout.weatherCardHeight
@@ -109,7 +110,7 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
       HomeHeroWeatherStatusIndicator(
         isOverdue: isOverdue,
         statusLabel: store.statusLabel(overdueCount: store.overdueCount),
-        clearTone: weather.tintAccent,
+        clearTone: weather.displayTintAccent(isNight: isNight),
         onOpenFilter: isOverdue ? { HapticService.selection(); onOpenFilter(.overdue) } : nil
       )
       .padding(.top, 2)
@@ -120,7 +121,7 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
     VStack(alignment: .trailing, spacing: 8) {
       HomeWeatherMinimalArt(
         style: weather.style,
-        isNight: store.timeOfDay == .night
+        isNight: isNight
       )
 
       VStack(alignment: .trailing, spacing: 2) {
@@ -129,7 +130,7 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
           .foregroundStyle(c.textPrimary)
           .tracking(-0.6)
 
-        Text(weather.condition)
+        Text(weather.displayCondition(isNight: isNight))
           .font(.system(size: 11.5, weight: .semibold))
           .foregroundStyle(c.textSecondary)
           .lineLimit(1)
@@ -169,7 +170,8 @@ struct HomeHeroGreetingWeatherMinimalCard: View {
   }
 
   private var accessibilityLabel: String {
-    "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(weather.condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
+    let condition = weather.displayCondition(isNight: isNight)
+    return "\(store.greetingPhrase) \(store.firstName). \(store.formattedLongDate). \(weather.temperatureC) graus, \(condition). Vento \(weather.windKmh) quilômetros por hora. Umidade \(weather.humidityPercent) por cento. \(store.statusLabel(overdueCount: store.overdueCount))"
   }
 }
 

@@ -10,7 +10,7 @@ struct HomeWeatherMinimalArt: View {
   private let size: CGFloat = 76
 
   private var imageName: String {
-    HomeHeroWeatherMinimalImages.assetName(for: style, isNight: isNight)
+    HomeHeroWeatherMinimalImages.assetName(for: style.resolved(isNight: isNight), isNight: isNight)
   }
 
   var body: some View {

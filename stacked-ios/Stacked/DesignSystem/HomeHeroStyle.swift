@@ -26,6 +26,8 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case greetingWeatherPremiumOpen
   case greetingWeatherPremiumScene
   case greetingWeatherPremiumSceneOpen
+  case greetingWeatherPremiumSceneMono
+  case greetingWeatherPremiumSceneMonoOpen
   case greetingWeatherMinimal
   case greetingWeatherMinimalOpen
   case greetingWeatherRefined
@@ -75,6 +77,8 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherPremiumOpen: "Clima premium aberto"
     case .greetingWeatherPremiumScene: "Clima cena premium"
     case .greetingWeatherPremiumSceneOpen: "Clima cena aberto"
+    case .greetingWeatherPremiumSceneMono: "Clima cena premium mono"
+    case .greetingWeatherPremiumSceneMonoOpen: "Clima cena mono aberto"
     case .greetingWeatherMinimal: "Clima minimal"
     case .greetingWeatherMinimalOpen: "Clima minimal aberto"
     case .greetingWeatherRefined: "Clima refinado"
@@ -124,6 +128,8 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .greetingWeatherPremiumOpen: "Clima premium sem card, direto no fundo"
     case .greetingWeatherPremiumScene: "Clima ao vivo com cena ilustrada no card"
     case .greetingWeatherPremiumSceneOpen: "Cena ilustrada sem card, direto no fundo"
+    case .greetingWeatherPremiumSceneMono: "Cena ilustrada monocromática no card"
+    case .greetingWeatherPremiumSceneMonoOpen: "Cena monocromática sem card, direto no fundo"
     case .greetingWeatherMinimal: "Ícone minimal com card escuro"
     case .greetingWeatherMinimalOpen: "Clima minimal sem card, direto no fundo"
     case .greetingWeatherRefined: "Ícone monocromático premium com profundidade"
@@ -161,7 +167,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
          .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint, .journeyDaily, .journeyMist, .journeyForest, .journeySummit, .auroraCalm, .auroraDusk, .auroraEmber: true
     default: false
     }
   }
@@ -193,7 +199,9 @@ extension HomeHeroStyle {
     case .classic, .panel, .greetingWeatherRefined, .journeyDaily:
       return .recommended
     case .greetingWeather, .greetingWeatherTinted, .greetingWeatherPremium, .greetingWeatherPremiumOpen,
-         .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimal,
+         .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen,
+         .greetingWeatherPremiumSceneMono, .greetingWeatherPremiumSceneMonoOpen,
+         .greetingWeatherMinimal,
          .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen:
       return .weather
     case .journeyMist, .journeyForest, .journeySummit:
@@ -250,7 +258,7 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
-    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
+    case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen:
       return HomeHeroMetrics(
         phraseSize: 14,
         nameSize: 26,
@@ -328,7 +336,7 @@ struct HomeHeroMetrics {
     case .motivation, .focusDay, .streak, .motivationIntegrated, .focusDayIntegrated, .streakIntegrated,
          .greetingProgress, .greetingFocus, .greetingWeather,
          .greetingProgressTinted, .greetingFocusTinted, .greetingWeatherTinted,
-         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint,
+         .greetingWeatherPremium, .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneMono, .greetingWeatherMinimal, .greetingWeatherRefined, .greetingWeatherTint,
          .journeyDaily, .journeyMist, .journeyForest, .journeySummit,
          .auroraCalm, .auroraDusk, .auroraEmber,
          .panel, .compass, .queue, .thermometer, .rhythm, .nextStep:
