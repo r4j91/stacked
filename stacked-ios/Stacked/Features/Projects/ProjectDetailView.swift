@@ -109,16 +109,20 @@ struct ProjectDetailView: View {
             .listRowBackground(Color.clear)
           }
         } else {
+          // PERF_FASEC1: um bucket por body — evita pending.filter por seção.
+          let buckets = pendingSectionBuckets
           ForEach(sections) { section in
-            projectSectionBlock(section: section, tasks: tasks(in: section.id))
+            projectSectionBlock(
+              section: section,
+              tasks: buckets.bySectionId[section.id] ?? []
+            )
           }
 
-          let uncategorized = tasks(in: nil)
-          if !uncategorized.isEmpty {
+          if !buckets.uncategorized.isEmpty {
             projectSectionBlock(
               id: ProjectSectionCollapse.uncategorizedId,
               title: "SEM SEÇÃO",
-              tasks: uncategorized,
+              tasks: buckets.uncategorized,
               showsHeader: !sections.isEmpty
             )
           }
@@ -231,13 +235,17 @@ struct ProjectDetailView: View {
       transaction.disablesAnimations = true
       withTransaction(transaction) {
         revealListContent = true
-        allowRowHeavyWork = true
+        // Labels/async pesados só após 1º frame da lista (paridade stackedListRowWorkGate).
+        allowRowHeavyWork = false
         store.adoptSnapshot(initialSnapshot)
         usesStore = true
       }
+      try? await _Concurrency.Task.sleep(for: .milliseconds(150))
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowRowHeavyWork = true
       if hasLocalContent {
         _Concurrency.Task {
-          try? await _Concurrency.Task.sleep(for: .milliseconds(600))
+          try? await _Concurrency.Task.sleep(for: .milliseconds(450))
           guard !_Concurrency.Task.isCancelled else { return }
           await store.load()
         }
@@ -345,6 +353,21 @@ struct ProjectDetailView: View {
 
   private func tasks(in sectionId: String?) -> [Task] {
     pending.filter { $0.sectionId == sectionId }
+  }
+
+  /// Agrupa pendentes uma vez por body (scroll/section headers).
+  private var pendingSectionBuckets: (bySectionId: [String: [Task]], uncategorized: [Task]) {
+    var bySectionId: [String: [Task]] = [:]
+    var uncategorized: [Task] = []
+    bySectionId.reserveCapacity(sections.count)
+    for task in pending {
+      if let sectionId = task.sectionId, !sectionId.isEmpty {
+        bySectionId[sectionId, default: []].append(task)
+      } else {
+        uncategorized.append(task)
+      }
+    }
+    return (bySectionId, uncategorized)
   }
 
   private func ensureStoreLinked() {

@@ -51,44 +51,19 @@ struct TaskRow: View {
     }
     // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
     .frame(minHeight: headerHeight)
-    .background(c.surface)
-    .clipShape(RoundedRectangle(cornerRadius: 12))
+    // Um shape fill + clip continuous — mesmo visual do balão, menos pilha de layers.
+    .background {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(c.surface)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear {
-      syncSubtasks()
-      restoreSubtaskExpansionIfNeeded()
-    }
-    .onChange(of: task.subtasks) { _, newSubs in
-      let previousCount = displaySubtasks.count
-      syncSubtasks()
-      if expanded, newSubs.count != previousCount {
-        bumpSubtaskRevealLayout()
-      }
-    }
-    .onChange(of: task.id) { _, _ in
-      syncSubtasks()
-      restoreSubtaskExpansionIfNeeded()
-    }
-    .task(id: expanded) {
-      guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
-      labelCatalog = await LabelCatalogCache.labels()
-      bumpSubtaskRevealLayout()
-    }
-    .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred, expanded, subtaskRevealActive else { return }
-      _Concurrency.Task { @MainActor in
-        if allLabels.isEmpty, labelCatalog.isEmpty {
-          labelCatalog = await LabelCatalogCache.labels()
-        }
-        bumpSubtaskRevealLayout()
-      }
-    }
+    .modifier(rowScrollLifecycle)
   }
 
   private var listBody: some View {
-    let c = theme.colors
     let headerHeight = exactHeaderHeight
 
     return VStack(spacing: 0) {
@@ -104,35 +79,25 @@ struct TaskRow: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
-    .onAppear {
-      syncSubtasks()
-      restoreSubtaskExpansionIfNeeded()
-    }
-    .onChange(of: task.subtasks) { _, newSubs in
-      let previousCount = displaySubtasks.count
-      syncSubtasks()
-      if expanded, newSubs.count != previousCount {
+    .modifier(rowScrollLifecycle)
+  }
+
+  private var rowScrollLifecycle: TaskRowScrollLifecycle {
+    TaskRowScrollLifecycle(
+      taskId: task.id,
+      subtaskCount: task.subtasks.count,
+      deferHeavyWork: deferHeavyWork,
+      expanded: expanded,
+      shouldLoadLabels: task.hasSubtasks && allLabels.isEmpty && labelCatalog.isEmpty,
+      onAppearRow: handleRowAppear,
+      onSubtasksChanged: handleSubtasksChanged,
+      onTaskIdentityChanged: handleTaskIdentityChanged,
+      onHeavyWorkAllowed: handleHeavyWorkAllowed,
+      onLoadLabels: {
+        labelCatalog = await LabelCatalogCache.labels()
         bumpSubtaskRevealLayout()
       }
-    }
-    .onChange(of: task.id) { _, _ in
-      syncSubtasks()
-      restoreSubtaskExpansionIfNeeded()
-    }
-    .task(id: expanded) {
-      guard expanded, !deferHeavyWork, task.hasSubtasks, allLabels.isEmpty, labelCatalog.isEmpty else { return }
-      labelCatalog = await LabelCatalogCache.labels()
-      bumpSubtaskRevealLayout()
-    }
-    .onChange(of: deferHeavyWork) { _, deferred in
-      guard !deferred, expanded, subtaskRevealActive else { return }
-      _Concurrency.Task { @MainActor in
-        if allLabels.isEmpty, labelCatalog.isEmpty {
-          labelCatalog = await LabelCatalogCache.labels()
-        }
-        bumpSubtaskRevealLayout()
-      }
-    }
+    )
   }
 
   /// PERF_FASEB2_ETAPA3: altura determinística — (tem desc?, tem meta?).
@@ -198,6 +163,9 @@ struct TaskRow: View {
     }
     // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight) — altura vem do pai.
     .frame(maxHeight: .infinity)
+    // CTXMENU_EXPAND_FIX: lift/âncora só no header — com subtarefas abertas o menu
+    // escalava a row inteira e capturava âncora errada.
+    .taskContextMenuLiftHost()
   }
 
   private var showsWhatsAppCopyButton: Bool {
@@ -279,18 +247,21 @@ struct TaskRow: View {
         )
         .padding(.top, 4)
       }
-      TaskMetaLine(
-        labels: task.labels,
-        dueDate: task.dueDate,
-        dueDateLabel: task.dueDateChipLabel,
-        dueDateColor: task.dueDateChipColor,
-        dateDone: task.done,
-        subtasksDone: displayedSubtasksDone,
-        subtasksTotal: displayedSubtasksTotal,
-        subtasksCounterLabel: displayedSubtasksCounterLabel,
-        commentCount: task.commentCount,
-        projectName: showProject ? task.project : nil
-      )
+      // PERF_FASEC1: não monta TaskMetaLine vazio (mesmo visual — linha só quando há meta).
+      if rowShowsMeta {
+        TaskMetaLine(
+          labels: task.labels,
+          dueDate: task.dueDate,
+          dueDateLabel: task.dueDateChipLabel,
+          dueDateColor: task.dueDateChipColor,
+          dateDone: task.done,
+          subtasksDone: displayedSubtasksDone,
+          subtasksTotal: displayedSubtasksTotal,
+          subtasksCounterLabel: displayedSubtasksCounterLabel,
+          commentCount: task.commentCount,
+          projectName: showProject ? task.project : nil
+        )
+      }
     }
   }
 
@@ -517,8 +488,49 @@ struct TaskRow: View {
     return hasher.finalize()
   }
 
+  private func handleRowAppear() {
+    // PERF_FASEC1: sort/sync só com painel aberto — idle usa counters do Task.
+    if expanded || subtaskRevealActive {
+      syncSubtasks()
+    }
+    if !deferHeavyWork {
+      restoreSubtaskExpansionIfNeeded()
+    }
+  }
+
+  private func handleSubtasksChanged() {
+    guard expanded || subtaskRevealActive else { return }
+    let previousCount = displaySubtasks.count
+    syncSubtasks()
+    if expanded, task.subtasks.count != previousCount {
+      bumpSubtaskRevealLayout()
+    }
+  }
+
+  private func handleTaskIdentityChanged() {
+    displaySubtasks = []
+    subtasksDone = []
+    expanded = false
+    subtaskRevealActive = false
+    if !deferHeavyWork {
+      restoreSubtaskExpansionIfNeeded()
+    }
+  }
+
+  private func handleHeavyWorkAllowed() {
+    restoreSubtaskExpansionIfNeeded()
+    guard expanded, subtaskRevealActive else { return }
+    _Concurrency.Task { @MainActor in
+      if allLabels.isEmpty, labelCatalog.isEmpty {
+        labelCatalog = await LabelCatalogCache.labels()
+      }
+      bumpSubtaskRevealLayout()
+    }
+  }
+
   private func toggleSubtaskExpansion() {
     if !subtaskRevealActive {
+      syncSubtasks()
       subtaskRevealActive = true
       expanded = false
       _Concurrency.Task { @MainActor in
@@ -564,6 +576,7 @@ struct TaskRow: View {
       return
     }
     // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
+    syncSubtasks()
     subtaskRevealActive = true
     expanded = false
     _Concurrency.Task { @MainActor in
@@ -818,6 +831,34 @@ struct DisclosureChevron: View {
       .font(.system(size: size, weight: .semibold))
       .foregroundStyle(color ?? theme.colors.textTertiary)
       .rotationEffect(.degrees(-90))
+  }
+}
+
+/// PERF_FASEC1 — lifecycle da row fora do body card/list (sem sync idle no scroll).
+private struct TaskRowScrollLifecycle: ViewModifier {
+  let taskId: String
+  let subtaskCount: Int
+  let deferHeavyWork: Bool
+  let expanded: Bool
+  let shouldLoadLabels: Bool
+  let onAppearRow: () -> Void
+  let onSubtasksChanged: () -> Void
+  let onTaskIdentityChanged: () -> Void
+  let onHeavyWorkAllowed: () -> Void
+  let onLoadLabels: () async -> Void
+
+  func body(content: Content) -> some View {
+    content
+      .onAppear(perform: onAppearRow)
+      .onChange(of: subtaskCount) { _, _ in onSubtasksChanged() }
+      .onChange(of: taskId) { _, _ in onTaskIdentityChanged() }
+      .onChange(of: deferHeavyWork) { _, deferred in
+        if !deferred { onHeavyWorkAllowed() }
+      }
+      .task(id: expanded) {
+        guard expanded, !deferHeavyWork, shouldLoadLabels else { return }
+        await onLoadLabels()
+      }
   }
 }
 

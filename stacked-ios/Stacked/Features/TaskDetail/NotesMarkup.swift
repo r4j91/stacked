@@ -93,13 +93,18 @@ struct NotesMarkupText: View {
   var lineLimit: Int? = nil
 
   var body: some View {
-    let view = NotesMarkup.text(
-      source,
-      color: color,
-      size: size,
-      weight: weight,
-      boldWeight: boldWeight
-    )
+    // PERF_FASEC1: texto puro sem `*` — Text direto (mesma aparência).
+    let view: Text = source.contains("*")
+      ? NotesMarkup.text(
+        source,
+        color: color,
+        size: size,
+        weight: weight,
+        boldWeight: boldWeight
+      )
+      : Text(source)
+        .font(.system(size: size, weight: weight))
+        .foregroundStyle(color)
     if let lineLimit {
       view.lineLimit(lineLimit).truncationMode(.tail)
     } else {

@@ -5,14 +5,10 @@ struct IslandNavBar: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
-  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
   private let tabs = NavTab.allCases
-  private let pillShape = Capsule()
 
   private var fabIntegrated: Bool { fabIntegratedInIsland }
 
@@ -21,17 +17,13 @@ struct IslandNavBar: View {
   }
 
   var body: some View {
-    let mode = chrome.dockGlassMode(
-      reduceTransparency: reduceTransparency,
-      freezeWhileScrolling: freezeDockGlassWhileScrolling,
-      alwaysFrozen: alwaysFrozenDockGlass
-    )
-    islandTrack(mode: mode)
+    // live/frozen no IslandNavGlassShell/DockNavTrackShell — pai não lê isContentScrolling.
+    islandTrack
   }
 
   // MARK: - Track
 
-  private func islandTrack(mode: DockGlassMode) -> some View {
+  private var islandTrack: some View {
     let c = theme.colors
     let isExpanded = chrome.islandNavExpanded
 
@@ -45,7 +37,7 @@ struct IslandNavBar: View {
 
       HStack(spacing: 0) {
         Spacer(minLength: 0)
-        islandPillBody(colors: c, isExpanded: isExpanded, pillWidth: pillWidth, mode: mode)
+        islandPillBody(colors: c, isExpanded: isExpanded, pillWidth: pillWidth)
           .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
         Spacer(minLength: 0)
       }
@@ -66,8 +58,7 @@ struct IslandNavBar: View {
   private func islandPillBody(
     colors: AppThemeColors,
     isExpanded: Bool,
-    pillWidth: CGFloat,
-    mode: DockGlassMode
+    pillWidth: CGFloat
   ) -> some View {
     HStack(spacing: 0) {
       Group {
@@ -92,8 +83,7 @@ struct IslandNavBar: View {
     // Isola o conteúdo da ilha — sem isso o glass/live backdrop “arrasta” o scroll por baixo.
     .compositingGroup()
     .background {
-      IslandNavGlassShell(colors: colors, mode: mode)
-        .equatable()
+      IslandNavGlassShell(colors: colors)
     }
     .allowsHitTesting(false)
   }
@@ -204,19 +194,12 @@ enum IslandNavMetrics {
 
 // MARK: - Glass shell (isolado do conteúdo animado da ilha)
 
-private struct IslandNavGlassShell: View, Equatable {
+private struct IslandNavGlassShell: View {
   let colors: AppThemeColors
-  let mode: DockGlassMode
   private let pillShape = Capsule()
 
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.mode == rhs.mode
-      && lhs.colors.navBar == rhs.colors.navBar
-      && lhs.colors.textPrimary == rhs.colors.textPrimary
-  }
-
   var body: some View {
-    DockNavTrackShell(shape: pillShape, colors: colors, mode: mode)
+    DockNavTrackShell(shape: pillShape, colors: colors)
   }
 }
 

@@ -13,9 +13,14 @@ struct AppearanceView: View {
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @State private var stylePendingHide: HomeHeroStyle?
   /// Uma seção aberta por vez — accordion leve no padrão do app.
   @State private var expandedSection: AppearanceSectionID? = .theme
+  /// Mantém o `SubtaskExpandReveal` montado até o collapse terminar (evita ghost).
+  @State private var mountedSection: AppearanceSectionID? = .theme
+  @State private var accordionTeardownTask: _Concurrency.Task<Void, Never>?
 
   private var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(from: navBarStyleRaw)
@@ -75,13 +80,13 @@ struct AppearanceView: View {
         appearancePanel(
           id: .scrollFluidity,
           title: "Fluidez do scroll",
-          summary: alwaysFrozenDockGlass
-            ? "Navbar sem glass"
-            : (freezeDockGlassWhileScrolling ? "Glass pausado no scroll" : "Glass sempre ao vivo"),
-          footer: alwaysFrozenDockGlass
-            ? "Com “Navbar sem glass” ligada, o dock fica no fill estático o tempo todo — bom para comparar o visual. Desligue para voltar ao Liquid Glass."
-            : "Recomendado: pausar no scroll. Parado = Liquid Glass; ao rolar = fill estático. “Navbar sem glass” remove o vidro ao vivo por completo."
+          summary: scrollFluiditySummary,
+          footer: scrollFluidityFooter
         ) {
+          alwaysStaticGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          disableAllGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
           freezeDockGlassRow()
           SettingsCardDivider(leadingPadding: 56)
           alwaysFrozenDockGlassRow()
@@ -186,7 +191,7 @@ struct AppearanceView: View {
     }
   }
 
-  // MARK: - Accordion (ScrollView — animação de altura limpa)
+  // MARK: - Accordion (altura UIKit — paridade SubtaskExpandReveal)
 
   @ViewBuilder
   private func appearancePanel<Content: View>(
@@ -197,6 +202,7 @@ struct AppearanceView: View {
     @ViewBuilder content: @escaping () -> Content
   ) -> some View {
     let expanded = expandedSection == id
+    let mounted = mountedSection == id
     let c = theme.colors
 
     SettingsCardSurface {
@@ -207,47 +213,167 @@ struct AppearanceView: View {
           summary: summary,
           expanded: expanded
         ) {
-          HapticService.selection()
-          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-            if expanded {
-              expandedSection = nil
-            } else {
-              expandedSection = id
-            }
-          }
+          toggleAppearanceSection(id)
         }
 
-        if expanded {
-          VStack(spacing: 0) {
-            Rectangle()
-              .fill(c.surface.opacity(0.85))
-              .frame(height: 1)
-              .padding(.horizontal, SettingsChrome.rowPaddingH)
-
-            content()
-              .padding(.bottom, 4)
-
-            if let footer {
-              Text(footer)
-                .font(AppTypography.taskPreview)
-                .foregroundStyle(c.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        if mounted {
+          SubtaskExpandReveal(
+            expanded: expanded,
+            reduceMotion: reduceMotion,
+            layoutPass: 0,
+            contentRevision: appearancePanelRevision(id: id, summary: summary, footer: footer)
+          ) {
+            VStack(spacing: 0) {
+              Rectangle()
+                .fill(c.surface.opacity(0.85))
+                .frame(height: 1)
                 .padding(.horizontal, SettingsChrome.rowPaddingH)
-                .padding(.top, 4)
-                .padding(.bottom, 12)
+
+              content()
+                .padding(.bottom, 4)
+
+              if let footer {
+                Text(footer)
+                  .font(AppTypography.taskPreview)
+                  .foregroundStyle(c.textTertiary)
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .padding(.horizontal, SettingsChrome.rowPaddingH)
+                  .padding(.top, 4)
+                  .padding(.bottom, 12)
+              }
             }
           }
-          .transition(.opacity.combined(with: .move(edge: .top)))
         }
       }
     }
   }
 
+  private func appearancePanelRevision(id: AppearanceSectionID, summary: String, footer: String?) -> Int {
+    var hasher = Hasher()
+    hasher.combine(id)
+    hasher.combine(summary)
+    hasher.combine(footer)
+    return hasher.finalize()
+  }
+
+  private func toggleAppearanceSection(_ id: AppearanceSectionID) {
+    HapticService.selection()
+    if expandedSection == id {
+      collapseAppearanceSection(id)
+      return
+    }
+    if let previous = expandedSection, previous != id {
+      collapseAppearanceSection(previous)
+    }
+    openAppearanceSection(id)
+  }
+
+  private func openAppearanceSection(_ id: AppearanceSectionID) {
+    accordionTeardownTask?.cancel()
+    mountedSection = id
+    _Concurrency.Task { @MainActor in
+      await _Concurrency.Task.yield()
+      guard !_Concurrency.Task.isCancelled else { return }
+      AppMotion.animate(AppMotion.subtaskExpandSpring, reduceMotion: reduceMotion) {
+        expandedSection = id
+      }
+    }
+  }
+
+  private func collapseAppearanceSection(_ id: AppearanceSectionID) {
+    AppMotion.animate(AppMotion.subtaskCollapseSpring, reduceMotion: reduceMotion) {
+      if expandedSection == id {
+        expandedSection = nil
+      }
+    }
+    accordionTeardownTask?.cancel()
+    accordionTeardownTask = _Concurrency.Task { @MainActor in
+      let delayMs = reduceMotion ? 0 : 230
+      try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
+      guard !_Concurrency.Task.isCancelled else { return }
+      guard expandedSection != id else { return }
+      if mountedSection == id {
+        mountedSection = nil
+      }
+    }
+  }
+
+  private var scrollFluiditySummary: String {
+    if disableAllGlass { return "Glass desativado" }
+    if alwaysStaticGlass { return "Glass estático" }
+    if alwaysFrozenDockGlass { return "Navbar sem glass" }
+    return freezeDockGlassWhileScrolling ? "Glass pausado no scroll" : "Glass sempre ao vivo"
+  }
+
+  private var scrollFluidityFooter: String {
+    if disableAllGlass {
+      return "Fill sólido em todo o app — sem ver o que passa atrás. Use “Glass estático” se quiser translúcido sem morph."
+    }
+    if alwaysStaticGlass {
+      return "Dock, botões, FAB e headers no estilo do glass pausado: dá para ver atrás, sem Liquid Glass ao vivo."
+    }
+    if alwaysFrozenDockGlass {
+      return "Só o dock fica estático. “Glass estático” aplica o mesmo look (translúcido) em todo o chrome do app."
+    }
+    return "Recomendado: pausar no scroll. “Glass estático” = pausado o tempo todo em todo o app (vê atrás). “Desativar glass” = fill opaco."
+  }
+
   // MARK: - Rows
+
+  private func alwaysStaticGlassRow() -> some View {
+    let c = theme.colors
+    let dimmed = disableAllGlass
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Glass estático")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
+        Text("Como o glass pausado: vê atrás, sem morph ao vivo.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $alwaysStaticGlass, tint: c.accent)
+        .disabled(dimmed)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .opacity(dimmed ? 0.55 : 1)
+    .onChange(of: alwaysStaticGlass) { _, isOn in
+      HapticService.selection()
+      if isOn { disableAllGlass = false }
+    }
+  }
+
+  private func disableAllGlassRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Desativar glass")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Fill sólido em todo o app — sem ver por trás.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $disableAllGlass, tint: c.accent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: disableAllGlass) { _, isOn in
+      HapticService.selection()
+      if isOn { alwaysStaticGlass = false }
+    }
+  }
 
   private func freezeDockGlassRow() -> some View {
     let c = theme.colors
-    let dimmed = alwaysFrozenDockGlass
+    let dimmed = disableAllGlass || alwaysStaticGlass || alwaysFrozenDockGlass
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
@@ -273,22 +399,25 @@ struct AppearanceView: View {
 
   private func alwaysFrozenDockGlassRow() -> some View {
     let c = theme.colors
+    let dimmed = disableAllGlass || alwaysStaticGlass
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
         Text("Navbar sem glass")
           .font(AppTypography.settingsTitle)
-          .foregroundStyle(c.textPrimary)
-        Text("Mantém o dock no estilo estático, sem Liquid Glass ao vivo.")
+          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
+        Text("Só o dock no estilo estático (translúcido).")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
       SettingsSwitchToggle(isOn: $alwaysFrozenDockGlass, tint: c.accent)
+        .disabled(dimmed)
     }
     .frame(minHeight: 44)
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
+    .opacity(dimmed ? 0.55 : 1)
     .onChange(of: alwaysFrozenDockGlass) { _, _ in
       HapticService.selection()
     }
@@ -623,13 +752,9 @@ private struct AppearanceSectionHeader: View {
         ZStack {
           Circle()
             .fill(expanded ? c.accent.opacity(0.14) : c.surface)
-          StackedIcons.image(.chevronDown)
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(expanded ? c.accent : c.textTertiary)
-            .rotationEffect(.degrees(expanded ? 0 : -90))
+          SubtaskExpandChevron(expanded: expanded, size: 11)
         }
         .frame(width: 28, height: 28)
-        .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: expanded)
       }
       .padding(.horizontal, SettingsChrome.rowPaddingH)
       .padding(.vertical, 13)

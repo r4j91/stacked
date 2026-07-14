@@ -6,7 +6,8 @@ struct ExpandedNavBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
@@ -15,18 +16,22 @@ struct ExpandedNavBar: View {
   private let tabs = NavTab.allCases
   private let pillShape = RoundedRectangle(cornerRadius: 32)
 
-  var body: some View {
-    let mode = chrome.dockGlassMode(
+  private var useSolidChrome: Bool {
+    GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      freezeWhileScrolling: freezeDockGlassWhileScrolling,
-      alwaysFrozen: alwaysFrozenDockGlass
+      disableAllGlass: disableAllGlass
     )
-    // PERF_FASEB3_3A — um único body para live/frozen.
-    switch mode {
-    case .live, .frozen:
-      glassShellPillBody(mode: mode)
-    case .solid:
+  }
+
+  private var useStaticIndicator: Bool {
+    useSolidChrome || alwaysStaticGlass || alwaysFrozenDockGlass
+  }
+
+  var body: some View {
+    if useSolidChrome {
       solidPillBody
+    } else {
+      glassShellPillBody
     }
   }
 
@@ -74,7 +79,7 @@ struct ExpandedNavBar: View {
   @ViewBuilder
   private func activeCapsule(colors: AppThemeColors) -> some View {
     Group {
-      if reduceTransparency {
+      if useStaticIndicator {
         Capsule()
           .fill(activeCapsuleSolidFill(colors: colors))
           .overlay {
@@ -114,14 +119,14 @@ struct ExpandedNavBar: View {
 
   // MARK: - Shell glass (paridade BottomNavPill — não recriar tratamento)
 
-  private func glassShellPillBody(mode: DockGlassMode) -> some View {
+  private var glassShellPillBody: some View {
     let c = theme.colors
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
       .compositingGroup()
       .background {
-        DockNavTrackShell(shape: pillShape, colors: c, mode: mode)
+        DockNavTrackShell(shape: pillShape, colors: c)
           .allowsHitTesting(false)
       }
   }

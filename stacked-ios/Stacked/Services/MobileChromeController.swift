@@ -57,16 +57,25 @@ final class MobileChromeController {
     )
   }
 
-  /// Glass ao vivo vs congelado vs sólido (reduce transparency).
+  /// Glass ao vivo vs congelado vs sólido (reduce transparency / kill switch).
   func dockGlassMode(
     reduceTransparency: Bool,
     freezeWhileScrolling: Bool? = nil,
-    alwaysFrozen: Bool? = nil
+    alwaysFrozen: Bool? = nil,
+    disableAllGlass: Bool? = nil,
+    alwaysStaticGlass: Bool? = nil
   ) -> DockGlassMode {
-    if reduceTransparency { return .solid }
+    if GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      disableAllGlass: disableAllGlass
+    ) {
+      return .solid
+    }
     // PERF_FASEB3_ETAPA2 T1 — sem reação ao scroll (permanece live).
     if ScrollPerfDebugStorage.t1ChromeStatic { return .live }
-    let always = alwaysFrozen ?? AlwaysFrozenDockGlassStorage.isEnabled
+    let always =
+      (alwaysFrozen ?? AlwaysFrozenDockGlassStorage.isEnabled)
+      || GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
     if always { return .frozen }
     let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
     if freeze, isContentScrolling {

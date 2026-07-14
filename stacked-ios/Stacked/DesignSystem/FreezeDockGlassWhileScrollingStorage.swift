@@ -19,3 +19,35 @@ enum AlwaysFrozenDockGlassStorage {
     UserDefaults.standard.object(forKey: key) as? Bool ?? false
   }
 }
+
+/// Aparência — desliga Liquid Glass em todo o app (dock, toolbar, FAB, headers, popovers).
+enum DisableAllGlassStorage {
+  static let key = "disableAllGlass"
+
+  /// Desligado por padrão. Ligado = fill sólido (mesmo path do reduce transparency).
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+  }
+}
+
+/// Aparência — glass “pausado” em todo o app: vê atrás, sem Liquid Glass ao vivo / morph.
+enum AlwaysStaticGlassStorage {
+  static let key = "alwaysStaticGlass"
+
+  /// Desligado por padrão. Ligado = fill estático translúcido (igual freeze do dock).
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+  }
+}
+
+enum GlassChromePreference {
+  /// Sólido quando a11y pede ou o usuário desativou o glass.
+  static func prefersSolid(reduceTransparency: Bool, disableAllGlass: Bool? = nil) -> Bool {
+    reduceTransparency || (disableAllGlass ?? DisableAllGlassStorage.isEnabled)
+  }
+
+  /// Fill estático translúcido (sem glassEffect) — dock + botões/headers.
+  static func prefersStaticFrozen(alwaysStaticGlass: Bool? = nil) -> Bool {
+    alwaysStaticGlass ?? AlwaysStaticGlassStorage.isEnabled
+  }
+}

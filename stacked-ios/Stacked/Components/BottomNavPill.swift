@@ -6,8 +6,7 @@ struct BottomNavPill: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
-  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @Binding var selectedTab: NavTab
 
   @Namespace private var blobNamespace
@@ -17,18 +16,18 @@ struct BottomNavPill: View {
   private let pillShape = RoundedRectangle(cornerRadius: 32)
   private let indicatorCornerRadius: CGFloat = 28
 
-  var body: some View {
-    let mode = chrome.dockGlassMode(
+  private var useSolidChrome: Bool {
+    GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      freezeWhileScrolling: freezeDockGlassWhileScrolling,
-      alwaysFrozen: alwaysFrozenDockGlass
+      disableAllGlass: disableAllGlass
     )
-    // PERF_FASEB3_3A — um único body para live/frozen.
-    switch mode {
-    case .live, .frozen:
-      glassShellPillBody(mode: mode)
-    case .solid:
+  }
+
+  var body: some View {
+    if useSolidChrome {
       solidPillBody
+    } else {
+      glassShellPillBody
     }
   }
 
@@ -93,16 +92,12 @@ struct BottomNavPill: View {
   // MARK: - Shell glass
 
   private var glassShellPillBody: some View {
-    glassShellPillBody(mode: .live)
-  }
-
-  private func glassShellPillBody(mode: DockGlassMode) -> some View {
     let c = theme.colors
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
       .background {
-        DockNavTrackShell(shape: pillShape, colors: c, mode: mode)
+        DockNavTrackShell(shape: pillShape, colors: c)
           .allowsHitTesting(false)
       }
   }

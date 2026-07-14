@@ -27,7 +27,8 @@ private struct TaskDetailCover<Content: View>: View {
 
   var body: some View {
     let base = content()
-      .background(theme.colors.background.ignoresSafeArea())
+      // Um único fundo de apresentação — double background + zoom gerava “ghost” no dismiss.
+      .presentationBackground(theme.colors.background)
 
     if reduceMotion {
       base
@@ -49,16 +50,52 @@ private struct MatchedTransitionSourceModifier<ID: Hashable>: ViewModifier {
   }
 }
 
-extension View {
-  /// Zoom source só na row que abre o detalhe.
-  /// Registrar em todas as cells idle faz o List deslocar o texto no 1º frame do scroll.
-  @ViewBuilder
-  func taskDetailZoomSource(id: String, namespace: Namespace.ID, active: Bool = true) -> some View {
-    if active {
-      modifier(TaskDetailZoom.source(id: id, namespace: namespace))
-    } else {
-      self
+/// Source só na row armada (idle sem custo).
+///
+/// Não desmonta no dismiss — o detach tardio (~480ms) era o “ghost” rápido ao fechar.
+/// Limpa só quando a cell sai da hierarquia (`onDisappear`) e não está ativa.
+private struct StickyTaskDetailZoomSourceModifier: ViewModifier {
+  let id: String
+  let namespace: Namespace.ID
+  let active: Bool
+
+  @State private var attached = false
+
+  func body(content: Content) -> some View {
+    Group {
+      if attached {
+        content.modifier(TaskDetailZoom.source(id: id, namespace: namespace))
+      } else {
+        content
+      }
     }
+    .onAppear {
+      if active { attached = true }
+    }
+    .onChange(of: active) { _, isActive in
+      if isActive {
+        attached = true
+      }
+      // active == false no dismiss: mantém `attached` para o morph terminar limpo.
+    }
+    .onDisappear {
+      guard !active else { return }
+      var transaction = Transaction()
+      transaction.disablesAnimations = true
+      withTransaction(transaction) {
+        attached = false
+      }
+    }
+  }
+}
+
+extension View {
+  /// Source do zoom na TaskRow.
+  ///
+  /// `active: true` na row que abre o detalhe. Idle = sem source (scroll mais leve).
+  /// Após abrir, o source fica até a cell sair da tela — evita ghost no fechar.
+  func taskDetailZoomSource(id: String, namespace: Namespace.ID, active: Bool = true) -> some View {
+    modifier(StickyTaskDetailZoomSourceModifier(id: id, namespace: namespace, active: active))
   }
 }
 

@@ -11,10 +11,33 @@ enum TaskContextLift {
   static let shadowY: CGFloat = 5
 }
 
-private enum TaskContextLiftPhase: Equatable {
+enum TaskContextLiftPhase: Equatable {
   case normal
   case pressing
   case menuOpen
+}
+
+/// Estado compartilhado — lift/âncora só no header da TaskRow (não escala subtarefas abertas).
+@MainActor
+@Observable
+final class TaskContextMenuModel {
+  var liftPhase: TaskContextLiftPhase = .normal
+  var needsAnchorReader = false
+  var anchorFrame: CGRect = .zero
+  var anchorCaptureGeneration = 0
+
+  var isLifted: Bool { liftPhase != .normal }
+}
+
+private struct TaskContextMenuModelKey: EnvironmentKey {
+  static let defaultValue: TaskContextMenuModel? = nil
+}
+
+extension EnvironmentValues {
+  var taskContextMenuModel: TaskContextMenuModel? {
+    get { self[TaskContextMenuModelKey.self] }
+    set { self[TaskContextMenuModelKey.self] = newValue }
+  }
 }
 
 // Paridade lib/widgets/task_context_menu.dart
@@ -28,66 +51,27 @@ struct TaskContextMenu: ViewModifier {
   var onDelete: () -> Void
   var onRefresh: () -> Void
 
-  @State private var anchorFrame: CGRect = .zero
-  @State private var anchorCaptureGeneration = 0
-  @State private var liftPhase: TaskContextLiftPhase = .normal
-  /// PERF_FASEB2_ETAPA4: UIViewRepresentable só após long-press — zero custo no scroll idle.
-  @State private var needsAnchorReader = false
+  @State private var model = TaskContextMenuModel()
 
   func body(content: Content) -> some View {
+    // Lift/âncora ficam no header via `taskContextMenuLiftHost` — evita bug com subtarefas abertas.
     content
-      .background {
-        // PERF_FASEB2_ETAPA4: OnDemandScreenBoundsReader sempre no background de cada célula.
-        // OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
-        //   .frame(maxWidth: .infinity, maxHeight: .infinity)
-        //   .allowsHitTesting(false)
-        if needsAnchorReader {
-          OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .allowsHitTesting(false)
-        }
-      }
-      .scaleEffect(liftScale)
-      .offset(y: liftOffset)
-      .shadow(
-        color: .black.opacity(isLifted && !reduceMotion ? TaskContextLift.shadowOpacity : 0),
-        radius: isLifted && !reduceMotion ? TaskContextLift.shadowRadius : 0,
-        y: isLifted && !reduceMotion ? TaskContextLift.shadowY : 0
-      )
-      .zIndex(isLifted ? 1 : 0)
-      .animation(isLifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: liftPhase)
-      // TaskRow usa long-press exclusivo antes do tap na área de conteúdo; aqui só expõe a ação.
+      .environment(\.taskContextMenuModel, model)
       .environment(\.openTaskContextMenu, { openContextMenu(at: $0) })
-  }
-
-  private var isLifted: Bool {
-    liftPhase != .normal
-  }
-
-  private var liftScale: CGFloat {
-    guard !reduceMotion, isLifted else { return 1 }
-    return TaskContextLift.scale
-  }
-
-  private var liftOffset: CGFloat {
-    guard !reduceMotion, isLifted else { return 0 }
-    return TaskContextLift.offsetY
   }
 
   private func openContextMenu(at pressLocation: CGPoint? = nil) {
     HapticService.prepareContextMenu()
     HapticService.medium()
-    // Instala o reader antes do yield de captura.
-    needsAnchorReader = true
+    model.needsAnchorReader = true
     AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-      liftPhase = .menuOpen
+      model.liftPhase = .menuOpen
     }
     // CTXMENU_ANCHOR_FIX: zera frame da abertura anterior (evita menu "preso" na 1ª tarefa).
-    anchorFrame = .zero
-    let generation = anchorCaptureGeneration + 1
-    anchorCaptureGeneration = generation
+    model.anchorFrame = .zero
+    let generation = model.anchorCaptureGeneration + 1
+    model.anchorCaptureGeneration = generation
     _Concurrency.Task { @MainActor in
-      // Espera rect válido desta geração (2 yields não bastavam pós-scroll).
       var resolved = CGRect.zero
       for attempt in 0..<16 {
         if attempt > 0 {
@@ -96,14 +80,13 @@ struct TaskContextMenu: ViewModifier {
           await _Concurrency.Task.yield()
           await _Concurrency.Task.yield()
         }
-        guard generation == anchorCaptureGeneration else { return }
-        if anchorFrame.isValidAnchor {
-          resolved = anchorFrame
+        guard generation == model.anchorCaptureGeneration else { return }
+        if model.anchorFrame.isValidAnchor {
+          resolved = model.anchorFrame
           break
         }
       }
-      guard generation == anchorCaptureGeneration else { return }
-      // Fallback: ponto do long-press em coordenadas globais.
+      guard generation == model.anchorCaptureGeneration else { return }
       if !resolved.isValidAnchor, let pressLocation {
         resolved = CGRect(x: pressLocation.x - 22, y: pressLocation.y - 22, width: 44, height: 44)
       }
@@ -115,8 +98,9 @@ struct TaskContextMenu: ViewModifier {
         preferAbove: preferAbove
       ) { result in
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-          liftPhase = .normal
+          model.liftPhase = .normal
         }
+        model.needsAnchorReader = false
         guard let result else { return }
         handle(result)
       }
@@ -218,6 +202,44 @@ struct TaskContextMenu: ViewModifier {
   }
 }
 
+/// Aplica lift + reader de âncora só no header da tarefa.
+struct TaskContextMenuLiftHost: ViewModifier {
+  @Environment(\.taskContextMenuModel) private var model
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if let model {
+      let lifted = model.isLifted
+      content
+        .background {
+          if model.needsAnchorReader {
+            OnDemandScreenBoundsReader(
+              captureGeneration: model.anchorCaptureGeneration,
+              rect: Binding(
+                get: { model.anchorFrame },
+                set: { model.anchorFrame = $0 }
+              )
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+          }
+        }
+        .scaleEffect(!reduceMotion && lifted ? TaskContextLift.scale : 1)
+        .offset(y: !reduceMotion && lifted ? TaskContextLift.offsetY : 0)
+        .shadow(
+          color: .black.opacity(!reduceMotion && lifted ? TaskContextLift.shadowOpacity : 0),
+          radius: !reduceMotion && lifted ? TaskContextLift.shadowRadius : 0,
+          y: !reduceMotion && lifted ? TaskContextLift.shadowY : 0
+        )
+        .zIndex(lifted ? 1 : 0)
+        .animation(lifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: model.liftPhase)
+    } else {
+      content
+    }
+  }
+}
+
 // SUBSTITUIDO_FASE4A: onLongPressGesture(0.45) sem lift + HapticService.light()
 // .onLongPressGesture(minimumDuration: 0.45) {
 //   HapticService.light()
@@ -252,5 +274,10 @@ extension View {
       onDelete: onDelete,
       onRefresh: onRefresh
     ))
+  }
+
+  /// Lift/âncora do menu — aplicar no header da TaskRow, não na row inteira.
+  func taskContextMenuLiftHost() -> some View {
+    modifier(TaskContextMenuLiftHost())
   }
 }

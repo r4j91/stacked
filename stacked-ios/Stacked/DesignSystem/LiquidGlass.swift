@@ -120,6 +120,8 @@ enum LiquidGlass {
 
 private struct GlassSurface<S: InsettableShape, Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
 
   let navBarColor: Color
   let shape: S
@@ -135,10 +137,26 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
     self.content = content()
   }
 
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      disableAllGlass: disableAllGlass
+    )
+  }
+
+  private var useStaticFrozen: Bool {
+    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+  }
+
   var body: some View {
-    if reduceTransparency {
+    if useSolid {
       content
         .background(shape.fill(navBarColor))
+        .clipShape(shape)
+    } else if useStaticFrozen {
+      // Mesmo look do dock congelado: translúcido, sem glassEffect.
+      content
+        .background(shape.fill(navBarColor.opacity(LiquidGlass.frozenTrackOpacity)))
         .clipShape(shape)
     } else {
       content
@@ -158,6 +176,8 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
 
 private struct PopoverCardSurface<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
 
   let navBarColor: Color
   let cornerRadius: CGFloat
@@ -173,6 +193,19 @@ private struct PopoverCardSurface<Content: View>: View {
     self.content = content()
   }
 
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      disableAllGlass: disableAllGlass
+    )
+  }
+
+  private var useStaticFrozen: Bool {
+    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+  }
+
+  private var suppressShadow: Bool { useSolid || useStaticFrozen }
+
   var body: some View {
     GlassSurface(
       navBarColor: navBarColor,
@@ -184,9 +217,9 @@ private struct PopoverCardSurface<Content: View>: View {
         .strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
     }
     .shadow(
-      color: .black.opacity(reduceTransparency ? 0 : PopoverStyle.cardShadowOpacity),
-      radius: reduceTransparency ? 0 : PopoverStyle.cardShadowRadius,
-      y: reduceTransparency ? 0 : PopoverStyle.cardShadowY
+      color: .black.opacity(suppressShadow ? 0 : PopoverStyle.cardShadowOpacity),
+      radius: suppressShadow ? 0 : PopoverStyle.cardShadowRadius,
+      y: suppressShadow ? 0 : PopoverStyle.cardShadowY
     )
   }
 }
@@ -194,6 +227,8 @@ private struct PopoverCardSurface<Content: View>: View {
 private struct FabGlassSurface<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
 
   let tintColor: Color
   let solidFallback: Color
@@ -213,11 +248,28 @@ private struct FabGlassSurface<Content: View>: View {
     theme.colors.textPrimary.opacity(0.08)
   }
 
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      disableAllGlass: disableAllGlass
+    )
+  }
+
+  private var useStaticFrozen: Bool {
+    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+  }
+
   var body: some View {
-    if reduceTransparency {
+    if useSolid {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Circle().fill(solidFallback))
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
+    } else if useStaticFrozen {
+      content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Circle().fill(tintColor.opacity(LiquidGlass.frozenTrackOpacity)))
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else {
@@ -241,6 +293,8 @@ private struct FabGlassSurface<Content: View>: View {
 
 private struct ToolbarGlassPill<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
 
   let navBarColor: Color
   let content: Content
@@ -250,13 +304,26 @@ private struct ToolbarGlassPill<Content: View>: View {
     self.content = content()
   }
 
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      disableAllGlass: disableAllGlass
+    )
+  }
+
+  private var useStaticFrozen: Bool {
+    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+  }
+
   var body: some View {
     let padded = content
       .padding(.horizontal, 14)
       .padding(.vertical, 7)
 
-    if reduceTransparency {
+    if useSolid {
       padded.background(Capsule().fill(navBarColor))
+    } else if useStaticFrozen {
+      padded.background(Capsule().fill(navBarColor.opacity(LiquidGlass.frozenTrackOpacity)))
     } else {
       padded.glassEffect(
         .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),

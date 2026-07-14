@@ -6,7 +6,8 @@ struct ClassicNavBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
@@ -18,23 +19,24 @@ struct ClassicNavBar: View {
   private let pillShape = RoundedRectangle(cornerRadius: 32)
   private let indicatorCornerRadius: CGFloat = ClassicNavGlassLayout.indicatorCornerRadius
 
-  var body: some View {
-    let mode = chrome.dockGlassMode(
+  private var useSolidChrome: Bool {
+    GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      freezeWhileScrolling: freezeDockGlassWhileScrolling,
-      alwaysFrozen: alwaysFrozenDockGlass
+      disableAllGlass: disableAllGlass
     )
-    // PERF_FASEB3_3A — um único body para live/frozen (evita recriar pill no freeze).
-    // switch mode {
-    // case .live: glassShellPillBody(mode: .live)
-    // case .frozen: glassShellPillBody(mode: .frozen)
-    // case .solid: solidPillBody
-    // }
-    switch mode {
-    case .live, .frozen:
-      glassShellPillBody(mode: mode)
-    case .solid:
+  }
+
+  /// Sem lente glassEffect no indicador quando o trilho já está estático/sólido.
+  private var useStaticIndicator: Bool {
+    useSolidChrome || alwaysStaticGlass || alwaysFrozenDockGlass
+  }
+
+  var body: some View {
+    // live/frozen resolvidos dentro de DockNavTrackShell — pai não lê isContentScrolling.
+    if useSolidChrome {
       solidPillBody
+    } else {
+      glassShellPillBody
     }
   }
 
@@ -69,7 +71,7 @@ struct ClassicNavBar: View {
 
   @ViewBuilder
   private func selectionIndicator(colors: AppThemeColors) -> some View {
-    if reduceTransparency {
+    if useStaticIndicator {
       selectionBlobSolid(colors: colors)
     } else {
       ClassicNavBarGlassIndicator(
@@ -98,7 +100,7 @@ struct ClassicNavBar: View {
     .animation(indicatorLayerAnimation, value: selectedTab)
     .allowsHitTesting(false)
 
-    if ClassicNavGlassPhase.morphEnabled, !reduceTransparency {
+    if ClassicNavGlassPhase.morphEnabled, !useStaticIndicator {
       GlassEffectContainer(spacing: ClassicNavGlassLayout.containerSpacing) {
         row
       }
@@ -137,14 +139,14 @@ struct ClassicNavBar: View {
 
   // MARK: - Shell glass (trilho — paridade BottomNavPill)
 
-  private func glassShellPillBody(mode: DockGlassMode) -> some View {
+  private var glassShellPillBody: some View {
     let c = theme.colors
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
       .compositingGroup()
       .background {
-        DockNavTrackShell(shape: pillShape, colors: c, mode: mode)
+        DockNavTrackShell(shape: pillShape, colors: c)
           .allowsHitTesting(false)
       }
   }
