@@ -98,7 +98,7 @@ struct LogbookView: View {
       }
     )
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .opacity(0.85)
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

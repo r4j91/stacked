@@ -3,8 +3,11 @@ import SwiftUI
 // Navbar mobile — shell glass iOS 26; blob sólido (Todoist) atrás dos ícones + matchedGeometryEffect.
 struct BottomNavPill: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
   @Namespace private var blobNamespace
@@ -15,10 +18,17 @@ struct BottomNavPill: View {
   private let indicatorCornerRadius: CGFloat = 28
 
   var body: some View {
-    if reduceTransparency {
+    let mode = chrome.dockGlassMode(
+      reduceTransparency: reduceTransparency,
+      freezeWhileScrolling: freezeDockGlassWhileScrolling,
+      alwaysFrozen: alwaysFrozenDockGlass
+    )
+    // PERF_FASEB3_3A — um único body para live/frozen.
+    switch mode {
+    case .live, .frozen:
+      glassShellPillBody(mode: mode)
+    case .solid:
       solidPillBody
-    } else {
-      glassShellPillBody
     }
   }
 
@@ -83,24 +93,16 @@ struct BottomNavPill: View {
   // MARK: - Shell glass
 
   private var glassShellPillBody: some View {
+    glassShellPillBody(mode: .live)
+  }
+
+  private func glassShellPillBody(mode: DockGlassMode) -> some View {
     let c = theme.colors
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
       .background {
-        pillShape
-          .fill(.clear)
-          .glassEffect(
-            .regular.tint(c.navBar.opacity(LiquidGlass.navTrackTintOpacity)),
-            in: pillShape
-          )
-          .clipShape(pillShape)
-          .overlay {
-            pillShape.strokeBorder(
-              c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-              lineWidth: LiquidGlass.navSelectionStrokeWidth
-            )
-          }
+        DockNavTrackShell(shape: pillShape, colors: c, mode: mode)
           .allowsHitTesting(false)
       }
   }

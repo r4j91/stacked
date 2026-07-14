@@ -10,6 +10,8 @@ enum NotesMarkup {
   /// Segmenta o texto em trechos normais / negrito (`*...*` em linha).
   static func runs(in source: String) -> [Run] {
     guard !source.isEmpty else { return [] }
+    // Hot path das TaskRows: a maioria das descrições não tem markup.
+    guard source.contains("*") else { return [.plain(source)] }
     let pattern = #"\*([^*\n]+)\*"#
     guard let regex = try? NSRegularExpression(pattern: pattern) else {
       return [.plain(source)]

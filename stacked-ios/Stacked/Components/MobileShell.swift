@@ -105,6 +105,8 @@ private struct BottomChromeBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  /// PERF_FASEB3_ETAPA2 T3 — desligado do path ativo (3A).
+  // @AppStorage(ScrollPerfDebugStorage.t3ChromeHiddenKey) private var t3ChromeHidden = false
   let safeBottom: CGFloat
   let pillBottom: CGFloat
   let fabBottom: CGFloat
@@ -142,5 +144,7 @@ private struct BottomChromeBar: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     }
     .frame(width: size.width, height: size.height, alignment: .bottom)
+    // PERF_FASEB3_3A — T3 opacity removido do path ativo.
+    // .opacity(t3ChromeHidden ? 0 : 1)
   }
 }

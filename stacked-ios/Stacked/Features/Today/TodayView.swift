@@ -5,6 +5,9 @@ struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
+  /// PERF_FASEB3_3A — T2 desligado do path ativo (sempre false via ScrollPerfDebugStorage).
+  // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
+  private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
   @State private var store = TaskStore.shared
   @State private var router = AppNavigationRouter.shared
   @State private var completedExpanded = false
@@ -113,7 +116,11 @@ struct TodayView: View {
     .background(c.background)
     .refreshable { await store.loadToday() }
     .stackedListRowWorkGate($allowRowHeavyWork)
-    .onAppear { openPendingTaskIfNeeded() }
+    .onAppear {
+      // PERF_FASEB3_ETAPA1
+      ScrollHitchProbe.noteScreen("Hoje")
+      openPendingTaskIfNeeded()
+    }
     .onChange(of: router.pendingTaskId) { _, _ in openPendingTaskIfNeeded() }
     .fullScreenCover(item: $detailRoute, onDismiss: {
       _Concurrency.Task {
@@ -174,33 +181,42 @@ struct TodayView: View {
 
   @ViewBuilder
   private func taskRow(_ task: Task) -> some View {
-    TaskRow(
-      task: task,
-      deferHeavyWork: !allowRowHeavyWork,
-      onToggle: {
-      store.completeToday(task)
-    }, onTap: {
-      detailRoute = TaskDetailRoute(taskId: task.id)
-    }, onSubtaskTap: { sub in
-      subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-    }, onSubtaskChanged: { snapshot in
-      store.applySubtaskPatch(snapshot)
-    }, onSubtaskDeleted: { sub in
-      store.removeSubtask(parentId: task.id, subtask: sub)
-    })
-    .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-    .taskCompleteRemovalTransition()
-    .listRowInsets(rowInsets)
-    .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
-    .taskContextMenu(
-      task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-      onComplete: { store.completeToday(task) },
-      onDuplicate: { store.duplicateToday(task) },
-      onDelete: { store.deleteToday(task) },
-      onRefresh: { _Concurrency.Task { await store.loadToday() } }
-    )
+    // PERF_FASEB3_ETAPA2 T2
+    if t2RowsPlaceholder {
+      TaskRowScrollPlaceholder(task: task, showProject: true, style: .card)
+        .id(task.id)
+        .listRowInsets(rowInsets)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    } else {
+      TaskRow(
+        task: task,
+        deferHeavyWork: !allowRowHeavyWork,
+        onToggle: {
+        store.completeToday(task)
+      }, onTap: {
+        detailRoute = TaskDetailRoute(taskId: task.id)
+      }, onSubtaskTap: { sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      }, onSubtaskChanged: { snapshot in
+        store.applySubtaskPatch(snapshot)
+      }, onSubtaskDeleted: { sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
+      })
+      .id(task.id)
+      .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
+      .taskCompleteRemovalTransition()
+      .listRowInsets(rowInsets)
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+      .taskContextMenu(
+        task: task,
+        onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+        onComplete: { store.completeToday(task) },
+        onDuplicate: { store.duplicateToday(task) },
+        onDelete: { store.deleteToday(task) },
+        onRefresh: { _Concurrency.Task { await store.loadToday() } }
+      )
+    }
   }
 }

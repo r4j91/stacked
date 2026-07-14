@@ -17,6 +17,8 @@ enum LiquidGlass {
   /// Tint do blob glass — mais opaco que o trilho para ler seleção + morph líquido.
   static let navBlobTintOpacity: CGFloat = 0.32
   static let navSelectionStrokeWidth: CGFloat = 0.75
+  /// Fill estático no freeze — parece glass pausado, sem amostrar a lista.
+  static let frozenTrackOpacity: CGFloat = 0.88
 
   @ViewBuilder
   static func navBarPill<Content: View>(

@@ -7,6 +7,10 @@ struct NetLogDebugView: View {
   @State private var entries: [NetLog.Entry] = []
   @State private var copied = false
   @AppStorage("net.log.skip.reload.delay") private var skipReloadDelay = false
+  // PERF_FASEB3 — seções de hitch/T0/legado removidas da UI; T0 fica em Aparência.
+  // @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var t0FreezeDockGlass = true
+  // @AppStorage(DockGlassFreezeLegacyStorage.key) private var legacyGlassSwitch = false
+  // @State private var hitchSamples: [ScrollHitchProbe.Sample] = []
 
   var body: some View {
     let c = theme.colors

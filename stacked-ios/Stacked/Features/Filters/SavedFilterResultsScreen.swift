@@ -7,6 +7,7 @@ struct SavedFilterResultsScreen: View {
   let initialPending: [FilterResultItem]
   let initialCompleted: [FilterResultItem]
   let taskDetailNamespace: Namespace.ID
+  var activeZoomTaskId: String? = nil
   let onTaskTap: (String) -> Void
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
   let onEditFilter: (SavedFilter) -> Void
@@ -22,6 +23,7 @@ struct SavedFilterResultsScreen: View {
     initialPending: [FilterResultItem],
     initialCompleted: [FilterResultItem],
     taskDetailNamespace: Namespace.ID,
+    activeZoomTaskId: String? = nil,
     onTaskTap: @escaping (String) -> Void,
     onSubtaskTap: @escaping (SubtaskDetailRoute) -> Void,
     onEditFilter: @escaping (SavedFilter) -> Void
@@ -30,6 +32,7 @@ struct SavedFilterResultsScreen: View {
     self.initialPending = initialPending
     self.initialCompleted = initialCompleted
     self.taskDetailNamespace = taskDetailNamespace
+    self.activeZoomTaskId = activeZoomTaskId
     self.onTaskTap = onTaskTap
     self.onSubtaskTap = onSubtaskTap
     self.onEditFilter = onEditFilter
@@ -228,7 +231,7 @@ struct SavedFilterResultsScreen: View {
       }
     )
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailNamespace)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailNamespace, active: activeZoomTaskId == task.id)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

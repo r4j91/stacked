@@ -13,8 +13,29 @@ final class MobileChromeController {
   var pressedTab: NavTab?
   /// Fase 3 — ilha expansível (estilo Dynamic Island).
   var islandNavExpanded = false
+  /// Lista principal em scroll — dock pode congelar o glass ao vivo.
+  var isContentScrolling = false
+
+  private var scrollIdleTask: _Concurrency.Task<Void, Never>?
 
   private init() {}
+
+  /// Atualiza flag de scroll; no idle espera um tick para não piscar o glass no fim do fling.
+  func setContentScrolling(_ scrolling: Bool) {
+    scrollIdleTask?.cancel()
+    scrollIdleTask = nil
+    if scrolling {
+      if !isContentScrolling {
+        isContentScrolling = true
+      }
+      return
+    }
+    scrollIdleTask = _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: .milliseconds(120))
+      guard !_Concurrency.Task.isCancelled else { return }
+      isContentScrolling = false
+    }
+  }
 
   var fabIntegratedInIsland: Bool {
     FabIntegratedInIslandStorage.isEnabled
@@ -34,6 +55,24 @@ final class MobileChromeController {
       from: UserDefaults.standard.string(forKey: NavBarStyleStorage.key)
         ?? NavBarStyleStorage.defaultRawValue
     )
+  }
+
+  /// Glass ao vivo vs congelado vs sólido (reduce transparency).
+  func dockGlassMode(
+    reduceTransparency: Bool,
+    freezeWhileScrolling: Bool? = nil,
+    alwaysFrozen: Bool? = nil
+  ) -> DockGlassMode {
+    if reduceTransparency { return .solid }
+    // PERF_FASEB3_ETAPA2 T1 — sem reação ao scroll (permanece live).
+    if ScrollPerfDebugStorage.t1ChromeStatic { return .live }
+    let always = alwaysFrozen ?? AlwaysFrozenDockGlassStorage.isEnabled
+    if always { return .frozen }
+    let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
+    if freeze, isContentScrolling {
+      return .frozen
+    }
+    return .live
   }
 
   func expandIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
@@ -110,4 +149,11 @@ final class MobileChromeController {
   func closeFabMenu() {
     fabOpen = false
   }
+}
+
+enum DockGlassMode: Equatable {
+  case live
+  /// Glass “pausado”: fill estático (sem amostrar a lista ao vivo).
+  case frozen
+  case solid
 }

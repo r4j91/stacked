@@ -43,6 +43,7 @@ struct FiltersView: View {
           PresetFilterResultsScreen(
             kind: kind,
             taskDetailNamespace: taskDetailZoom,
+            activeZoomTaskId: detailRoute?.taskId,
             onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
             onSubtaskTap: { subtaskDetailRoute = $0 }
           )
@@ -53,6 +54,7 @@ struct FiltersView: View {
             initialPending: store.cachedPendingResults(for: route.filter.id),
             initialCompleted: store.cachedCompletedResults(for: route.filter.id),
             taskDetailNamespace: taskDetailZoom,
+            activeZoomTaskId: detailRoute?.taskId,
             onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
             onSubtaskTap: { subtaskDetailRoute = $0 },
             onEditFilter: { filter in

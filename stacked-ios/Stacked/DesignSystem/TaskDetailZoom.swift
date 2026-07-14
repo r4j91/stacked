@@ -42,13 +42,23 @@ private struct MatchedTransitionSourceModifier<ID: Hashable>: ViewModifier {
   let namespace: Namespace.ID
 
   func body(content: Content) -> some View {
-    content.matchedTransitionSource(id: id, in: namespace)
+    content.matchedTransitionSource(id: id, in: namespace) { config in
+      // Clip estável no source — evita o sistema re-medir o texto da row no morph.
+      config.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
   }
 }
 
 extension View {
-  func taskDetailZoomSource(id: String, namespace: Namespace.ID) -> some View {
-    modifier(TaskDetailZoom.source(id: id, namespace: namespace))
+  /// Zoom source só na row que abre o detalhe.
+  /// Registrar em todas as cells idle faz o List deslocar o texto no 1º frame do scroll.
+  @ViewBuilder
+  func taskDetailZoomSource(id: String, namespace: Namespace.ID, active: Bool = true) -> some View {
+    if active {
+      modifier(TaskDetailZoom.source(id: id, namespace: namespace))
+    } else {
+      self
+    }
   }
 }
 

@@ -42,29 +42,33 @@ struct ListTailSpacer: View {
 
 extension View {
   /// iOS 26 — remove fade/blur tardio nas bordas do scroll (`.soft` padrão do sistema).
-  /// `.hard` = corte limpo no topo e na base (dock customizado, sem fade atrasado).
+  /// Só `.hard` na base em todo o app: `.hard` no topo desloca o texto no 1º frame do scroll.
   func stackedScrollEdgeChrome() -> some View {
     self
-      .scrollEdgeEffectStyle(.hard, for: .top)
       .scrollEdgeEffectStyle(.hard, for: .bottom)
+      .stackedReportListScrollForDockGlass()
   }
 
   /// Padding inferior para listas — paridade bottomListInset (sem duplicar ListTailSpacer).
+  /// Só `.hard` na base: `.hard` no topo (iOS 26) “arma” no 1º drag e desloca o texto.
+  /// Mesmo padrão do dashboard — abas Hoje/Inbox/Em breve ficam estáveis no início do scroll.
   func stackedListTailInset() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
-    .stackedScrollEdgeChrome()
+    .scrollEdgeEffectStyle(.hard, for: .bottom)
+    .stackedReportListScrollForDockGlass()
   }
 
-  /// Dashboard — só borda inferior; sem `.hard` no topo (evita tarja no push do drill-down).
+  /// Dashboard — só borda inferior; sem `.hard` no topo (evita tarja / micro-shift no scroll).
   func stackedDashboardListChrome() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
     .scrollEdgeEffectStyle(.hard, for: .bottom)
+    .stackedReportListScrollForDockGlass()
   }
 
   /// Adia labels/async pesados nas TaskRows até após o primeiro frame — scroll inicial mais leve.
@@ -77,13 +81,14 @@ extension View {
     }
   }
 
-  /// Drill-down — corte limpo no topo (iOS 26 scroll edge) + inset inferior do dock.
+  /// Drill-down (projeto / filtros) — mesmo edge chrome das abas: só `.hard` na base.
+  /// Antes tinha `.hard` no topo e gerava o mesmo micro-shift ao iniciar o scroll.
   func stackedDrillDownListChrome() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
-    .scrollEdgeEffectStyle(.hard, for: .top)
     .scrollEdgeEffectStyle(.hard, for: .bottom)
+    .stackedReportListScrollForDockGlass()
   }
 }

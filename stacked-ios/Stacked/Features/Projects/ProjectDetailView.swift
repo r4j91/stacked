@@ -9,6 +9,9 @@ struct ProjectDetailView: View {
 
   @AppStorage("display_mode") private var displayMode = "cards"
   @AppStorage private var showCompleted: Bool
+  /// PERF_FASEB3_3A — T2 desligado do path ativo.
+  // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
+  private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
   @State private var store: ProjectDetailStore
   @State private var completedExpanded: Bool
   @State private var detailRoute: TaskDetailRoute?
@@ -170,6 +173,7 @@ struct ProjectDetailView: View {
     .scrollContentBackground(.hidden)
     .environment(\.editMode, $editMode)
     .stackedDrillDownListChrome()
+    .onAppear { ScrollHitchProbe.noteScreen("Projeto") }
     .background(c.background)
     .stackedDrillDownNavChrome(title: projectName, background: c.background)
     .stackedDrillDownGlassBackButton()
@@ -510,71 +514,92 @@ struct ProjectDetailView: View {
 
   @ViewBuilder
   private func projectTaskRow(_ task: Task) -> some View {
-    let row = projectTaskRowBody(task)
-      .id(task.id)
-      .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
-      .taskCompleteRemovalTransition()
-      .listRowInsets(rowInsets)
-      .listRowSeparator(.hidden)
-      .listRowBackground(Color.clear)
-
-    if taskReorderMode {
-      row
+    // PERF_FASEB3_ETAPA2 T2 — sem menu/zoom no placeholder.
+    if t2RowsPlaceholder {
+      projectTaskRowBody(task)
+        .id(task.id)
+        .listRowInsets(rowInsets)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    } else if taskReorderMode {
+      projectTaskRowBody(task)
+        .id(task.id)
+        .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
+        .taskCompleteRemovalTransition()
+        .listRowInsets(rowInsets)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
     } else {
-      row.taskContextMenu(
-        task: task,
-        onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
-        onComplete: {
-          ensureStoreLinked()
-          store.complete(task)
-        },
-        onDuplicate: {
-          ensureStoreLinked()
-          store.duplicate(task)
-        },
-        onDelete: {
-          ensureStoreLinked()
-          store.delete(task)
-        },
-        onRefresh: {
-          ensureStoreLinked()
-          _Concurrency.Task { await store.load() }
-        }
-      )
+      projectTaskRowBody(task)
+        .id(task.id)
+        .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
+        .taskCompleteRemovalTransition()
+        .listRowInsets(rowInsets)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .taskContextMenu(
+          task: task,
+          onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+          onComplete: {
+            ensureStoreLinked()
+            store.complete(task)
+          },
+          onDuplicate: {
+            ensureStoreLinked()
+            store.duplicate(task)
+          },
+          onDelete: {
+            ensureStoreLinked()
+            store.delete(task)
+          },
+          onRefresh: {
+            ensureStoreLinked()
+            _Concurrency.Task { await store.load() }
+          }
+        )
     }
   }
 
   @ViewBuilder
   private func projectTaskRowBody(_ task: Task) -> some View {
     let mode = displayModeEnum
-    TaskRow(
-      task: task,
-      style: mode.usesCardStyle ? .card : .list,
-      flatSubtaskPanel: mode.flatSubtaskPanel,
-      showProject: false,
-      deferHeavyWork: deferHeavyRowWork,
-      rowInteractionsEnabled: !taskReorderMode,
-      onToggle: {
-        ensureStoreLinked()
-        store.complete(task)
-      },
-      onTap: taskReorderMode ? nil : {
-        detailRoute = TaskDetailRoute(taskId: task.id)
-      },
-      onSubtaskTap: { sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { snapshot in
-        store.applySubtaskPatch(snapshot)
-      },
-      onSubtaskDeleted: { sub in
-        store.removeSubtask(parentId: task.id, subtask: sub)
-        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
-      },
-      onWhatsAppCopy: {
-        whatsAppCopyTask = task
-      }
-    )
+    // PERF_FASEB3_ETAPA2 T2
+    if t2RowsPlaceholder {
+      TaskRowScrollPlaceholder(
+        task: task,
+        showProject: false,
+        style: mode.usesCardStyle ? .card : .list
+      )
+    } else {
+      TaskRow(
+        task: task,
+        style: mode.usesCardStyle ? .card : .list,
+        flatSubtaskPanel: mode.flatSubtaskPanel,
+        showProject: false,
+        deferHeavyWork: deferHeavyRowWork,
+        rowInteractionsEnabled: !taskReorderMode,
+        onToggle: {
+          ensureStoreLinked()
+          store.complete(task)
+        },
+        onTap: taskReorderMode ? nil : {
+          detailRoute = TaskDetailRoute(taskId: task.id)
+        },
+        onSubtaskTap: { sub in
+          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+        },
+        onSubtaskChanged: { snapshot in
+          store.applySubtaskPatch(snapshot)
+        },
+        onSubtaskDeleted: { sub in
+          store.removeSubtask(parentId: task.id, subtask: sub)
+          TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+        },
+        onWhatsAppCopy: {
+          whatsAppCopyTask = task
+        }
+      )
+    }
   }
 
   @ViewBuilder
@@ -606,7 +631,7 @@ struct ProjectDetailView: View {
       }
     )
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .opacity(0.7)
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

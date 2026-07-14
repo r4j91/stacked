@@ -3,8 +3,11 @@ import SwiftUI
 /// Fase 1 — barra clássica. Fase 4 CORREÇÃO — esqueleto BottomNavPill + lente glass.
 struct ClassicNavBar: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
   @Namespace private var blobNamespace
@@ -16,10 +19,22 @@ struct ClassicNavBar: View {
   private let indicatorCornerRadius: CGFloat = ClassicNavGlassLayout.indicatorCornerRadius
 
   var body: some View {
-    if reduceTransparency {
+    let mode = chrome.dockGlassMode(
+      reduceTransparency: reduceTransparency,
+      freezeWhileScrolling: freezeDockGlassWhileScrolling,
+      alwaysFrozen: alwaysFrozenDockGlass
+    )
+    // PERF_FASEB3_3A — um único body para live/frozen (evita recriar pill no freeze).
+    // switch mode {
+    // case .live: glassShellPillBody(mode: .live)
+    // case .frozen: glassShellPillBody(mode: .frozen)
+    // case .solid: solidPillBody
+    // }
+    switch mode {
+    case .live, .frozen:
+      glassShellPillBody(mode: mode)
+    case .solid:
       solidPillBody
-    } else {
-      glassShellPillBody
     }
   }
 
@@ -122,26 +137,14 @@ struct ClassicNavBar: View {
 
   // MARK: - Shell glass (trilho — paridade BottomNavPill)
 
-  private var glassShellPillBody: some View {
+  private func glassShellPillBody(mode: DockGlassMode) -> some View {
     let c = theme.colors
 
     return pillContent(colors: c)
       .padding(ChromeLayout.pillInnerPadding)
       .compositingGroup()
       .background {
-        pillShape
-          .fill(.clear)
-          .glassEffect(
-            .regular.tint(c.navBar.opacity(LiquidGlass.navTrackTintOpacity)),
-            in: pillShape
-          )
-          .clipShape(pillShape)
-          .overlay {
-            pillShape.strokeBorder(
-              c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-              lineWidth: LiquidGlass.navSelectionStrokeWidth
-            )
-          }
+        DockNavTrackShell(shape: pillShape, colors: c, mode: mode)
           .allowsHitTesting(false)
       }
   }

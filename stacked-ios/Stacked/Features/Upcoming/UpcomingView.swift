@@ -226,7 +226,7 @@ struct UpcomingView: View {
       store.removeSubtask(parentId: task.id, subtask: sub)
     })
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

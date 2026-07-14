@@ -4,6 +4,7 @@ import SwiftUI
 struct PresetFilterResultsScreen: View {
   let kind: TaskFilterKind
   let taskDetailNamespace: Namespace.ID
+  var activeZoomTaskId: String? = nil
   let onTaskTap: (String) -> Void
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
 
@@ -136,7 +137,7 @@ struct PresetFilterResultsScreen: View {
       }
     )
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailNamespace)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailNamespace, active: activeZoomTaskId == task.id)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

@@ -255,7 +255,8 @@ struct TaskRow: View {
       SubtaskExpandReveal(
         expanded: expanded,
         reduceMotion: reduceMotion,
-        layoutPass: subtaskRevealLayoutPass
+        layoutPass: subtaskRevealLayoutPass,
+        contentRevision: subtaskRevealContentRevision
       ) {
         subtaskList
       }
@@ -496,6 +497,26 @@ struct TaskRow: View {
     return "\(displayedSubtasksDone)/\(displayedSubtasksTotal)"
   }
 
+  /// Só muda quando subtarefas / done / labels mudam — evita reassign do UIHostingController no scroll.
+  private var subtaskRevealContentRevision: Int {
+    var hasher = Hasher()
+    hasher.combine(displaySubtasks.count)
+    hasher.combine(labelCatalog.count)
+    for label in labelCatalog {
+      hasher.combine(label.id)
+    }
+    for (index, sub) in displaySubtasks.enumerated() {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.title)
+      hasher.combine(index < subtasksDone.count ? subtasksDone[index] : sub.done)
+      hasher.combine(sub.dueDateChipLabel)
+      hasher.combine(sub.timeDisplay)
+      hasher.combine(sub.description)
+      hasher.combine(sub.labelIds)
+    }
+    return hasher.finalize()
+  }
+
   private func toggleSubtaskExpansion() {
     if !subtaskRevealActive {
       subtaskRevealActive = true
@@ -696,31 +717,26 @@ struct TaskRow: View {
   }
 }
 
-private struct SubtaskTitleAnchorKey: PreferenceKey {
-  static var defaultValue: CGRect = .zero
-  static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-    let next = nextValue()
-    if next.width > 1, next.height > 1 { value = next }
-  }
-}
-
 /// Long-press abre popover “Excluir”; tap abre detalhe — sem PressableStyle/contextMenu do sistema.
 struct SubtaskTitlePressArea<Content: View>: View {
   let onTap: () -> Void
   let onDelete: () -> Void
   @ViewBuilder var content: () -> Content
 
-  /// Frame global atualizado enquanto a subtarefa expandida está visível (poucas rows → OK).
-  @State private var liveAnchor: CGRect = .zero
+  /// PERF: reader só no long-press — GeometryReader+PreferenceKey por frame matava o scroll com subtarefas abertas.
+  @State private var needsAnchorReader = false
+  @State private var anchorFrame: CGRect = .zero
+  @State private var anchorCaptureGeneration = 0
 
   var body: some View {
     content()
       .background {
-        GeometryReader { geo in
-          Color.clear.preference(key: SubtaskTitleAnchorKey.self, value: geo.frame(in: .global))
+        if needsAnchorReader {
+          OnDemandScreenBoundsReader(captureGeneration: anchorCaptureGeneration, rect: $anchorFrame)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
         }
       }
-      .onPreferenceChange(SubtaskTitleAnchorKey.self) { liveAnchor = $0 }
       .contentShape(Rectangle())
       .gesture(
         LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
@@ -733,15 +749,32 @@ struct SubtaskTitlePressArea<Content: View>: View {
     HapticService.prepareContextMenu()
     HapticService.medium()
 
-    // SUBTASK_CTXMENU_ANCHOR_FIX: frame live da subtarefa (sem reader on-demand com race).
-    let snapshot = liveAnchor
-    let screenH = ScreenMetrics.bounds.height
-    let preferAbove = (snapshot.isValidAnchor ? snapshot.midY : screenH * 0.5) > screenH * 0.55
-    // Re-lê no próximo runloop — List aninhado (projeto) às vezes atualiza o frame um tick depois.
-    DispatchQueue.main.async {
-      let rect = liveAnchor.isValidAnchor ? liveAnchor : snapshot
+    needsAnchorReader = true
+    anchorFrame = .zero
+    let generation = anchorCaptureGeneration + 1
+    anchorCaptureGeneration = generation
+
+    _Concurrency.Task { @MainActor in
+      var resolved = CGRect.zero
+      for attempt in 0..<16 {
+        if attempt > 0 {
+          try? await _Concurrency.Task.sleep(for: .milliseconds(8))
+        } else {
+          await _Concurrency.Task.yield()
+          await _Concurrency.Task.yield()
+        }
+        guard generation == anchorCaptureGeneration else { return }
+        if anchorFrame.isValidAnchor {
+          resolved = anchorFrame
+          break
+        }
+      }
+      guard generation == anchorCaptureGeneration else { return }
+
+      let screenH = ScreenMetrics.bounds.height
+      let preferAbove = (resolved.isValidAnchor ? resolved.midY : screenH * 0.5) > screenH * 0.55
       presentAnchoredPopover(
-        anchorRect: rect,
+        anchorRect: resolved,
         items: [
           PopoverMenuItem(
             id: "delete",

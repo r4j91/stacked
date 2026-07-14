@@ -125,7 +125,7 @@ struct SearchView: View {
       }
     )
     .id(task.id)
-    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)
+    .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .taskCompleteRemovalTransition()
     .listRowInsets(rowInsets)
     .listRowSeparator(.hidden)

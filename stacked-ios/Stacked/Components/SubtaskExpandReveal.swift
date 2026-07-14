@@ -7,17 +7,21 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   let reduceMotion: Bool
   /// Incrementar após conteúdo pesado ou restore — força remedição de altura.
   let layoutPass: Int
+  /// Muda só com dados das subtarefas — scroll idle não reescreve o hosting tree.
+  let contentRevision: Int
   let content: Content
 
   init(
     expanded: Bool,
     reduceMotion: Bool,
     layoutPass: Int = 0,
+    contentRevision: Int = 0,
     @ViewBuilder content: () -> Content
   ) {
     self.expanded = expanded
     self.reduceMotion = reduceMotion
     self.layoutPass = layoutPass
+    self.contentRevision = contentRevision
     self.content = content()
   }
 
@@ -36,10 +40,14 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     context.coordinator.lastWidth = width
     let hosting = context.coordinator.hosting(in: uiView)
 
-    // Collapse: não reescreve o tree SwiftUI a cada frame do scroll — só na abertura/expansão.
-    let shouldPushContent = expanded || context.coordinator.wasExpanded
-    if shouldPushContent {
+    let revisionChanged = contentRevision != context.coordinator.lastContentRevision
+    let openingOrOpen = expanded || context.coordinator.wasExpanded
+    // PERF: `rootView =` a cada updateUIView (List scroll) re-layouta o hosting e stutter.
+    // Só empurra tree quando expandindo/colapsando ou quando o conteúdo das subtarefas mudou.
+    if openingOrOpen, revisionChanged || expanded != context.coordinator.wasExpanded || !context.coordinator.hasPushedContent {
       context.coordinator.updateContent(AnyView(content), hosting: hosting)
+      context.coordinator.lastContentRevision = contentRevision
+      context.coordinator.hasPushedContent = true
     }
     context.coordinator.wasExpanded = expanded
 
@@ -57,6 +65,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     private var host: UIHostingController<AnyView>?
     var lastWidth: CGFloat = 320
     var wasExpanded = false
+    var lastContentRevision: Int = .min
+    var hasPushedContent = false
 
     func hosting(in container: SubtaskExpandContainerView) -> UIHostingController<AnyView> {
       if let host { return host }

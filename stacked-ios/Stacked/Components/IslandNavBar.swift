@@ -7,6 +7,8 @@ struct IslandNavBar: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
   private let tabs = NavTab.allCases
@@ -19,16 +21,17 @@ struct IslandNavBar: View {
   }
 
   var body: some View {
-    if reduceTransparency {
-      islandTrack(useGlass: false)
-    } else {
-      islandTrack(useGlass: true)
-    }
+    let mode = chrome.dockGlassMode(
+      reduceTransparency: reduceTransparency,
+      freezeWhileScrolling: freezeDockGlassWhileScrolling,
+      alwaysFrozen: alwaysFrozenDockGlass
+    )
+    islandTrack(mode: mode)
   }
 
   // MARK: - Track
 
-  private func islandTrack(useGlass: Bool) -> some View {
+  private func islandTrack(mode: DockGlassMode) -> some View {
     let c = theme.colors
     let isExpanded = chrome.islandNavExpanded
 
@@ -42,7 +45,7 @@ struct IslandNavBar: View {
 
       HStack(spacing: 0) {
         Spacer(minLength: 0)
-        islandPillBody(colors: c, isExpanded: isExpanded, pillWidth: pillWidth, useGlass: useGlass)
+        islandPillBody(colors: c, isExpanded: isExpanded, pillWidth: pillWidth, mode: mode)
           .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
         Spacer(minLength: 0)
       }
@@ -64,7 +67,7 @@ struct IslandNavBar: View {
     colors: AppThemeColors,
     isExpanded: Bool,
     pillWidth: CGFloat,
-    useGlass: Bool
+    mode: DockGlassMode
   ) -> some View {
     HStack(spacing: 0) {
       Group {
@@ -89,7 +92,7 @@ struct IslandNavBar: View {
     // Isola o conteúdo da ilha — sem isso o glass/live backdrop “arrasta” o scroll por baixo.
     .compositingGroup()
     .background {
-      IslandNavGlassShell(colors: colors, useGlass: useGlass)
+      IslandNavGlassShell(colors: colors, mode: mode)
         .equatable()
     }
     .allowsHitTesting(false)
@@ -203,34 +206,17 @@ enum IslandNavMetrics {
 
 private struct IslandNavGlassShell: View, Equatable {
   let colors: AppThemeColors
-  let useGlass: Bool
+  let mode: DockGlassMode
   private let pillShape = Capsule()
 
   static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.useGlass == rhs.useGlass
+    lhs.mode == rhs.mode
       && lhs.colors.navBar == rhs.colors.navBar
       && lhs.colors.textPrimary == rhs.colors.textPrimary
   }
 
   var body: some View {
-    if useGlass {
-      pillShape
-        .fill(.clear)
-        .glassEffect(
-          .regular.tint(colors.navBar.opacity(LiquidGlass.navTrackTintOpacity)),
-          in: pillShape
-        )
-        .clipShape(pillShape)
-        .overlay {
-          pillShape.strokeBorder(
-            colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-            lineWidth: LiquidGlass.navSelectionStrokeWidth
-          )
-        }
-    } else {
-      pillShape
-        .fill(colors.navBar)
-    }
+    DockNavTrackShell(shape: pillShape, colors: colors, mode: mode)
   }
 }
 
