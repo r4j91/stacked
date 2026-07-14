@@ -160,8 +160,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
     let ids = configuration.tasks.map(\.id)
     if ids == lastTaskIds {
-      // Mesmos IDs — reconfigura cells visíveis (titulo/subtasks).
-      collectionView.reloadData()
+      // Mantém cells vivas — reloadData no scroll/expand zerava @State e hitchava.
+      // taskById/config já atualizados acima para o próximo dequeue.
       return
     }
     lastTaskIds = ids
