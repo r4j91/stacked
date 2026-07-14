@@ -309,6 +309,11 @@ final class ProjectDetailStore {
     SubtaskListPatch.apply(snapshot, to: &completed)
   }
 
+  func removeSubtask(parentId: String, subtask: Subtask) {
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &pending)
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &completed)
+  }
+
   func load() async {
     let hadData = !pending.isEmpty || !completed.isEmpty
     if !hadData { isLoading = true }

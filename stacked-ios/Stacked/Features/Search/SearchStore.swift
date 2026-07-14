@@ -55,6 +55,12 @@ final class SearchStore {
     regroupResults()
   }
 
+  func removeSubtask(parentId: String, subtask: Subtask) {
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &allTasks)
+    rebuildSearchIndex()
+    regroupResults()
+  }
+
   func load() async {
     isLoading = allTasks.isEmpty
     error = nil

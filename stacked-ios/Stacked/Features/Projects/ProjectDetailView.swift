@@ -567,6 +567,10 @@ struct ProjectDetailView: View {
       onSubtaskChanged: { snapshot in
         store.applySubtaskPatch(snapshot)
       },
+      onSubtaskDeleted: { sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
+        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+      },
       onWhatsAppCopy: {
         whatsAppCopyTask = task
       }
@@ -592,6 +596,10 @@ struct ProjectDetailView: View {
       },
       onSubtaskChanged: { snapshot in
         store.applySubtaskPatch(snapshot)
+      },
+      onSubtaskDeleted: { sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
+        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
       },
       onWhatsAppCopy: {
         whatsAppCopyTask = task

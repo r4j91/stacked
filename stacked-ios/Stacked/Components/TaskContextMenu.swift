@@ -57,7 +57,7 @@ struct TaskContextMenu: ViewModifier {
       .zIndex(isLifted ? 1 : 0)
       .animation(isLifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: liftPhase)
       // TaskRow usa long-press exclusivo antes do tap na área de conteúdo; aqui só expõe a ação.
-      .environment(\.openTaskContextMenu, openContextMenu)
+      .environment(\.openTaskContextMenu, { openContextMenu(at: $0) })
   }
 
   private var isLifted: Bool {
@@ -74,7 +74,7 @@ struct TaskContextMenu: ViewModifier {
     return TaskContextLift.offsetY
   }
 
-  private func openContextMenu() {
+  private func openContextMenu(at pressLocation: CGPoint? = nil) {
     HapticService.prepareContextMenu()
     HapticService.medium()
     // Instala o reader antes do yield de captura.
@@ -82,17 +82,35 @@ struct TaskContextMenu: ViewModifier {
     AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
       liftPhase = .menuOpen
     }
+    // CTXMENU_ANCHOR_FIX: zera frame da abertura anterior (evita menu "preso" na 1ª tarefa).
+    anchorFrame = .zero
     let generation = anchorCaptureGeneration + 1
     anchorCaptureGeneration = generation
     _Concurrency.Task { @MainActor in
-      // Dois yields: monta o reader + captura o anchor antes do popover.
-      await _Concurrency.Task.yield()
-      await _Concurrency.Task.yield()
+      // Espera rect válido desta geração (2 yields não bastavam pós-scroll).
+      var resolved = CGRect.zero
+      for attempt in 0..<16 {
+        if attempt > 0 {
+          try? await _Concurrency.Task.sleep(for: .milliseconds(8))
+        } else {
+          await _Concurrency.Task.yield()
+          await _Concurrency.Task.yield()
+        }
+        guard generation == anchorCaptureGeneration else { return }
+        if anchorFrame.isValidAnchor {
+          resolved = anchorFrame
+          break
+        }
+      }
       guard generation == anchorCaptureGeneration else { return }
+      // Fallback: ponto do long-press em coordenadas globais.
+      if !resolved.isValidAnchor, let pressLocation {
+        resolved = CGRect(x: pressLocation.x - 22, y: pressLocation.y - 22, width: 44, height: 44)
+      }
       let screenH = ScreenMetrics.bounds.height
-      let preferAbove = anchorFrame.midY > screenH * 0.55
+      let preferAbove = (resolved.isValidAnchor ? resolved.midY : screenH * 0.5) > screenH * 0.55
       presentAnchoredPopover(
-        anchorRect: anchorFrame,
+        anchorRect: resolved,
         items: menuItems,
         preferAbove: preferAbove
       ) { result in
@@ -207,11 +225,11 @@ struct TaskContextMenu: ViewModifier {
 // }
 
 private struct OpenTaskContextMenuKey: EnvironmentKey {
-  static let defaultValue: (() -> Void)? = nil
+  static let defaultValue: ((CGPoint?) -> Void)? = nil
 }
 
 extension EnvironmentValues {
-  var openTaskContextMenu: (() -> Void)? {
+  var openTaskContextMenu: ((CGPoint?) -> Void)? {
     get { self[OpenTaskContextMenuKey.self] }
     set { self[OpenTaskContextMenuKey.self] = newValue }
   }

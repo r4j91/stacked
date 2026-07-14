@@ -137,6 +137,8 @@ struct InboxView: View {
       subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
     }, onSubtaskChanged: { snapshot in
       store.applySubtaskPatch(snapshot)
+    }, onSubtaskDeleted: { sub in
+      store.removeSubtask(parentId: task.id, subtask: sub)
     })
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom)

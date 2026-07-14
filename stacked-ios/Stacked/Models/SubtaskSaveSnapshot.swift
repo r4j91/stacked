@@ -45,6 +45,21 @@ enum SubtaskListPatch {
     )
     subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)
   }
+
+  static func remove(parentTaskId: String, subtask: Subtask, from tasks: inout [Task]) {
+    guard let taskIndex = tasks.firstIndex(where: { $0.id == parentTaskId }) else { return }
+    remove(subtask, from: &tasks[taskIndex].subtasks)
+    TaskMapper.refreshSubtaskCounters(on: &tasks[taskIndex])
+  }
+
+  static func remove(_ subtask: Subtask, from subtasks: inout [Subtask]) {
+    if let id = subtask.id, !id.isEmpty {
+      subtasks.removeAll { $0.id == id }
+    } else {
+      subtasks.removeAll { $0.order == subtask.order }
+    }
+    subtasks = TaskMapper.sortSubtasksForDisplay(subtasks)
+  }
 }
 
 enum SubtaskSaveHandler {

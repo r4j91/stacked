@@ -145,4 +145,19 @@ enum FilterResultListPatch {
       }
     }
   }
+
+  static func remove(parentTaskId: String, subtask: Subtask, from results: inout [FilterResultItem]) {
+    results.removeAll { item in
+      if case .subtask(let sub, let parent, _) = item {
+        return parent.id == parentTaskId && (sub.id == subtask.id || sub.order == subtask.order)
+      }
+      return false
+    }
+    for index in results.indices {
+      if case .task(var task) = results[index], task.id == parentTaskId {
+        SubtaskListPatch.remove(subtask, from: &task.subtasks)
+        results[index] = .task(task)
+      }
+    }
+  }
 }

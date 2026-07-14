@@ -1,4 +1,5 @@
 import SwiftUI
+import Hugeicons
 
 // Paridade task_tile.dart — card + expansão inline de subtarefas
 struct TaskRow: View {
@@ -17,6 +18,8 @@ struct TaskRow: View {
   var onTap: (() -> Void)?
   var onSubtaskTap: ((Subtask) -> Void)?
   var onSubtaskChanged: ((SubtaskSaveSnapshot) -> Void)?
+  /// Long-press / context menu — excluir subtarefa inline (paridade TaskDetail).
+  var onSubtaskDeleted: ((Subtask) -> Void)?
   var onWhatsAppCopy: (() -> Void)?
 
   @State private var expanded = false
@@ -232,9 +235,11 @@ struct TaskRow: View {
 
     if let onTap, let openTaskContextMenu, rowInteractionsEnabled {
       // Long-press exclusivo antes do tap: evita abrir TaskDetail ao soltar após o menu.
+      // CTXMENU_ANCHOR_FIX: NÃO usar LongPress.sequenced(before: Drag) — o onEnded
+      // só rodava ao soltar o dedo. Abrir no reconhecimento do long-press (dedo ainda baixo).
       content.gesture(
         LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
-          .onEnded { _ in openTaskContextMenu() }
+          .onEnded { _ in openTaskContextMenu(nil) }
           .exclusively(before: TapGesture().onEnded { onTap() })
       )
     } else if let onTap {
@@ -364,9 +369,12 @@ struct TaskRow: View {
           }
           .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
-          Button {
-            onSubtaskTap?(sub)
-          } label: {
+          // SUBTASK_CTXMENU_FIX: PressableStyle + Button + .contextMenu só “selecionava”
+          // e não abria o menu (pior em listas de projeto). Long-press = popover Excluir.
+          SubtaskTitlePressArea(
+            onTap: { onSubtaskTap?(sub) },
+            onDelete: { deleteInlineSubtask(sub) }
+          ) {
             VStack(alignment: .leading, spacing: 0) {
               HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(sub.title)
@@ -411,8 +419,6 @@ struct TaskRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
           }
-          .buttonStyle(PressableStyle())
-          .disabled(onSubtaskTap == nil)
         }
         .padding(.leading, subtaskLeading)
         .padding(.trailing, 12)
@@ -440,6 +446,31 @@ struct TaskRow: View {
       ringColor: sub.priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
     )
+  }
+
+  private func deleteInlineSubtask(_ sub: Subtask) {
+    HapticService.warning()
+    let key = subtaskHoldKey(sub)
+    displaySubtasks.removeAll { subtaskHoldKey($0) == key }
+    subtasksDone = displaySubtasks.map(\.done)
+
+    guard let id = sub.id, !id.isEmpty else {
+      onSubtaskDeleted?(sub)
+      return
+    }
+    _Concurrency.Task {
+      try? await SubtaskRepository.shared.deleteSubtask(id: id)
+      await NotificationService.shared.cancelSubtaskNotification(id: id)
+      TaskCalendarSync.remove(subtaskId: id)
+      await MainActor.run {
+        onSubtaskDeleted?(sub)
+        // Fallback se a tela não passou callback — mantém stores principais coerentes.
+        if onSubtaskDeleted == nil {
+          TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+          UpcomingStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+        }
+      }
+    }
   }
 
   private func resolvedLabels(for sub: Subtask) -> [TaskLabel] {
@@ -662,6 +693,68 @@ struct TaskRow: View {
   private var taskAccessibilityHint: String {
     if onTap != nil { return "Toque para abrir detalhes. Pressione e segure para mais opções." }
     return ""
+  }
+}
+
+private struct SubtaskTitleAnchorKey: PreferenceKey {
+  static var defaultValue: CGRect = .zero
+  static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+    let next = nextValue()
+    if next.width > 1, next.height > 1 { value = next }
+  }
+}
+
+/// Long-press abre popover “Excluir”; tap abre detalhe — sem PressableStyle/contextMenu do sistema.
+struct SubtaskTitlePressArea<Content: View>: View {
+  let onTap: () -> Void
+  let onDelete: () -> Void
+  @ViewBuilder var content: () -> Content
+
+  /// Frame global atualizado enquanto a subtarefa expandida está visível (poucas rows → OK).
+  @State private var liveAnchor: CGRect = .zero
+
+  var body: some View {
+    content()
+      .background {
+        GeometryReader { geo in
+          Color.clear.preference(key: SubtaskTitleAnchorKey.self, value: geo.frame(in: .global))
+        }
+      }
+      .onPreferenceChange(SubtaskTitleAnchorKey.self) { liveAnchor = $0 }
+      .contentShape(Rectangle())
+      .gesture(
+        LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
+          .onEnded { _ in openDeleteMenu() }
+          .exclusively(before: TapGesture().onEnded { onTap() })
+      )
+  }
+
+  private func openDeleteMenu() {
+    HapticService.prepareContextMenu()
+    HapticService.medium()
+
+    // SUBTASK_CTXMENU_ANCHOR_FIX: frame live da subtarefa (sem reader on-demand com race).
+    let snapshot = liveAnchor
+    let screenH = ScreenMetrics.bounds.height
+    let preferAbove = (snapshot.isValidAnchor ? snapshot.midY : screenH * 0.5) > screenH * 0.55
+    // Re-lê no próximo runloop — List aninhado (projeto) às vezes atualiza o frame um tick depois.
+    DispatchQueue.main.async {
+      let rect = liveAnchor.isValidAnchor ? liveAnchor : snapshot
+      presentAnchoredPopover(
+        anchorRect: rect,
+        items: [
+          PopoverMenuItem(
+            id: "delete",
+            icon: Hugeicons.delete01,
+            label: "Excluir subtarefa",
+            destructive: true
+          ),
+        ],
+        preferAbove: preferAbove
+      ) { result in
+        if result == "delete" { onDelete() }
+      }
+    }
   }
 }
 

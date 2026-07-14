@@ -70,6 +70,8 @@ final class ScreenBoundsCaptureView: UIView {
   var onUpdate: ((CGRect) -> Void)?
   /// Quando `false`, só captura via `capture()` explícito (scroll não dispara @State).
   var autoCaptureOnLayout = true
+  /// Uma captura no próximo layout se `forceCapture` ainda não tiver bounds.
+  private var captureOnceOnNextLayout = false
   private var lastReportedRect: CGRect?
 
   override init(frame: CGRect) {
@@ -83,7 +85,23 @@ final class ScreenBoundsCaptureView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    if autoCaptureOnLayout { capture() }
+    if autoCaptureOnLayout || captureOnceOnNextLayout {
+      capture()
+      if lastReportedRect != nil {
+        captureOnceOnNextLayout = false
+      }
+    }
+  }
+
+  /// Limpa cache e captura agora; se ainda inválido, agenda 1× no próximo layout.
+  func forceCapture() {
+    lastReportedRect = nil
+    setNeedsLayout()
+    layoutIfNeeded()
+    capture()
+    if lastReportedRect == nil {
+      captureOnceOnNextLayout = true
+    }
   }
 
   func capture() {
@@ -115,9 +133,10 @@ struct OnDemandScreenBoundsReader: UIViewRepresentable {
   }
 
   func updateUIView(_ uiView: ScreenBoundsCaptureView, context: Context) {
+    uiView.onUpdate = { rect = $0 }
     guard captureGeneration != context.coordinator.lastGeneration else { return }
     context.coordinator.lastGeneration = captureGeneration
-    uiView.onUpdate = { rect = $0 }
-    uiView.capture()
+    // CTXMENU_ANCHOR_FIX: forceCapture (antes: capture() sem reset → frame stale pós-scroll).
+    uiView.forceCapture()
   }
 }

@@ -119,6 +119,9 @@ struct SearchView: View {
       },
       onSubtaskChanged: { snapshot in
         store.applySubtaskPatch(snapshot)
+      },
+      onSubtaskDeleted: { sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
       }
     )
     .id(task.id)

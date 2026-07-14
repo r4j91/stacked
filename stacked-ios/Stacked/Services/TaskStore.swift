@@ -65,6 +65,21 @@ final class TaskStore {
     rebuildTodayDerived()
   }
 
+  func removeSubtask(parentId: String, subtask: Subtask) {
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &todayPending)
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &todayCompleted)
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &inboxPending)
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &inboxCompleted)
+    if let id = subtask.id {
+      todayScheduledSubtasks.removeAll { $0.subtask.id == id }
+    } else {
+      todayScheduledSubtasks.removeAll {
+        $0.parent.id == parentId && $0.subtask.order == subtask.order
+      }
+    }
+    rebuildTodayDerived()
+  }
+
   func loadToday() async {
     loadTodayGeneration += 1
     let generation = loadTodayGeneration

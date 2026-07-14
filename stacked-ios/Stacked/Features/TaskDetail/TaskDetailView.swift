@@ -355,50 +355,49 @@ struct TaskDetailView: View {
       }
       .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
-      VStack(alignment: .leading, spacing: 2) {
-        Text(sub.title)
-          .font(AppTypography.taskTitle)
-          .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
-          .strikethrough(sub.done)
-          .frame(maxWidth: .infinity, alignment: .leading)
-
-        if hasDescription, let desc = sub.description {
-          NotesMarkupText(
-            source: desc,
-            color: c.textTertiary,
-            size: 14,
-            weight: .regular,
-            boldWeight: .semibold,
-            lineLimit: 2
-          )
+      SubtaskTitlePressArea(
+        onTap: {
+          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: vm.taskId)
+        },
+        onDelete: {
+          HapticService.warning()
+          _Concurrency.Task { await vm.deleteSubtask(sub) }
         }
+      ) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(sub.title)
+            .font(AppTypography.taskTitle)
+            .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
+            .strikethrough(sub.done)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-        if sub.dueDate != nil || !labels.isEmpty {
-          TaskMetaLine(
-            labels: labels,
-            dueDate: sub.dueDate,
-            dueDateLabel: sub.dueDateChipLabel,
-            dueDateColor: sub.dueDateChipColor,
-            dateDone: sub.done,
-            maxLabels: 4
-          )
+          if hasDescription, let desc = sub.description {
+            NotesMarkupText(
+              source: desc,
+              color: c.textTertiary,
+              size: 14,
+              weight: .regular,
+              boldWeight: .semibold,
+              lineLimit: 2
+            )
+          }
+
+          if sub.dueDate != nil || !labels.isEmpty {
+            TaskMetaLine(
+              labels: labels,
+              dueDate: sub.dueDate,
+              dueDateLabel: sub.dueDateChipLabel,
+              dueDateColor: sub.dueDateChipColor,
+              dateDone: sub.done,
+              maxLabels: 4
+            )
+          }
         }
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .contentShape(Rectangle())
-      .onTapGesture {
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: vm.taskId)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
       }
     }
     .padding(.vertical, hasMeta ? 8 : 2)
-    .contextMenu {
-      Button(role: .destructive) {
-        HapticService.warning()
-        _Concurrency.Task { await vm.deleteSubtask(sub) }
-      } label: {
-        Label("Excluir subtarefa", systemImage: "trash")
-      }
-    }
   }
 
   private func subtaskLabels(for sub: Subtask) -> [TaskLabel] {

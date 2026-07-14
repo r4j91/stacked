@@ -364,6 +364,15 @@ final class FiltersStore {
     syncPresetFilterCache()
   }
 
+  func removeSubtask(parentId: String, subtask: Subtask) {
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterTasks)
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterCompletedTasks)
+    FilterResultListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterResults)
+    FilterResultListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterCompletedResults)
+    syncSavedFilterCache()
+    syncPresetFilterCache()
+  }
+
   func backToDashboard() {
     filterLoadGeneration += 1
     mode = .dashboard

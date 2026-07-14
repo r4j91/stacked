@@ -92,6 +92,9 @@ struct LogbookView: View {
       },
       onSubtaskChanged: { snapshot in
         patchLogbookSubtask(snapshot)
+      },
+      onSubtaskDeleted: { sub in
+        SubtaskListPatch.remove(parentTaskId: task.id, subtask: sub, from: &tasks)
       }
     )
     .id(task.id)

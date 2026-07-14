@@ -111,6 +111,18 @@ final class UpcomingStore {
     rebuildScheduleDerived()
   }
 
+  func removeSubtask(parentId: String, subtask: Subtask) {
+    SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &tasks)
+    if let id = subtask.id {
+      scheduledSubtasks.removeAll { $0.subtask.id == id }
+    } else {
+      scheduledSubtasks.removeAll {
+        $0.parent.id == parentId && $0.subtask.order == subtask.order
+      }
+    }
+    rebuildScheduleDerived()
+  }
+
   // NET_FASEC_ETAPA2
   func insertOptimistic(_ task: Task) {
     guard !tasks.contains(where: { $0.id == task.id }) else { return }

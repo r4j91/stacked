@@ -220,6 +220,11 @@ struct SavedFilterResultsScreen: View {
       },
       onSubtaskTap: { sub in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
+      },
+      onSubtaskDeleted: { sub in
+        ensureStoreLinked()
+        store.removeSubtask(parentId: task.id, subtask: sub)
+        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
       }
     )
     .id(task.id)
