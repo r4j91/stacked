@@ -405,8 +405,12 @@ struct ProjectDetailView: View {
                       selected: displayModeEnum == .cards),
       PopoverMenuItem(id: "mode_cards_refined", icon: Hugeicons.grid, label: "Balões+",
                       selected: displayModeEnum == .cardsRefined),
+      PopoverMenuItem(id: "mode_cards_light", icon: Hugeicons.grid, label: "Balões light",
+                      selected: displayModeEnum == .cardsLight),
       PopoverMenuItem(id: "mode_list", icon: Hugeicons.listView, label: "Lista",
                       selected: displayModeEnum == .list),
+      PopoverMenuItem(id: "mode_list_premium", icon: Hugeicons.listView, label: "Lista premium",
+                      selected: displayModeEnum == .listPremium),
       PopoverMenuItem(id: "reorder_tasks", icon: Hugeicons.arrowUp01, label: "Ordenar tarefas"),
       PopoverMenuItem(id: "add_task", icon: Hugeicons.add01, label: "Nova tarefa"),
       PopoverMenuItem(id: "add_section", icon: Hugeicons.add01, label: "Nova seção"),
@@ -420,7 +424,9 @@ struct ProjectDetailView: View {
     case "toggle_completed": showCompleted.toggle()
     case "mode_cards": displayMode = ProjectDisplayMode.cards.rawValue
     case "mode_cards_refined": displayMode = ProjectDisplayMode.cardsRefined.rawValue
+    case "mode_cards_light": displayMode = ProjectDisplayMode.cardsLight.rawValue
     case "mode_list": displayMode = ProjectDisplayMode.list.rawValue
+    case "mode_list_premium": displayMode = ProjectDisplayMode.listPremium.rawValue
     case "add_task": showQuickAdd = true
     case "add_section": showNewSection = true
     case "project_options": showProjectOptions = true
@@ -443,9 +449,7 @@ struct ProjectDetailView: View {
   }
 
   private var rowInsets: EdgeInsets {
-    displayModeEnum.usesCardStyle
-      ? EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
-      : EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+    displayModeEnum.taskListRowInsets
   }
 
   private func isSectionExpanded(_ id: String) -> Bool {
@@ -591,12 +595,12 @@ struct ProjectDetailView: View {
       TaskRowScrollPlaceholder(
         task: task,
         showProject: false,
-        style: mode.usesCardStyle ? .card : .list
+        style: mode.taskRowStyle
       )
     } else {
       TaskRow(
         task: task,
-        style: mode.usesCardStyle ? .card : .list,
+        style: mode.taskRowStyle,
         flatSubtaskPanel: mode.flatSubtaskPanel,
         showProject: false,
         deferHeavyWork: deferHeavyRowWork,
@@ -630,7 +634,7 @@ struct ProjectDetailView: View {
     let mode = displayModeEnum
     TaskRow(
       task: task,
-      style: mode.usesCardStyle ? .card : .list,
+      style: mode.taskRowStyle,
       flatSubtaskPanel: mode.flatSubtaskPanel,
       showProject: false,
       deferHeavyWork: deferHeavyRowWork,

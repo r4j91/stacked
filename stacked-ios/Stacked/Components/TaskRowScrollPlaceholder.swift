@@ -14,8 +14,8 @@ struct TaskRowScrollPlaceholder: View {
       hasDescription: task.hasDescription,
       hasMeta: showsMeta
     )
-    RoundedRectangle(cornerRadius: style == .card ? 12 : 0)
-      .fill(c.surface)
+    RoundedRectangle(cornerRadius: style.isCardFamily ? 12 : 0)
+      .fill(style == .cardLight ? c.surface.opacity(0.72) : c.surface)
       .frame(maxWidth: .infinity)
       .frame(height: height)
       .overlay(alignment: .leading) {

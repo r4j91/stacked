@@ -145,6 +145,7 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
   }
 
   private var useStaticFrozen: Bool {
+    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
@@ -201,6 +202,7 @@ private struct PopoverCardSurface<Content: View>: View {
   }
 
   private var useStaticFrozen: Bool {
+    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
@@ -256,6 +258,7 @@ private struct FabGlassSurface<Content: View>: View {
   }
 
   private var useStaticFrozen: Bool {
+    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
@@ -312,6 +315,7 @@ private struct ToolbarGlassPill<Content: View>: View {
   }
 
   private var useStaticFrozen: Bool {
+    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 

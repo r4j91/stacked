@@ -16,10 +16,10 @@ struct AppearanceView: View {
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @State private var stylePendingHide: HomeHeroStyle?
-  /// Uma seção aberta por vez — accordion leve no padrão do app.
-  @State private var expandedSection: AppearanceSectionID? = .theme
+  /// Uma seção aberta por vez — accordion leve no padrão do app (tudo fechado ao entrar).
+  @State private var expandedSection: AppearanceSectionID? = nil
   /// Mantém o `SubtaskExpandReveal` montado até o collapse terminar (evita ghost).
-  @State private var mountedSection: AppearanceSectionID? = .theme
+  @State private var mountedSection: AppearanceSectionID? = nil
   @State private var accordionTeardownTask: _Concurrency.Task<Void, Never>?
 
   private var navBarStyle: NavBarStyle {
@@ -315,7 +315,7 @@ struct AppearanceView: View {
     if alwaysFrozenDockGlass {
       return "Só o dock fica estático. “Glass estático” aplica o mesmo look (translúcido) em todo o chrome do app."
     }
-    return "Recomendado: pausar no scroll. “Glass estático” = pausado o tempo todo em todo o app (vê atrás). “Desativar glass” = fill opaco."
+    return "Pausar no scroll congela o dock. “Glass estático” = pausado o tempo todo em chrome (vê atrás). “Desativar glass” = fill opaco."
   }
 
   // MARK: - Rows
@@ -380,7 +380,7 @@ struct AppearanceView: View {
         Text("Pausar glass no scroll")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Congela o vidro do dock enquanto as listas rolam.")
+        Text("Pausa o morph do dock enquanto as listas rolam (FAB/headers seguem glass estático só se ligado acima).")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }

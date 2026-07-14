@@ -23,6 +23,7 @@ struct ExpandedNavBar: View {
     )
   }
 
+  /// Pausar no scroll não troca a cápsula — só o trilho congela (evita hitch no gesto).
   private var useStaticIndicator: Bool {
     useSolidChrome || alwaysStaticGlass || alwaysFrozenDockGlass
   }

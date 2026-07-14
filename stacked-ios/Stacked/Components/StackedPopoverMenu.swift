@@ -409,6 +409,7 @@ struct StackedPopoverModifier: ViewModifier {
           onToggle: { _ in }
         )
         .environment(ThemeManager.shared)
+        .environment(MobileChromeController.shared)
         .zIndex(999)
       }
     }

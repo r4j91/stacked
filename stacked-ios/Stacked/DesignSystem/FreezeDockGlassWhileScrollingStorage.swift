@@ -50,4 +50,15 @@ enum GlassChromePreference {
   static func prefersStaticFrozen(alwaysStaticGlass: Bool? = nil) -> Bool {
     alwaysStaticGlass ?? AlwaysStaticGlassStorage.isEnabled
   }
+
+  /// Pausar morph/amostragem no scroll — mesmo fill do dock congelado (chrome inteiro).
+  static func prefersScrollFrozen(
+    freezeWhileScrolling: Bool? = nil,
+    isContentScrolling: Bool,
+    alwaysStaticGlass: Bool? = nil
+  ) -> Bool {
+    if prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass) { return true }
+    let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
+    return freeze && isContentScrolling
+  }
 }

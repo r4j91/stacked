@@ -26,13 +26,14 @@ struct ClassicNavBar: View {
     )
   }
 
-  /// Sem lente glassEffect no indicador quando o trilho já está estático/sólido.
+  /// Lente: só modos realmente estáticos. Pausar no scroll fica no trilho (DockNavTrackShell)
+  /// — trocar lente↔sólido no gesto republicava a navbar e hitchava.
   private var useStaticIndicator: Bool {
     useSolidChrome || alwaysStaticGlass || alwaysFrozenDockGlass
   }
 
   var body: some View {
-    // live/frozen resolvidos dentro de DockNavTrackShell — pai não lê isContentScrolling.
+    // Trilho: DockNavTrackShell. Lente: `useStaticIndicator` lê scroll só para pausar glassEffect.
     if useSolidChrome {
       solidPillBody
     } else {

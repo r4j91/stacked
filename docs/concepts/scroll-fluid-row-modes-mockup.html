@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Modos fluidos (mockup etapa 2)</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --priority-med: #F5A623;
+      --priority-low: #4D9FEC;
+      --tag-green: #8FD46B;
+      --tag-purple: #B18CF5;
+      --done: #22C55E;
+      --radius-card: 12px;
+      --phone-w: 300px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: #0e0f11;
+      color: var(--text-primary);
+      line-height: 1.45;
+      padding: 32px 20px 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header { max-width: 1280px; margin: 0 auto 28px; }
+    header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 72ch;
+    }
+
+    .callout {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(95, 211, 220, 0.08);
+      border: 1px solid rgba(95, 211, 220, 0.22);
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 72ch;
+    }
+    .callout strong { color: var(--accent); }
+
+    .section-label {
+      max-width: 1280px;
+      margin: 36px auto 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.06);
+    }
+    .panel-head h2 { font-size: 14px; font-weight: 700; }
+    .panel-head p {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(242, 243, 245, 0.08);
+      color: var(--text-tertiary);
+    }
+    .badge.hoje { background: rgba(242, 243, 245, 0.08); color: var(--text-secondary); }
+    .badge.prop {
+      background: rgba(95, 211, 220, 0.15);
+      color: var(--accent);
+    }
+    .badge.fluido {
+      background: rgba(143, 212, 107, 0.15);
+      color: var(--tag-green);
+    }
+
+    .phone-wrap { padding: 16px; display: flex; justify-content: center; }
+
+    .phone {
+      width: var(--phone-w);
+      background: var(--bg);
+      border-radius: 22px;
+      border: 1px solid rgba(242, 243, 245, 0.08);
+      overflow: hidden;
+      padding-bottom: 14px;
+    }
+
+    .phone-status {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 18px 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      opacity: 0.85;
+    }
+
+    .phone-title {
+      padding: 10px 16px 8px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .mode-chip {
+      margin: 0 16px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--surface-variant);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .mode-chip .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .list {
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* —— Balões (hoje) —— */
+    .row-card {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      min-height: 54px;
+      padding: 10px 10px 10px 8px;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    /* —— Balões light (proposta): mesmo “balão”, fill mais leve + hairline —— */
+    .row-card-light {
+      background: rgba(36, 37, 41, 0.72);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      border-radius: var(--radius-card);
+      min-height: 54px;
+      padding: 10px 10px 10px 8px;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    /* —— Lista (hoje) —— */
+    .list.flat { gap: 0; }
+    .row-list {
+      min-height: 52px;
+      padding: 10px 4px 10px 2px;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      border-bottom: 1px solid rgba(242, 243, 245, 0.04);
+    }
+    .row-list:last-child { border-bottom: none; }
+
+    /* —— Lista premium (proposta): Things, menos ruído —— */
+    .row-list-premium {
+      min-height: 50px;
+      padding: 9px 2px;
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .list.premium { gap: 1px; }
+    .list.premium .row-list-premium + .row-list-premium {
+      box-shadow: inset 0 1px 0 rgba(242, 243, 245, 0.035);
+    }
+
+    .circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--priority-low);
+      margin-top: 1px;
+      justify-self: center;
+    }
+    .circle.high { border-color: var(--priority-high); }
+    .circle.med { border-color: var(--priority-med); }
+    .circle.done {
+      border-color: var(--done);
+      background: color-mix(in srgb, var(--done) 22%, transparent);
+    }
+
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.25;
+    }
+    .title.done {
+      color: var(--text-tertiary);
+      text-decoration: line-through;
+      text-decoration-color: rgba(107, 110, 118, 0.7);
+    }
+    .meta {
+      margin-top: 3px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .meta .overdue { color: var(--priority-high); font-weight: 600; }
+    .chip {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(177, 140, 245, 0.16);
+      color: var(--tag-purple);
+      font-weight: 600;
+    }
+    .chip.green {
+      background: rgba(143, 212, 107, 0.14);
+      color: var(--tag-green);
+    }
+    .subcount {
+      font-size: 11.5px;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      padding-top: 2px;
+      white-space: nowrap;
+    }
+
+    .preview {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    /* Seletor de modos — como entraria no produto */
+    .picker-panel {
+      max-width: 1280px;
+      margin: 12px auto 0;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(242, 243, 245, 0.06);
+      padding: 18px 20px 20px;
+    }
+    .picker-panel h2 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .picker-panel > p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      max-width: 70ch;
+    }
+
+    .picker-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pick {
+      flex: 1 1 120px;
+      min-width: 110px;
+      max-width: 160px;
+      padding: 12px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(242, 243, 245, 0.08);
+      background: var(--bg);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: relative;
+    }
+    .pick.exists { border-color: rgba(242, 243, 245, 0.14); color: var(--text-primary); }
+    .pick.proposed {
+      border-color: rgba(95, 211, 220, 0.35);
+      background: rgba(95, 211, 220, 0.06);
+      color: var(--accent);
+    }
+    .pick small {
+      display: block;
+      margin-top: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .pick .tag-new {
+      position: absolute;
+      top: -7px;
+      right: -4px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #0e0f11;
+    }
+
+    .legend {
+      max-width: 1280px;
+      margin: 28px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .legend article {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid rgba(242, 243, 245, 0.06);
+    }
+    .legend h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .legend p { font-size: 12.5px; color: var(--text-secondary); }
+
+    footer {
+      max-width: 1280px;
+      margin: 28px auto 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    footer code {
+      color: var(--accent);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Etapa 2 — modos mais fluidos (mockup)</h1>
+    <p>
+      Comparação visual do que existe hoje com duas propostas mais baratas no scroll.
+      Nada disso troca o que você já tem: entram como opções extras no seletor de exibição do projeto
+      (e, se quiser depois, como default em Hoje / Inbox).
+    </p>
+    <div class="callout">
+      <strong>Ideia:</strong> manter Balões, Balões+ e Lista.
+      Somar <strong>Balões light</strong> (mesmo vibe de card, compositing mais leve) e
+      <strong>Lista premium</strong> (flat Things, ainda mais limpa). Você escolhe qual usar — não é replace forçado.
+    </div>
+  </header>
+
+  <p class="section-label">Como entraria no seletor</p>
+  <div class="picker-panel">
+    <h2>Modo de exibição do projeto</h2>
+    <p>
+      Os três da esquerda já existem. Os dois com borda accent seriam novas opções no mesmo menu —
+      não substituem Balões / Lista, só somam caminhos mais fluidos.
+    </p>
+    <div class="picker-row">
+      <div class="pick exists">Balões<small>hoje · card sólido</small></div>
+      <div class="pick exists">Balões+<small>hoje · subtarefas flat</small></div>
+      <div class="pick exists">Lista<small>hoje · flat</small></div>
+      <div class="pick proposed">Balões light<span class="tag-new">novo</span><small>mesmo balão, mais leve</small></div>
+      <div class="pick proposed">Lista premium<span class="tag-new">novo</span><small>Things, + fluido</small></div>
+    </div>
+  </div>
+
+  <p class="section-label">Lado a lado — cards</p>
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Balões</h2>
+        <p>O card atual: fill surface + clip r12. Visual forte, mais caro no scroll.</p>
+        <div class="badges">
+          <span class="badge hoje">Existe hoje</span>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone" aria-label="Mock Balões atual">
+          <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+          <div class="phone-title">Projeto</div>
+          <div class="mode-chip"><span class="dot"></span> Balões</div>
+          <div class="list">
+            <div class="row-card">
+              <div class="circle high"></div>
+              <div>
+                <div class="title">Revisar brief do hero</div>
+                <div class="meta"><span class="overdue">Atrasada</span><span class="chip">Ideia</span></div>
+              </div>
+              <div class="subcount">2/5 ▾</div>
+            </div>
+            <div class="row-card">
+              <div class="circle med"></div>
+              <div>
+                <div class="title">Copiar assets do clima</div>
+                <div class="preview">Incluir as 8 variantes sunny…</div>
+                <div class="meta"><span>Hoje · 14:00</span></div>
+              </div>
+              <div class="subcount"></div>
+            </div>
+            <div class="row-card">
+              <div class="circle"></div>
+              <div>
+                <div class="title">Ajustar docking glass</div>
+                <div class="meta"><span class="chip green">Em andamento</span></div>
+              </div>
+              <div class="subcount">0/3 ▾</div>
+            </div>
+            <div class="row-card">
+              <div class="circle done"></div>
+              <div>
+                <div class="title done">Commit da fluidez</div>
+                <div class="meta"><span>Ontem</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Balões light</h2>
+        <p>Mesma silhueta e hierarquia. Fill mais translúcido + borda fina — menos “bloco sólido” no GPU, mas ainda lê como card.</p>
+        <div class="badges">
+          <span class="badge prop">Proposta</span>
+          <span class="badge fluido">+ fluido</span>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone" aria-label="Mock Balões light">
+          <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+          <div class="phone-title">Projeto</div>
+          <div class="mode-chip"><span class="dot"></span> Balões light</div>
+          <div class="list">
+            <div class="row-card-light">
+              <div class="circle high"></div>
+              <div>
+                <div class="title">Revisar brief do hero</div>
+                <div class="meta"><span class="overdue">Atrasada</span><span class="chip">Ideia</span></div>
+              </div>
+              <div class="subcount">2/5 ▾</div>
+            </div>
+            <div class="row-card-light">
+              <div class="circle med"></div>
+              <div>
+                <div class="title">Copiar assets do clima</div>
+                <div class="preview">Incluir as 8 variantes sunny…</div>
+                <div class="meta"><span>Hoje · 14:00</span></div>
+              </div>
+            </div>
+            <div class="row-card-light">
+              <div class="circle"></div>
+              <div>
+                <div class="title">Ajustar docking glass</div>
+                <div class="meta"><span class="chip green">Em andamento</span></div>
+              </div>
+              <div class="subcount">0/3 ▾</div>
+            </div>
+            <div class="row-card-light">
+              <div class="circle done"></div>
+              <div>
+                <div class="title done">Commit da fluidez</div>
+                <div class="meta"><span>Ontem</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="section-label">Lado a lado — listas</p>
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Lista</h2>
+        <p>Modo flat atual (já o mais fluido dos três). Separador suave entre rows.</p>
+        <div class="badges">
+          <span class="badge hoje">Existe hoje</span>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone" aria-label="Mock Lista atual">
+          <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+          <div class="phone-title">Projeto</div>
+          <div class="mode-chip"><span class="dot"></span> Lista</div>
+          <div class="list flat">
+            <div class="row-list">
+              <div class="circle high"></div>
+              <div>
+                <div class="title">Revisar brief do hero</div>
+                <div class="meta"><span class="overdue">Atrasada</span><span class="chip">Ideia</span></div>
+              </div>
+              <div class="subcount">2/5 ▾</div>
+            </div>
+            <div class="row-list">
+              <div class="circle med"></div>
+              <div>
+                <div class="title">Copiar assets do clima</div>
+                <div class="preview">Incluir as 8 variantes sunny…</div>
+                <div class="meta"><span>Hoje · 14:00</span></div>
+              </div>
+            </div>
+            <div class="row-list">
+              <div class="circle"></div>
+              <div>
+                <div class="title">Ajustar docking glass</div>
+                <div class="meta"><span class="chip green">Em andamento</span></div>
+              </div>
+              <div class="subcount">0/3 ▾</div>
+            </div>
+            <div class="row-list">
+              <div class="circle done"></div>
+              <div>
+                <div class="title done">Commit da fluidez</div>
+                <div class="meta"><span>Ontem</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Lista premium</h2>
+        <p>Ainda flat, densidada Things: hairline quase invisível, tipografia um pouco mais quieta, menos “linha de lista HTML”.</p>
+        <div class="badges">
+          <span class="badge prop">Proposta</span>
+          <span class="badge fluido">++ fluido</span>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone" aria-label="Mock Lista premium">
+          <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+          <div class="phone-title">Projeto</div>
+          <div class="mode-chip"><span class="dot"></span> Lista premium</div>
+          <div class="list premium">
+            <div class="row-list-premium">
+              <div class="circle high"></div>
+              <div>
+                <div class="title">Revisar brief do hero</div>
+                <div class="meta"><span class="overdue">Atrasada</span><span class="chip">Ideia</span></div>
+              </div>
+              <div class="subcount">2/5 ▾</div>
+            </div>
+            <div class="row-list-premium">
+              <div class="circle med"></div>
+              <div>
+                <div class="title">Copiar assets do clima</div>
+                <div class="preview">Incluir as 8 variantes sunny…</div>
+                <div class="meta"><span>Hoje · 14:00</span></div>
+              </div>
+            </div>
+            <div class="row-list-premium">
+              <div class="circle"></div>
+              <div>
+                <div class="title">Ajustar docking glass</div>
+                <div class="meta"><span class="chip green">Em andamento</span></div>
+              </div>
+              <div class="subcount">0/3 ▾</div>
+            </div>
+            <div class="row-list-premium">
+              <div class="circle done"></div>
+              <div>
+                <div class="title done">Commit da fluidez</div>
+                <div class="meta"><span>Ontem</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="legend">
+    <article>
+      <h3>O que NÃO muda</h3>
+      <p>Balões, Balões+ e Lista continuam. Seus projetos guardados nesses modos ficam iguais até você trocar no menu.</p>
+    </article>
+    <article>
+      <h3>Onde aparece</h3>
+      <p>No mesmo seletor de exibição do projeto. Opcional depois: usar Lista premium / Balões light como default em Hoje e Inbox (hoje essas abas always-card).</p>
+    </article>
+    <article>
+      <h3>Quanto muda o olho</h3>
+      <p>Balões light: diferença sutil (mesma forma). Lista premium: refinada, ainda claramente “lista” — a maior ganho de fluidez vs o menor salto visual.</p>
+    </article>
+  </div>
+
+  <footer>
+    Mock conceitual — não é código do app.
+    Arquivo: <code>docs/concepts/scroll-fluid-row-modes-mockup.html</code>
+  </footer>
+</body>
+</html>

@@ -123,6 +123,7 @@ struct PopoverOverlayHost: View {
           boundPresenter.toggleWithoutDismiss(value)
         }
         .environment(ThemeManager.shared)
+        .environment(MobileChromeController.shared)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .zIndex(9999)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Reporta fase de scroll das Lists para o dock congelar o glass ao vivo.
+/// Reporta fase de scroll das Lists para pausar Liquid Glass (dock, FAB, lente, pills).
 struct ListScrollDockGlassReporter: ViewModifier {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency

@@ -1,10 +1,10 @@
 import Foundation
 
-/// PERF_FASEB3_3A — gate de duas fases para freeze do glass sem teardown no arranque.
+/// PERF_FASEB3_3A — gate do path de freeze do dock.
 enum DockGlassFreezePhase {
-  /// Fase 1: `false` — layer frozen montado sob o live (opacity 0), troca ainda via switch legado.
-  /// Fase 2: `true` — flip de opacity live↔frozen (zero remoção de glassEffect no gesto).
-  // PERF_FASEB3_3A_FASE1: static let opacityFlipEnabled = false
+  /// `true` (ativo): frozen fill + live montado só em `.live` (teardown no scroll).
+  /// `false`: mesma troca via switch legado explícito.
+  /// Histórico: um dia live ficava em opacity 0 (custo GPU sem ver).
   static let opacityFlipEnabled = true
 }
 

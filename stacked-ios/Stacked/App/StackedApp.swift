@@ -26,6 +26,7 @@ private struct AppRootView: View {
         .overlay {
           if popover.isPresented {
             PopoverOverlayHost()
+              .environment(MobileChromeController.shared)
           }
         }
     }

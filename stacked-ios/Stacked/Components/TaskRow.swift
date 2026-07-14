@@ -33,14 +33,19 @@ struct TaskRow: View {
 
   var body: some View {
     switch style {
-    case .card: cardBody
-    case .list: listBody
+    case .card: cardBody(light: false)
+    case .cardLight: cardBody(light: true)
+    case .list: listBody(premium: false)
+    case .listPremium: listBody(premium: true)
     }
   }
 
-  private var cardBody: some View {
+  private func cardBody(light: Bool) -> some View {
     let c = theme.colors
     let headerHeight = exactHeaderHeight
+    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    // Clip estável sempre — ligar/desligar clip no expand destruía a árvore e
+    // o chevron de subtarefas no Balões light precisava de vários toques.
 
     return VStack(spacing: 0) {
       rowHeader(expandTrailing: 8, expandTop: 8)
@@ -51,30 +56,48 @@ struct TaskRow: View {
     }
     // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
     .frame(minHeight: headerHeight)
-    // Um shape fill + clip continuous — mesmo visual do balão, menos pilha de layers.
     .background {
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(c.surface)
+      if light {
+        shape
+          .fill(c.surface.opacity(0.72))
+          .overlay {
+            shape.strokeBorder(c.textPrimary.opacity(0.055), lineWidth: 1)
+          }
+      } else {
+        shape.fill(c.surface)
+      }
     }
-    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .clipShape(shape)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
     .modifier(rowScrollLifecycle)
   }
 
-  private var listBody: some View {
+  private func listBody(premium: Bool) -> some View {
     let headerHeight = exactHeaderHeight
+    let expandTrailing: CGFloat = premium ? 10 : 12
+    let expandTop: CGFloat = premium ? 6 : 8
 
     return VStack(spacing: 0) {
-      rowHeader(expandTrailing: 12, expandTop: 8)
+      rowHeader(expandTrailing: expandTrailing, expandTop: expandTop)
         .opacity(task.done ? 0.45 : 1)
         // PERF_FASEB2_ETAPA3: altura exata do header
         .frame(height: headerHeight)
 
-      TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
+      if !premium {
+        TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
+      }
 
       subtasksExpansion
+    }
+    .overlay(alignment: .bottom) {
+      if premium {
+        Rectangle()
+          .fill(theme.colors.textPrimary.opacity(0.035))
+          .frame(height: 1)
+          .padding(.leading, 38)
+      }
     }
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
@@ -319,13 +342,13 @@ struct TaskRow: View {
 
   private var subtaskList: some View {
     let c = theme.colors
-    let subtaskLeading: CGFloat = style == .card ? 36 : 36
-    let betweenAlpha: CGFloat = (style == .card && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
+    let subtaskLeading: CGFloat = 36
+    let betweenAlpha: CGFloat = (style.isCardFamily && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
 
     return VStack(spacing: 0) {
       if flatSubtaskPanel {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
-      } else if style == .card {
+      } else if style.isCardFamily {
         Divider().overlay(c.surfaceVariant)
       }
 
@@ -397,7 +420,7 @@ struct TaskRow: View {
 
         if index < displaySubtasks.count - 1 {
           TaskExpandDivider(
-            indent: style == .card
+            indent: style.isCardFamily
               ? TaskExpandDividerStyle.cardSubtaskInset
               : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
             colorAlpha: betweenAlpha
@@ -406,7 +429,7 @@ struct TaskRow: View {
       }
       Color.clear.frame(height: 4)
     }
-    .background(c.surfaceVariant.opacity(flatSubtaskPanel ? 0 : (style == .card ? 0.45 : 0)))
+    .background(c.surfaceVariant.opacity(flatSubtaskPanel ? 0 : (style.isCardFamily ? 0.45 : 0)))
   }
 
   private func subtaskDot(sub: Subtask, done: Bool) -> some View {
@@ -813,11 +836,6 @@ struct SubtaskTitlePressArea<Content: View>: View {
 //     .allowsHitTesting(expanded)
 // }
 // .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
-
-enum TaskRowStyle {
-  case card
-  case list
-}
 
 /// Chevron lateral para linhas navegáveis — mesmo ícone das subtarefas (`arrowDown01` → direita).
 struct DisclosureChevron: View {

@@ -46,14 +46,13 @@ struct DockNavTrackShell<S: InsettableShape>: View {
     }
   }
 
-  /// PERF_FASEB3_3A — path legado (switch destrói glassEffect no freeze).
+  /// Path legado NetLog — força switch completo (mesmo teardown do path ativo).
   private var useLegacyPath: Bool {
     useLegacySwitch || !DockGlassFreezePhase.opacityFlipEnabled
   }
 
   @ViewBuilder
   private var legacySwitchBody: some View {
-    // PERF_FASEB3_3A — comportamento pré-fix (teardown no gesto).
     switch mode {
     case .live:
       liveGlassLayer
@@ -64,13 +63,15 @@ struct DockNavTrackShell<S: InsettableShape>: View {
     }
   }
 
-  /// PERF_FASEB3_3A — ambos os layers sempre montados; só opacity muda (corte seco).
+  /// Fill congelado sempre barato; live só monta em `.live` (teardown no freeze —
+  /// evita glassEffect amostrando a lista em opacity 0).
   private var opacityFlipBody: some View {
     ZStack {
       frozenFillLayer
         .opacity(mode == .frozen ? 1 : 0)
-      liveGlassLayer
-        .opacity(mode == .live ? 1 : 0)
+      if mode == .live {
+        liveGlassLayer
+      }
     }
     .transaction { $0.disablesAnimations = true }
   }

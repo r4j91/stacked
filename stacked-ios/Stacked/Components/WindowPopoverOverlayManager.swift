@@ -101,6 +101,7 @@ final class WindowPopoverOverlayManager {
           onDismiss: { colorPresenter.dismiss() }
         )
         .environment(ThemeManager.shared)
+        .environment(MobileChromeController.shared)
       }
       if popoverActive, let presenter = attachedPresenter {
         PopoverOverlayHost(
@@ -110,6 +111,7 @@ final class WindowPopoverOverlayManager {
           opaquePopoverSurface: true
         )
         .environment(ThemeManager.shared)
+        .environment(MobileChromeController.shared)
       }
     }
     .ignoresSafeArea()
