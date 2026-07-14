@@ -6,7 +6,6 @@ struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.openTaskContextMenu) private var openTaskContextMenu
-  @Environment(\.uikitHostedTaskRow) private var uikitHostedTaskRow
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -244,24 +243,13 @@ struct TaskRow: View {
   @ViewBuilder
   private var subtasksExpansion: some View {
     if task.hasSubtasks, subtaskRevealActive {
-      if uikitHostedTaskRow {
-        // UIHosting aninhado (SubtaskExpandReveal) dentro de UIHostingConfiguration
-        // bugava altura/animação — expand nativo SwiftUI + invalidate do collection.
+      SubtaskExpandReveal(
+        expanded: expanded,
+        reduceMotion: reduceMotion,
+        layoutPass: subtaskRevealLayoutPass,
+        contentRevision: subtaskRevealContentRevision
+      ) {
         subtaskList
-          .frame(maxHeight: expanded ? nil : 0, alignment: .top)
-          .clipped()
-          .opacity(expanded ? 1 : 0)
-          .allowsHitTesting(expanded)
-          .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: expanded)
-      } else {
-        SubtaskExpandReveal(
-          expanded: expanded,
-          reduceMotion: reduceMotion,
-          layoutPass: subtaskRevealLayoutPass,
-          contentRevision: subtaskRevealContentRevision
-        ) {
-          subtaskList
-        }
       }
     }
   }
@@ -575,7 +563,6 @@ struct TaskRow: View {
           expanded = true
         }
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
-        notifyUIKitHeightIfNeeded()
       }
       return
     }
@@ -584,21 +571,8 @@ struct TaskRow: View {
       expanded = willExpand
     }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
-    notifyUIKitHeightIfNeeded()
     if !willExpand {
       scheduleSubtaskRevealTeardown()
-    }
-  }
-
-  private func notifyUIKitHeightIfNeeded() {
-    guard uikitHostedTaskRow else { return }
-    // Dois ticks: um no meio do spring e um no fim.
-    NotificationCenter.default.post(name: .stackedUIKitTaskRowHeightMayChange, object: task.id)
-    _Concurrency.Task { @MainActor in
-      try? await _Concurrency.Task.sleep(for: .milliseconds(reduceMotion ? 16 : 120))
-      NotificationCenter.default.post(name: .stackedUIKitTaskRowHeightMayChange, object: task.id)
-      try? await _Concurrency.Task.sleep(for: .milliseconds(reduceMotion ? 16 : 140))
-      NotificationCenter.default.post(name: .stackedUIKitTaskRowHeightMayChange, object: task.id)
     }
   }
 
@@ -624,14 +598,8 @@ struct TaskRow: View {
       subtaskRevealActive = false
       return
     }
-    syncSubtasks()
-    // UIKit cell recycle: abre direto (sem sequência yield+animate) — evita “pisca” no scroll.
-    if uikitHostedTaskRow {
-      subtaskRevealActive = true
-      expanded = true
-      return
-    }
     // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
+    syncSubtasks()
     subtaskRevealActive = true
     expanded = false
     _Concurrency.Task { @MainActor in
