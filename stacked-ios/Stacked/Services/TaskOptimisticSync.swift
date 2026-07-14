@@ -4,12 +4,13 @@ import Foundation
 @MainActor
 enum TaskOptimisticSync {
   private static let retryDelays: [UInt64] = [1_000_000_000, 3_000_000_000] // 1s, 3s
-  private static let requestTimeoutSeconds: TimeInterval = 15
+  private static let requestTimeoutSeconds: TimeInterval = 20
   private static var pendingIds: Set<String> = []
   private static var failedIds: Set<String> = []
   private static var inFlight: Set<String> = []
+  private static var clientUuidAccepted: Bool?
 
-  static func isPending(_ id: String) -> Bool { pendingIds.contains(id) }
+  static func isPending(_ id: String) -> Bool { pendingIds.contains(id) || inFlight.contains(id) }
   static func isFailed(_ id: String) -> Bool { failedIds.contains(id) }
 
   static func markPending(_ id: String) {
@@ -20,6 +21,7 @@ enum TaskOptimisticSync {
   static func markSynced(_ id: String) {
     pendingIds.remove(id)
     failedIds.remove(id)
+    SyncFeedback.shared.clearSuccess(for: id)
   }
 
   static func markFailed(_ id: String) {
@@ -27,8 +29,17 @@ enum TaskOptimisticSync {
     failedIds.insert(id)
   }
 
-  /// Valida se o Postgres aceita UUID gerado no cliente (insert + delete).
-  /// Retorna nil se a rede falhou (indeterminado) — não bloqueia o save.
+  /// Aguarda create otimista concluir antes de PATCH/labels no Detail.
+  static func waitUntilReady(taskId: String, timeoutSeconds: TimeInterval = 12) async {
+    guard isPending(taskId) else { return }
+    let deadline = Date().addingTimeInterval(timeoutSeconds)
+    while Date() < deadline {
+      if !isPending(taskId) { return }
+      try? await _Concurrency.Task.sleep(for: .milliseconds(120))
+    }
+  }
+
+  /// Valida UUID client via insert+delete — só NetLog debug (não no critical path do save).
   static func validateClientGeneratedId() async -> Bool? {
     guard let userId = SupabaseService.client.auth.currentUser?.id else { return false }
     let probeId = UUID().uuidString.lowercased()
@@ -69,15 +80,12 @@ enum TaskOptimisticSync {
         result: kind,
         detail: "CLIENT_UUID_RESULT: \(error.localizedDescription)"
       )
-      // Rede/timeout — indeterminado; NÃO tratar como rejeição de schema.
       if kind == .noNetwork || kind == .timeout || kind == .auth {
         return nil
       }
       return false
     }
   }
-
-  private static var clientUuidAccepted: Bool?
 
   static func enqueueCreate(
     id: String,
@@ -86,22 +94,8 @@ enum TaskOptimisticSync {
   ) {
     markPending(id)
     _Concurrency.Task {
-      // NET_FASEC_ETAPA2 — validar id explícito uma vez por sessão quando online.
-      if clientUuidAccepted != true {
-        let result = await validateClientGeneratedId()
-        if result == true {
-          clientUuidAccepted = true
-        } else if result == false {
-          clientUuidAccepted = false
-          markFailed(id)
-          SyncFeedback.shared.showMessage(
-            "Não foi possível sincronizar — servidor rejeitou UUID do cliente. Parar e reportar (schema).",
-            taskId: id
-          )
-          return
-        }
-        // nil = rede indeterminada → tenta upsert real
-      }
+      // NET_FASEC_ETAPA2 fix: não fazer probe no critical path — o upsert real valida o UUID.
+      // Probe fica só no botão NetLog (evita toast/rede extra no Quick Add).
       await syncCreate(id: id, input: input, projectName: projectName, isRetry: false)
     }
   }
@@ -125,18 +119,23 @@ enum TaskOptimisticSync {
     defer { inFlight.remove(id) }
 
     let flowStart = Date()
-    guard let userId = SupabaseService.client.auth.currentUser?.id else {
-      let err = SyncError.falhaAuth
-      handleCreateFailure(id: id, input: input, projectName: projectName, error: err)
-      return
+    let userId: UUID
+    if let uid = SupabaseService.client.auth.currentUser?.id {
+      userId = uid
+    } else {
+      _ = try? await SupabaseService.client.auth.refreshSession()
+      guard let uid = SupabaseService.client.auth.currentUser?.id else {
+        handleCreateFailure(id: id, input: input, projectName: projectName, error: .falhaAuth)
+        return
+      }
+      userId = uid
     }
 
     var lastError: Error?
     let attempts = 1 + retryDelays.count
     for attempt in 0..<attempts {
       if attempt > 0 {
-        let delay = retryDelays[attempt - 1]
-        try? await _Concurrency.Task.sleep(nanoseconds: delay)
+        try? await _Concurrency.Task.sleep(nanoseconds: retryDelays[attempt - 1])
       }
       do {
         try await withTimeout(requestTimeoutSeconds) {
@@ -146,11 +145,10 @@ enum TaskOptimisticSync {
             userId: userId
           )
         }
-        // Labels fora do critical path — falha própria.
+        clientUuidAccepted = true
         if !input.labelIds.isEmpty {
           await syncLabels(taskId: id, labelIds: input.labelIds)
         }
-        // Notif: só esta tarefa.
         if let dueISO = input.dueDateISO,
            let due = TaskMapper.parseDueDate(dueISO),
            let time = input.time,
@@ -169,7 +167,6 @@ enum TaskOptimisticSync {
             result: .success
           )
         }
-        // Calendário em background, nunca falha o save.
         _Concurrency.Task {
           let calStart = Date()
           await TaskCalendarSync.syncTaskId(id)
@@ -191,29 +188,40 @@ enum TaskOptimisticSync {
         return
       } catch {
         lastError = error
-        let kind = NetLog.classify(error)
-        if kind == .timeout {
-          if await TaskRepository.shared.taskExists(id: id) {
-            markSynced(id)
-            if !input.labelIds.isEmpty {
-              await syncLabels(taskId: id, labelIds: input.labelIds)
-            }
-            NetLog.record(
-              operation: "quickadd.create.timeout_verified",
-              step: .selectVerify,
-              durationMs: Int(Date().timeIntervalSince(flowStart) * 1000),
-              result: .success,
-              detail: "id=\(id)"
-            )
-            return
+        // Timeout / cancel / any soft fail: verify by id antes de declarar erro.
+        if await TaskRepository.shared.taskExists(id: id) {
+          clientUuidAccepted = true
+          if !input.labelIds.isEmpty {
+            await syncLabels(taskId: id, labelIds: input.labelIds)
           }
+          markSynced(id)
+          NetLog.record(
+            operation: "quickadd.create.verified_ok",
+            step: .selectVerify,
+            durationMs: Int(Date().timeIntervalSince(flowStart) * 1000),
+            result: .success,
+            detail: "id=\(id) after \(NetLog.classify(error).rawValue)"
+          )
+          return
         }
       }
+    }
+
+    // Última verificação pós-retries.
+    if await TaskRepository.shared.taskExists(id: id) {
+      clientUuidAccepted = true
+      markSynced(id)
+      return
     }
 
     let syncErr = SyncError.from(lastError ?? NSError(domain: "Stacked", code: -1))
     if case .timeoutVerificado = syncErr {
       markSynced(id)
+      return
+    }
+    if case .cancelado = syncErr {
+      // Cancel sem confirmação — não toast; deixa pendente pra retry silencioso depois.
+      markPending(id)
       return
     }
     handleCreateFailure(id: id, input: input, projectName: projectName, error: syncErr)
@@ -238,6 +246,7 @@ enum TaskOptimisticSync {
     }
   }
 
+  /// Labels: retry silencioso — NÃO toast (falha de labels ≠ falha do save da tarefa).
   private static func syncLabels(taskId: String, labelIds: [String]) async {
     let attempts = 1 + retryDelays.count
     for attempt in 0..<attempts {
@@ -260,34 +269,20 @@ enum TaskOptimisticSync {
             result: NetLog.classify(error),
             detail: error.localizedDescription
           )
-          // Labels não falham o save da tarefa — toast discreto opcional.
-          SyncFeedback.shared.show(.falhaServidor(nil), taskId: taskId) {
-            _Concurrency.Task { await syncLabels(taskId: taskId, labelIds: labelIds) }
-          }
+          // Silencioso — UI local já tem as etiquetas; próximo edit/reload reconcilia.
         }
       }
     }
   }
 
+  /// Timeout cooperativo: NÃO cancela a request (cancel mid-flight gerava toast falso).
   static func withTimeout<T>(
     _ seconds: TimeInterval,
     operation: @escaping () async throws -> T
   ) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
-      group.addTask { try await operation() }
-      group.addTask {
-        try await _Concurrency.Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-        throw NSError(
-          domain: NSURLErrorDomain,
-          code: NSURLErrorTimedOut,
-          userInfo: [NSLocalizedDescriptionKey: "Request timed out"]
-        )
-      }
-      guard let result = try await group.next() else {
-        throw NSError(domain: "Stacked", code: -2, userInfo: [NSLocalizedDescriptionKey: "Timeout group empty"])
-      }
-      group.cancelAll()
-      return result
-    }
+    // Mantém assinatura usada por persistence/create; o teto real é o da URLSession.
+    // Se a operação for lenta, NetLog registra duração — sem abortar escrita no servidor.
+    _ = seconds
+    return try await operation()
   }
 }

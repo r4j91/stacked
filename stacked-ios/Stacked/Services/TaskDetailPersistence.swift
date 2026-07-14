@@ -13,6 +13,9 @@ enum TaskDetailPersistence {
     taskId: String,
     work: @escaping () async throws -> Void
   ) async {
+    // Espera create otimista do Quick Add antes de PATCH (evita toast em tarefa ainda pendente).
+    await TaskOptimisticSync.waitUntilReady(taskId: taskId)
+
     let attempts = 1 + retryDelays.count
     var lastError: Error?
     for attempt in 0..<attempts {
@@ -23,16 +26,20 @@ enum TaskDetailPersistence {
         try await NetLog.timed(operation, step: .updateTask) {
           try await TaskOptimisticSync.withTimeout(15, operation: work)
         }
+        SyncFeedback.shared.clearSuccess(for: taskId)
         return
       } catch {
         lastError = error
-        if NetLog.classify(error) == .timeout {
-          // Update: não dá para verify facilmente o conteúdo; retry cobre.
+        let kind = NetLog.classify(error)
+        if kind == .cancelled { continue }
+        if kind == .timeout {
+          // Update: retry; se ainda falhar, só toast se não for cancelamento.
         }
       }
     }
     if let lastError {
       let syncErr = SyncError.from(lastError)
+      guard syncErr.shouldShowToast else { return }
       SyncFeedback.shared.show(syncErr, taskId: taskId) {
         _Concurrency.Task { await persist(operation: operation, taskId: taskId, work: work) }
       }

@@ -31,6 +31,12 @@ final class SyncFeedback {
     banner = Banner(message: message, taskId: taskId, retry: retry)
   }
 
+  /// Descarta toast se a sync do mesmo id concluiu depois (falso positivo).
+  func clearSuccess(for taskId: String) {
+    guard banner?.taskId == taskId else { return }
+    banner = nil
+  }
+
   func dismiss() {
     banner = nil
   }

@@ -5,6 +5,8 @@ enum SyncError: Error, Equatable, Sendable {
   case semConexao
   /// Timeout mas escrita confirmada via select — UI trata como sucesso silencioso.
   case timeoutVerificado
+  /// Request cancelada / race de timeout — não mostrar toast.
+  case cancelado
   case falhaServidor(String?)
   case falhaAuth
   case decode
@@ -13,12 +15,10 @@ enum SyncError: Error, Equatable, Sendable {
     switch self {
     case .semConexao:
       return "Sem internet — vou sincronizar quando voltar"
-    case .timeoutVerificado:
+    case .timeoutVerificado, .cancelado, .falhaAuth:
       return nil
     case .falhaServidor:
       return "Não foi possível sincronizar — tocar para tentar de novo"
-    case .falhaAuth:
-      return nil
     case .decode:
       return "Não foi possível sincronizar — tocar para tentar de novo"
     }
@@ -26,7 +26,7 @@ enum SyncError: Error, Equatable, Sendable {
 
   var shouldShowToast: Bool {
     switch self {
-    case .timeoutVerificado, .falhaAuth: return false
+    case .timeoutVerificado, .falhaAuth, .cancelado: return false
     case .semConexao, .falhaServidor, .decode: return true
     }
   }
@@ -42,7 +42,9 @@ enum SyncError: Error, Equatable, Sendable {
       return .falhaAuth
     case .decode:
       return .decode
-    case .server, .unknown, .cancelled, .success:
+    case .cancelled:
+      return .cancelado
+    case .server, .unknown, .success:
       return .falhaServidor(error.localizedDescription)
     }
   }

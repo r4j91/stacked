@@ -238,12 +238,12 @@ final class NotificationService {
     )
   }
 
-  func scheduleDailySummary(taskCount: Int) async {
-    guard await isEnabled() else { return }
-    guard NotificationPreferences.dailySummary else { return }
+  /// Identificador do resumo diário — usado pelo delegate para rearmar o próximo dia.
+  static var dailySummaryIdentifier: String { dailySummaryId }
 
+  /// Próximo disparo às 8:00 (hoje se ainda não passou; senão amanhã).
+  private func nextDailySummaryFireDate(from now: Date = Date()) -> Date {
     let cal = Calendar.current
-    let now = Date()
     var scheduled = cal.date(
       bySettingHour: 8,
       minute: 0,
@@ -253,6 +253,12 @@ final class NotificationService {
     if scheduled <= now {
       scheduled = cal.date(byAdding: .day, value: 1, to: scheduled) ?? scheduled
     }
+    return scheduled
+  }
+
+  func scheduleDailySummary(taskCount: Int, at fireDate: Date) async {
+    guard await isEnabled() else { return }
+    guard NotificationPreferences.dailySummary else { return }
 
     let content = UNMutableNotificationContent()
     content.title = "Resumo do dia"
@@ -261,8 +267,12 @@ final class NotificationService {
       : "Você tem \(taskCount) tarefas para hoje"
     content.sound = .default
 
-    let components = cal.dateComponents([.hour, .minute], from: scheduled)
-    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+    // Não repetir: o body fica congelado no schedule; rearmar em foreground / após entrega.
+    let components = Calendar.current.dateComponents(
+      [.year, .month, .day, .hour, .minute],
+      from: fireDate
+    )
+    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     let request = UNNotificationRequest(
       identifier: Self.dailySummaryId,
       content: content,
@@ -277,18 +287,20 @@ final class NotificationService {
     guard await isEnabled() else { return }
     guard SupabaseService.client.auth.currentUser?.id != nil else { return }
 
-    let today = TaskMapper.dateString(Date())
+    let fireDate = nextDailySummaryFireDate()
+    // Conta o dia do disparo (paridade Hoje: vencidas + aquele dia).
+    let fireDay = TaskMapper.dateString(fireDate)
     struct IdRow: Decodable { let id: String }
     do {
       let rows: [IdRow] = try await SupabaseService.client
         .from("tasks")
         .select("id")
         .eq("concluida", value: false)
-        .eq("data_vencimento", value: today)
+        .lte("data_vencimento", value: fireDay)
         .execute()
         .value
       await cancelDailySummary()
-      await scheduleDailySummary(taskCount: rows.count)
+      await scheduleDailySummary(taskCount: rows.count, at: fireDate)
     } catch {
       // ignore — resumo é best-effort
     }

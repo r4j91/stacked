@@ -31,6 +31,23 @@ extension AppOrientationDelegate: UNUserNotificationCenterDelegate {
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+    rearmDailySummaryIfNeeded(notification)
     completionHandler([.banner, .sound, .badge])
+  }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    rearmDailySummaryIfNeeded(response.notification)
+    completionHandler()
+  }
+
+  private func rearmDailySummaryIfNeeded(_ notification: UNNotification) {
+    guard notification.request.identifier == NotificationService.dailySummaryIdentifier else { return }
+    _Concurrency.Task { @MainActor in
+      await NotificationService.shared.scheduleDailySummaryIfNeeded()
+    }
   }
 }

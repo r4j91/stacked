@@ -21,6 +21,13 @@ struct SettingsView: View {
           .buttonStyle(.plain)
           .settingsNavigationLinkStyle()
           .settingsGroupedNavigationRow(position: .only)
+          // NET_FASEC_ETAPA1 — entrada escondida do NetLog (sem rodapé de versão).
+          .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.85).onEnded { _ in
+              showNetLog = true
+              HapticService.saved()
+            }
+          )
         }
 
         Section {
@@ -103,19 +110,6 @@ struct SettingsView: View {
           .buttonStyle(.plain)
           .settingsListCardRow(top: 28, bottom: 24)
         }
-
-        // NET_FASEC_ETAPA1 — long-press na versão abre NetLog.
-        Section {
-          Text(appVersionLabel)
-            .font(AppTypography.metaSmall)
-            .foregroundStyle(c.textTertiary)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-            .onLongPressGesture(minimumDuration: 0.85) {
-              showNetLog = true
-              HapticService.saved()
-            }
-        }
       }
       .settingsDrillDownList(background: c.background)
       .listSectionSpacing(20)
@@ -136,11 +130,8 @@ struct SettingsView: View {
     }
   }
 
-  private var appVersionLabel: String {
-    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
-    return "Stacked \(version) (\(build))"
-  }
+  // NET_FASEC_ETAPA1 — versão removida do rodapé; NetLog fica no long-press do perfil.
+  // private var appVersionLabel: String { ... }
 
   private var profileCard: some View {
     let c = theme.colors

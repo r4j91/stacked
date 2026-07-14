@@ -7,7 +7,7 @@ import { parseDueDate, formatTaskDate, dueDateChipColor } from "@/lib/utils/date
 import { TagChip } from "@/components/ui/tag-chip";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { AppIcon } from "@/components/ui/app-icon";
-import { TaskDone01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
+import { TaskDone01Icon, Calendar03Icon, Folder01Icon } from "@/lib/icons/nav-icons";
 
 type TaskMetaLineProps = {
   task: Task;
@@ -37,8 +37,16 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
 
   if (task.project && task.project !== "Sem projeto") {
     items.push(
-      <span key="proj" className="truncate text-[12px] text-[var(--color-text-tertiary)]">
-        {task.project}
+      <span
+        key="proj"
+        className="inline-flex max-w-full items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-xs font-medium text-[var(--color-text-secondary)]"
+        style={{
+          backgroundColor: "var(--color-surface-variant)",
+          borderColor: "color-mix(in srgb, var(--color-text-secondary) 28%, transparent)",
+        }}
+      >
+        <AppIcon icon={Folder01Icon} size={11} strokeWidth={1.75} />
+        <span className="truncate">{task.project}</span>
       </span>,
     );
   }

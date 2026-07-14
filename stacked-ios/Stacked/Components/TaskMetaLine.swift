@@ -63,7 +63,12 @@ struct TaskMetaLine: View {
       // }
       // .padding(.top, 4)
       HStack(spacing: 6) {
-        // Prioridade de exibição: data → subtarefas → resto; labels colapsam primeiro via +N.
+        // Projeto primeiro (contexto) → data / contadores → atributos (prioridade, labels).
+        if showsProject, let projectName {
+          ProjectChip(name: projectName)
+            .layoutPriority(-1)
+        }
+
         if dueDate != nil {
           dueDateChip
         }
@@ -78,14 +83,6 @@ struct TaskMetaLine: View {
 
         if let priority {
           TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)
-        }
-
-        if showsProject, let projectName {
-          Text(projectName)
-            .font(AppTypography.metaSmall)
-            .foregroundStyle(c.textTertiary)
-            .lineLimit(1)
-            .layoutPriority(-1)
         }
 
         ForEach(visibleLabels) { label in
@@ -125,6 +122,31 @@ struct TaskMetaLine: View {
         .font(AppTypography.meta)
         .foregroundStyle(theme.colors.textTertiary)
     }
+  }
+}
+
+/// Contexto de projeto: quiet chip (folder + name), não compete com tags coloridas.
+struct ProjectChip: View {
+  @Environment(ThemeManager.self) private var theme
+  let name: String
+
+  var body: some View {
+    let c = theme.colors
+    HStack(alignment: .center, spacing: 4) {
+      StackedIcons.icon(.folder, size: 11, color: c.textSecondary)
+      Text(name)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(c.textSecondary)
+        .lineLimit(1)
+    }
+    .padding(.horizontal, 7)
+    .padding(.vertical, 3)
+    .background(c.surfaceVariant.opacity(0.85))
+    .clipShape(RoundedRectangle(cornerRadius: 6))
+    .overlay(
+      RoundedRectangle(cornerRadius: 6)
+        .stroke(c.textSecondary.opacity(0.28), lineWidth: 0.8)
+    )
   }
 }
 

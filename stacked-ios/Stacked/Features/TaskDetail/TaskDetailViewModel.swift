@@ -229,6 +229,7 @@ final class TaskDetailViewModel {
     projectId = project?.id
     projectName = project?.name ?? "Sem projeto"
     _Concurrency.Task {
+      await TaskOptimisticSync.waitUntilReady(taskId: taskId)
       await TaskDetailPersistence.autosaveProject(taskId: taskId, projectId: project?.id)
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
     }
@@ -237,7 +238,8 @@ final class TaskDetailViewModel {
   func setLabels(_ ids: Set<String>) {
     selectedLabelIds = ids
     _Concurrency.Task {
-      // NET_FASEC_ETAPA3 — retry idempotente (antes: try?).
+      // Espera create otimista — labels em tarefa ainda não no servidor geravam toast falso.
+      await TaskOptimisticSync.waitUntilReady(taskId: taskId)
       let labelIds = Array(ids)
       let delays: [UInt64] = [1_000_000_000, 3_000_000_000]
       for attempt in 0..<(1 + delays.count) {
@@ -248,10 +250,14 @@ final class TaskDetailViewModel {
           try await NetLog.timed("task_labels.set", step: .updateLabels) {
             try await LabelRepository.shared.setTaskLabels(taskId: taskId, labelIds: labelIds)
           }
+          SyncFeedback.shared.clearSuccess(for: taskId)
           return
         } catch {
+          if NetLog.classify(error) == .cancelled { continue }
           if attempt == delays.count {
-            SyncFeedback.shared.show(SyncError.from(error), taskId: taskId) {
+            let syncErr = SyncError.from(error)
+            guard syncErr.shouldShowToast else { return }
+            SyncFeedback.shared.show(syncErr, taskId: taskId) {
               self.setLabels(ids)
             }
           }
