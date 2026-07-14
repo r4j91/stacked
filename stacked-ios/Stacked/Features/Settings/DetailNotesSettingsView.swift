@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct ProductivitySettingsView: View {
+struct DetailNotesSettingsView: View {
   @Environment(ThemeManager.self) private var theme
-  @State private var quickAddDescription = ProductivityPreferences.quickAddDescriptionEnabled
+  @State private var anchoredDetailNotes = ProductivityPreferences.anchoredDetailNotesEnabled
 
   var body: some View {
     let c = theme.colors
@@ -12,17 +12,17 @@ struct ProductivitySettingsView: View {
         SettingsCardSurface {
           HStack(spacing: 12) {
             settingsLabel(
-              icon: "text.alignleft",
-              title: "Descrição no Quick Add",
-              subtitle: "Campo de notas abaixo do título ao criar tarefas"
+              icon: "note.text",
+              title: "Notas em painel",
+              subtitle: "No detalhe, editor de notas no menu ancorado. Desligado usa o campo sob o título"
             )
             Spacer(minLength: 8)
             SettingsSwitchToggle(
               isOn: Binding(
-                get: { quickAddDescription },
+                get: { anchoredDetailNotes },
                 set: { newValue in
-                  quickAddDescription = newValue
-                  ProductivityPreferences.quickAddDescriptionEnabled = newValue
+                  anchoredDetailNotes = newValue
+                  ProductivityPreferences.anchoredDetailNotesEnabled = newValue
                   HapticService.selection()
                 }
               ),
@@ -36,7 +36,7 @@ struct ProductivitySettingsView: View {
       }
     }
     .settingsDrillDownList(background: c.background)
-    .navigationTitle("Captura rápida")
+    .navigationTitle("Detalhe da tarefa")
     .navigationBarTitleDisplayMode(.inline)
   }
 

@@ -27,6 +27,10 @@ struct SubtaskDetailView: View {
   @State private var priorityAnchor: CGRect = .zero
   @State private var dateAnchor: CGRect = .zero
   @State private var labelsAnchor: CGRect = .zero
+  @State private var showNotesPanel = false
+  @State private var notesAnchor: CGRect = .zero
+
+  @AppStorage(ProductivityPreferences.anchoredDetailNotesKey) private var anchoredDetailNotes = false
 
   private var persistSubtaskId: String? {
     if let resolvedSubtaskId, !resolvedSubtaskId.isEmpty { return resolvedSubtaskId }
@@ -94,15 +98,25 @@ struct SubtaskDetailView: View {
             .padding(.horizontal, 36)
           }
 
-          TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)
-            .font(AppTypography.commentBody)
-            .foregroundStyle(c.textSecondary)
-            .lineLimit(2...8)
-            .padding(.leading, 54)
-            .padding(.trailing, 20)
+          if anchoredDetailNotes {
+            DetailNotesTriggerRow(text: descriptionText) { rect in
+              notesAnchor = rect
+              showNotesPanel = true
+            }
+            .padding(.horizontal, 16)
             .padding(.top, 6)
-            .padding(.bottom, 14)
-            .onSubmit { _Concurrency.Task { await flushPending() } }
+            .padding(.bottom, 10)
+          } else {
+            TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)
+              .font(AppTypography.commentBody)
+              .foregroundStyle(c.textSecondary)
+              .lineLimit(2...8)
+              .padding(.leading, 54)
+              .padding(.trailing, 20)
+              .padding(.top, 6)
+              .padding(.bottom, 14)
+              .onSubmit { _Concurrency.Task { await flushPending() } }
+          }
 
           if let saveError {
             Text(saveError)
@@ -142,6 +156,20 @@ struct SubtaskDetailView: View {
         }
       }
       .popoverHostScope()
+      .overlay {
+        if showNotesPanel {
+          GeometryReader { geo in
+            AnchoredNotesPopoverOverlay(
+              anchorRect: notesAnchor,
+              text: $descriptionText,
+              hostBounds: geo.frame(in: .global),
+              title: "Notas da subtarefa",
+              onDismiss: { showNotesPanel = false }
+            )
+          }
+          .ignoresSafeArea()
+        }
+      }
       .task { await reloadLabels() }
       .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
         _Concurrency.Task { await reloadLabels() }

@@ -263,13 +263,15 @@ struct TaskRow: View {
     VStack(alignment: .leading, spacing: 0) {
       titleRow
       if let desc = task.description, !desc.isEmpty {
-        Text(desc)
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textTertiary)
-          // PERF_FASEB2_ETAPA3: .lineLimit(2)
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .padding(.top, 4)
+        NotesMarkupText(
+          source: desc,
+          color: c.textTertiary,
+          size: 14,
+          weight: .regular,
+          boldWeight: .semibold,
+          lineLimit: 1
+        )
+        .padding(.top, 4)
       }
       TaskMetaLine(
         labels: task.labels,
@@ -385,11 +387,15 @@ struct TaskRow: View {
                 }
               }
               if let desc = sub.description, !desc.isEmpty {
-                Text(desc)
-                  .font(AppTypography.subtaskPreview)
-                  .foregroundStyle(c.textSecondary.opacity(done ? 0.55 : 0.85))
-                  .lineLimit(2)
-                  .padding(.top, 2)
+                NotesMarkupText(
+                  source: desc,
+                  color: c.textSecondary.opacity(done ? 0.55 : 0.85),
+                  size: 14,
+                  weight: .regular,
+                  boldWeight: .semibold,
+                  lineLimit: 2
+                )
+                .padding(.top, 2)
               }
               if hasMeta {
                 TaskMetaLine(

@@ -57,7 +57,15 @@ struct SettingsView: View {
             settingsRow(icon: .productivity, label: "Captura rápida", subtitle: "Descrição no Quick Add")
           }
           .settingsNavigationLinkStyle()
-          .settingsGroupedNavigationRow(position: .only)
+          .settingsGroupedNavigationRow(position: .first, showDivider: true)
+
+          NavigationLink {
+            DetailNotesSettingsView().environment(theme)
+          } label: {
+            settingsRow(icon: .edit, label: "Detalhe da tarefa", subtitle: "Notas em painel ou inline")
+          }
+          .settingsNavigationLinkStyle()
+          .settingsGroupedNavigationRow(position: .last)
         } header: {
           SettingsSectionHeader(text: "Produtividade")
         }

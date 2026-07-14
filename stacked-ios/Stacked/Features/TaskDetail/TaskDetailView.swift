@@ -19,6 +19,10 @@ struct TaskDetailView: View {
   @State private var commentsExpanded = false
   @State private var didInitCommentsExpanded = false
   @State private var isClosing = false
+  @State private var showNotesPanel = false
+  @State private var notesAnchor: CGRect = .zero
+
+  @AppStorage(ProductivityPreferences.anchoredDetailNotesKey) private var anchoredDetailNotes = false
 
   @State private var projectAnchor: CGRect = .zero
   @State private var dateAnchor: CGRect = .zero
@@ -134,7 +138,7 @@ struct TaskDetailView: View {
           didInitSubtasksExpanded = true
         }
         if !didInitCommentsExpanded {
-          commentsExpanded = true
+          commentsExpanded = false
           didInitCommentsExpanded = true
         }
       }
@@ -142,6 +146,20 @@ struct TaskDetailView: View {
         _Concurrency.Task { await vm.reloadLabels() }
       }
       .popoverHostScope()
+      .overlay {
+        if showNotesPanel {
+          GeometryReader { geo in
+            AnchoredNotesPopoverOverlay(
+              anchorRect: notesAnchor,
+              text: $vm.descriptionText,
+              hostBounds: geo.frame(in: .global),
+              onTextChange: { vm.onDescriptionChanged() },
+              onDismiss: { showNotesPanel = false }
+            )
+          }
+          .ignoresSafeArea()
+        }
+      }
     }
     .opacity(isClosing ? 0 : 1)
     .animation(isClosing ? .easeOut(duration: 0.22) : nil, value: isClosing)
@@ -168,11 +186,7 @@ struct TaskDetailView: View {
         .padding(.horizontal, 20)
         .padding(.top, 14)
 
-        descriptionNotesField
-          .padding(.leading, 50)
-          .padding(.trailing, 20)
-          .padding(.top, 6)
-          .padding(.bottom, 14)
+        descriptionNotesSection
 
         metadataCard
           .padding(.horizontal, 16)
@@ -345,10 +359,14 @@ struct TaskDetailView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
 
         if hasDescription, let desc = sub.description {
-          Text(desc)
-            .font(AppTypography.taskPreview)
-            .foregroundStyle(c.textTertiary)
-            .lineLimit(2)
+          NotesMarkupText(
+            source: desc,
+            color: c.textTertiary,
+            size: 14,
+            weight: .regular,
+            boldWeight: .semibold,
+            lineLimit: 2
+          )
         }
 
         if sub.dueDate != nil || !labels.isEmpty {
@@ -431,6 +449,25 @@ struct TaskDetailView: View {
     }
     .frame(width: 32, height: 32)
     .accessibilityHidden(true)
+  }
+
+  @ViewBuilder
+  private var descriptionNotesSection: some View {
+    if anchoredDetailNotes {
+      DetailNotesTriggerRow(text: vm.descriptionText) { rect in
+        notesAnchor = rect
+        showNotesPanel = true
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 6)
+      .padding(.bottom, 10)
+    } else {
+      descriptionNotesField
+        .padding(.leading, 50)
+        .padding(.trailing, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 14)
+    }
   }
 
   private var descriptionNotesField: some View {
