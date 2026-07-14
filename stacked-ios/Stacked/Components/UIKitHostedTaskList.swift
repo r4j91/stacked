@@ -2,7 +2,6 @@ import SwiftUI
 import UIKit
 
 /// Spike: UICollectionView (list layout) + `UIHostingConfiguration` com a mesma `TaskRow`.
-/// Visual ≈ SwiftUI List; recycle UIKit. Ligado só com `UIKitTaskListStorage`.
 struct UIKitHostedTaskList: UIViewControllerRepresentable {
   let tasks: [Task]
   var deferHeavyWork: Bool = false
@@ -51,6 +50,23 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   }
 }
 
+extension Notification.Name {
+  /// TaskRow mudou altura (expand/collapse) — invalida self-size da cell UIKit.
+  static let stackedUIKitTaskRowHeightMayChange = Notification.Name("stackedUIKitTaskRowHeightMayChange")
+}
+
+/// Cells em UIHostingConfiguration: evitar `SubtaskExpandReveal` (UIHosting aninhado).
+private struct UIKitHostedTaskRowKey: EnvironmentKey {
+  static let defaultValue = false
+}
+
+extension EnvironmentValues {
+  var uikitHostedTaskRow: Bool {
+    get { self[UIKitHostedTaskRowKey.self] }
+    set { self[UIKitHostedTaskRowKey.self] = newValue }
+  }
+}
+
 @MainActor
 final class UIKitHostedTaskListController: UIViewController, UICollectionViewDelegate {
   struct Configuration {
@@ -77,7 +93,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var dataSource: UICollectionViewDiffableDataSource<Section, String>!
   private var config: Configuration?
   private var lastTaskIds: [String] = []
+  private var lastContentToken: Int = 0
+  private var lastDeferHeavyWork: Bool?
   private var taskById: [String: Task] = [:]
+  private var heightObserver: NSObjectProtocol?
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -93,9 +112,16 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     collectionView.backgroundColor = .clear
     collectionView.alwaysBounceVertical = true
     collectionView.delegate = self
+    collectionView.allowsSelection = false
+    collectionView.isPrefetchingEnabled = false
+    if #available(iOS 16.0, *) {
+      collectionView.selfSizingInvalidation = .enabled
+    }
     collectionView.contentInset.bottom = AppLayout.listTailInset(
       safeBottom: AppLayout.windowSafeBottomInsetCached
     )
+    // Evita ajuste de inset no rubber-band (hitch comum no fling inverso).
+    collectionView.contentInsetAdjustmentBehavior = .never
     view.addSubview(collectionView)
 
     let refresh = UIRefreshControl()
@@ -133,6 +159,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         )
         .environment(ThemeManager.shared)
         .environment(MobileChromeController.shared)
+        .environment(\.uikitHostedTaskRow, true)
       }
       .margins(.all, 0)
       .minSize(height: 1)
@@ -147,28 +174,86 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         item: taskId
       )
     }
+
+    heightObserver = NotificationCenter.default.addObserver(
+      forName: .stackedUIKitTaskRowHeightMayChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.invalidateSelfSizing()
+    }
+  }
+
+  deinit {
+    if let heightObserver {
+      NotificationCenter.default.removeObserver(heightObserver)
+    }
   }
 
   func apply(configuration: Configuration) {
     if collectionView == nil {
       loadViewIfNeeded()
     }
+
+    let ids = configuration.tasks.map(\.id)
+    let token = contentToken(for: configuration.tasks)
+    let deferChanged = lastDeferHeavyWork != configuration.deferHeavyWork
+
     config = configuration
     taskById = Dictionary(uniqueKeysWithValues: configuration.tasks.map { ($0.id, $0) })
     view.backgroundColor = configuration.background
     collectionView.backgroundColor = configuration.background
+    lastDeferHeavyWork = configuration.deferHeavyWork
 
-    let ids = configuration.tasks.map(\.id)
     if ids == lastTaskIds {
-      // Mesmos IDs — reconfigura cells visíveis (titulo/subtasks).
-      collectionView.reloadData()
+      // NÃO reloadData / reconfigure genérico — destroi @State do expand e hitcha no fling.
+      // Só reconfigura quando o gate de heavy work abre (1× no appear).
+      if deferChanged {
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(ids)
+        dataSource.apply(snapshot, animatingDifferences: false)
+      }
+      lastContentToken = token
       return
     }
+
     lastTaskIds = ids
+    lastContentToken = token
     var snapshot = NSDiffableDataSourceSnapshot<Section, String>()
     snapshot.appendSections([.main])
     snapshot.appendItems(ids, toSection: .main)
     dataSource.apply(snapshot, animatingDifferences: false)
+  }
+
+  private func contentToken(for tasks: [Task]) -> Int {
+    var hasher = Hasher()
+    for task in tasks {
+      hasher.combine(task.id)
+      hasher.combine(task.title)
+      hasher.combine(task.done)
+      hasher.combine(task.description)
+      hasher.combine(task.priority?.rawValue)
+      hasher.combine(task.dueDateChipLabel)
+      hasher.combine(task.subtasksTotalCount)
+      hasher.combine(task.subtasksDoneCount)
+      hasher.combine(task.labels.map(\.id))
+      for sub in task.subtasks {
+        hasher.combine(sub.idOrFallback)
+        hasher.combine(sub.title)
+        hasher.combine(sub.done)
+      }
+    }
+    return hasher.finalize()
+  }
+
+  private func invalidateSelfSizing() {
+    guard isViewLoaded, collectionView != nil else { return }
+    // Sem animação de layout do collection — evita “pulo” no expand.
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    collectionView.collectionViewLayout.invalidateLayout()
+    collectionView.layoutIfNeeded()
+    CATransaction.commit()
   }
 
   @objc private func handleRefresh() {
