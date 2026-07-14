@@ -5,6 +5,7 @@ struct InboxView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.inboxKey) private var showCompleted = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
   @State private var allowRowHeavyWork = false
@@ -12,11 +13,86 @@ struct InboxView: View {
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
+  private var prefersUIKitList: Bool {
+    useUIKitTaskList
+      && !store.inboxLoading
+      && store.inboxError == nil
+      && !store.inboxPending.isEmpty
+      && !(showCompleted && !store.inboxCompleted.isEmpty)
+  }
+
   var body: some View {
     let c = theme.colors
     let count = store.inboxPending.count
     let subtitle = "\(count) \(count == 1 ? "tarefa" : "tarefas")"
 
+    Group {
+      if prefersUIKitList {
+        uikitInboxBody(subtitle: subtitle, colors: c)
+      } else {
+        swiftUIListBody(subtitle: subtitle, colors: c)
+      }
+    }
+    .stackedTabletCentered()
+    .background(c.background)
+    .stackedListRowWorkGate($allowRowHeavyWork)
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task {
+        await TaskDetailDismissRefresh.afterDismiss(tab: .inbox) {
+          await store.loadInbox()
+          await store.loadToday()
+        }
+      }
+    }) { route in
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId)
+        .environment(ThemeManager.shared)
+      }
+    }
+    .sheet(item: $subtaskDetailRoute) { route in
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot) { await store.loadInbox() }
+      }
+      .environment(ThemeManager.shared)
+    }
+  }
+
+  @ViewBuilder
+  private func uikitInboxBody(subtitle: String, colors: AppThemeColors) -> some View {
+    VStack(spacing: 0) {
+      TaskListScreenHeader(
+        title: "Caixa de entrada",
+        subtitle: subtitle,
+        showCompletedKey: ShowCompletedPreferences.inboxKey,
+        showCompletedDefault: false
+      )
+      .padding(.top, 4)
+      .padding(.bottom, 8)
+
+      UIKitHostedTaskList(
+        tasks: store.inboxPending,
+        deferHeavyWork: !allowRowHeavyWork,
+        showProject: true,
+        style: .card,
+        background: colors.background,
+        onToggle: { store.completeInbox($0) },
+        onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+        onSubtaskTap: { task, sub in
+          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+        },
+        onSubtaskChanged: { store.applySubtaskPatch($0) },
+        onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
+        onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+        onComplete: { store.completeInbox($0) },
+        onDuplicate: { store.duplicateInbox($0) },
+        onDelete: { store.deleteInbox($0) },
+        onRefresh: { _Concurrency.Task { await store.loadInbox() } }
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func swiftUIListBody(subtitle: String, colors: AppThemeColors) -> some View {
     List {
       Section {
         TaskListScreenHeader(
@@ -33,7 +109,7 @@ struct InboxView: View {
       if store.inboxLoading {
         Section {
           ProgressView()
-            .tint(c.accent)
+            .tint(colors.accent)
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
         }
@@ -63,17 +139,16 @@ struct InboxView: View {
         if showCompleted && !store.inboxCompleted.isEmpty {
           Section {
             Button {
-              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
               AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
             } label: {
               HStack {
                 Text("Concluídas (\(store.inboxCompleted.count))")
                   .font(AppTypography.completedSectionHeader)
-                  .foregroundStyle(c.textSecondary)
+                  .foregroundStyle(colors.textSecondary)
                 Spacer()
                 Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
                   .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(c.textTertiary)
+                  .foregroundStyle(colors.textTertiary)
               }
             }
             .listRowBackground(Color.clear)
@@ -90,34 +165,11 @@ struct InboxView: View {
           }
         }
       }
-
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
-    .stackedTabletCentered()
-    .background(c.background)
     .refreshable { await store.loadInbox() }
-    .stackedListRowWorkGate($allowRowHeavyWork)
-    .fullScreenCover(item: $detailRoute, onDismiss: {
-      _Concurrency.Task {
-        await TaskDetailDismissRefresh.afterDismiss(tab: .inbox) {
-          await store.loadInbox()
-          await store.loadToday()
-        }
-      }
-    }) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId)
-        .environment(ThemeManager.shared)
-      }
-    }
-    .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
-        await SubtaskSaveHandler.handle(snapshot) { await store.loadInbox() }
-      }
-      .environment(ThemeManager.shared)
-    }
   }
 
   private var rowInsets: EdgeInsets {

@@ -15,6 +15,7 @@ struct AppearanceView: View {
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
   @State private var stylePendingHide: HomeHeroStyle?
   /// Uma seção aberta por vez — accordion leve no padrão do app (tudo fechado ao entrar).
   @State private var expandedSection: AppearanceSectionID? = nil
@@ -90,6 +91,8 @@ struct AppearanceView: View {
           freezeDockGlassRow()
           SettingsCardDivider(leadingPadding: 56)
           alwaysFrozenDockGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          uikitTaskListRow()
         }
 
         appearancePanel(
@@ -299,6 +302,7 @@ struct AppearanceView: View {
   }
 
   private var scrollFluiditySummary: String {
+    if useUIKitTaskList { return "Lista UIKit · Inbox" }
     if disableAllGlass { return "Glass desativado" }
     if alwaysStaticGlass { return "Glass estático" }
     if alwaysFrozenDockGlass { return "Navbar sem glass" }
@@ -306,6 +310,9 @@ struct AppearanceView: View {
   }
 
   private var scrollFluidityFooter: String {
+    if useUIKitTaskList {
+      return "UIKit experimental só na Caixa de entrada (sem “Concluídas” abertas). Desligue para voltar ao SwiftUI List."
+    }
     if disableAllGlass {
       return "Fill sólido em todo o app — sem ver o que passa atrás. Use “Glass estático” se quiser translúcido sem morph."
     }
@@ -419,6 +426,29 @@ struct AppearanceView: View {
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .opacity(dimmed ? 0.55 : 1)
     .onChange(of: alwaysFrozenDockGlass) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func uikitTaskListRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Lista UIKit (experimental)")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Inbox com UICollectionView — mesmo visual de rows. Fácil desligar.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $useUIKitTaskList, tint: c.accent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: useUIKitTaskList) { _, _ in
       HapticService.selection()
     }
   }
