@@ -164,6 +164,10 @@ struct TaskDetailView: View {
     .opacity(isClosing ? 0 : 1)
     .animation(isClosing ? .easeOut(duration: 0.22) : nil, value: isClosing)
     .allowsHitTesting(!isClosing)
+    // NET_FASEC_ETAPA1B — swipe-down / qualquer dismiss: flush títulos/notas.
+    .onDisappear {
+      _Concurrency.Task { await vm.flushPendingAutosaves() }
+    }
   }
 
   private var scrollContent: some View {
@@ -812,12 +816,18 @@ struct TaskDetailView: View {
   private func close() {
     guard !isClosing else { return }
     isClosing = true
-    if reduceMotion {
-      dismiss()
-      return
-    }
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-      dismiss()
+    // NET_FASEC_ETAPA1B — flush debounces antes de encerrar (X / Fechar).
+    _Concurrency.Task {
+      await vm.flushPendingAutosaves()
+      await MainActor.run {
+        if reduceMotion {
+          dismiss()
+          return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+          dismiss()
+        }
+      }
     }
   }
 

@@ -11,6 +11,7 @@ struct RootView: View {
   @State private var router = AppNavigationRouter.shared
   @State private var visitedTabs: Set<NavTab> = [.home] // AJUSTADO_VISITED_TABS
   @State private var didBootstrap = false
+  @State private var syncFeedback = SyncFeedback.shared
 
   var body: some View {
     @Bindable var chrome = chrome
@@ -22,6 +23,14 @@ struct RootView: View {
       onNewProject: { openNewProject() }
     ) {
       RootTabContent(visitedTabs: visitedTabs)
+    }
+    .overlay(alignment: .bottom) {
+      // NET_FASEC_ETAPA2/4 — toast de sync (acima do dock).
+      if let banner = syncFeedback.banner {
+        SyncToastBanner(banner: banner)
+          .padding(.bottom, 88)
+          .environment(ThemeManager.shared)
+      }
     }
     .onChange(of: currentTab) { _, tab in
       visitedTabs.insert(tab) // AJUSTADO_VISITED_TABS
@@ -39,8 +48,17 @@ struct RootView: View {
     }
     .onChange(of: scenePhase) { _, phase in
       guard didBootstrap, phase == .active else { return }
+      NetLog.markForeground()
       WidgetSnapshotSync.refreshFromCachedToday()
       _Concurrency.Task {
+        // NET_FASEC_ETAPA4 — refresh proativo de sessão ao voltar do background.
+        do {
+          _ = try await NetLog.timed("auth.refreshSession", step: .authRefresh) {
+            try await SupabaseService.client.auth.refreshSession()
+          }
+        } catch {
+          // Refresh falhou — request seguinte ainda tenta via autoRefreshToken.
+        }
         await NotificationService.shared.rescheduleAllPending()
         await GlobalDataRefresh.refreshDashboardCounts()
         await HomeStore.shared.refreshWeatherIfNeeded()
@@ -86,7 +104,18 @@ struct RootView: View {
     _Concurrency.Task {
       // Aguarda a animação de troca de aba completar antes de disparar fetch
       // navMorphSpring (response: 0.36) — 400ms cobre a transição com folga
-      try? await _Concurrency.Task.sleep(for: .milliseconds(400)) // AJUSTADO_RELOAD_DELAY
+      // NET_FASEC_ETAPA5 — delay ignorável via toggle NetLog (default: mantém).
+      let skipDelay = UserDefaults.standard.bool(forKey: "net.log.skip.reload.delay")
+      if !skipDelay {
+        try? await _Concurrency.Task.sleep(for: .milliseconds(400)) // AJUSTADO_RELOAD_DELAY
+      } else {
+        NetLog.record(
+          operation: "reloadData.skip_delay",
+          step: .reload,
+          durationMs: 0,
+          result: .success
+        )
+      }
       await TabDataLoader.load(tab)
     }
   }
@@ -94,18 +123,23 @@ struct RootView: View {
   private func afterQuickAddSaved(_ summary: QuickAddSaveSummary) {
     let today = TaskMapper.dateString(Date())
     let tabs = summary.tabsToReload(todayStr: today)
+    // NET_FASEC_ETAPA2 — mutação local já está no store; sem force reload da lista.
+    // reloadData(for: chrome.selectedTab, force: true)
+    // TabBootstrapCoordinator.cancelPrefetch()
+    // _Concurrency.Task {
+    //   for tab in tabs where tab != chrome.selectedTab {
+    //     await TabDataLoader.load(tab)
+    //   }
+    // }
     GlobalDataRefresh.afterTaskMutation(invalidateTabs: tabs)
-
-    if tabs.contains(chrome.selectedTab) {
-      reloadData(for: chrome.selectedTab, force: true)
-    }
-
-    TabBootstrapCoordinator.cancelPrefetch()
-    _Concurrency.Task {
-      for tab in tabs where tab != chrome.selectedTab {
-        await TabDataLoader.load(tab)
-      }
-    }
+    let reloadStart = Date()
+    NetLog.record(
+      operation: "afterQuickAddSaved.no_force_reload",
+      step: .reload,
+      durationMs: Int(Date().timeIntervalSince(reloadStart) * 1000),
+      result: .success,
+      detail: "tabs=\(tabs.map { String(describing: $0) }.joined(separator: ","))"
+    )
   }
 
   private func reloadAll() {

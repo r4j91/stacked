@@ -598,13 +598,11 @@ final class TaskRepository {
     var labelIds: [String] = []
   }
 
-  func createTask(_ input: CreateTaskInput) async throws -> String {
-    guard let userId = client.auth.currentUser?.id else {
-      throw NSError(domain: "Stacked", code: 401, userInfo: [NSLocalizedDescriptionKey: "Não autenticado"])
-    }
-    struct IdRow: Decodable { let id: String }
-    let row: IdRow = try await client.from("tasks").insert(
+  /// NET_FASEC_ETAPA2 — insert/upsert com id gerado no cliente.
+  func insertTaskWithClientId(id: String, input: CreateTaskInput, userId: UUID) async throws {
+    try await client.from("tasks").insert(
       CreateTaskInsertPayload(
+        id: id,
         titulo: input.title,
         descricao: input.description,
         prioridade: input.priority?.rawValue,
@@ -615,21 +613,94 @@ final class TaskRepository {
         user_id: userId,
         concluida: false
       )
-    ).select("id").single().execute().value
+    ).execute()
+  }
+
+  func upsertTaskWithClientId(id: String, input: CreateTaskInput, userId: UUID) async throws {
+    try await NetLog.timed("tasks.upsert", step: .insertTask) {
+      try await client.from("tasks").upsert(
+        CreateTaskInsertPayload(
+          id: id,
+          titulo: input.title,
+          descricao: input.description,
+          prioridade: input.priority?.rawValue,
+          project_id: input.projectId,
+          section_id: input.sectionId,
+          data_vencimento: input.dueDateISO,
+          hora: input.time,
+          user_id: userId,
+          concluida: false
+        ),
+        onConflict: "id"
+      ).execute()
+    }
+  }
+
+  func taskExists(id: String) async -> Bool {
+    do {
+      struct IdRow: Decodable { let id: String }
+      let rows: [IdRow] = try await NetLog.timed("tasks.exists", step: .selectVerify) {
+        try await client
+          .from("tasks")
+          .select("id")
+          .eq("id", value: id)
+          .limit(1)
+          .execute()
+          .value
+      }
+      return !rows.isEmpty
+    } catch {
+      return false
+    }
+  }
+
+  // NET_FASEC_ETAPA2 — createTask legado (server id) mantido p/ installment/duplicate.
+  func createTask(_ input: CreateTaskInput) async throws -> String {
+    guard let userId = client.auth.currentUser?.id else {
+      throw NSError(domain: "Stacked", code: 401, userInfo: [NSLocalizedDescriptionKey: "Não autenticado"])
+    }
+    struct IdRow: Decodable { let id: String }
+    let row: IdRow = try await NetLog.timed("tasks.insert_legacy", step: .insertTask) {
+      try await client.from("tasks").insert(
+        CreateTaskInsertPayload(
+          id: nil,
+          titulo: input.title,
+          descricao: input.description,
+          prioridade: input.priority?.rawValue,
+          project_id: input.projectId,
+          section_id: input.sectionId,
+          data_vencimento: input.dueDateISO,
+          hora: input.time,
+          user_id: userId,
+          concluida: false
+        )
+      ).select("id").single().execute().value
+    }
 
     if !input.labelIds.isEmpty {
-      let links = input.labelIds.map { ["task_id": row.id, "label_id": $0] }
-      try await client.from("task_labels").insert(links).execute()
+      // NET_FASEC_ETAPA2 — labels no caminho legado ainda throw (installment).
+      try await NetLog.timed("task_labels.insert_legacy", step: .insertLabels) {
+        let links = input.labelIds.map { ["task_id": row.id, "label_id": $0] }
+        try await client.from("task_labels").insert(links).execute()
+      }
     }
     if let dueISO = input.dueDateISO,
        let due = TaskMapper.parseDueDate(dueISO),
        let time = input.time,
        !time.isEmpty {
-      await NotificationService.shared.syncTaskNotification(
+      let notifStart = Date()
+      // NET_FASEC_ETAPA2 — schedule individual (não rescheduleAllPending).
+      _ = await NotificationService.shared.scheduleTaskNotification(
         id: row.id,
         title: input.title,
         dueDate: due,
         time: time
+      )
+      NetLog.record(
+        operation: "notif.schedule_single",
+        step: .notif,
+        durationMs: Int(Date().timeIntervalSince(notifStart) * 1000),
+        result: .success
       )
     }
     return row.id
@@ -748,6 +819,7 @@ private struct NextOccurrenceInsertPayload: Encodable {
 }
 
 private struct CreateTaskInsertPayload: Encodable {
+  let id: String?
   let titulo: String
   let descricao: String?
   let prioridade: String?
@@ -759,11 +831,15 @@ private struct CreateTaskInsertPayload: Encodable {
   let concluida: Bool
 
   enum CodingKeys: String, CodingKey {
-    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida
+    case id, titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida
   }
 
   func encode(to encoder: Encoder) throws {
     var c = encoder.container(keyedBy: CodingKeys.self)
+    // NET_FASEC_ETAPA2 — id explícito quando gerado no cliente.
+    if let id {
+      try c.encode(id, forKey: .id)
+    }
     try c.encode(titulo, forKey: .titulo)
     if let descricao {
       try c.encode(descricao, forKey: .descricao)

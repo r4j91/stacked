@@ -180,7 +180,10 @@ final class NotificationService {
       invalidatePreviewCache()
       return
     }
-    _ = await rescheduleAllPending()
+    // NET_FASEC_ETAPA2 — agendar só esta tarefa (antes: rescheduleAllPending).
+    // _ = await rescheduleAllPending()
+    _ = await scheduleTaskNotification(id: id, title: title, dueDate: dueDate, time: time)
+    invalidatePreviewCache()
   }
 
   func syncTaskNotification(task: Task) async {
@@ -209,7 +212,16 @@ final class NotificationService {
       invalidatePreviewCache()
       return
     }
-    _ = await rescheduleAllPending()
+    // NET_FASEC_ETAPA2 — schedule individual (antes: rescheduleAllPending).
+    // _ = await rescheduleAllPending()
+    guard let dueDate else { return }
+    _ = await scheduleSubtaskNotification(
+      id: id,
+      title: title,
+      dueDate: dueDate,
+      time: time ?? ""
+    )
+    invalidatePreviewCache()
   }
 
   func scheduleSubtaskNotification(

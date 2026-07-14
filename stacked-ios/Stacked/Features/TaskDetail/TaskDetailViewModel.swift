@@ -150,6 +150,16 @@ final class TaskDetailViewModel {
     )
   }
 
+  /// Flush imediato de título/notas com debounce pendente — NET_FASEC_ETAPA1B.
+  func flushPendingAutosaves() async {
+    titleSaveTask?.cancel()
+    titleSaveTask = nil
+    descSaveTask?.cancel()
+    descSaveTask = nil
+    await TaskDetailPersistence.autosaveTitle(taskId: taskId, title: title)
+    await TaskDetailPersistence.autosaveDescription(taskId: taskId, description: descriptionText)
+  }
+
   func onTitleChanged() {
     titleSaveTask?.cancel()
     titleSaveTask = _Concurrency.Task {
@@ -194,8 +204,10 @@ final class TaskDetailViewModel {
     let iso = date.map { TaskMapper.dateString($0) }
     let savedTime = time
     _Concurrency.Task {
-      await TaskDetailPersistence.autosaveDueDate(taskId: taskId, isoDate: iso)
-      await TaskDetailPersistence.autosaveTime(taskId: taskId, time: savedTime)
+      // NET_FASEC_ETAPA3 — 1 PATCH (antes: autosaveDueDate + autosaveTime).
+      // await TaskDetailPersistence.autosaveDueDate(taskId: taskId, isoDate: iso)
+      // await TaskDetailPersistence.autosaveTime(taskId: taskId, time: savedTime)
+      await TaskDetailPersistence.autosaveDueDateAndTime(taskId: taskId, isoDate: iso, time: savedTime)
       TaskCalendarSync.syncAfterMutation(
         taskId: taskId,
         title: title,
@@ -225,7 +237,26 @@ final class TaskDetailViewModel {
   func setLabels(_ ids: Set<String>) {
     selectedLabelIds = ids
     _Concurrency.Task {
-      try? await LabelRepository.shared.setTaskLabels(taskId: taskId, labelIds: Array(ids))
+      // NET_FASEC_ETAPA3 — retry idempotente (antes: try?).
+      let labelIds = Array(ids)
+      let delays: [UInt64] = [1_000_000_000, 3_000_000_000]
+      for attempt in 0..<(1 + delays.count) {
+        if attempt > 0 {
+          try? await _Concurrency.Task.sleep(nanoseconds: delays[attempt - 1])
+        }
+        do {
+          try await NetLog.timed("task_labels.set", step: .updateLabels) {
+            try await LabelRepository.shared.setTaskLabels(taskId: taskId, labelIds: labelIds)
+          }
+          return
+        } catch {
+          if attempt == delays.count {
+            SyncFeedback.shared.show(SyncError.from(error), taskId: taskId) {
+              self.setLabels(ids)
+            }
+          }
+        }
+      }
     }
   }
 

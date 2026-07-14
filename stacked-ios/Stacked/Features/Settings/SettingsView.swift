@@ -5,6 +5,7 @@ struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
   @State private var auth = AuthManager.shared
+  @State private var showNetLog = false
 
   var body: some View {
     let c = theme.colors
@@ -102,6 +103,19 @@ struct SettingsView: View {
           .buttonStyle(.plain)
           .settingsListCardRow(top: 28, bottom: 24)
         }
+
+        // NET_FASEC_ETAPA1 — long-press na versão abre NetLog.
+        Section {
+          Text(appVersionLabel)
+            .font(AppTypography.metaSmall)
+            .foregroundStyle(c.textTertiary)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+            .onLongPressGesture(minimumDuration: 0.85) {
+              showNetLog = true
+              HapticService.saved()
+            }
+        }
       }
       .settingsDrillDownList(background: c.background)
       .listSectionSpacing(20)
@@ -113,7 +127,19 @@ struct SettingsView: View {
           Button("Fechar") { dismiss() }.foregroundStyle(c.accent)
         }
       }
+      .sheet(isPresented: $showNetLog) {
+        NavigationStack {
+          NetLogDebugView().environment(theme)
+        }
+        .presentationDetents([.large])
+      }
     }
+  }
+
+  private var appVersionLabel: String {
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    return "Stacked \(version) (\(build))"
   }
 
   private var profileCard: some View {

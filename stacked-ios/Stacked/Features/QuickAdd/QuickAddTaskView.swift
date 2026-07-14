@@ -468,23 +468,90 @@ struct QuickAddTaskView: View {
   }
 
   private func save() async {
-    saving = true
-    error = nil
-    do {
-      guard try await persistTask() != nil else {
-        saving = false
-        return
+    // NET_FASEC_ETAPA2 — caminho otimista (antes: await create + calendário + dismiss).
+    // saving = true
+    // error = nil
+    // do {
+    //   guard try await persistTask() != nil else {
+    //     saving = false
+    //     return
+    //   }
+    //   HapticService.taskCreated()
+    //   onSaved(...)
+    //   onDismiss()
+    // } catch {
+    //   self.error = error.localizedDescription
+    //   saving = false
+    // }
+    let flowStart = Date()
+    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return }
+
+    var dueISO: String?
+    var hora: String?
+    if let dueDate {
+      dueISO = TaskMapper.dateString(dueDate)
+      if let dueTime {
+        let cal = Calendar.current
+        let h = cal.component(.hour, from: dueTime)
+        let m = cal.component(.minute, from: dueTime)
+        hora = String(format: "%02d:%02d", h, m)
       }
-      HapticService.taskCreated()
-      onSaved(QuickAddSaveSummary(
-        projectId: selectedProjectId,
-        dueDateISO: currentDueDateISO()
-      ))
-      onDismiss()
-    } catch {
-      self.error = error.localizedDescription
-      saving = false
     }
+
+    let input = TaskRepository.CreateTaskInput(
+      title: trimmed,
+      description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+      priority: priority,
+      projectId: selectedProjectId,
+      sectionId: selectedSectionId,
+      dueDateISO: dueISO,
+      time: hora,
+      labelIds: Array(selectedLabelIds)
+    )
+
+    let clientId = UUID().uuidString.lowercased()
+    let projectName: String = {
+      guard let pid = selectedProjectId,
+            let p = projects.first(where: { $0.id == pid }) else { return "Sem projeto" }
+      return p.name
+    }()
+    let taskLabels = labels.filter { selectedLabelIds.contains($0.id) }
+    var local = Task(
+      id: clientId,
+      title: trimmed,
+      description: input.description,
+      project: projectName,
+      projectId: selectedProjectId,
+      sectionId: selectedSectionId,
+      priority: priority,
+      time: hora,
+      labels: taskLabels,
+      subtasks: [],
+      dueDate: dueDate,
+      done: false,
+      commentCount: 0,
+      recurrence: nil
+    )
+    TaskMapper.applyDisplayMemos(to: &local)
+
+    TaskStore.shared.insertOptimistic(local)
+    HapticService.taskCreated()
+    let summary = QuickAddSaveSummary(
+      projectId: selectedProjectId,
+      dueDateISO: dueISO
+    )
+    onSaved(summary)
+    NetLog.record(
+      operation: "quickadd.save.critical_path",
+      step: .flowSave,
+      durationMs: Int(Date().timeIntervalSince(flowStart) * 1000),
+      result: .success,
+      detail: "id=\(clientId) dismiss"
+    )
+    onDismiss()
+
+    TaskOptimisticSync.enqueueCreate(id: clientId, input: input, projectName: projectName)
   }
 
   private func currentDueDateISO() -> String? {

@@ -281,6 +281,30 @@ final class TaskStore {
       await loadInbox()
     }
   }
+
+  // NET_FASEC_ETAPA2 — inserção local imediata (sem badge visual).
+  func insertOptimistic(_ task: Task) {
+    let todayStr = TaskMapper.dateString(Date())
+    let dueISO = task.dueDate.map { TaskMapper.dateString($0) }
+
+    if task.projectId == nil, dueISO == nil {
+      if !inboxPending.contains(where: { $0.id == task.id }) {
+        inboxPending.insert(task, at: 0)
+      }
+    }
+
+    if let dueISO {
+      if dueISO <= todayStr {
+        if !todayPending.contains(where: { $0.id == task.id }) {
+          todayPending.insert(task, at: 0)
+          rebuildTodayDerived()
+          WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+        }
+      } else {
+        UpcomingStore.shared.insertOptimistic(task)
+      }
+    }
+  }
 }
 
 // SUBSTITUIDO_FASE3B: remoção imediata do pending no mesmo frame do tap

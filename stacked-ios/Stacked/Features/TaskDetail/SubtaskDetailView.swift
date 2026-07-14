@@ -191,6 +191,10 @@ struct SubtaskDetailView: View {
     }
     .presentationDetents([.large])
     .presentationDragIndicator(.visible)
+    // NET_FASEC_ETAPA1B — swipe dismiss também flusha.
+    .onDisappear {
+      _Concurrency.Task { await flushPending() }
+    }
   }
 
   private var metadataCard: some View {

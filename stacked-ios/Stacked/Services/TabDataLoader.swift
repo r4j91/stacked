@@ -4,6 +4,8 @@ import Foundation
 @MainActor
 enum TabDataLoader {
   static func load(_ tab: NavTab) async {
+    let start = Date()
+    // NET_FASEC_ETAPA5 — uma “transação” de UI por aba (stores já usam async let interno).
     switch tab {
     case .home:
       await HomeStore.shared.load()
@@ -17,6 +19,12 @@ enum TabDataLoader {
       await FiltersStore.shared.loadDashboard()
     }
     TabRefreshPolicy.markLoaded(tab)
+    NetLog.record(
+      operation: "TabDataLoader.load.\(tab)",
+      step: .reload,
+      durationMs: Int(Date().timeIntervalSince(start) * 1000),
+      result: .success
+    )
   }
 
   /// Ordem de prefetch após a aba inicial — uso típico do app.

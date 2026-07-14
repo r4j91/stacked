@@ -111,6 +111,13 @@ final class UpcomingStore {
     rebuildScheduleDerived()
   }
 
+  // NET_FASEC_ETAPA2
+  func insertOptimistic(_ task: Task) {
+    guard !tasks.contains(where: { $0.id == task.id }) else { return }
+    tasks.insert(task, at: 0)
+    rebuildScheduleDerived()
+  }
+
   func load() async {
     isLoading = tasks.isEmpty
     error = nil
