@@ -93,6 +93,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     collectionView.backgroundColor = .clear
     collectionView.alwaysBounceVertical = true
     collectionView.delegate = self
+    collectionView.isPrefetchingEnabled = false
     collectionView.contentInset.bottom = AppLayout.listTailInset(
       safeBottom: AppLayout.windowSafeBottomInsetCached
     )
@@ -133,6 +134,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         )
         .environment(ThemeManager.shared)
         .environment(MobileChromeController.shared)
+        .environment(\.uikitHostedTaskRow, true)
       }
       .margins(.all, 0)
       .minSize(height: 1)
@@ -179,23 +181,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   }
 
   func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-    reportScrolling(true)
+    // Glass freeze no dock hitchava no fling (esp. pra cima) — lista UIKit não reporta.
   }
 
-  func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-    if !decelerate { reportScrolling(false) }
-  }
+  func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {}
 
-  func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-    reportScrolling(false)
-  }
-
-  private func reportScrolling(_ scrolling: Bool) {
-    guard !AlwaysStaticGlassStorage.isEnabled,
-          !AlwaysFrozenDockGlassStorage.isEnabled,
-          !DisableAllGlassStorage.isEnabled,
-          FreezeDockGlassWhileScrollingStorage.isEnabled
-    else { return }
-    MobileChromeController.shared.setContentScrolling(scrolling)
-  }
+  func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {}
 }

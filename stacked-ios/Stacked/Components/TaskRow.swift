@@ -6,6 +6,7 @@ struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.openTaskContextMenu) private var openTaskContextMenu
+  @Environment(\.uikitHostedTaskRow) private var uikitHostedTaskRow
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -243,13 +244,21 @@ struct TaskRow: View {
   @ViewBuilder
   private var subtasksExpansion: some View {
     if task.hasSubtasks, subtaskRevealActive {
-      SubtaskExpandReveal(
-        expanded: expanded,
-        reduceMotion: reduceMotion,
-        layoutPass: subtaskRevealLayoutPass,
-        contentRevision: subtaskRevealContentRevision
-      ) {
-        subtaskList
+      if uikitHostedTaskRow {
+        // Lista UIKit: sem SubtaskExpandReveal (UIHosting aninhado bugava).
+        // Mesmos curves 0.22s do expand atual.
+        SimpleSubtaskExpand(expanded: expanded, reduceMotion: reduceMotion) {
+          subtaskList
+        }
+      } else {
+        SubtaskExpandReveal(
+          expanded: expanded,
+          reduceMotion: reduceMotion,
+          layoutPass: subtaskRevealLayoutPass,
+          contentRevision: subtaskRevealContentRevision
+        ) {
+          subtaskList
+        }
       }
     }
   }
@@ -552,6 +561,10 @@ struct TaskRow: View {
   }
 
   private func toggleSubtaskExpansion() {
+    if uikitHostedTaskRow {
+      toggleSubtaskExpansionSimple()
+      return
+    }
     if !subtaskRevealActive {
       syncSubtasks()
       subtaskRevealActive = true
@@ -568,6 +581,25 @@ struct TaskRow: View {
     }
     let willExpand = !expanded
     AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+      expanded = willExpand
+    }
+    ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
+    if !willExpand {
+      scheduleSubtaskRevealTeardown()
+    }
+  }
+
+  /// Expand/collapse direto — paridade visual do List, sem Task+yield (quebrava no UIKit).
+  private func toggleSubtaskExpansionSimple() {
+    if !subtaskRevealActive {
+      syncSubtasks()
+      subtaskRevealActive = true
+    }
+    let willExpand = !expanded
+    let motion = willExpand
+      ? AppMotion.subtaskExpand(reduceMotion: reduceMotion)
+      : AppMotion.subtaskCollapse(reduceMotion: reduceMotion)
+    withAnimation(motion) {
       expanded = willExpand
     }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
@@ -598,8 +630,14 @@ struct TaskRow: View {
       subtaskRevealActive = false
       return
     }
-    // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
     syncSubtasks()
+    if uikitHostedTaskRow {
+      // Recycle da cell: abre seco (sem re-animar) para não “piscar” no scroll pra cima.
+      subtaskRevealActive = true
+      expanded = true
+      return
+    }
+    // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
     subtaskRevealActive = true
     expanded = false
     _Concurrency.Task { @MainActor in
