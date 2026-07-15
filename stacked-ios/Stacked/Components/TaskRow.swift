@@ -141,6 +141,8 @@ struct TaskRow: View {
       }
     }
     .clipShape(shape)
+    // Todoist: lift no card inteiro; âncora continua no header.
+    .taskContextMenuLiftHost()
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
@@ -172,6 +174,7 @@ struct TaskRow: View {
           .padding(.leading, 38)
       }
     }
+    .taskContextMenuLiftHost()
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
     .accessibilityHint(taskAccessibilityHint)
@@ -278,9 +281,8 @@ struct TaskRow: View {
     }
     // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight) — altura vem do pai.
     .frame(maxHeight: .infinity)
-    // CTXMENU_EXPAND_FIX: lift/âncora só no header — com subtarefas abertas o menu
-    // escalava a row inteira e capturava âncora errada.
-    .taskContextMenuLiftHost()
+    // Âncora só no header — lift visual fica no container (card/lista).
+    .taskContextMenuAnchorHost()
   }
 
   private var showsWhatsAppCopyButton: Bool {

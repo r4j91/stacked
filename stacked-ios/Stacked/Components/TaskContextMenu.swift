@@ -17,7 +17,7 @@ enum TaskContextLiftPhase: Equatable {
   case menuOpen
 }
 
-/// Estado compartilhado — lift/âncora só no header da TaskRow (não escala subtarefas abertas).
+/// Estado compartilhado — âncora no header; lift visual no container da TaskRow.
 @MainActor
 @Observable
 final class TaskContextMenuModel {
@@ -54,7 +54,7 @@ struct TaskContextMenu: ViewModifier {
   @State private var model = TaskContextMenuModel()
 
   func body(content: Content) -> some View {
-    // Lift/âncora ficam no header via `taskContextMenuLiftHost` — evita bug com subtarefas abertas.
+    // Ambiente só — lift no container; âncora no header (TaskRow).
     content
       .environment(\.taskContextMenuModel, model)
       .environment(\.openTaskContextMenu, { openContextMenu(at: $0) })
@@ -202,7 +202,7 @@ struct TaskContextMenu: ViewModifier {
   }
 }
 
-/// Aplica lift + reader de âncora só no header da tarefa.
+/// Lift visual do container (card/lista) — paridade Todoist: sobe o bloco inteiro.
 struct TaskContextMenuLiftHost: ViewModifier {
   @Environment(\.taskContextMenuModel) private var model
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -211,6 +211,29 @@ struct TaskContextMenuLiftHost: ViewModifier {
   func body(content: Content) -> some View {
     if let model {
       let lifted = model.isLifted
+      content
+        .scaleEffect(!reduceMotion && lifted ? TaskContextLift.scale : 1)
+        .offset(y: !reduceMotion && lifted ? TaskContextLift.offsetY : 0)
+        .shadow(
+          color: .black.opacity(!reduceMotion && lifted ? TaskContextLift.shadowOpacity : 0),
+          radius: !reduceMotion && lifted ? TaskContextLift.shadowRadius : 0,
+          y: !reduceMotion && lifted ? TaskContextLift.shadowY : 0
+        )
+        .zIndex(lifted ? 1 : 0)
+        .animation(lifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: model.liftPhase)
+    } else {
+      content
+    }
+  }
+}
+
+/// Reader de âncora só no header — menu não “prende” no meio das subtarefas.
+struct TaskContextMenuAnchorHost: ViewModifier {
+  @Environment(\.taskContextMenuModel) private var model
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if let model {
       content
         .background {
           if model.needsAnchorReader {
@@ -225,15 +248,6 @@ struct TaskContextMenuLiftHost: ViewModifier {
             .allowsHitTesting(false)
           }
         }
-        .scaleEffect(!reduceMotion && lifted ? TaskContextLift.scale : 1)
-        .offset(y: !reduceMotion && lifted ? TaskContextLift.offsetY : 0)
-        .shadow(
-          color: .black.opacity(!reduceMotion && lifted ? TaskContextLift.shadowOpacity : 0),
-          radius: !reduceMotion && lifted ? TaskContextLift.shadowRadius : 0,
-          y: !reduceMotion && lifted ? TaskContextLift.shadowY : 0
-        )
-        .zIndex(lifted ? 1 : 0)
-        .animation(lifted ? AppMotion.smooth(reduceMotion: reduceMotion) : nil, value: model.liftPhase)
     } else {
       content
     }
@@ -276,8 +290,13 @@ extension View {
     ))
   }
 
-  /// Lift/âncora do menu — aplicar no header da TaskRow, não na row inteira.
+  /// Lift do container da TaskRow (card inteiro).
   func taskContextMenuLiftHost() -> some View {
     modifier(TaskContextMenuLiftHost())
+  }
+
+  /// Âncora do popover — header da TaskRow.
+  func taskContextMenuAnchorHost() -> some View {
+    modifier(TaskContextMenuAnchorHost())
   }
 }
