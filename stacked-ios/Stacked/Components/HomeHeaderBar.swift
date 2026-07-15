@@ -106,7 +106,7 @@ private struct HomeHeaderIconButton: View {
         .foregroundStyle(theme.colors.textSecondary)
         .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
     }
-    .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
+    .buttonStyle(.plain)
     .accessibilityLabel(label)
   }
 }
