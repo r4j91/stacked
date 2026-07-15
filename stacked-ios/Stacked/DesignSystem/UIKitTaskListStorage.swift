@@ -1,7 +1,10 @@
 import Foundation
 
-/// Aparência — listas fluidas via UICollectionView + SwiftUI rows.
+/// Aparência — "Listas mais fluidas" (UICollectionView + SwiftUI rows).
 /// Ligado por padrão; cobre Inbox, Hoje, Em breve, Projetos, Registro, Busca e filtros.
+///
+/// A chave UserDefaults abaixo mantém o nome histórico `experimental.*` de propósito:
+/// renomear resetaria a preferência de quem já ligou/desligou. Não é mais feature experimental.
 enum UIKitTaskListStorage {
   static let key = "experimental.uikitTaskList"
   static let defaultEnabled = true

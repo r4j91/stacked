@@ -1247,19 +1247,3 @@ private struct UIKitObservedCompletedToggle: View {
     .buttonStyle(.plain)
   }
 }
-
-enum UIKitScheduleSupport {
-  static func onlyTasks(_ items: [ScheduleItem]) -> [Task]? {
-    var out: [Task] = []
-    out.reserveCapacity(items.count)
-    for item in items {
-      guard case .task(let task) = item else { return nil }
-      out.append(task)
-    }
-    return out
-  }
-
-  static func allTaskOnly(_ lists: [[ScheduleItem]]) -> Bool {
-    lists.allSatisfy { onlyTasks($0) != nil }
-  }
-}
