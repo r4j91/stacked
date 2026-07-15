@@ -49,6 +49,22 @@ final class TaskStore {
     rebuildTodayDerived()
   }
 
+  /// Virada de dia / foreground — reavalia chips e buckets atrasadas/hoje.
+  func refreshRelativeDateChips() {
+    TaskMapper.refreshDisplayMemos(in: &todayPending)
+    TaskMapper.refreshDisplayMemos(in: &todayCompleted)
+    TaskMapper.refreshDisplayMemos(in: &inboxPending)
+    TaskMapper.refreshDisplayMemos(in: &inboxCompleted)
+    todayScheduledSubtasks = todayScheduledSubtasks.map { entry in
+      var sub = entry.subtask
+      var parent = entry.parent
+      TaskMapper.applyDisplayMemos(to: &sub)
+      TaskMapper.applyDisplayMemos(to: &parent)
+      return SubtaskScheduleEntry(subtask: sub, parent: parent)
+    }
+    rebuildTodayDerived()
+  }
+
   private var loadTodayGeneration = 0
   private var loadInboxGeneration = 0
 

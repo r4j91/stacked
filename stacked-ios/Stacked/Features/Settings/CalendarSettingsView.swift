@@ -177,7 +177,7 @@ struct CalendarSettingsView: View {
     HStack(spacing: 12) {
       settingsLabel(icon: icon, title: title, subtitle: subtitle)
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: isOn, tint: theme.colors.accent)
+      SettingsSwitchToggle(isOn: isOn, tint: theme.colors.actionAccent)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)

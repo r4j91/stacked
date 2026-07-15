@@ -339,7 +339,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $alwaysStaticGlass, tint: c.accent)
+      SettingsSwitchToggle(isOn: $alwaysStaticGlass, tint: c.actionAccent)
         .disabled(dimmed)
     }
     .frame(minHeight: 44)
@@ -365,7 +365,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $disableAllGlass, tint: c.accent)
+      SettingsSwitchToggle(isOn: $disableAllGlass, tint: c.actionAccent)
     }
     .frame(minHeight: 44)
     .padding(.horizontal, SettingsChrome.rowPaddingH)
@@ -390,7 +390,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $freezeDockGlassWhileScrolling, tint: c.accent)
+      SettingsSwitchToggle(isOn: $freezeDockGlassWhileScrolling, tint: c.actionAccent)
         .disabled(dimmed)
     }
     .frame(minHeight: 44)
@@ -416,7 +416,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $alwaysFrozenDockGlass, tint: c.accent)
+      SettingsSwitchToggle(isOn: $alwaysFrozenDockGlass, tint: c.actionAccent)
         .disabled(dimmed)
     }
     .frame(minHeight: 44)
@@ -441,7 +441,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $useUIKitTaskList, tint: c.accent)
+      SettingsSwitchToggle(isOn: $useUIKitTaskList, tint: c.actionAccent)
     }
     .frame(minHeight: 44)
     .padding(.horizontal, SettingsChrome.rowPaddingH)
@@ -524,7 +524,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $fabIntegratedInIsland, tint: c.accent)
+      SettingsSwitchToggle(isOn: $fabIntegratedInIsland, tint: c.actionAccent)
         .disabled(!isIslandNavStyle)
     }
     .frame(minHeight: 44)

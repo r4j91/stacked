@@ -86,7 +86,32 @@ enum TaskMapper {
       task.dueDateChipLabel = nil
       task.dueDateChipColor = nil
     }
+    for i in task.subtasks.indices {
+      applyDisplayMemos(to: &task.subtasks[i])
+    }
     refreshSubtaskCounters(on: &task)
+  }
+
+  /// Chips relativos a “Hoje”/atrasada — virada de dia ou cache de ontem.
+  static func applyDisplayMemos(to subtask: inout Subtask) {
+    if let time = subtask.time, !time.isEmpty {
+      subtask.timeDisplay = formatTimeDisplay(time)
+    } else {
+      subtask.timeDisplay = nil
+    }
+    if let due = subtask.dueDate {
+      subtask.dueDateChipLabel = dueDateChipLabel(for: due)
+      subtask.dueDateChipColor = dateColor(for: due, done: subtask.done)
+    } else {
+      subtask.dueDateChipLabel = nil
+      subtask.dueDateChipColor = nil
+    }
+  }
+
+  static func refreshDisplayMemos(in tasks: inout [Task]) {
+    for i in tasks.indices {
+      applyDisplayMemos(to: &tasks[i])
+    }
   }
 
   /// PERF_FASEB2_ETAPA4: contadores "2/5" no model, não no body.

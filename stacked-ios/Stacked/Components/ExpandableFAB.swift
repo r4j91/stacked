@@ -17,10 +17,16 @@ struct ExpandableFAB: View {
         isOpen = true
       }
     } label: {
-      LiquidGlass.fab(tintColor: c.accent, solidFallback: c.accent) {
+      // SUBSTITUIDO_TEMAS_JADE: LiquidGlass.fab(tintColor: c.accent, solidFallback: c.accent) + onAccent
+      LiquidGlass.fab(
+        tintColor: c.actionAccent,
+        solidFallback: c.actionAccent,
+        gradientStart: c.fabGradientStart,
+        gradientEnd: c.fabGradientEnd
+      ) {
         StackedIcons.image(.plus)
           .font(.system(size: 22, weight: .medium))
-          .foregroundStyle(c.onAccent)
+          .foregroundStyle(c.onActionAccent)
           .rotationEffect(.degrees(isOpen ? 45 : 0))
           .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: isOpen)
       }

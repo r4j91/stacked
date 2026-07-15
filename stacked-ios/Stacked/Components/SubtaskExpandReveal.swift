@@ -9,6 +9,10 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   let contentRevision: Int
   /// Em `UIHostingConfiguration`: título fica parado — abre/fecha só o painel.
   let stabilizeSelfSizingParent: Bool
+  /// Remount/recycle já aberto: aplica altura final sem animar 0→full.
+  let snapOpen: Bool
+  /// Preenche slack de altura no clip (evita tarja do card atrás do painel).
+  let panelFill: Color?
   let content: Content
 
   init(
@@ -17,6 +21,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     layoutPass: Int = 0,
     contentRevision: Int = 0,
     stabilizeSelfSizingParent: Bool = false,
+    snapOpen: Bool = false,
+    panelFill: Color? = nil,
     @ViewBuilder content: () -> Content
   ) {
     self.expanded = expanded
@@ -24,6 +30,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     self.layoutPass = layoutPass
     self.contentRevision = contentRevision
     self.stabilizeSelfSizingParent = stabilizeSelfSizingParent
+    self.snapOpen = snapOpen
+    self.panelFill = panelFill
     self.content = content()
   }
 
@@ -51,13 +59,15 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     }
     context.coordinator.wasExpanded = expanded
 
+    uiView.setPanelFill(panelFill.map { UIColor($0) })
     uiView.configure(
       hosting: hosting,
       width: width,
       expanded: expanded,
       animated: !reduceMotion,
       layoutPass: layoutPass,
-      stabilizeSelfSizingParent: stabilizeSelfSizingParent
+      stabilizeSelfSizingParent: stabilizeSelfSizingParent,
+      snapOpen: snapOpen
     )
   }
 
@@ -72,6 +82,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     func hosting(in container: SubtaskExpandContainerView) -> UIHostingController<AnyView> {
       if let host { return host }
       let host = UIHostingController(rootView: AnyView(EmptyView()))
+      // Sem safe area: sizeThatFits inchava o fundo e deixava faixa vazia (tarja).
+      host.safeAreaRegions = []
       host.view.backgroundColor = .clear
       host.view.translatesAutoresizingMaskIntoConstraints = false
       host.view.setContentHuggingPriority(.required, for: .vertical)
@@ -90,6 +102,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
 // MARK: - UIKit container
 
 final class SubtaskExpandContainerView: UIView {
+  private weak var hostedController: UIHostingController<AnyView>?
   private weak var hostView: UIView?
   private weak var clipView: UIView?
   private var hostHeightConstraint: NSLayoutConstraint?
@@ -105,6 +118,7 @@ final class SubtaskExpandContainerView: UIView {
     super.init(frame: frame)
     clipsToBounds = true
     backgroundColor = .clear
+    isUserInteractionEnabled = true
     setContentHuggingPriority(.required, for: .vertical)
     setContentCompressionResistancePriority(.required, for: .vertical)
     selfHeightConstraint = heightAnchor.constraint(equalToConstant: 0)
@@ -118,8 +132,23 @@ final class SubtaskExpandContainerView: UIView {
     CGSize(width: UIView.noIntrinsicMetric, height: selfHeightConstraint?.constant ?? 0)
   }
 
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    attachHostedControllerIfNeeded()
+  }
+
+  /// Fundo do clip = mesma tinta do painel SwiftUI (slack de medida não vira tarja).
+  /// Só no `clipView` — no self, o close UIKit mantém altura travada e pintaria um bloco.
+  func setPanelFill(_ color: UIColor?) {
+    let fill = color ?? .clear
+    if clipView?.backgroundColor != fill {
+      clipView?.backgroundColor = fill
+    }
+  }
+
   func install(host: UIHostingController<AnyView>) {
     guard hostView == nil else { return }
+    hostedController = host
     hostView = host.view
 
     // clipView: anima a altura VISUAL. selfHeight = altura reportada à lista.
@@ -127,7 +156,8 @@ final class SubtaskExpandContainerView: UIView {
     // sem mexer a tarefa pai.
     let clip = UIView()
     clip.clipsToBounds = true
-    clip.backgroundColor = .clear
+    clip.backgroundColor = backgroundColor
+    clip.isUserInteractionEnabled = true
     clip.translatesAutoresizingMaskIntoConstraints = false
     addSubview(clip)
     clipView = clip
@@ -140,6 +170,8 @@ final class SubtaskExpandContainerView: UIView {
       clipHeight,
     ])
 
+    host.view.backgroundColor = .clear
+    host.view.isUserInteractionEnabled = true
     clip.addSubview(host.view)
     let height = host.view.heightAnchor.constraint(equalToConstant: 0)
     hostHeightConstraint = height
@@ -149,6 +181,15 @@ final class SubtaskExpandContainerView: UIView {
       host.view.trailingAnchor.constraint(equalTo: clip.trailingAnchor),
       height,
     ])
+    attachHostedControllerIfNeeded()
+  }
+
+  /// Nested UIHostingController sem child VC quebra taps (Inbox/Projeto UIKit).
+  private func attachHostedControllerIfNeeded() {
+    guard let host = hostedController, host.parent == nil else { return }
+    guard let parent = enclosingViewController() else { return }
+    parent.addChild(host)
+    host.didMove(toParent: parent)
   }
 
   func configure(
@@ -157,8 +198,11 @@ final class SubtaskExpandContainerView: UIView {
     expanded: Bool,
     animated: Bool,
     layoutPass: Int = 0,
-    stabilizeSelfSizingParent: Bool = false
+    stabilizeSelfSizingParent: Bool = false,
+    snapOpen: Bool = false
   ) {
+    attachHostedControllerIfNeeded()
+
     // Evita reentrada no meio do close.
     if isAnimating, !expanded, stabilizeSelfSizingParent {
       return
@@ -176,39 +220,60 @@ final class SubtaskExpandContainerView: UIView {
       lastLayoutPass = layoutPass
     }
 
-    if stateChanged && expanded {
+    // Snap de remount: não zerar fullHeight (já sabemos a altura).
+    if stateChanged && expanded && !snapOpen {
       fullHeight = 0
       hostView?.transform = .identity
     }
 
     if !isAnimating {
       let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
-      if needsMeasure {
+      if needsMeasure, expanded || fullHeight <= 0 {
         let measured = measureHeight(hosting: hosting, width: fitWidth)
         if measured > 0 { fullHeight = measured }
       }
     }
 
-    hostHeightConstraint?.constant = fullHeight
-    hosting.view.isUserInteractionEnabled = expanded
+    // Só aplica altura do host quando aberto — fechado o clip/self controlam o buraco.
+    if expanded {
+      hostHeightConstraint?.constant = fullHeight
+    }
+    let interactive = expanded
+    hosting.view.isUserInteractionEnabled = interactive
+    clipView?.isUserInteractionEnabled = interactive
+    isUserInteractionEnabled = true
 
     let target = expanded ? fullHeight : 0
     lastExpanded = expanded
 
     let current = selfHeightConstraint?.constant ?? 0
     if expanded && fullHeight <= 0 && fitWidth > 1 {
-      scheduleRemeasure(hosting: hosting, width: fitWidth, animated: animated)
+      scheduleRemeasure(hosting: hosting, width: fitWidth, animated: animated && !snapOpen)
+      return
+    }
+
+    // Fechado mas altura residual — zera sem reancorar offset (reancorar = “deslize”).
+    if !expanded, !isAnimating, current > 0.5, !stateChanged {
+      selfHeightConstraint?.constant = 0
+      clipHeightConstraint?.constant = 0
+      hostHeightConstraint?.constant = 0
+      fullHeight = 0
+      hostView?.transform = .identity
+      invalidateIntrinsicContentSize()
       return
     }
 
     guard stateChanged || layoutPassChanged || abs(current - target) > 0.5 else { return }
 
-    let shouldAnimate = animated && stateChanged && !UIAccessibility.isReduceMotionEnabled
+    // snapOpen: recycle já aberto — sem flash 0→full no scroll.
+    let shouldAnimate = animated && stateChanged && !snapOpen && !UIAccessibility.isReduceMotionEnabled
+    // Sem pin do pai: reancorar contentOffset no open/close deslizava a lista
+    // (e brigava com o recycle). Altura sobe/desce normal, como no SwiftUI.
     applyVisibleHeight(
       target,
       expanded: expanded,
       animated: shouldAnimate,
-      stabilizeSelfSizingParent: stabilizeSelfSizingParent
+      pinParent: false
     )
   }
 
@@ -249,7 +314,8 @@ final class SubtaskExpandContainerView: UIView {
     fullHeight = measured
     hostHeightConstraint?.constant = measured
     clipHeightConstraint?.constant = measured
-    applyVisibleHeight(measured, expanded: true, animated: animated, stabilizeSelfSizingParent: false)
+    // Remeasure while já aberto — nunca pin/rouba scroll.
+    applyVisibleHeight(measured, expanded: true, animated: animated, pinParent: false)
   }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {
@@ -280,21 +346,29 @@ final class SubtaskExpandContainerView: UIView {
     _ height: CGFloat,
     expanded: Bool,
     animated: Bool,
-    stabilizeSelfSizingParent: Bool
+    pinParent: Bool
   ) {
     // Fechar UIKit: altura da LISTA fica travada (pai parado); só o clip encolhe
     // — visual idêntico ao fechar por altura, sem deslizar o conteúdo.
-    if !expanded, stabilizeSelfSizingParent {
+    if !expanded, pinParent {
       collapseWithVisualClip(animated: animated)
+      return
+    }
+
+    // Abrir UIKit: cresce a altura e reâncora o offset — título não sobe no scroll.
+    if expanded, pinParent {
+      expandWithPinnedParent(height: height, animated: animated)
       return
     }
 
     hostView?.transform = .identity
 
+    let collectionView = enclosingCollectionView()
     let applyLayout = { [weak self] in
       guard let self else { return }
       self.selfHeightConstraint?.constant = height
       self.clipHeightConstraint?.constant = height
+      self.hostHeightConstraint?.constant = height
       self.invalidateIntrinsicContentSize()
     }
 
@@ -316,9 +390,74 @@ final class SubtaskExpandContainerView: UIView {
       applyLayout()
       self.clipView?.layoutIfNeeded()
       self.superview?.layoutIfNeeded()
+      // Lista acompanha a altura no mesmo tick — evita salto discreto open/close.
+      collectionView?.layoutIfNeeded()
     }) { [weak self] _ in
       self?.isAnimating = false
     }
+  }
+
+  /// Cresce a cell reancorando o contentOffset — pai fica parado na abertura.
+  private func expandWithPinnedParent(height: CGFloat, animated: Bool) {
+    hostView?.transform = .identity
+
+    let collectionView = enclosingCollectionView()
+    let anchorVisibleY: CGFloat? = {
+      guard let cell = enclosingCell(), let collectionView else { return nil }
+      return cell.convert(CGPoint.zero, to: collectionView).y - collectionView.contentOffset.y
+    }()
+
+    let applyLayout = { [weak self] in
+      guard let self else { return }
+      self.selfHeightConstraint?.constant = height
+      self.clipHeightConstraint?.constant = height
+      self.hostHeightConstraint?.constant = height
+      self.invalidateIntrinsicContentSize()
+    }
+
+    let pin = { [weak self] in
+      guard let self else { return }
+      Self.restoreCellVisibleY(
+        cell: self.enclosingCell(),
+        collectionView: collectionView,
+        anchorVisibleY: anchorVisibleY
+      )
+    }
+
+    guard animated else {
+      UIView.performWithoutAnimation {
+        applyLayout()
+        self.superview?.layoutIfNeeded()
+        collectionView?.layoutIfNeeded()
+        pin()
+      }
+      return
+    }
+
+    isAnimating = true
+    // Pina durante o grow (~0.22s) — layout da collection empurra o título sem isto.
+    Self.reanchorNextFrames(
+      cellProvider: { [weak self] in self?.enclosingCell() },
+      collectionView: collectionView,
+      anchorVisibleY: anchorVisibleY,
+      frames: 16
+    )
+
+    UIView.animate(
+      withDuration: 0.22,
+      delay: 0,
+      options: [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState, .layoutSubviews],
+      animations: {
+        applyLayout()
+        self.clipView?.layoutIfNeeded()
+        self.superview?.layoutIfNeeded()
+        pin()
+      },
+      completion: { [weak self] _ in
+        pin()
+        self?.isAnimating = false
+      }
+    )
   }
 
   /// Visual = altura do clip full→0 (conteúdo parado, some por baixo).
@@ -382,6 +521,12 @@ final class SubtaskExpandContainerView: UIView {
     UIView.performWithoutAnimation {
       self.superview?.setNeedsLayout()
       self.superview?.layoutIfNeeded()
+      if let cell = self.enclosingCell() {
+        cell.invalidateIntrinsicContentSize()
+        cell.contentView.invalidateIntrinsicContentSize()
+        cell.setNeedsLayout()
+        cell.layoutIfNeeded()
+      }
       collectionView?.layoutIfNeeded()
       Self.restoreCellVisibleY(
         cell: self.enclosingCell(),
@@ -407,8 +552,17 @@ final class SubtaskExpandContainerView: UIView {
     anchorVisibleY: CGFloat?
   ) {
     guard let cell, let collectionView, let anchorVisibleY else { return }
+    // Nunca roubar o fling do usuário — era o “pula subtarefa” no scroll rápido.
+    if collectionView.isDragging || collectionView.isDecelerating { return }
     let cellY = cell.convert(CGPoint.zero, to: collectionView).y
-    let targetOffset = cellY - anchorVisibleY
+    var targetOffset = cellY - anchorVisibleY
+    // Evita forçar overscroll no fim da lista (rubber-band + remount).
+    let minY = -collectionView.adjustedContentInset.top
+    let maxY = max(
+      minY,
+      collectionView.contentSize.height - collectionView.bounds.height + collectionView.adjustedContentInset.bottom
+    )
+    targetOffset = min(max(targetOffset, minY), maxY)
     if abs(collectionView.contentOffset.y - targetOffset) > 0.25 {
       collectionView.contentOffset.y = targetOffset
     }
@@ -457,6 +611,11 @@ final class SubtaskExpandContainerView: UIView {
     }
 
     @objc private func tick() {
+      if let collectionView, collectionView.isDragging || collectionView.isDecelerating {
+        link?.invalidate()
+        link = nil
+        return
+      }
       UIView.performWithoutAnimation {
         SubtaskExpandContainerView.restoreCellVisibleY(
           cell: cellProvider(),
@@ -486,6 +645,15 @@ final class SubtaskExpandContainerView: UIView {
     while let current = view {
       if let cell = current as? UICollectionViewCell { return cell }
       view = current.superview
+    }
+    return nil
+  }
+
+  private func enclosingViewController() -> UIViewController? {
+    var responder: UIResponder? = self
+    while let current = responder {
+      if let vc = current as? UIViewController { return vc }
+      responder = current.next
     }
     return nil
   }

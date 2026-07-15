@@ -50,6 +50,7 @@ struct RootView: View {
       guard didBootstrap, phase == .active else { return }
       NetLog.markForeground()
       WidgetSnapshotSync.refreshFromCachedToday()
+      GlobalDataRefresh.refreshRelativeDateChips()
       _Concurrency.Task {
         // NET_FASEC_ETAPA4 — refresh proativo de sessão ao voltar do background.
         do {

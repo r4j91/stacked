@@ -113,10 +113,11 @@ struct HomeView: View {
       return Project(
         id: hp.id,
         name: hp.name,
-        color: AppColors.parseHex(hp.colorHex, fallback: theme.colors.accent)
+        color: AppColors.parseHex(hp.colorHex, fallback: theme.colors.folderTint)
       )
     }
-    return Project(id: route.id, name: route.name, color: theme.colors.accent)
+    // SUBSTITUIDO_TEMAS_JADE: color: theme.colors.accent
+    return Project(id: route.id, name: route.name, color: theme.colors.folderTint)
   }
 
   private var overviewSection: some View {
@@ -188,7 +189,7 @@ struct HomeView: View {
 
   private func projectRow(_ project: HomeProject) -> some View {
     let c = theme.colors
-    let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.accent)
+    let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.folderTint)
     return HStack(spacing: AppSpacing.md + 2) {
       StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
         .font(.system(size: 20)).foregroundStyle(color).frame(width: 28)

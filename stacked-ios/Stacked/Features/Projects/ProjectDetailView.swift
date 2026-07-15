@@ -6,6 +6,7 @@ struct ProjectDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.scenePhase) private var scenePhase
 
   @AppStorage("display_mode") private var displayMode = "cards"
   @AppStorage private var showCompleted: Bool
@@ -117,6 +118,10 @@ struct ProjectDetailView: View {
     }
     .environment(\.editMode, $editMode)
     .onAppear { ScrollHitchProbe.noteScreen("Projeto") }
+    .onChange(of: scenePhase) { _, phase in
+      guard phase == .active else { return }
+      store.refreshRelativeDateChips()
+    }
     .background(c.background.ignoresSafeArea(.all))
     .stackedDrillDownNavChrome(title: projectName, background: c.background)
     .stackedDrillDownGlassBackButton()

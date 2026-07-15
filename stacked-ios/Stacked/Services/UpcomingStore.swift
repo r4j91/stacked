@@ -91,6 +91,19 @@ final class UpcomingStore {
     rebuildScheduleDerived()
   }
 
+  /// Virada de dia / foreground — reavalia chips relativos a “Hoje”.
+  func refreshRelativeDateChips() {
+    TaskMapper.refreshDisplayMemos(in: &tasks)
+    scheduledSubtasks = scheduledSubtasks.map { entry in
+      var sub = entry.subtask
+      var parent = entry.parent
+      TaskMapper.applyDisplayMemos(to: &sub)
+      TaskMapper.applyDisplayMemos(to: &parent)
+      return SubtaskScheduleEntry(subtask: sub, parent: parent)
+    }
+    rebuildScheduleDerived()
+  }
+
   var agendaPeriodLabel: String {
     let taskDates = tasks.compactMap(\.dueDate)
     let subtaskDates = scheduledSubtasks.compactMap { $0.subtask.dueDate }

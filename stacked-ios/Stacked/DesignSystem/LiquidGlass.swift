@@ -85,11 +85,15 @@ enum LiquidGlass {
   static func fab<Content: View>(
     tintColor: Color,
     solidFallback: Color,
+    gradientStart: Color? = nil,
+    gradientEnd: Color? = nil,
     @ViewBuilder content: () -> Content
   ) -> some View {
     FabGlassSurface(
       tintColor: tintColor,
       solidFallback: solidFallback,
+      gradientStart: gradientStart,
+      gradientEnd: gradientEnd,
       content: content
     )
   }
@@ -234,15 +238,22 @@ private struct FabGlassSurface<Content: View>: View {
 
   let tintColor: Color
   let solidFallback: Color
+  let gradientStart: Color?
+  let gradientEnd: Color?
   let content: Content
 
+  // SUBSTITUIDO_TEMAS_JADE: init sem gradientStart/End — fill sólido único.
   init(
     tintColor: Color,
     solidFallback: Color,
+    gradientStart: Color? = nil,
+    gradientEnd: Color? = nil,
     @ViewBuilder content: () -> Content
   ) {
     self.tintColor = tintColor
     self.solidFallback = solidFallback
+    self.gradientStart = gradientStart
+    self.gradientEnd = gradientEnd
     self.content = content()
   }
 
@@ -262,17 +273,46 @@ private struct FabGlassSurface<Content: View>: View {
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
+  private var fabFill: AnyShapeStyle {
+    if let gradientStart, let gradientEnd {
+      return AnyShapeStyle(
+        LinearGradient(
+          colors: [gradientStart, gradientEnd],
+          startPoint: .topLeading,
+          endPoint: .bottomTrailing
+        )
+      )
+    }
+    return AnyShapeStyle(solidFallback)
+  }
+
+  private var frozenFill: AnyShapeStyle {
+    if let gradientStart, let gradientEnd {
+      return AnyShapeStyle(
+        LinearGradient(
+          colors: [
+            gradientStart.opacity(LiquidGlass.frozenTrackOpacity),
+            gradientEnd.opacity(LiquidGlass.frozenTrackOpacity),
+          ],
+          startPoint: .topLeading,
+          endPoint: .bottomTrailing
+        )
+      )
+    }
+    return AnyShapeStyle(tintColor.opacity(LiquidGlass.frozenTrackOpacity))
+  }
+
   var body: some View {
     if useSolid {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Circle().fill(solidFallback))
+        .background(Circle().fill(fabFill))
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else if useStaticFrozen {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Circle().fill(tintColor.opacity(LiquidGlass.frozenTrackOpacity)))
+        .background(Circle().fill(frozenFill))
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else {

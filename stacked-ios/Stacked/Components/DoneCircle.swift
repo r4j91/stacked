@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// Paridade lib/widgets/done_circle.dart — check verde padrão global
+// Paridade lib/widgets/done_circle.dart — concluído = cor da prioridade (estilo Todoist).
 struct DoneCircle: View {
   /// Tamanho do anel de conclusão em linhas de tarefa e subtarefa.
   static let listRowCircleSize: CGFloat = 22
@@ -21,19 +21,27 @@ struct DoneCircle: View {
   var ringFillAlpha: CGFloat = 0
   /// UIKit cell + scroll: bitmap estático — `Circle().strokeBorder` “nada” no AA.
   var scrollStable: Bool = false
+  /// UIKIT_SCROLL_POLISH: id da row/subtask — reuse com outro done não anima complete.
+  var rowIdentity: String = ""
 
   @State private var fillScale: CGFloat = 1
   @State private var tickScale: CGFloat = 1
   @State private var tickOpacity: Double = 1
   /// Depois do tap de concluir, anima em vetor; no idle volta ao bitmap.
   @State private var preferVector = false
+  @State private var boundRowIdentity: String = ""
+  /// UIKIT_SCROLL_POLISH: identity+done mudam no mesmo turno no reuse — não anima.
+  @State private var suppressDoneAnimation = false
 
-  private static let doneColor = AppColors.success
+  // UIKIT_SCROLL_POLISH: private static let doneColor = AppColors.success
   private static let completeBeginScale: CGFloat = 0.6
 
   private var usesRaster: Bool {
     scrollStable && !preferVector
   }
+
+  /// Cor do anel/preenchimento — prioridade; sem prioridade = terciário.
+  private var accentColor: Color { ringColor }
 
   var body: some View {
     Group {
@@ -44,7 +52,7 @@ struct DoneCircle: View {
             done: done,
             size: size,
             borderWidth: borderWidth,
-            ringColor: UIColor(ringColor),
+            ringColor: UIColor(accentColor),
             ringFillAlpha: ringFillAlpha,
             tickSize: tickSize
           ),
@@ -58,8 +66,20 @@ struct DoneCircle: View {
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(done ? "Concluída" : "Não concluída")
     .accessibilityAddTraits(.isImage)
-    .onAppear { syncVisualState(animated: false) }
+    .onAppear { rebindIdentityIfNeeded() }
+    .onChange(of: rowIdentity) { _, _ in rebindIdentityIfNeeded() }
     .onChange(of: done) { wasDone, isDone in
+      // UIKIT_SCROLL_POLISH: reuse/reconfigure — só sync; animate só toggle do usuário.
+      if suppressDoneAnimation {
+        suppressDoneAnimation = false
+        preferVector = false
+        syncVisualState(animated: false)
+        return
+      }
+      if scrollStable, !rowIdentity.isEmpty, boundRowIdentity != rowIdentity {
+        rebindIdentityIfNeeded()
+        return
+      }
       if isDone && !wasDone {
         if scrollStable { preferVector = true }
         playCompleteAnimation()
@@ -70,24 +90,38 @@ struct DoneCircle: View {
     }
   }
 
+  private func rebindIdentityIfNeeded() {
+    guard !rowIdentity.isEmpty else {
+      syncVisualState(animated: false)
+      return
+    }
+    guard boundRowIdentity != rowIdentity else {
+      syncVisualState(animated: false)
+      return
+    }
+    boundRowIdentity = rowIdentity
+    preferVector = false
+    suppressDoneAnimation = true
+    syncVisualState(animated: false)
+  }
+
   private var vectorGlyph: some View {
     ZStack {
       if done {
+        // Todoist: círculo sólido na cor da prioridade + check branco (mesmo glyph Hugeicons).
+        // UIKIT_SCROLL_POLISH / legado: fill verde AppColors.success.opacity(0.15) + stroke/check verdes
         Circle()
-          .fill(Self.doneColor.opacity(0.15))
-          .overlay(
-            Circle().strokeBorder(Self.doneColor, lineWidth: borderWidth)
-          )
+          .fill(accentColor)
           .scaleEffect(fillScale)
 
-        StackedIcons.icon(.check, size: tickSize, color: Self.doneColor)
+        StackedIcons.icon(.check, size: tickSize, color: .white)
           .scaleEffect(tickScale)
           .opacity(tickOpacity)
       } else {
         Circle()
-          .fill(ringFillAlpha > 0 ? ringColor.opacity(ringFillAlpha) : .clear)
+          .fill(ringFillAlpha > 0 ? accentColor.opacity(ringFillAlpha) : .clear)
           .overlay(
-            Circle().strokeBorder(ringColor, lineWidth: borderWidth)
+            Circle().strokeBorder(accentColor, lineWidth: borderWidth)
           )
       }
     }
@@ -164,7 +198,7 @@ private struct DoneCircleRasterView: UIViewRepresentable {
 /// Bitmap do anel/check — estável sob `contentOffset` fracionário na lista UIKit.
 enum DoneCircleRaster {
   private static var cache: [String: UIImage] = [:]
-  private static let doneUIColor = UIColor(AppColors.success)
+  // UIKIT_SCROLL_POLISH: private static let doneUIColor = UIColor(AppColors.success)
 
   static func image(
     done: Bool,
@@ -176,6 +210,7 @@ enum DoneCircleRaster {
   ) -> UIImage {
     let key = [
       done ? "1" : "0",
+      "prioFill", // UIKIT_SCROLL_POLISH: invalida cache do estilo verde
       String(format: "%.1f", size),
       String(format: "%.1f", borderWidth),
       String(format: "%.3f", ringFillAlpha),
@@ -194,15 +229,11 @@ enum DoneCircleRaster {
       let ringRect = CGRect(x: inset, y: inset, width: size - borderWidth, height: size - borderWidth)
 
       if done {
-        doneUIColor.withAlphaComponent(0.15).setFill()
-        cg.fillEllipse(in: ringRect)
-        doneUIColor.setStroke()
-        cg.setLineWidth(borderWidth)
-        cg.strokeEllipse(in: ringRect)
+        // Todoist: preenchimento prioridade + check branco.
+        ringColor.setFill()
+        cg.fillEllipse(in: CGRect(x: 0, y: 0, width: size, height: size))
 
-        // Check simples (dois segmentos) — suficiente no tamanho da lista.
-        let checkColor = doneUIColor
-        checkColor.setStroke()
+        UIColor.white.setStroke()
         cg.setLineWidth(max(1.6, borderWidth))
         cg.setLineCap(.round)
         cg.setLineJoin(.round)

@@ -103,6 +103,13 @@ enum GlobalDataRefresh {
     _ = await (home, filters)
   }
 
+  /// Chips “Hoje”/atrasada memoizados — refreshing sem refetch ao voltar ao app.
+  static func refreshRelativeDateChips() {
+    TaskStore.shared.refreshRelativeDateChips()
+    UpcomingStore.shared.refreshRelativeDateChips()
+    ProjectDetailCache.shared.refreshRelativeDateChips()
+  }
+
   static func afterTaskMutation(invalidateTabs tabs: [NavTab] = []) {
     TabRefreshPolicy.invalidate(.home)
     TabRefreshPolicy.invalidate(.filters)

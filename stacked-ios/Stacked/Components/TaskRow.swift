@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Hugeicons
 
 // Paridade task_tile.dart — card + expansão inline de subtarefas
@@ -26,15 +27,82 @@ struct TaskRow: View {
   /// Long-press / context menu — excluir subtarefa inline (paridade TaskDetail).
   var onSubtaskDeleted: ((Subtask) -> Void)?
   var onWhatsAppCopy: (() -> Void)?
+  /// UIKit list: collapse/expand → limpa cache de altura e reconfigure da cell.
+  var onSubtaskExpansionChanged: ((Bool) -> Void)?
 
   @State private var expanded = false
   @State private var subtaskRevealActive = false
   @State private var subtaskRevealLayoutPass = 0
+  /// Remount UIKit (scroll recycle): abre já na altura final — sem 0→full no meio do fling.
+  @State private var snapRevealOpen = false
   @State private var displaySubtasks: [Subtask] = []
   @State private var subtasksDone: [Bool] = []
   @State private var subtaskSortHoldId: String?
   @State private var subtaskReorderTask: _Concurrency.Task<Void, Never>?
   @State private var labelCatalog: [TaskLabel] = []
+
+  init(
+    task: Task,
+    style: TaskRowStyle = .card,
+    flatSubtaskPanel: Bool = false,
+    showProject: Bool = true,
+    allLabels: [TaskLabel] = [],
+    deferHeavyWork: Bool = false,
+    restoreExpansionOnAppear: Bool = true,
+    stabilizeExpandInSelfSizingCell: Bool = false,
+    rowInteractionsEnabled: Bool = true,
+    onToggle: @escaping () -> Void,
+    onTap: (() -> Void)? = nil,
+    onSubtaskTap: ((Subtask) -> Void)? = nil,
+    onSubtaskChanged: ((SubtaskSaveSnapshot) -> Void)? = nil,
+    onSubtaskDeleted: ((Subtask) -> Void)? = nil,
+    onWhatsAppCopy: (() -> Void)? = nil,
+    onSubtaskExpansionChanged: ((Bool) -> Void)? = nil
+  ) {
+    self.task = task
+    self.style = style
+    self.flatSubtaskPanel = flatSubtaskPanel
+    self.showProject = showProject
+    self.allLabels = allLabels
+    self.deferHeavyWork = deferHeavyWork
+    self.restoreExpansionOnAppear = restoreExpansionOnAppear
+    self.stabilizeExpandInSelfSizingCell = stabilizeExpandInSelfSizingCell
+    self.rowInteractionsEnabled = rowInteractionsEnabled
+    self.onToggle = onToggle
+    self.onTap = onTap
+    self.onSubtaskTap = onSubtaskTap
+    self.onSubtaskChanged = onSubtaskChanged
+    self.onSubtaskDeleted = onSubtaskDeleted
+    self.onWhatsAppCopy = onWhatsAppCopy
+    self.onSubtaskExpansionChanged = onSubtaskExpansionChanged
+
+    // UIKit recycle: 1º frame já expandido — onAppear false→true saltava a lista no fling.
+    let seedOpen =
+      restoreExpansionOnAppear
+      && !deferHeavyWork
+      && stabilizeExpandInSelfSizingCell
+      && task.hasSubtasks
+      && ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id)
+    _subtaskRevealLayoutPass = State(initialValue: 0)
+    _subtaskSortHoldId = State(initialValue: nil)
+    _subtaskReorderTask = State(initialValue: nil)
+    _labelCatalog = State(initialValue: [])
+
+    if seedOpen {
+      let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
+      _expanded = State(initialValue: true)
+      _subtaskRevealActive = State(initialValue: true)
+      _snapRevealOpen = State(initialValue: true)
+      _displaySubtasks = State(initialValue: sorted)
+      _subtasksDone = State(initialValue: sorted.map(\.done))
+    } else {
+      _expanded = State(initialValue: false)
+      _subtaskRevealActive = State(initialValue: false)
+      _snapRevealOpen = State(initialValue: false)
+      _displaySubtasks = State(initialValue: [])
+      _subtasksDone = State(initialValue: [])
+    }
+  }
 
   var body: some View {
     switch style {
@@ -63,13 +131,14 @@ struct TaskRow: View {
     .frame(minHeight: headerHeight)
     .background {
       if light {
+        // UIKIT_SCROLL_POLISH: shape.fill(c.surface.opacity(0.72))
         shape
-          .fill(c.surface.opacity(0.72))
+          .fill(cardSurfaceFill(light: true))
           .overlay {
             shape.strokeBorder(c.textPrimary.opacity(0.055), lineWidth: 1)
           }
       } else {
-        shape.fill(c.surface)
+        shape.fill(cardSurfaceFill(light: false))
       }
     }
     .clipShape(shape)
@@ -114,6 +183,7 @@ struct TaskRow: View {
     TaskRowScrollLifecycle(
       taskId: task.id,
       subtaskCount: task.subtasks.count,
+      subtasksRevision: taskSubtasksRevision,
       deferHeavyWork: deferHeavyWork,
       expanded: expanded,
       shouldLoadLabels: task.hasSubtasks && allLabels.isEmpty && labelCatalog.isEmpty,
@@ -126,6 +196,19 @@ struct TaskRow: View {
         bumpSubtaskRevealLayout()
       }
     )
+  }
+
+  /// Detecta conclusão/edição sem mudar o count (Inbox UIKit reconfigure).
+  private var taskSubtasksRevision: Int {
+    var hasher = Hasher()
+    for sub in task.subtasks {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.done)
+      hasher.combine(sub.title)
+      hasher.combine(sub.order)
+    }
+    hasher.combine(task.subtasksDoneCount)
+    return hasher.finalize()
   }
 
   /// PERF_FASEB2_ETAPA3: altura determinística — (tem desc?, tem meta?).
@@ -165,7 +248,8 @@ struct TaskRow: View {
           PriorityDot(
             priority: task.priority,
             done: task.done,
-            scrollStable: stabilizeExpandInSelfSizingCell
+            scrollStable: stabilizeExpandInSelfSizingCell,
+            rowIdentity: task.id
           )
             .padding(12)
         }
@@ -204,12 +288,29 @@ struct TaskRow: View {
     task.whatsappRoutine && task.hasDescription && onWhatsAppCopy != nil
   }
 
+  @ViewBuilder
+  private func rowClockIcon(color: Color) -> some View {
+    if stabilizeExpandInSelfSizingCell {
+      UIKitRowIconView(key: .clock, size: 11, color: color)
+    } else {
+      // UIKIT_SCROLL_POLISH: StackedIcons.icon(.clock, …) legado
+      StackedIcons.icon(.clock, size: 11, color: color)
+    }
+  }
+
   private func whatsAppCopyButton(action: @escaping () -> Void) -> some View {
     let c = theme.colors
     return Button(action: action) {
-      StackedIcons.image(.copy)
-        .font(.system(size: 16, weight: .medium))
-        .foregroundStyle(c.accent)
+      Group {
+        if stabilizeExpandInSelfSizingCell {
+          UIKitRowIconView(key: .copy, size: 16, color: c.accent)
+        } else {
+          // UIKIT_SCROLL_POLISH: path legado SwiftUI
+          StackedIcons.image(.copy)
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(c.accent)
+        }
+      }
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }
@@ -257,7 +358,9 @@ struct TaskRow: View {
         reduceMotion: reduceMotion,
         layoutPass: subtaskRevealLayoutPass,
         contentRevision: subtaskRevealContentRevision,
-        stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell
+        stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell,
+        snapOpen: snapRevealOpen,
+        panelFill: style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : nil
       ) {
         subtaskList
       }
@@ -325,7 +428,7 @@ struct TaskRow: View {
 
       if let timeDisplay = task.timeDisplay {
         HStack(spacing: 2) {
-          StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
+          rowClockIcon(color: c.textTertiary)
           // SUBSTITUIDO_FASE5: TaskMapper.formatTimeDisplay(time) no body
           Text(timeDisplay)
             .font(AppTypography.timeChip)
@@ -343,7 +446,8 @@ struct TaskRow: View {
     } label: {
       SubtaskExpandChevron(
         expanded: expanded,
-        stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell
+        stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell,
+        taskId: task.id
       )
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
@@ -368,14 +472,17 @@ struct TaskRow: View {
       ForEach(Array(displaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
-        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !labels.isEmpty
+        // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
+        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !sub.labelIds.isEmpty
         HStack(alignment: hasMeta ? .top : .center, spacing: 0) {
           Button { toggleSubtask(at: index, sub: sub) } label: {
             subtaskDot(sub: sub, done: done)
-              .padding(.horizontal, 4)
-              .padding(.vertical, hasMeta ? 13 : 0)
+              .frame(width: 44, height: hasMeta ? 48 : 44)
+              .contentShape(Rectangle())
           }
-          .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
+          // Host aninhado no UIKit: PressableStyle + scale atrapalhava o hit-test.
+          .buttonStyle(.borderless)
+          .disabled(!rowInteractionsEnabled)
 
           // SUBTASK_CTXMENU_FIX: PressableStyle + Button + .contextMenu só “selecionava”
           // e não abria o menu (pior em listas de projeto). Long-press = popover Excluir.
@@ -394,7 +501,7 @@ struct TaskRow: View {
                 Spacer(minLength: 4)
                 if let timeDisplay = sub.timeDisplay {
                   HStack(spacing: 2) {
-                    StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
+                    rowClockIcon(color: c.textTertiary)
                     Text(timeDisplay)
                       .font(AppTypography.timeChip)
                       .foregroundStyle(c.textTertiary)
@@ -440,10 +547,56 @@ struct TaskRow: View {
           )
         }
       }
-      Color.clear.frame(height: 4)
+      // Rodapé opaco — Clear deixava ver o card (tarja) sob o painel no UIKit.
+      Rectangle()
+        .fill(style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : Color.clear)
+        .frame(height: 8)
     }
-    .background(c.surfaceVariant.opacity(flatSubtaskPanel ? 0 : (style.isCardFamily ? 0.45 : 0)))
+    .background(subtaskPanelFill)
   }
+
+  /// UIKIT_SCROLL_POLISH: fundo solido sob o card = theme.colors.background (CV).
+  private func cardSurfaceFill(light: Bool) -> Color {
+    let c = theme.colors
+    if !stabilizeExpandInSelfSizingCell {
+      return light ? c.surface.opacity(0.72) : c.surface
+    }
+    if light {
+      return Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+    }
+    return c.surface
+  }
+
+  private var subtaskPanelFill: Color {
+    let c = theme.colors
+    if flatSubtaskPanel { return .clear }
+    guard style.isCardFamily else { return .clear }
+    // UIKIT_SCROLL_POLISH: c.surfaceVariant.opacity(0.45)
+    if !stabilizeExpandInSelfSizingCell {
+      return c.surfaceVariant.opacity(0.45)
+    }
+    let cardBase = style == .cardLight
+      ? Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+      : c.surface
+    return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.45)
+  }
+
+  /// src over dst com alpha de src (sem blend transparente em runtime).
+  private static func opaqueBlend(src: Color, dst: Color, alpha: CGFloat) -> Color {
+    let s = UIColor(src)
+    let d = UIColor(dst)
+    var sr: CGFloat = 0, sg: CGFloat = 0, sb: CGFloat = 0, sa: CGFloat = 0
+    var dr: CGFloat = 0, dg: CGFloat = 0, db: CGFloat = 0, da: CGFloat = 0
+    s.getRed(&sr, green: &sg, blue: &sb, alpha: &sa)
+    d.getRed(&dr, green: &dg, blue: &db, alpha: &da)
+    let a = min(max(alpha, 0), 1)
+    return Color(
+      red: sr * a + dr * (1 - a),
+      green: sg * a + dg * (1 - a),
+      blue: sb * a + db * (1 - a)
+    )
+  }
+
 
   private func subtaskDot(sub: Subtask, done: Bool) -> some View {
     DoneCircle(
@@ -453,7 +606,8 @@ struct TaskRow: View {
       tickSize: 13,
       ringColor: sub.priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
-      scrollStable: stabilizeExpandInSelfSizingCell
+      scrollStable: stabilizeExpandInSelfSizingCell,
+      rowIdentity: sub.idOrFallback
     )
   }
 
@@ -549,6 +703,7 @@ struct TaskRow: View {
     subtasksDone = []
     expanded = false
     subtaskRevealActive = false
+    snapRevealOpen = false
     if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
     }
@@ -575,6 +730,7 @@ struct TaskRow: View {
         // Uma passagem: sem yield/AppMotion no `expanded` (isso deslocava o título na cell).
         expanded = true
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
+        onSubtaskExpansionChanged?(true)
         return
       }
       expanded = false
@@ -585,6 +741,7 @@ struct TaskRow: View {
           expanded = true
         }
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
+        onSubtaskExpansionChanged?(true)
       }
       return
     }
@@ -597,6 +754,7 @@ struct TaskRow: View {
       }
     }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
+    onSubtaskExpansionChanged?(willExpand)
     if !willExpand {
       scheduleSubtaskRevealTeardown()
     }
@@ -615,6 +773,7 @@ struct TaskRow: View {
       try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
       guard !expanded else { return }
       subtaskRevealActive = false
+      snapRevealOpen = false
     }
   }
 
@@ -622,16 +781,47 @@ struct TaskRow: View {
     guard task.hasSubtasks else {
       expanded = false
       subtaskRevealActive = false
+      snapRevealOpen = false
       return
     }
     let saved = ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id)
     guard saved else {
       expanded = false
       subtaskRevealActive = false
+      snapRevealOpen = false
       return
     }
-    // Mesma sequência do toque manual — evita altura 0 ao restaurar na List.
+    // Já veio expandido do init (UIKit seed) — só garante lista e solta o snap.
+    if stabilizeExpandInSelfSizingCell, expanded, subtaskRevealActive {
+      if displaySubtasks.isEmpty { syncSubtasks() }
+      if snapRevealOpen {
+        _Concurrency.Task { @MainActor in
+          try? await _Concurrency.Task.sleep(for: .milliseconds(40))
+          guard expanded else { return }
+          snapRevealOpen = false
+        }
+      }
+      return
+    }
     syncSubtasks()
+    // UIKit recycle legado: uma passagem + snap — yield 0→full hitchava no scroll.
+    if stabilizeExpandInSelfSizingCell {
+      var transaction = Transaction()
+      transaction.disablesAnimations = true
+      withTransaction(transaction) {
+        snapRevealOpen = true
+        subtaskRevealActive = true
+        expanded = true
+      }
+      bumpSubtaskRevealLayout()
+      _Concurrency.Task { @MainActor in
+        try? await _Concurrency.Task.sleep(for: .milliseconds(40))
+        guard expanded else { return }
+        snapRevealOpen = false
+      }
+      return
+    }
+    // List SwiftUI: yield evita altura 0 no 1º frame do reveal.
     subtaskRevealActive = true
     expanded = false
     _Concurrency.Task { @MainActor in
@@ -698,8 +888,33 @@ struct TaskRow: View {
     displaySubtasks = updated
     subtasksDone[index] = newDone
 
+    // Patch otimista no store ANTES do delay de reorder — senão fechar/abrir lê task velho.
+    let snapshot = subtaskSnapshot(sub, done: newDone)
+    onSubtaskChanged?(snapshot)
+
     subtaskReorderTask?.cancel()
     subtaskReorderTask = _Concurrency.Task { @MainActor in
+      // Persistência não depende do sleep de reorder (cancel matava o save).
+      do {
+        try await SubtaskRepository.shared.toggleDone(
+          id: sub.id,
+          taskId: sub.taskId,
+          order: sub.order,
+          done: newDone
+        )
+      } catch {
+        // Reverte store + UI se o backend falhar.
+        onSubtaskChanged?(subtaskSnapshot(sub, done: !newDone))
+        guard !_Concurrency.Task.isCancelled else { return }
+        if let idx = displaySubtasks.firstIndex(where: { subtaskHoldKey($0) == holdKey }) {
+          displaySubtasks[idx] = subtaskWithDone(displaySubtasks[idx], done: !newDone)
+          if idx < subtasksDone.count { subtasksDone[idx] = !newDone }
+        }
+        return
+      }
+
+      guard !_Concurrency.Task.isCancelled else { return }
+
       if newDone {
         subtaskSortHoldId = holdKey
         if !reduceMotion {
@@ -719,12 +934,6 @@ struct TaskRow: View {
         }
       }
 
-      try? await SubtaskRepository.shared.toggleDone(
-        id: sub.id,
-        taskId: sub.taskId,
-        order: sub.order,
-        done: newDone
-      )
       if let id = sub.id {
         if newDone {
           TaskCalendarSync.remove(subtaskId: id)
@@ -747,7 +956,6 @@ struct TaskRow: View {
           ))
         }
       }
-      onSubtaskChanged?(subtaskSnapshot(sub, done: newDone))
     }
   }
 
@@ -888,6 +1096,8 @@ struct DisclosureChevron: View {
 private struct TaskRowScrollLifecycle: ViewModifier {
   let taskId: String
   let subtaskCount: Int
+  /// Hash de done/título — count sozinho não detecta conclusão.
+  let subtasksRevision: Int
   let deferHeavyWork: Bool
   let expanded: Bool
   let shouldLoadLabels: Bool
@@ -901,6 +1111,7 @@ private struct TaskRowScrollLifecycle: ViewModifier {
     content
       .onAppear(perform: onAppearRow)
       .onChange(of: subtaskCount) { _, _ in onSubtasksChanged() }
+      .onChange(of: subtasksRevision) { _, _ in onSubtasksChanged() }
       .onChange(of: taskId) { _, _ in onTaskIdentityChanged() }
       .onChange(of: deferHeavyWork) { _, deferred in
         if !deferred { onHeavyWorkAllowed() }
@@ -921,13 +1132,23 @@ struct SubtaskExpandChevron: View {
   var size: CGFloat = 12
   /// Em cell self-sizing, spring no chevron + resize da cell = “pulo”. Ease curto fica estável.
   var stabilizeInSelfSizingCell: Bool = false
+  /// UIKIT_SCROLL_POLISH: id estável — reuse/restore não dispara `.animation`.
+  var taskId: String = ""
+
+  @State private var boundTaskId: String = ""
+  @State private var animationsArmed = false
 
   var body: some View {
+    // UIKIT_SCROLL_POLISH: raster nearest encolhia o chevron vs .font(semibold).
+    // Volta ao vetor com o mesmo tamanho óptico de antes.
     StackedIcons.image(.chevronDown)
       .font(.system(size: size, weight: .semibold))
       .foregroundStyle(theme.colors.textTertiary)
       .rotationEffect(.degrees(expanded ? 0 : -90))
-      .animation(chevronAnimation, value: expanded)
+      // UIKIT_SCROLL_POLISH: .animation(chevronAnimation, value: expanded) sempre ligado
+      .animation(animationsArmed ? chevronAnimation : nil, value: expanded)
+      .onAppear { armAnimationsAfterBind() }
+      .onChange(of: taskId) { _, _ in armAnimationsAfterBind(reset: true) }
   }
 
   private var chevronAnimation: Animation? {
@@ -937,6 +1158,26 @@ struct SubtaskExpandChevron: View {
     }
     return AppMotion.subtaskChevronTurn(reduceMotion: false)
   }
+
+  private func armAnimationsAfterBind(reset: Bool = false) {
+    if taskId.isEmpty {
+      animationsArmed = true
+      return
+    }
+    if reset || boundTaskId != taskId {
+      boundTaskId = taskId
+      animationsArmed = false
+      _Concurrency.Task { @MainActor in
+        await _Concurrency.Task.yield()
+        guard boundTaskId == taskId else { return }
+        animationsArmed = true
+      }
+      return
+    }
+    if !animationsArmed {
+      animationsArmed = true
+    }
+  }
 }
 
 struct PriorityDot: View {
@@ -945,6 +1186,7 @@ struct PriorityDot: View {
   let done: Bool
   /// UIKit cell + scroll: bitmap idle — anéis vetoriais “nadam” no AA.
   var scrollStable: Bool = false
+  var rowIdentity: String = ""
 
   var body: some View {
     DoneCircle(
@@ -954,7 +1196,8 @@ struct PriorityDot: View {
       tickSize: 13,
       ringColor: priority?.color ?? theme.colors.textTertiary,
       ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
-      scrollStable: scrollStable
+      scrollStable: scrollStable,
+      rowIdentity: rowIdentity
     )
     .accessibilityHidden(true)
   }

@@ -272,17 +272,20 @@ struct QuickAddTaskView: View {
     } label: {
       Group {
         if saving {
-          ProgressView().tint(hasTitle ? c.background : c.textSecondary)
+          // SUBSTITUIDO_TEMAS_JADE: ProgressView().tint(hasTitle ? c.background : c.textSecondary)
+          ProgressView().tint(hasTitle ? c.onActionAccent : c.textSecondary)
         } else {
           StackedIcons.icon(
             .arrowUp,
             size: 19,
-            color: hasTitle ? c.background : c.textSecondary
+            // SUBSTITUIDO_TEMAS_JADE: color: hasTitle ? c.background : c.textSecondary
+            color: hasTitle ? c.onActionAccent : c.textSecondary
           )
         }
       }
       .frame(width: sendCircleSize, height: sendCircleSize)
-      .background(hasTitle ? c.accent : actionPillBackground(colors: c))
+      // SUBSTITUIDO_TEMAS_JADE: .background(hasTitle ? c.accent : actionPillBackground(colors: c))
+      .background(hasTitle ? c.actionAccent : actionPillBackground(colors: c))
       .clipShape(Circle())
       .overlay {
         if !hasTitle {

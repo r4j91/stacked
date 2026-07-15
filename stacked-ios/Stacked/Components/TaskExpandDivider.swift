@@ -24,7 +24,8 @@ struct TaskExpandDivider: View {
     let c = theme.colors
     Divider()
       .overlay(c.textTertiary.opacity(colorAlpha))
-      .frame(height: TaskExpandDividerStyle.thickness)
+      // UIKIT_SCROLL_POLISH: .frame(height: TaskExpandDividerStyle.thickness)
+      .frame(height: AppLayout.pixelSnap(TaskExpandDividerStyle.thickness))
       .padding(.leading, indent)
   }
 }

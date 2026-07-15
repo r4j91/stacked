@@ -34,7 +34,30 @@ final class ProjectDetailCache {
   }
 
   func store(projectId: String, sections: [ProjectSection], pending: [Task], completed: [Task]) {
-    cache[projectId] = ProjectDetailSnapshot(sections: sections, pending: pending, completed: completed)
+    var nextPending = pending
+    var nextCompleted = completed
+    TaskMapper.refreshDisplayMemos(in: &nextPending)
+    TaskMapper.refreshDisplayMemos(in: &nextCompleted)
+    cache[projectId] = ProjectDetailSnapshot(
+      sections: sections,
+      pending: nextPending,
+      completed: nextCompleted
+    )
+  }
+
+  /// Virada de dia: reavalia chips de todos os snapshots em memória.
+  func refreshRelativeDateChips() {
+    for (id, snap) in cache {
+      var pending = snap.pending
+      var completed = snap.completed
+      TaskMapper.refreshDisplayMemos(in: &pending)
+      TaskMapper.refreshDisplayMemos(in: &completed)
+      cache[id] = ProjectDetailSnapshot(
+        sections: snap.sections,
+        pending: pending,
+        completed: completed
+      )
+    }
   }
 
   private func fetchSnapshot(projectId: String) async -> ProjectDetailSnapshot? {

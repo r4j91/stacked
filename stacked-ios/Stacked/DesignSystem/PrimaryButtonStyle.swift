@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// CTA primário — accent + onAccent semânticos (Fase B).
+/// CTA primário — actionAccent + onActionAccent (Fase B / TEMAS_JADE).
 struct PrimaryButton: View {
   let title: String
   let action: () -> Void
@@ -26,8 +26,9 @@ struct PrimaryButton: View {
     Button(action: action) {
       Group {
         if isLoading {
+          // SUBSTITUIDO_TEMAS_JADE: .tint(palette.onAccent)
           ProgressView()
-            .tint(palette.onAccent)
+            .tint(palette.onActionAccent)
         } else {
           Text(title)
             .font(font)
@@ -37,8 +38,9 @@ struct PrimaryButton: View {
       .frame(height: height)
     }
     .buttonStyle(.plain)
-    .background(active ? palette.accent : palette.surfaceVariant)
-    .foregroundStyle(active ? palette.onAccent : palette.textSecondary.opacity(0.5))
+    // SUBSTITUIDO_TEMAS_JADE: background(active ? palette.accent : ...) / foregroundStyle(... palette.onAccent ...)
+    .background(active ? palette.actionAccent : palette.surfaceVariant)
+    .foregroundStyle(active ? palette.onActionAccent : palette.textSecondary.opacity(0.5))
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .disabled(!active)
   }

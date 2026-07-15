@@ -178,17 +178,19 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   }
 
   private func makeConfig() -> UIKitHostedTaskListController.Configuration {
-    .init(
+    // UIKIT_SCROLL_POLISH: insets crus → pixel-snapped (altura total da cell no grid).
+    let snappedInsets = UIEdgeInsets(
+      top: AppLayout.pixelSnap(rowInsets.top),
+      left: AppLayout.pixelSnap(rowInsets.leading),
+      bottom: AppLayout.pixelSnap(rowInsets.bottom),
+      right: AppLayout.pixelSnap(rowInsets.trailing)
+    )
+    return .init(
       sections: sections,
       showProject: showProject,
       style: style,
       flatSubtaskQueue: flatSubtaskQueue,
-      rowInsets: UIEdgeInsets(
-        top: rowInsets.top,
-        left: rowInsets.leading,
-        bottom: rowInsets.bottom,
-        right: rowInsets.trailing
-      ),
+      rowInsets: snappedInsets,
       background: UIColor(background),
       leadingChrome: leadingChrome,
       onToggleSection: onToggleSection,
@@ -206,6 +208,35 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onRefresh: onRefresh,
       onWhatsAppCopy: onWhatsAppCopy
     )
+  }
+}
+
+/// Cell com altura travada no layout — evita jump 0→full quando o recycle remonta o SwiftUI.
+final class UIKitSizedTaskCell: UICollectionViewListCell {
+  /// Preferida pelo layout da collection (antes do sizeThatFits do hosting).
+  var lockedHeight: CGFloat?
+
+  override func prepareForReuse() {
+    super.prepareForReuse()
+    lockedHeight = nil
+  }
+
+  /// ListCell default = fundo preto do sistema — vaza nos gaps de altura.
+  func applyClearChrome() {
+    var bg = UIBackgroundConfiguration.clear()
+    bg.backgroundColor = .clear
+    backgroundConfiguration = bg
+    backgroundColor = .clear
+    contentView.backgroundColor = .clear
+  }
+
+  override func preferredLayoutAttributesFitting(
+    _ layoutAttributes: UICollectionViewLayoutAttributes
+  ) -> UICollectionViewLayoutAttributes {
+    let attrs = super.preferredLayoutAttributesFitting(layoutAttributes)
+    guard let lockedHeight, lockedHeight > 1 else { return attrs }
+    attrs.frame.size.height = lockedHeight
+    return attrs
   }
 }
 
@@ -254,6 +285,12 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var taskById: [String: Task] = [:]
   private var sectionById: [String: UIKitTaskSection] = [:]
   private var dimmedTaskIds: Set<String> = []
+  /// Conteúdo da task (subtasks done/título) — fingerprint estrutural ignora isto.
+  private var taskContentHashById: [String: Int] = [:]
+  /// Altura medida da row com painel expandido — remount no fling não cresce 0→full.
+  private var expandedRowHeightCache: [String: CGFloat] = [:]
+  /// Cancela lock agendado se o usuário fechar antes.
+  private var expansionGeneration: [String: UInt] = [:]
   /// Headers observam isto — chevron anima sem remount da cell (reconfigure matava a rotação).
   private let headerFlags = UIKitSectionHeaderFlags()
 
@@ -282,91 +319,133 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     let refresh = UIRefreshControl()
     refresh.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
     collectionView.refreshControl = refresh
+    warmRowIconCache()
 
     let chromeRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
       [weak self] cell, _, _ in
       guard let chrome = self?.config?.leadingChrome else {
-        cell.contentConfiguration = nil
+        // UIKIT_SCROLL_POLISH: cell.contentConfiguration = nil
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
         return
       }
-      cell.contentConfiguration = UIHostingConfiguration {
-        chrome()
-          .environment(ThemeManager.shared)
-          .environment(MobileChromeController.shared)
+      // UIKIT_SCROLL_POLISH: atribuição direta de contentConfiguration
+      UIView.performWithoutAnimation {
+        var clearBg = UIBackgroundConfiguration.clear()
+        clearBg.backgroundColor = .clear
+        cell.backgroundConfiguration = clearBg
+        cell.backgroundColor = .clear
+        cell.contentView.backgroundColor = .clear
+        cell.contentConfiguration = UIHostingConfiguration {
+          chrome()
+            .environment(ThemeManager.shared)
+            .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: 1)
       }
-      .margins(.all, 0)
-      .minSize(height: 1)
     }
 
     let headerRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
       [weak self] cell, _, sectionId in
       guard let self, let config = self.config, let section = self.sectionById[sectionId] else {
-        cell.contentConfiguration = nil
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
         return
       }
-      cell.contentConfiguration = UIHostingConfiguration {
-        Self.makeHeaderView(
-          section: section,
-          flags: self.headerFlags,
-          onToggle: { config.onToggleSection?(sectionId) },
-          onRename: config.onRenameSection,
-          onDelete: config.onDeleteSection
-        )
-        .padding(.top, 8)
-        .padding(.leading, 4)
-        .padding(.trailing, 16)
-        .environment(ThemeManager.shared)
-        .environment(MobileChromeController.shared)
+      UIView.performWithoutAnimation {
+        var clearBg = UIBackgroundConfiguration.clear()
+        clearBg.backgroundColor = .clear
+        cell.backgroundConfiguration = clearBg
+        cell.backgroundColor = .clear
+        cell.contentView.backgroundColor = .clear
+        cell.contentConfiguration = UIHostingConfiguration {
+          Self.makeHeaderView(
+            section: section,
+            flags: self.headerFlags,
+            onToggle: { config.onToggleSection?(sectionId) },
+            onRename: config.onRenameSection,
+            onDelete: config.onDeleteSection
+          )
+          .padding(.top, 8)
+          .padding(.leading, 4)
+          .padding(.trailing, 16)
+          .environment(ThemeManager.shared)
+          .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: 1)
       }
-      .margins(.all, 0)
-      .minSize(height: 1)
     }
 
-    let taskRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
+    let taskRegistration = UICollectionView.CellRegistration<UIKitSizedTaskCell, String> {
       [weak self] cell, _, taskId in
       guard let self, let config = self.config, let task = self.taskById[taskId] else {
-        cell.contentConfiguration = nil
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
         return
       }
       let dimmed = self.dimmedTaskIds.contains(taskId)
       let insets = config.rowInsets
 
-      cell.contentConfiguration = UIHostingConfiguration {
-        TaskRow(
+      UIView.performWithoutAnimation {
+        cell.applyClearChrome()
+        // minSize = sempre só header.
+        // lockedHeight = só cache MEDIDO (estimativa alta = buraco preto sob o card).
+        let isExpanded =
+          task.hasSubtasks
+          && ProjectDetailPreferences.isSubtaskListExpanded(taskId: taskId)
+        let headerMin = AppLayout.estimatedUIKitTaskRowHeight(
           task: task,
-          style: config.style,
-          flatSubtaskPanel: config.flatSubtaskQueue,
           showProject: config.showProject,
-          deferHeavyWork: false,
-          restoreExpansionOnAppear: false,
-          stabilizeExpandInSelfSizingCell: true,
-          onToggle: { config.onToggle(task) },
-          onTap: { config.onTap(task) },
-          onSubtaskTap: { config.onSubtaskTap(task, $0) },
-          onSubtaskChanged: config.onSubtaskChanged,
-          onSubtaskDeleted: { config.onSubtaskDeleted(task, $0) },
-          onWhatsAppCopy: config.onWhatsAppCopy.map { handler in { handler(task) } }
+          expanded: false,
+          rowInsets: insets,
+          cachedHeight: nil
         )
-        // Top-leading: no centro vertical durante o grow da cell (título “chutava”).
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.top, insets.top)
-        .padding(.leading, insets.left)
-        .padding(.bottom, insets.bottom)
-        .padding(.trailing, insets.right)
-        .opacity(dimmed ? 0.7 : 1)
-        .taskContextMenu(
-          task: task,
-          onEdit: { config.onEdit(task) },
-          onComplete: { config.onComplete(task) },
-          onDuplicate: { config.onDuplicate(task) },
-          onDelete: { config.onDelete(task) },
-          onRefresh: config.onRefresh
-        )
-        .environment(ThemeManager.shared)
-        .environment(MobileChromeController.shared)
+        if isExpanded, let cached = self.expandedRowHeightCache[taskId], cached > headerMin {
+          cell.lockedHeight = cached
+        } else {
+          cell.lockedHeight = nil
+        }
+
+        cell.contentConfiguration = UIHostingConfiguration {
+          TaskRow(
+            task: task,
+            style: config.style,
+            flatSubtaskPanel: config.flatSubtaskQueue,
+            showProject: config.showProject,
+            deferHeavyWork: false,
+            // Recycle: init já seeda expansão — sem false→true no onAppear.
+            restoreExpansionOnAppear: true,
+            stabilizeExpandInSelfSizingCell: true,
+            onToggle: { config.onToggle(task) },
+            onTap: { config.onTap(task) },
+            onSubtaskTap: { config.onSubtaskTap(task, $0) },
+            onSubtaskChanged: config.onSubtaskChanged,
+            onSubtaskDeleted: { config.onSubtaskDeleted(task, $0) },
+            onWhatsAppCopy: config.onWhatsAppCopy.map { handler in { handler(task) } },
+            onSubtaskExpansionChanged: { [weak self] expanded in
+              self?.handleSubtaskExpansionChanged(taskId: taskId, expanded: expanded)
+            }
+          )
+          // Top-leading: no centro vertical durante o grow da cell (título “chutava”).
+          .frame(maxWidth: .infinity, alignment: .topLeading)
+          .padding(.top, insets.top)
+          .padding(.leading, insets.left)
+          .padding(.bottom, insets.bottom)
+          .padding(.trailing, insets.right)
+          .opacity(dimmed ? 0.7 : 1)
+          .taskContextMenu(
+            task: task,
+            onEdit: { config.onEdit(task) },
+            onComplete: { config.onComplete(task) },
+            onDuplicate: { config.onDuplicate(task) },
+            onDelete: { config.onDelete(task) },
+            onRefresh: config.onRefresh
+          )
+          .environment(ThemeManager.shared)
+          .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: headerMin)
       }
-      .margins(.all, 0)
-      .minSize(height: 1)
     }
 
     dataSource = UICollectionViewDiffableDataSource<SectionID, ItemID>(
@@ -401,6 +480,15 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       scrollView.topEdgeEffect.isHidden = true
       scrollView.bottomEdgeEffect.isHidden = true
     }
+  }
+
+  /// UIKIT_SCROLL_POLISH: decode/raster fora do cell configure.
+  private func warmRowIconCache() {
+    let colors = ThemeManager.shared.colors
+    UIKitRowIconRaster.warmCommon(
+      textTertiary: UIColor(colors.textTertiary),
+      accent: UIColor(colors.accent)
+    )
   }
 
   override func viewSafeAreaInsetsDidChange() {
@@ -451,11 +539,25 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
     view.backgroundColor = configuration.background
     collectionView.backgroundColor = configuration.background
+    // Garante que o UIColor sólido fica (fallback se Color→UIColor vier transparente).
+    if configuration.background.cgColor.alpha < 0.99 {
+      let solid = UIColor(ThemeManager.shared.colors.background)
+      view.backgroundColor = solid
+      collectionView.backgroundColor = solid
+    }
 
     if fingerprint == lastFingerprint {
+      // Mesma estrutura — ainda assim refresca bodies (done de subtarefa etc.).
+      reconfigureChangedTasks(in: configuration)
       return
     }
     lastFingerprint = fingerprint
+    taskContentHashById = [:]
+    for section in configuration.sections {
+      for task in section.tasks {
+        taskContentHashById[task.id] = Self.taskContentFingerprint(task)
+      }
+    }
 
     let styleCode = Self.styleCode(configuration.style)
     var snapshot = NSDiffableDataSourceSnapshot<SectionID, ItemID>()
@@ -485,6 +587,52 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       snapshot.appendItems(items, toSection: sid)
     }
     dataSource.apply(snapshot, animatingDifferences: false)
+  }
+
+  /// Após patch otimista de subtarefa: `taskById` já está novo; cell precisa do Task fresco.
+  private func reconfigureChangedTasks(in configuration: Configuration) {
+    guard dataSource != nil else { return }
+    let styleCode = Self.styleCode(configuration.style)
+    var dirty: [ItemID] = []
+    dirty.reserveCapacity(8)
+    for section in configuration.sections {
+      for task in section.tasks {
+        let hash = Self.taskContentFingerprint(task)
+        if taskContentHashById[task.id] != hash {
+          taskContentHashById[task.id] = hash
+          dirty.append(.task(id: task.id, style: styleCode))
+        }
+      }
+    }
+    guard !dirty.isEmpty else { return }
+    var snap = dataSource.snapshot()
+    let present = Set(snap.itemIdentifiers)
+    let toReconfigure = dirty.filter { present.contains($0) }
+    guard !toReconfigure.isEmpty else { return }
+    snap.reconfigureItems(toReconfigure)
+    dataSource.apply(snap, animatingDifferences: false)
+  }
+
+  private static func taskContentFingerprint(_ task: Task) -> Int {
+    var hasher = Hasher()
+    hasher.combine(task.done)
+    hasher.combine(task.title)
+    hasher.combine(task.priority)
+    hasher.combine(task.subtasksDoneCount)
+    hasher.combine(task.subtasksTotalCount)
+    // Chips de data são relativos a “hoje” — sem isto a cell UIKit fica com “Hoje”
+    // stale até trocar o modo de visualização (rebuild estrutural).
+    hasher.combine(task.dueDate?.timeIntervalSince1970)
+    hasher.combine(task.dueDateChipLabel)
+    for sub in task.subtasks {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.done)
+      hasher.combine(sub.title)
+      hasher.combine(sub.order)
+      hasher.combine(sub.dueDate?.timeIntervalSince1970)
+      hasher.combine(sub.dueDateChipLabel)
+    }
+    return hasher.finalize()
   }
 
   private static func styleCode(_ style: TaskRowStyle) -> Int {
@@ -574,16 +722,107 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     }
   }
 
+  private func handleSubtaskExpansionChanged(taskId: String, expanded: Bool) {
+    let gen = (expansionGeneration[taskId] ?? 0) &+ 1
+    expansionGeneration[taskId] = gen
+
+    // Solta lock durante a animação — senão a cell fica alta com card pequeno = buraco preto.
+    if let cell = cellForTask(taskId) as? UIKitSizedTaskCell {
+      cell.lockedHeight = nil
+    }
+
+    if expanded {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        guard let self, self.expansionGeneration[taskId] == gen else { return }
+        self.cacheVisibleExpandedHeights()
+        if let h = self.expandedRowHeightCache[taskId],
+           let cell = self.cellForTask(taskId) as? UIKitSizedTaskCell {
+          cell.lockedHeight = h
+        }
+      }
+      return
+    }
+
+    expandedRowHeightCache.removeValue(forKey: taskId)
+  }
+
+  private func cellForTask(_ taskId: String) -> UICollectionViewCell? {
+    guard let config, dataSource != nil else { return nil }
+    let item = ItemID.task(id: taskId, style: Self.styleCode(config.style))
+    guard let indexPath = dataSource.indexPath(for: item) else { return nil }
+    return collectionView.cellForItem(at: indexPath)
+  }
+
+  private func reconfigureTaskCell(taskId: String) {
+    guard dataSource != nil, let config else { return }
+    let item = ItemID.task(id: taskId, style: Self.styleCode(config.style))
+    var snap = dataSource.snapshot()
+    guard snap.itemIdentifiers.contains(item) else { return }
+    snap.reconfigureItems([item])
+    dataSource.apply(snap, animatingDifferences: false)
+  }
+
+  private func cacheExpandedRowHeightIfNeeded(taskId: String, cell: UICollectionViewCell) {
+    guard ProjectDetailPreferences.isSubtaskListExpanded(taskId: taskId) else { return }
+    let h = cell.bounds.height
+    guard h > 40 else { return }
+    let prev = expandedRowHeightCache[taskId] ?? 0
+    if abs(h - prev) > 0.5 {
+      expandedRowHeightCache[taskId] = h
+    }
+  }
+
+  func collectionView(
+    _ collectionView: UICollectionView,
+    willDisplay cell: UICollectionViewCell,
+    forItemAt indexPath: IndexPath
+  ) {
+    guard let item = dataSource.itemIdentifier(for: indexPath),
+          case .task(let id, _) = item else { return }
+    DispatchQueue.main.async { [weak self, weak cell] in
+      guard let self, let cell else { return }
+      self.cacheExpandedRowHeightIfNeeded(taskId: id, cell: cell)
+    }
+  }
+
+    private func pixelSnapContentOffsetIfSettled(_ scrollView: UIScrollView) {
+    // Não trava Y no meio do fling — brigava com física do scroll (salto/ghost).
+    // Só no settle: Text + DoneCircle nearest alinhados.
+    guard !scrollView.isDragging, !scrollView.isDecelerating else { return }
+    let scale = scrollView.traitCollection.displayScale
+    guard scale > 1 else { return }
+    let y = scrollView.contentOffset.y
+    let snapped = (y * scale).rounded() / scale
+    if abs(snapped - y) > .ulpOfOne {
+      scrollView.contentOffset.y = snapped
+    }
+  }
+
   func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
     reportScrolling(true)
   }
 
   func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-    if !decelerate { reportScrolling(false) }
+    if !decelerate {
+      pixelSnapContentOffsetIfSettled(scrollView)
+      reportScrolling(false)
+      cacheVisibleExpandedHeights()
+    }
   }
 
   func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    pixelSnapContentOffsetIfSettled(scrollView)
     reportScrolling(false)
+    cacheVisibleExpandedHeights()
+  }
+
+  private func cacheVisibleExpandedHeights() {
+    for indexPath in collectionView.indexPathsForVisibleItems {
+      guard let item = dataSource.itemIdentifier(for: indexPath),
+            case .task(let id, _) = item,
+            let cell = collectionView.cellForItem(at: indexPath) else { continue }
+      cacheExpandedRowHeightIfNeeded(taskId: id, cell: cell)
+    }
   }
 
   private func reportScrolling(_ scrolling: Bool) {

@@ -290,18 +290,37 @@ final class ProjectDetailStore {
     self.projectName = projectName
     if let snap = initialSnapshot {
       sections = snap.sections
-      pending = snap.pending
-      completed = snap.completed
+      var nextPending = snap.pending
+      var nextCompleted = snap.completed
+      TaskMapper.refreshDisplayMemos(in: &nextPending)
+      TaskMapper.refreshDisplayMemos(in: &nextCompleted)
+      pending = nextPending
+      completed = nextCompleted
       isLoading = false
     }
   }
 
   func adoptSnapshot(_ snapshot: ProjectDetailSnapshot) {
     sections = snapshot.sections
-    pending = snapshot.pending
-    completed = snapshot.completed
-    isLoading = snapshot.pending.isEmpty && snapshot.completed.isEmpty
+    var nextPending = snapshot.pending
+    var nextCompleted = snapshot.completed
+    // Cache pode ter chips de ontem (“Hoje”) — recalcula antes do 1º paint.
+    TaskMapper.refreshDisplayMemos(in: &nextPending)
+    TaskMapper.refreshDisplayMemos(in: &nextCompleted)
+    pending = nextPending
+    completed = nextCompleted
+    isLoading = nextPending.isEmpty && nextCompleted.isEmpty
     error = nil
+  }
+
+  /// Virada de dia / foreground — reavalia “Hoje” vs atrasada sem refetch.
+  func refreshRelativeDateChips() {
+    var nextPending = pending
+    var nextCompleted = completed
+    TaskMapper.refreshDisplayMemos(in: &nextPending)
+    TaskMapper.refreshDisplayMemos(in: &nextCompleted)
+    pending = nextPending
+    completed = nextCompleted
   }
 
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
@@ -323,8 +342,11 @@ final class ProjectDetailStore {
       async let pendingReq = TaskRepository.shared.fetchTasksByProject(projectId)
       async let completedReq = TaskRepository.shared.fetchCompletedTasksByProject(projectId)
       let newSections = try await sectionsReq
-      let newPending = try await pendingReq
-      let newCompleted = try await completedReq
+      var newPending = try await pendingReq
+      var newCompleted = try await completedReq
+      // Garante chips relativo ao dia de agora (mesmo se DTO veio de cache HTTP).
+      TaskMapper.refreshDisplayMemos(in: &newPending)
+      TaskMapper.refreshDisplayMemos(in: &newCompleted)
 
       if newSections == sections, newPending == pending, newCompleted == completed {
         isLoading = false

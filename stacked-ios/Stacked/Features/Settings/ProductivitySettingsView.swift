@@ -26,7 +26,7 @@ struct ProductivitySettingsView: View {
                   HapticService.selection()
                 }
               ),
-              tint: c.accent
+              tint: c.actionAccent
             )
           }
           .padding(.horizontal, SettingsChrome.rowPaddingH)

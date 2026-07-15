@@ -29,12 +29,13 @@ struct FabIntegratedInIslandPreview: View {
         .padding(.bottom, 4)
 
       Circle()
-        .fill(colors.accent.opacity(0.9))
+        // SUBSTITUIDO_TEMAS_JADE: .fill(colors.accent.opacity(0.9)) + onAccent
+        .fill(colors.actionAccent.opacity(0.9))
         .frame(width: 9, height: 9)
         .overlay {
           Image(systemName: "plus")
             .font(.system(size: 6, weight: .bold))
-            .foregroundStyle(colors.onAccent)
+            .foregroundStyle(colors.onActionAccent)
         }
         .padding(.trailing, 6)
         .padding(.bottom, 10)
@@ -48,6 +49,7 @@ struct FabIntegratedInIslandPreview: View {
       .overlay {
         HStack(spacing: 0) {
           HStack(spacing: 2) {
+            // Tab ativa = acento de UI (não actionAccent).
             Circle().fill(colors.accent).frame(width: 3.5, height: 3.5)
             RoundedRectangle(cornerRadius: 1)
               .fill(colors.textSecondary.opacity(0.7))
@@ -63,9 +65,10 @@ struct FabIntegratedInIslandPreview: View {
 
           Image(systemName: "plus")
             .font(.system(size: 6, weight: .bold))
-            .foregroundStyle(colors.onAccent)
+            // SUBSTITUIDO_TEMAS_JADE: onAccent + accent.opacity no círculo
+            .foregroundStyle(colors.onActionAccent)
             .frame(width: 10, height: 10)
-            .background(Circle().fill(colors.accent.opacity(0.85)))
+            .background(Circle().fill(colors.actionAccent.opacity(0.85)))
             .padding(.trailing, 3)
         }
       }

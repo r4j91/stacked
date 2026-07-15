@@ -470,7 +470,7 @@ struct FiltersView: View {
 
   private func projectRow(_ project: ProjectTaskStats) -> some View {
     let c = theme.colors
-    let color = AppColors.parseHex(project.colorHex, fallback: c.accent)
+    let color = AppColors.parseHex(project.colorHex, fallback: c.folderTint)
     let done = project.total - project.pending
     let progress = project.total > 0 ? Double(done) / Double(project.total) : 0
 

@@ -73,10 +73,11 @@ struct SubtaskDetailView: View {
             } label: {
               DoneCircle(
                 done: done,
-                size: 22,
-                borderWidth: 1.8,
-                tickSize: 11,
-                ringColor: priority?.color ?? c.textTertiary.opacity(0.45)
+                size: DoneCircle.listRowCircleSize,
+                borderWidth: DoneCircle.RingStyle.borderWidth,
+                tickSize: 13,
+                ringColor: priority?.color ?? c.textTertiary,
+                ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
               )
             }
             .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))

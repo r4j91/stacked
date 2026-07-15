@@ -122,9 +122,10 @@ struct IslandNavBar: View {
         .fill(colors.textPrimary.opacity(0.08))
         .frame(width: IslandNavLayout.fabDividerWidth, height: 28)
 
+      // SUBSTITUIDO_TEMAS_JADE: .foregroundStyle(colors.accent)
       StackedIcons.image(.plus)
         .font(.system(size: 20, weight: .medium))
-        .foregroundStyle(colors.accent)
+        .foregroundStyle(colors.actionAccent)
         .rotationEffect(.degrees(chrome.fabOpen ? 45 : 0))
         .animation(AppMotion.bouncy(reduceMotion: reduceMotion), value: chrome.fabOpen)
         .frame(width: IslandNavLayout.fabSegmentWidth, height: IslandNavMetrics.pillHeight)
