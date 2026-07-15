@@ -464,11 +464,10 @@ struct TaskRow: View {
     let betweenAlpha: CGFloat = (style.isCardFamily && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
 
     return VStack(spacing: 0) {
+      // Balões / Balões light: sem hairline pai→1ª subtarefa — virava tarja no painel.
+      // Balões+ (flat) e Lista mantêm o divisor próprio.
       if flatSubtaskPanel {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
-      } else if style.isCardFamily {
-        // Paridade SwiftUI — Divider surfaceVariant em Balões / Balões light.
-        Divider().overlay(c.surfaceVariant)
       }
 
       ForEach(Array(displaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
@@ -621,13 +620,10 @@ struct TaskRow: View {
 
 
   private func subtaskDot(sub: Subtask, done: Bool) -> some View {
-    DoneCircle(
+    DoneCircle.standard(
       done: done,
-      size: DoneCircle.listRowCircleSize,
-      borderWidth: DoneCircle.RingStyle.borderWidth,
-      tickSize: 13,
-      ringColor: sub.priority?.color ?? theme.colors.textTertiary,
-      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+      priority: sub.priority,
+      fallbackRing: theme.colors.textTertiary,
       scrollStable: stabilizeExpandInSelfSizingCell,
       rowIdentity: sub.idOrFallback
     )
@@ -1211,13 +1207,10 @@ struct PriorityDot: View {
   var rowIdentity: String = ""
 
   var body: some View {
-    DoneCircle(
+    DoneCircle.standard(
       done: done,
-      size: DoneCircle.listRowCircleSize,
-      borderWidth: DoneCircle.RingStyle.borderWidth,
-      tickSize: 13,
-      ringColor: priority?.color ?? theme.colors.textTertiary,
-      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+      priority: priority,
+      fallbackRing: theme.colors.textTertiary,
       scrollStable: scrollStable,
       rowIdentity: rowIdentity
     )

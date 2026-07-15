@@ -12,6 +12,26 @@ struct DoneCircle: View {
     static let inactiveFillAlpha: CGFloat = 0.08
   }
 
+  /// Padrão lista + sheets: anel prioridade (ou terciário); concluído = fill sólido + ✓ branco.
+  static func standard(
+    done: Bool,
+    priority: Priority? = nil,
+    fallbackRing: Color,
+    scrollStable: Bool = false,
+    rowIdentity: String = ""
+  ) -> DoneCircle {
+    DoneCircle(
+      done: done,
+      size: listRowCircleSize,
+      borderWidth: RingStyle.borderWidth,
+      tickSize: 13,
+      ringColor: priority?.color ?? fallbackRing,
+      ringFillAlpha: done ? 0 : RingStyle.inactiveFillAlpha,
+      scrollStable: scrollStable,
+      rowIdentity: rowIdentity
+    )
+  }
+
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let done: Bool
   var size: CGFloat = 22
@@ -108,15 +128,18 @@ struct DoneCircle: View {
   private var vectorGlyph: some View {
     ZStack {
       if done {
-        // Todoist: círculo sólido na cor da prioridade + check branco (mesmo glyph Hugeicons).
-        // UIKIT_SCROLL_POLISH / legado: fill verde AppColors.success.opacity(0.15) + stroke/check verdes
+        // Mesmo traço do bitmap da lista (não Hugeicons tick) — sheets = lista.
         Circle()
           .fill(accentColor)
           .scaleEffect(fillScale)
 
-        StackedIcons.icon(.check, size: tickSize, color: .white)
-          .scaleEffect(tickScale)
-          .opacity(tickOpacity)
+        DoneCheckStroke(
+          size: size,
+          tickSize: tickSize,
+          lineWidth: DoneCheckGeometry.lineWidth(borderWidth: borderWidth)
+        )
+        .scaleEffect(tickScale)
+        .opacity(tickOpacity)
       } else {
         Circle()
           .fill(ringFillAlpha > 0 ? accentColor.opacity(ringFillAlpha) : .clear)
@@ -229,21 +252,16 @@ enum DoneCircleRaster {
       let ringRect = CGRect(x: inset, y: inset, width: size - borderWidth, height: size - borderWidth)
 
       if done {
-        // Todoist: preenchimento prioridade + check branco.
+        // Todoist: preenchimento prioridade + check branco (mesmo traço do vetor/sheets).
         ringColor.setFill()
         cg.fillEllipse(in: CGRect(x: 0, y: 0, width: size, height: size))
-
-        UIColor.white.setStroke()
-        cg.setLineWidth(max(1.6, borderWidth))
-        cg.setLineCap(.round)
-        cg.setLineJoin(.round)
-        let cx = size / 2
-        let cy = size / 2
-        let s = tickSize * 0.42
-        cg.move(to: CGPoint(x: cx - s * 0.85, y: cy + s * 0.05))
-        cg.addLine(to: CGPoint(x: cx - s * 0.15, y: cy + s * 0.7))
-        cg.addLine(to: CGPoint(x: cx + s * 0.95, y: cy - s * 0.65))
-        cg.strokePath()
+        DoneCheckGeometry.stroke(
+          in: cg,
+          size: size,
+          tickSize: tickSize,
+          borderWidth: borderWidth,
+          color: .white
+        )
       } else {
         if ringFillAlpha > 0 {
           ringColor.withAlphaComponent(ringFillAlpha).setFill()
@@ -264,3 +282,53 @@ enum DoneCircleRaster {
 //   if done { Circle()... } else { Circle()... }
 // }
 // .animation(AppMotion.snappy(reduceMotion: reduceMotion), value: done)
+
+/// Traço do ✓ compartilhado — lista (bitmap) e sheets (SwiftUI) idênticos.
+enum DoneCheckGeometry {
+  static func lineWidth(borderWidth: CGFloat) -> CGFloat {
+    max(1.6, borderWidth)
+  }
+
+  static func add(to path: inout Path, size: CGFloat, tickSize: CGFloat) {
+    let cx = size / 2
+    let cy = size / 2
+    let s = tickSize * 0.42
+    path.move(to: CGPoint(x: cx - s * 0.85, y: cy + s * 0.05))
+    path.addLine(to: CGPoint(x: cx - s * 0.15, y: cy + s * 0.7))
+    path.addLine(to: CGPoint(x: cx + s * 0.95, y: cy - s * 0.65))
+  }
+
+  static func stroke(
+    in cg: CGContext,
+    size: CGFloat,
+    tickSize: CGFloat,
+    borderWidth: CGFloat,
+    color: UIColor
+  ) {
+    color.setStroke()
+    cg.setLineWidth(lineWidth(borderWidth: borderWidth))
+    cg.setLineCap(.round)
+    cg.setLineJoin(.round)
+    var path = Path()
+    add(to: &path, size: size, tickSize: tickSize)
+    cg.addPath(path.cgPath)
+    cg.strokePath()
+  }
+}
+
+private struct DoneCheckStroke: View {
+  let size: CGFloat
+  let tickSize: CGFloat
+  let lineWidth: CGFloat
+
+  var body: some View {
+    Path { path in
+      DoneCheckGeometry.add(to: &path, size: size, tickSize: tickSize)
+    }
+    .stroke(
+      .white,
+      style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+    )
+    .frame(width: size, height: size)
+  }
+}

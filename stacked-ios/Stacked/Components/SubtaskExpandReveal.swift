@@ -267,8 +267,13 @@ final class SubtaskExpandContainerView: UIView {
 
     // snapOpen: recycle já aberto — sem flash 0→full no scroll.
     let shouldAnimate = animated && stateChanged && !snapOpen && !UIAccessibility.isReduceMotionEnabled
-    // Sem pin do pai: reancorar contentOffset no open/close deslizava a lista
-    // (e brigava com o recycle). Altura sobe/desce normal, como no SwiftUI.
+
+    // Fechar em cell self-sizing UIKit: clip encolhe primeiro; lista só zera no fim.
+    if !expanded, stabilizeSelfSizingParent {
+      collapseWithVisualClip(animated: shouldAnimate, reanchorParent: false)
+      return
+    }
+
     applyVisibleHeight(
       target,
       expanded: expanded,
@@ -351,7 +356,7 @@ final class SubtaskExpandContainerView: UIView {
     // Fechar UIKit: altura da LISTA fica travada (pai parado); só o clip encolhe
     // — visual idêntico ao fechar por altura, sem deslizar o conteúdo.
     if !expanded, pinParent {
-      collapseWithVisualClip(animated: animated)
+      collapseWithVisualClip(animated: animated, reanchorParent: true)
       return
     }
 
@@ -378,9 +383,9 @@ final class SubtaskExpandContainerView: UIView {
     }
 
     isAnimating = true
-    let duration: TimeInterval = 0.22
+    let duration: TimeInterval = expanded ? 0.22 : 0.16
     let options: UIView.AnimationOptions = [
-      .curveEaseOut,
+      expanded ? .curveEaseOut : .curveEaseIn,
       .allowUserInteraction,
       .beginFromCurrentState,
       .layoutSubviews,
@@ -390,8 +395,9 @@ final class SubtaskExpandContainerView: UIView {
       applyLayout()
       self.clipView?.layoutIfNeeded()
       self.superview?.layoutIfNeeded()
-      // Lista acompanha a altura no mesmo tick — evita salto discreto open/close.
-      collectionView?.layoutIfNeeded()
+      if expanded {
+        collectionView?.layoutIfNeeded()
+      }
     }) { [weak self] _ in
       self?.isAnimating = false
     }
@@ -461,13 +467,17 @@ final class SubtaskExpandContainerView: UIView {
   }
 
   /// Visual = altura do clip full→0 (conteúdo parado, some por baixo).
-  /// Lista = altura travada até o fim; aí zera e reancora (pai não pula).
-  private func collapseWithVisualClip(animated: Bool) {
+  /// Lista = altura travada até o fim; aí zera (opcionalmente reancora o pai).
+  private func collapseWithVisualClip(animated: Bool, reanchorParent: Bool = true) {
     hostView?.transform = .identity
 
     let from = max(selfHeightConstraint?.constant ?? 0, fullHeight)
     guard from > 0.5 else {
-      snapReportedHeightToZeroAndPin()
+      if reanchorParent {
+        snapReportedHeightToZeroAndPin()
+      } else {
+        snapReportedHeightToZero()
+      }
       return
     }
 
@@ -482,25 +492,62 @@ final class SubtaskExpandContainerView: UIView {
       self?.clipView?.layoutIfNeeded()
     }
 
+    let finish = { [weak self] in
+      guard let self else { return }
+      if reanchorParent {
+        self.snapReportedHeightToZeroAndPin()
+      } else {
+        self.snapReportedHeightToZero()
+      }
+    }
+
     guard animated else {
       shrinkClip()
-      snapReportedHeightToZeroAndPin()
+      finish()
       return
     }
 
     isAnimating = true
     UIView.animate(
-      withDuration: 0.22,
+      withDuration: 0.16,
       delay: 0,
       options: [.curveEaseIn, .allowUserInteraction, .beginFromCurrentState, .layoutSubviews],
       animations: {
         shrinkClip()
       },
       completion: { [weak self] _ in
-        self?.snapReportedHeightToZeroAndPin()
+        finish()
         self?.isAnimating = false
       }
     )
+  }
+
+  /// Zera altura reportada sem reancorar contentOffset (evita deslize no fechar UIKit).
+  private func snapReportedHeightToZero() {
+    let collectionView = enclosingCollectionView()
+
+    selfHeightConstraint?.constant = 0
+    clipHeightConstraint?.constant = 0
+    hostHeightConstraint?.constant = 0
+    fullHeight = 0
+    invalidateIntrinsicContentSize()
+
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    UIView.performWithoutAnimation {
+      self.superview?.setNeedsLayout()
+      self.superview?.layoutIfNeeded()
+      if let cell = self.enclosingCell() {
+        cell.invalidateIntrinsicContentSize()
+        cell.contentView.invalidateIntrinsicContentSize()
+        cell.setNeedsLayout()
+        cell.layoutIfNeeded()
+      }
+      collectionView?.layoutIfNeeded()
+    }
+    CATransaction.commit()
+
+    hostView?.transform = .identity
   }
 
   private func snapReportedHeightToZeroAndPin() {

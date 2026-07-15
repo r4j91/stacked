@@ -5,7 +5,8 @@ struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   /// PERF_FASEB3_3A — T2 desligado do path ativo (sempre false via ScrollPerfDebugStorage).
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
   private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
@@ -17,17 +18,17 @@ struct TodayView: View {
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
-  /// UIKit quando só há tarefas (sem subtarefa/evento misturados).
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
+
+  /// UIKit quando há conteúdo (inclui subtarefas avulsas e eventos de calendário).
   private var prefersUIKitList: Bool {
     guard useUIKitTaskList,
           !store.todayLoading || !store.todayTimeline.isEmpty || !store.todayOverdueItems.isEmpty,
           store.todayError == nil
     else { return false }
-    let hasContent = !store.todayOverdueItems.isEmpty
+    return !store.todayOverdueItems.isEmpty
       || !store.todayTimeline.isEmpty
       || (showCompleted && !store.todayCompleted.isEmpty)
-    guard hasContent else { return false }
-    return UIKitScheduleSupport.allTaskOnly([store.todayOverdueItems, store.todayTimeline])
   }
 
   var body: some View {
@@ -74,7 +75,8 @@ struct TodayView: View {
     UIKitHostedTaskList(
       sections: todayUIKitSections,
       showProject: true,
-      style: .card,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskPanel,
       rowInsets: rowInsets,
       background: colors.background,
       leadingChrome: {
@@ -107,25 +109,36 @@ struct TodayView: View {
       onComplete: { store.completeToday($0) },
       onDuplicate: { store.duplicateToday($0) },
       onDelete: { store.deleteToday($0) },
-      onRefresh: { _Concurrency.Task { await store.loadToday() } }
+      onRefresh: { _Concurrency.Task { await store.loadToday() } },
+      onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
+      onScheduledSubtaskTap: { entry in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
+      },
+      onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) }
     )
     .stackedScrollEdgeChrome()
   }
 
   private var todayUIKitSections: [UIKitTaskSection] {
     var sections: [UIKitTaskSection] = []
-    let overdue = UIKitScheduleSupport.onlyTasks(store.todayOverdueItems) ?? []
-    let today = UIKitScheduleSupport.onlyTasks(store.todayTimeline) ?? []
 
-    if !overdue.isEmpty {
-      sections.append(UIKitTaskSection(id: "overdue", title: "ATRASADAS", tasks: overdue))
+    if !store.todayOverdueItems.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "overdue",
+          header: .plain("ATRASADAS"),
+          tasks: [],
+          scheduleItems: store.todayOverdueItems
+        )
+      )
     }
-    if !today.isEmpty {
+    if !store.todayTimeline.isEmpty {
       sections.append(
         UIKitTaskSection(
           id: "today",
-          title: overdue.isEmpty ? nil : "HOJE",
-          tasks: today
+          header: store.todayOverdueItems.isEmpty ? nil : .plain("HOJE"),
+          tasks: [],
+          scheduleItems: store.todayTimeline
         )
       )
     }
@@ -222,7 +235,12 @@ struct TodayView: View {
 
             if completedExpanded {
               ForEach(store.todayCompleted) { task in
-                TaskRow(task: task, deferHeavyWork: !allowRowHeavyWork) { }
+                TaskRow(
+                  task: task,
+                  style: displayMode.taskRowStyle,
+                  flatSubtaskPanel: displayMode.flatSubtaskPanel,
+                  deferHeavyWork: !allowRowHeavyWork
+                ) { }
                   .opacity(0.7)
                   .listRowInsets(rowInsets)
                   .listRowSeparator(.hidden)
@@ -240,7 +258,7 @@ struct TodayView: View {
   }
 
   private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    displayMode.taskListRowInsets
   }
 
   private func openPendingTaskIfNeeded() {
@@ -279,7 +297,7 @@ struct TodayView: View {
   private func taskRow(_ task: Task) -> some View {
     // PERF_FASEB3_ETAPA2 T2
     if t2RowsPlaceholder {
-      TaskRowScrollPlaceholder(task: task, showProject: true, style: .card)
+      TaskRowScrollPlaceholder(task: task, showProject: true, style: displayMode.taskRowStyle)
         .id(task.id)
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
@@ -287,6 +305,8 @@ struct TodayView: View {
     } else {
       TaskRow(
         task: task,
+        style: displayMode.taskRowStyle,
+        flatSubtaskPanel: displayMode.flatSubtaskPanel,
         deferHeavyWork: !allowRowHeavyWork,
         onToggle: {
         store.completeToday(task)

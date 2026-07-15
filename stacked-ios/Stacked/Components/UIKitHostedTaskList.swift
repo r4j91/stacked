@@ -13,7 +13,13 @@ struct UIKitTaskSection: Equatable {
   var id: String
   var header: UIKitTaskSectionHeader?
   var tasks: [Task]
+  /// Timeline Hoje/Em breve — subtarefas avulsas e eventos de calendário.
+  var scheduleItems: [ScheduleItem] = []
+  /// Resultados de filtro — tarefas e subtarefas avulsas.
+  var filterItems: [FilterResultItem] = []
   var dimmed: Bool = false
+  /// Opacidade reduzida (ex.: Registro concluído).
+  var muted: Bool = false
   var projectSection: ProjectSection? = nil
 
   init(
@@ -21,6 +27,7 @@ struct UIKitTaskSection: Equatable {
     title: String? = nil,
     tasks: [Task],
     dimmed: Bool = false,
+    muted: Bool = false,
     projectSection: ProjectSection? = nil
   ) {
     self.id = id
@@ -31,6 +38,7 @@ struct UIKitTaskSection: Equatable {
     }
     self.tasks = tasks
     self.dimmed = dimmed
+    self.muted = muted
     self.projectSection = projectSection
   }
 
@@ -39,12 +47,18 @@ struct UIKitTaskSection: Equatable {
     header: UIKitTaskSectionHeader?,
     tasks: [Task],
     dimmed: Bool = false,
+    muted: Bool = false,
+    scheduleItems: [ScheduleItem] = [],
+    filterItems: [FilterResultItem] = [],
     projectSection: ProjectSection? = nil
   ) {
     self.id = id
     self.header = header
     self.tasks = tasks
+    self.scheduleItems = scheduleItems
+    self.filterItems = filterItems
     self.dimmed = dimmed
+    self.muted = muted
     self.projectSection = projectSection
   }
 }
@@ -72,6 +86,13 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var onDelete: (Task) -> Void
   var onRefresh: () -> Void
   var onWhatsAppCopy: ((Task) -> Void)? = nil
+  var onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil
+  var onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil
+  var onCalendarEventTap: ((CalendarEvent) -> Void)? = nil
+  var onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)? = nil
+  var onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil
+  /// Catálogo de etiquetas para `FilterSubtaskRow` (filtros); vazio = usa `parent.labels`.
+  var labelCatalog: [TaskLabel] = []
 
   init(
     tasks: [Task],
@@ -94,7 +115,13 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onDuplicate: @escaping (Task) -> Void,
     onDelete: @escaping (Task) -> Void,
     onRefresh: @escaping () -> Void,
-    onWhatsAppCopy: ((Task) -> Void)? = nil
+    onWhatsAppCopy: ((Task) -> Void)? = nil,
+    onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil,
+    onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil,
+    onCalendarEventTap: ((CalendarEvent) -> Void)? = nil,
+    onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)? = nil,
+    onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil,
+    labelCatalog: [TaskLabel] = []
   ) {
     self.init(
       sections: [UIKitTaskSection(id: "main", title: nil, tasks: tasks)],
@@ -117,7 +144,13 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onDuplicate: onDuplicate,
       onDelete: onDelete,
       onRefresh: onRefresh,
-      onWhatsAppCopy: onWhatsAppCopy
+      onWhatsAppCopy: onWhatsAppCopy,
+      onScheduledSubtaskToggle: onScheduledSubtaskToggle,
+      onScheduledSubtaskTap: onScheduledSubtaskTap,
+      onCalendarEventTap: onCalendarEventTap,
+      onFilterSubtaskToggle: onFilterSubtaskToggle,
+      onFilterSubtaskTap: onFilterSubtaskTap,
+      labelCatalog: labelCatalog
     )
   }
 
@@ -142,7 +175,13 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onDuplicate: @escaping (Task) -> Void,
     onDelete: @escaping (Task) -> Void,
     onRefresh: @escaping () -> Void,
-    onWhatsAppCopy: ((Task) -> Void)? = nil
+    onWhatsAppCopy: ((Task) -> Void)? = nil,
+    onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil,
+    onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil,
+    onCalendarEventTap: ((CalendarEvent) -> Void)? = nil,
+    onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)? = nil,
+    onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil,
+    labelCatalog: [TaskLabel] = []
   ) {
     self.sections = sections
     self.showProject = showProject
@@ -165,6 +204,12 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     self.onDelete = onDelete
     self.onRefresh = onRefresh
     self.onWhatsAppCopy = onWhatsAppCopy
+    self.onScheduledSubtaskToggle = onScheduledSubtaskToggle
+    self.onScheduledSubtaskTap = onScheduledSubtaskTap
+    self.onCalendarEventTap = onCalendarEventTap
+    self.onFilterSubtaskToggle = onFilterSubtaskToggle
+    self.onFilterSubtaskTap = onFilterSubtaskTap
+    self.labelCatalog = labelCatalog
   }
 
   func makeUIViewController(context: Context) -> UIKitHostedTaskListController {
@@ -206,7 +251,13 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onDuplicate: onDuplicate,
       onDelete: onDelete,
       onRefresh: onRefresh,
-      onWhatsAppCopy: onWhatsAppCopy
+      onWhatsAppCopy: onWhatsAppCopy,
+      onScheduledSubtaskToggle: onScheduledSubtaskToggle,
+      onScheduledSubtaskTap: onScheduledSubtaskTap,
+      onCalendarEventTap: onCalendarEventTap,
+      onFilterSubtaskToggle: onFilterSubtaskToggle,
+      onFilterSubtaskTap: onFilterSubtaskTap,
+      labelCatalog: labelCatalog
     )
   }
 }
@@ -264,6 +315,12 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var onDelete: (Task) -> Void
     var onRefresh: () -> Void
     var onWhatsAppCopy: ((Task) -> Void)?
+    var onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)?
+    var onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)?
+    var onCalendarEventTap: ((CalendarEvent) -> Void)?
+    var onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)?
+    var onFilterSubtaskTap: ((Subtask, Task) -> Void)?
+    var labelCatalog: [TaskLabel]
   }
 
   private enum SectionID: Hashable {
@@ -276,15 +333,24 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     case header(String)
     /// Inclui estilo no id → troca de modo remonta sem reconfigure storm.
     case task(id: String, style: Int)
+    case scheduleSubtask(id: String)
+    case calendarEvent(id: String)
+    case filterSubtask(id: String)
   }
 
   private var collectionView: UICollectionView!
   private var dataSource: UICollectionViewDiffableDataSource<SectionID, ItemID>!
   private var config: Configuration?
   private var lastFingerprint: Int = 0
+  /// Estilo/layout da row — se só flat/insets mudam, ItemIDs iguais e o apply não reconfigura cells.
+  private var lastPresentationKey: Int = 0
   private var taskById: [String: Task] = [:]
+  private var scheduleSubtaskById: [String: SubtaskScheduleEntry] = [:]
+  private var calendarEventById: [String: CalendarEvent] = [:]
+  private var filterSubtaskById: [String: (Subtask, Task, Int)] = [:]
   private var sectionById: [String: UIKitTaskSection] = [:]
   private var dimmedTaskIds: Set<String> = []
+  private var mutedTaskIds: Set<String> = []
   /// Conteúdo da task (subtasks done/título) — fingerprint estrutural ignora isto.
   private var taskContentHashById: [String: Int] = [:]
   /// Altura medida da row com painel expandido — remount no fling não cresce 0→full.
@@ -383,6 +449,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         return
       }
       let dimmed = self.dimmedTaskIds.contains(taskId)
+      let muted = self.mutedTaskIds.contains(taskId)
       let insets = config.rowInsets
 
       UIView.performWithoutAnimation {
@@ -431,7 +498,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           .padding(.leading, insets.left)
           .padding(.bottom, insets.bottom)
           .padding(.trailing, insets.right)
-          .opacity(dimmed ? 0.7 : 1)
+          .opacity(dimmed ? 0.7 : (muted ? 0.85 : 1))
           .taskContextMenu(
             task: task,
             onEdit: { config.onEdit(task) },
@@ -445,6 +512,102 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         }
         .margins(.all, 0)
         .minSize(height: headerMin)
+      }
+    }
+
+    let scheduleSubtaskRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
+      [weak self] cell, _, entryId in
+      guard let self, let config = self.config, let entry = self.scheduleSubtaskById[entryId] else {
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
+        return
+      }
+      let insets = config.rowInsets
+      UIView.performWithoutAnimation {
+        var clearBg = UIBackgroundConfiguration.clear()
+        clearBg.backgroundColor = .clear
+        cell.backgroundConfiguration = clearBg
+        cell.backgroundColor = .clear
+        cell.contentView.backgroundColor = .clear
+        cell.contentConfiguration = UIHostingConfiguration {
+          FilterSubtaskRow(
+            subtask: entry.subtask,
+            parent: entry.parent,
+            labelCatalog: config.labelCatalog,
+            onToggle: { config.onScheduledSubtaskToggle?(entry) },
+            onTap: { config.onScheduledSubtaskTap?(entry) }
+          )
+          .padding(.top, insets.top)
+          .padding(.leading, insets.left)
+          .padding(.bottom, insets.bottom)
+          .padding(.trailing, insets.right)
+          .environment(ThemeManager.shared)
+          .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: 1)
+      }
+    }
+
+    let filterSubtaskRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
+      [weak self] cell, _, itemId in
+      guard let self, let config = self.config, let triple = self.filterSubtaskById[itemId] else {
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
+        return
+      }
+      let (sub, parent, index) = triple
+      let insets = config.rowInsets
+      UIView.performWithoutAnimation {
+        var clearBg = UIBackgroundConfiguration.clear()
+        clearBg.backgroundColor = .clear
+        cell.backgroundConfiguration = clearBg
+        cell.backgroundColor = .clear
+        cell.contentView.backgroundColor = .clear
+        cell.contentConfiguration = UIHostingConfiguration {
+          FilterSubtaskRow(
+            subtask: sub,
+            parent: parent,
+            labelCatalog: config.labelCatalog,
+            onToggle: { config.onFilterSubtaskToggle?(sub, parent, index) },
+            onTap: { config.onFilterSubtaskTap?(sub, parent) }
+          )
+          .padding(.top, insets.top)
+          .padding(.leading, insets.left)
+          .padding(.bottom, insets.bottom)
+          .padding(.trailing, insets.right)
+          .environment(ThemeManager.shared)
+          .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: 1)
+      }
+    }
+
+    let calendarEventRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> {
+      [weak self] cell, _, eventId in
+      guard let self, let config = self.config, let event = self.calendarEventById[eventId] else {
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
+        return
+      }
+      let insets = config.rowInsets
+      UIView.performWithoutAnimation {
+        var clearBg = UIBackgroundConfiguration.clear()
+        clearBg.backgroundColor = .clear
+        cell.backgroundConfiguration = clearBg
+        cell.backgroundColor = .clear
+        cell.contentView.backgroundColor = .clear
+        cell.contentConfiguration = UIHostingConfiguration {
+          CalendarEventRow(event: event) {
+            config.onCalendarEventTap?(event)
+          }
+          .padding(.top, insets.top)
+          .padding(.leading, insets.left)
+          .padding(.bottom, insets.bottom)
+          .padding(.trailing, insets.right)
+          .environment(ThemeManager.shared)
+          .environment(MobileChromeController.shared)
+        }
+        .margins(.all, 0)
+        .minSize(height: 1)
       }
     }
 
@@ -467,6 +630,24 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       case .task(let id, _):
         return collectionView.dequeueConfiguredReusableCell(
           using: taskRegistration,
+          for: indexPath,
+          item: id
+        )
+      case .scheduleSubtask(let id):
+        return collectionView.dequeueConfiguredReusableCell(
+          using: scheduleSubtaskRegistration,
+          for: indexPath,
+          item: id
+        )
+      case .filterSubtask(let id):
+        return collectionView.dequeueConfiguredReusableCell(
+          using: filterSubtaskRegistration,
+          for: indexPath,
+          item: id
+        )
+      case .calendarEvent(let id):
+        return collectionView.dequeueConfiguredReusableCell(
+          using: calendarEventRegistration,
           for: indexPath,
           item: id
         )
@@ -523,18 +704,31 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     config = configuration
 
     var map: [String: Task] = [:]
+    var scheduleMap: [String: SubtaskScheduleEntry] = [:]
+    var eventMap: [String: CalendarEvent] = [:]
+    var filterMap: [String: (Subtask, Task, Int)] = [:]
     var sectionsMap: [String: UIKitTaskSection] = [:]
     var dimmed: Set<String> = []
+    var muted: Set<String> = []
     for section in configuration.sections {
       sectionsMap[section.id] = section
-      for task in section.tasks {
-        map[task.id] = task
-        if section.dimmed { dimmed.insert(task.id) }
-      }
+      Self.indexSection(
+        section,
+        tasks: &map,
+        scheduleSubtasks: &scheduleMap,
+        calendarEvents: &eventMap,
+        filterSubtasks: &filterMap,
+        dimmed: &dimmed,
+        muted: &muted
+      )
     }
     taskById = map
+    scheduleSubtaskById = scheduleMap
+    calendarEventById = eventMap
+    filterSubtaskById = filterMap
     sectionById = sectionsMap
     dimmedTaskIds = dimmed
+    mutedTaskIds = muted
     headerFlags.publish(from: configuration.sections)
 
     view.backgroundColor = configuration.background
@@ -546,17 +740,27 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       collectionView.backgroundColor = solid
     }
 
+    let presentationKey = Self.presentationKey(configuration)
+    let presentationChanged = presentationKey != lastPresentationKey
+
     if fingerprint == lastFingerprint {
       // Mesma estrutura — ainda assim refresca bodies (done de subtarefa etc.).
       reconfigureChangedTasks(in: configuration)
       return
     }
     lastFingerprint = fingerprint
+    lastPresentationKey = presentationKey
     taskContentHashById = [:]
     for section in configuration.sections {
-      for task in section.tasks {
+      for task in Self.tasks(in: section) {
         taskContentHashById[task.id] = Self.taskContentFingerprint(task)
       }
+    }
+
+    if presentationChanged {
+      // Altura/estilo antigos (ex.: Balões→Lista) não batem com o novo modo.
+      expandedRowHeightCache.removeAll()
+      expansionGeneration.removeAll()
     }
 
     let styleCode = Self.styleCode(configuration.style)
@@ -582,11 +786,29 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         showTasks = true
       }
       if showTasks {
-        items.append(contentsOf: section.tasks.map { .task(id: $0.id, style: styleCode) })
+        items.append(contentsOf: Self.rowItemIDs(for: section, styleCode: styleCode))
       }
       snapshot.appendItems(items, toSection: sid)
     }
     dataSource.apply(snapshot, animatingDifferences: false)
+
+    // Diffable: se os ItemIDs forem iguais (ex.: Balões↔Balões+), apply não
+    // reconfigura — força refresh das task cells para o novo layout.
+    if presentationChanged {
+      reconfigureAllTaskItems()
+    }
+  }
+
+  private func reconfigureAllTaskItems() {
+    guard dataSource != nil else { return }
+    var snap = dataSource.snapshot()
+    let tasks = snap.itemIdentifiers.filter {
+      if case .task = $0 { return true }
+      return false
+    }
+    guard !tasks.isEmpty else { return }
+    snap.reconfigureItems(tasks)
+    dataSource.apply(snap, animatingDifferences: false)
   }
 
   /// Após patch otimista de subtarefa: `taskById` já está novo; cell precisa do Task fresco.
@@ -596,7 +818,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var dirty: [ItemID] = []
     dirty.reserveCapacity(8)
     for section in configuration.sections {
-      for task in section.tasks {
+      for task in Self.tasks(in: section) {
         let hash = Self.taskContentFingerprint(task)
         if taskContentHashById[task.id] != hash {
           taskContentHashById[task.id] = hash
@@ -644,6 +866,18 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     }
   }
 
+  /// Só o “look” da row (não a lista de tasks) — troca de modo de visualização.
+  private static func presentationKey(_ configuration: Configuration) -> Int {
+    var hasher = Hasher()
+    hasher.combine(styleCode(configuration.style))
+    hasher.combine(configuration.flatSubtaskQueue)
+    hasher.combine(configuration.rowInsets.left)
+    hasher.combine(configuration.rowInsets.top)
+    hasher.combine(configuration.rowInsets.right)
+    hasher.combine(configuration.rowInsets.bottom)
+    return hasher.finalize()
+  }
+
   private static func fingerprint(_ configuration: Configuration) -> Int {
     var hasher = Hasher()
     hasher.combine(configuration.leadingChrome != nil)
@@ -651,10 +885,13 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
+    hasher.combine(configuration.rowInsets.right)
+    hasher.combine(configuration.rowInsets.bottom)
     hasher.combine(styleCode(configuration.style))
     for section in configuration.sections {
       hasher.combine(section.id)
       hasher.combine(section.dimmed)
+      hasher.combine(section.muted)
       switch section.header {
       case .plain(let t):
         hasher.combine(0)
@@ -674,8 +911,106 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       for task in section.tasks {
         hasher.combine(task.id)
       }
+      for item in section.scheduleItems {
+        hasher.combine(item.id)
+      }
+      for item in section.filterItems {
+        hasher.combine(item.id)
+      }
     }
     return hasher.finalize()
+  }
+
+  private static func rowItemIDs(for section: UIKitTaskSection, styleCode: Int) -> [ItemID] {
+    if !section.filterItems.isEmpty {
+      return section.filterItems.map { item in
+        switch item {
+        case .task(let task):
+          return .task(id: task.id, style: styleCode)
+        case .subtask:
+          return .filterSubtask(id: item.id)
+        }
+      }
+    }
+    if !section.scheduleItems.isEmpty {
+      return section.scheduleItems.map { item in
+        switch item {
+        case .task(let task):
+          return .task(id: task.id, style: styleCode)
+        case .subtask(let entry):
+          return .scheduleSubtask(id: entry.id)
+        case .calendarEvent(let event):
+          return .calendarEvent(id: event.id)
+        }
+      }
+    }
+    return section.tasks.map { .task(id: $0.id, style: styleCode) }
+  }
+
+  private static func tasks(in section: UIKitTaskSection) -> [Task] {
+    if !section.filterItems.isEmpty {
+      return section.filterItems.compactMap { item in
+        if case .task(let task) = item { return task }
+        return nil
+      }
+    }
+    if !section.scheduleItems.isEmpty {
+      return section.scheduleItems.compactMap { item in
+        if case .task(let task) = item { return task }
+        return nil
+      }
+    }
+    return section.tasks
+  }
+
+  private static func indexSection(
+    _ section: UIKitTaskSection,
+    tasks map: inout [String: Task],
+    scheduleSubtasks scheduleMap: inout [String: SubtaskScheduleEntry],
+    calendarEvents eventMap: inout [String: CalendarEvent],
+    filterSubtasks filterMap: inout [String: (Subtask, Task, Int)],
+    dimmed: inout Set<String>,
+    muted: inout Set<String>
+  ) {
+    func mark(_ taskId: String) {
+      if section.dimmed { dimmed.insert(taskId) }
+      if section.muted { muted.insert(taskId) }
+    }
+
+    if !section.filterItems.isEmpty {
+      for item in section.filterItems {
+        switch item {
+        case .task(let task):
+          map[task.id] = task
+          mark(task.id)
+        case .subtask(let sub, let parent, let index):
+          filterMap[item.id] = (sub, parent, index)
+          map[parent.id] = parent
+        }
+      }
+      return
+    }
+
+    if !section.scheduleItems.isEmpty {
+      for item in section.scheduleItems {
+        switch item {
+        case .task(let task):
+          map[task.id] = task
+          mark(task.id)
+        case .subtask(let entry):
+          scheduleMap[entry.id] = entry
+          map[entry.parent.id] = entry.parent
+        case .calendarEvent(let event):
+          eventMap[event.id] = event
+        }
+      }
+      return
+    }
+
+    for task in section.tasks {
+      map[task.id] = task
+      mark(task.id)
+    }
   }
 
   private static func makeHeaderView(

@@ -331,7 +331,6 @@ struct TaskDetailView: View {
     let labels = subtaskLabels(for: sub)
     let hasDescription = sub.description?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     let hasMeta = sub.dueDate != nil || !labels.isEmpty || hasDescription
-    let ringColor = sub.priority?.color ?? c.textTertiary.opacity(0.4)
 
     return HStack(alignment: hasMeta ? .top : .center, spacing: 8) {
       Button {
@@ -342,14 +341,7 @@ struct TaskDetailView: View {
         }
         vm.toggleSubtask(sub)
       } label: {
-        DoneCircle(
-          done: sub.done,
-          size: DoneCircle.listRowCircleSize,
-          borderWidth: DoneCircle.RingStyle.borderWidth,
-          tickSize: 13,
-          ringColor: ringColor,
-          ringFillAlpha: sub.done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
-        )
+        PriorityDot(priority: sub.priority, done: sub.done)
         .frame(width: 32, height: 32)
         .padding(.top, hasMeta ? 2 : 0)
       }

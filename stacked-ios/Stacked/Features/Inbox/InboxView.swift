@@ -5,13 +5,16 @@ struct InboxView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.inboxKey) private var showCompleted = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
   @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
+
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
   private var prefersUIKitList: Bool {
     useUIKitTaskList
@@ -21,7 +24,7 @@ struct InboxView: View {
   }
 
   private var cardInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    displayMode.taskListRowInsets
   }
 
   var body: some View {
@@ -65,7 +68,8 @@ struct InboxView: View {
     UIKitHostedTaskList(
       sections: inboxUIKitSections,
       showProject: true,
-      style: .card,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskPanel,
       rowInsets: cardInsets,
       background: colors.background,
       leadingChrome: {
@@ -185,7 +189,12 @@ struct InboxView: View {
 
             if completedExpanded {
               ForEach(store.inboxCompleted) { task in
-                TaskRow(task: task, deferHeavyWork: !allowRowHeavyWork) { }
+                TaskRow(
+                  task: task,
+                  style: displayMode.taskRowStyle,
+                  flatSubtaskPanel: displayMode.flatSubtaskPanel,
+                  deferHeavyWork: !allowRowHeavyWork
+                ) { }
                   .opacity(0.7)
                   .listRowInsets(cardInsets)
                   .listRowSeparator(.hidden)
@@ -206,6 +215,8 @@ struct InboxView: View {
   private func taskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      style: displayMode.taskRowStyle,
+      flatSubtaskPanel: displayMode.flatSubtaskPanel,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: {
       store.completeInbox(task)

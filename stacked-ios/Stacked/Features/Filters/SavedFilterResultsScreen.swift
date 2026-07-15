@@ -13,10 +13,14 @@ struct SavedFilterResultsScreen: View {
   let onEditFilter: (SavedFilter) -> Void
 
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @Bindable private var store = FiltersStore.shared
   @AppStorage private var showCompleted: Bool
   @State private var usesStore = false
   @State private var allowRowHeavyWork = false
+
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
   init(
     filter: SavedFilter,
@@ -42,7 +46,9 @@ struct SavedFilterResultsScreen: View {
     )
   }
 
-  private let rowInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+  private var rowInsets: EdgeInsets {
+    displayMode.taskListRowInsets
+  }
 
   private var pendingResults: [FilterResultItem] {
     usesStore ? store.filterResults : initialPending
@@ -60,54 +66,28 @@ struct SavedFilterResultsScreen: View {
     !allowRowHeavyWork
   }
 
+  private var prefersUIKitList: Bool {
+    useUIKitTaskList
+      && !isLoading
+      && (!pendingResults.isEmpty || (showCompleted && !completedResults.isEmpty))
+  }
+
   var body: some View {
     let c = theme.colors
 
-    List {
+    Group {
       if isLoading {
-        TaskListSkeleton(rowCount: 6)
+        filterLoadingList
       } else if let err = store.filterError, pendingResults.isEmpty, usesStore {
-        Section {
-          LoadErrorView(message: err) {
-            loadFilter()
-          }
-          .listRowBackground(Color.clear)
-        }
+        filterErrorList(err)
       } else if pendingResults.isEmpty && (!showCompleted || completedResults.isEmpty) {
-        Section {
-          EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
-            .stackedListEmptyStateRow()
-        }
+        filterEmptyList
+      } else if prefersUIKitList {
+        uikitFilterBody(colors: c)
       } else {
-        Section {
-          ForEach(pendingResults) { item in
-            resultRow(item, canPostpone: true)
-          }
-        }
-        if showCompleted && !completedResults.isEmpty {
-          Section {
-            Text("Concluídas")
-              .font(AppTypography.completedSectionHeader)
-              .foregroundStyle(c.textSecondary)
-              .listRowInsets(rowInsets)
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
-            ForEach(completedResults) { item in
-              resultRow(item, canPostpone: false)
-            }
-          }
-        }
-      }
-
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
+        filterResultsList(colors: c)
       }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
     .stackedDrillDownListChrome()
     .background(c.background)
     .stackedDrillDownNavChrome(title: filter.name, background: c.background)
@@ -148,6 +128,173 @@ struct SavedFilterResultsScreen: View {
         await store.openSavedFilter(filter)
       }
     }
+  }
+
+  private var filterLoadingList: some View {
+    List {
+      TaskListSkeleton(rowCount: 6)
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+  }
+
+  private func filterErrorList(_ err: String) -> some View {
+    List {
+      Section {
+        LoadErrorView(message: err) { loadFilter() }
+          .listRowBackground(Color.clear)
+      }
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+  }
+
+  private var filterEmptyList: some View {
+    List {
+      Section {
+        EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
+          .stackedListEmptyStateRow()
+      }
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+  }
+
+  @ViewBuilder
+  private func filterResultsList(colors: AppThemeColors) -> some View {
+    List {
+      Section {
+        ForEach(pendingResults) { item in
+          resultRow(item, canPostpone: true)
+        }
+      }
+      if showCompleted && !completedResults.isEmpty {
+        Section {
+          Text("Concluídas")
+            .font(AppTypography.completedSectionHeader)
+            .foregroundStyle(colors.textSecondary)
+            .listRowInsets(rowInsets)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+          ForEach(completedResults) { item in
+            resultRow(item, canPostpone: false)
+          }
+        }
+      }
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+  }
+
+  private var filterUIKitSections: [UIKitTaskSection] {
+    var sections: [UIKitTaskSection] = [
+      UIKitTaskSection(
+        id: "pending",
+        header: nil,
+        tasks: [],
+        filterItems: pendingResults
+      ),
+    ]
+    if showCompleted, !completedResults.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .plain("Concluídas"),
+          tasks: [],
+          dimmed: true,
+          filterItems: completedResults
+        )
+      )
+    }
+    return sections
+  }
+
+  @ViewBuilder
+  private func uikitFilterBody(colors: AppThemeColors) -> some View {
+    UIKitHostedTaskList(
+      sections: filterUIKitSections,
+      showProject: true,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      rowInsets: rowInsets,
+      background: colors.background,
+      onToggle: {
+        ensureStoreLinked()
+        store.complete($0)
+      },
+      onTap: { onTaskTap($0.id) },
+      onSubtaskTap: { task, sub in
+        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
+      },
+      onSubtaskChanged: { snapshot in
+        ensureStoreLinked()
+        store.adoptSavedFilterSession(filter, pending: pendingResults, completed: completedResults)
+        store.applySubtaskPatch(snapshot)
+      },
+      onSubtaskDeleted: { task, sub in
+        ensureStoreLinked()
+        store.removeSubtask(parentId: task.id, subtask: sub)
+        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+      },
+      onEdit: { onTaskTap($0.id) },
+      onComplete: {
+        ensureStoreLinked()
+        store.complete($0)
+      },
+      onDuplicate: { task in
+        _Concurrency.Task {
+          ensureStoreLinked()
+          _ = try? await TaskRepository.shared.duplicateTask(task)
+          await store.openSavedFilter(filter)
+          await store.loadDashboard()
+        }
+      },
+      onDelete: {
+        ensureStoreLinked()
+        store.delete($0)
+      },
+      onRefresh: {
+        _Concurrency.Task {
+          ensureStoreLinked()
+          await store.openSavedFilter(filter)
+          await store.loadDashboard()
+        }
+      },
+      onFilterSubtaskToggle: { sub, parent, index in
+        ensureStoreLinked()
+        store.adoptSavedFilterSession(filter, pending: pendingResults, completed: completedResults)
+        store.completeSubtask(parent: parent, sub: sub, at: index)
+      },
+      onFilterSubtaskTap: { sub, parent in
+        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id))
+      },
+      labelCatalog: store.pickerLabels
+    )
+    .stackedScrollEdgeChrome()
   }
 
   private func loadFilter() {
@@ -213,6 +360,8 @@ struct SavedFilterResultsScreen: View {
   private func taskRow(_ task: Task, canPostpone: Bool) -> some View {
     TaskRow(
       task: task,
+      style: displayMode.taskRowStyle,
+      flatSubtaskPanel: displayMode.flatSubtaskPanel,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {
         ensureStoreLinked()

@@ -4,6 +4,8 @@ import SwiftUI
 struct SearchView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = SearchStore.shared
   @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
@@ -12,6 +14,8 @@ struct SearchView: View {
   @State private var labelCatalog: [TaskLabel] = []
   @FocusState private var searchFocused: Bool
   @Namespace private var taskDetailZoom
+
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
   var body: some View {
     let c = theme.colors
@@ -37,6 +41,8 @@ struct SearchView: View {
         } else if store.groupedResults.isEmpty {
           EmptyStateView(icon: .search, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
             .stackedStandaloneEmptyState()
+        } else if useUIKitTaskList {
+          uikitSearchBody(colors: c)
         } else {
           List {
             ForEach(store.groupedResults, id: \.title) { group in
@@ -99,14 +105,52 @@ struct SearchView: View {
     }
   }
 
+  @ViewBuilder
+  private func uikitSearchBody(colors: AppThemeColors) -> some View {
+    UIKitHostedTaskList(
+      sections: store.groupedResults.map { group in
+        UIKitTaskSection(
+          id: group.title,
+          header: .plain(group.title.uppercased()),
+          tasks: group.tasks
+        )
+      },
+      showProject: true,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      rowInsets: rowInsets,
+      background: colors.background,
+      onToggle: { store.complete($0) },
+      onTap: { task in
+        dismissedTaskId = task.id
+        detailRoute = TaskDetailRoute(taskId: task.id)
+      },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { store.applySubtaskPatch($0) },
+      onSubtaskDeleted: { task, sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
+      },
+      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onComplete: { store.complete($0) },
+      onDuplicate: { store.duplicate($0) },
+      onDelete: { store.delete($0) },
+      onRefresh: { _Concurrency.Task { await store.load() } }
+    )
+    .stackedScrollEdgeChrome()
+  }
+
   private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    displayMode.taskListRowInsets
   }
 
   @ViewBuilder
   private func searchTaskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      style: displayMode.taskRowStyle,
+      flatSubtaskPanel: displayMode.flatSubtaskPanel,
       allLabels: labelCatalog,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: { store.complete(task) },

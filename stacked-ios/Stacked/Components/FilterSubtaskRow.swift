@@ -15,16 +15,9 @@ struct FilterSubtaskRow: View {
 
     HStack(alignment: hasExtra ? .top : .center, spacing: 0) {
       Button(action: onToggle) {
-        DoneCircle(
-          done: subtask.done,
-          size: DoneCircle.listRowCircleSize,
-          borderWidth: DoneCircle.RingStyle.borderWidth,
-          tickSize: 13,
-          ringColor: subtask.priority?.color ?? c.textTertiary,
-          ringFillAlpha: subtask.done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
-        )
-        .padding(.horizontal, 4)
-        .padding(.vertical, hasExtra ? 13 : 0)
+        PriorityDot(priority: subtask.priority, done: subtask.done)
+          .padding(.horizontal, 4)
+          .padding(.vertical, hasExtra ? 13 : 0)
       }
       .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 

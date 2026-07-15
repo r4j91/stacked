@@ -31,7 +31,10 @@ private struct AppRootView: View {
         }
     }
     .syncWindowBackground(themeManager.colors.background)
-    .onAppear { HapticService.prepare() }
+    .onAppear {
+      UIKitTaskListStorage.registerDefaultsIfNeeded()
+      HapticService.prepare()
+    }
     .task {
       await MainActor.run {
         IconCache.shared.warmUp()

@@ -71,14 +71,7 @@ struct SubtaskDetailView: View {
             Button {
               _Concurrency.Task { await toggleDone() }
             } label: {
-              DoneCircle(
-                done: done,
-                size: DoneCircle.listRowCircleSize,
-                borderWidth: DoneCircle.RingStyle.borderWidth,
-                tickSize: 13,
-                ringColor: priority?.color ?? c.textTertiary,
-                ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
-              )
+              PriorityDot(priority: priority, done: done)
             }
             .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 

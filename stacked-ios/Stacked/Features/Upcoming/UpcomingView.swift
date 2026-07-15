@@ -4,21 +4,24 @@ import SwiftUI
 struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = UpcomingStore.shared
   @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
-  /// UIKit na lista de schedule quando só há tarefas (sem subtarefa/evento).
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
+
+  /// UIKit na lista de schedule (inclui subtarefas avulsas e eventos).
   private var prefersUIKitList: Bool {
     guard useUIKitTaskList,
           !store.isLoading,
           store.error == nil || !store.groupedSchedule.isEmpty,
           !store.groupedSchedule.isEmpty
     else { return false }
-    return store.groupedSchedule.allSatisfy { UIKitScheduleSupport.onlyTasks($0.items) != nil }
+    return true
   }
 
   var body: some View {
@@ -35,7 +38,8 @@ struct UpcomingView: View {
         UIKitHostedTaskList(
           sections: upcomingUIKitSections,
           showProject: true,
-          style: .card,
+          style: displayMode.taskRowStyle,
+          flatSubtaskQueue: displayMode.flatSubtaskPanel,
           rowInsets: rowInsets,
           background: c.background,
           leadingChrome: {
@@ -57,7 +61,12 @@ struct UpcomingView: View {
             }
           },
           onDelete: { store.delete($0) },
-          onRefresh: { _Concurrency.Task { await store.load() } }
+          onRefresh: { _Concurrency.Task { await store.load() } },
+          onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
+          onScheduledSubtaskTap: { entry in
+            subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
+          },
+          onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) }
         )
         .stackedScrollEdgeChrome()
       } else {
@@ -89,13 +98,12 @@ struct UpcomingView: View {
   }
 
   private var upcomingUIKitSections: [UIKitTaskSection] {
-    store.groupedSchedule.compactMap { group in
-      guard let tasks = UIKitScheduleSupport.onlyTasks(group.items) else { return nil }
-      let dayId = String(Int(group.day.timeIntervalSince1970))
-      return UIKitTaskSection(
-        id: dayId,
-        title: TaskMapper.dayLabel(for: group.day).uppercased(),
-        tasks: tasks
+    store.groupedSchedule.map { group in
+      UIKitTaskSection(
+        id: String(Int(group.day.timeIntervalSince1970)),
+        header: .plain(TaskMapper.dayLabel(for: group.day).uppercased()),
+        tasks: [],
+        scheduleItems: group.items
       )
     }
   }
@@ -259,7 +267,7 @@ struct UpcomingView: View {
   }
 
   private var rowInsets: EdgeInsets {
-    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.lg, bottom: AppSpacing.xs, trailing: AppSpacing.lg)
+    displayMode.taskListRowInsets
   }
 
   @ViewBuilder
@@ -292,6 +300,8 @@ struct UpcomingView: View {
   private func taskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      style: displayMode.taskRowStyle,
+      flatSubtaskPanel: displayMode.flatSubtaskPanel,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: {
       store.complete(task)

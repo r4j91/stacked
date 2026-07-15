@@ -3,6 +3,8 @@ import SwiftUI
 // Paridade lib/screens/logbook_screen.dart
 struct LogbookView: View {
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
 
   @State private var tasks: [Task] = []
   @State private var loading = true
@@ -11,15 +13,19 @@ struct LogbookView: View {
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
+  private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
+
   private static let months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
   ]
 
+  private var prefersUIKitList: Bool {
+    useUIKitTaskList && !loading && !tasks.isEmpty
+  }
+
   var body: some View {
     let c = theme.colors
-    let grouped = groupedTasks
-    let keys = grouped.keys
 
     Group {
       if loading {
@@ -31,21 +37,10 @@ struct LogbookView: View {
           subtitle: "As tarefas concluídas aparecerão aqui"
         )
         .stackedStandaloneEmptyState()
+      } else if prefersUIKitList {
+        uikitLogbookBody(colors: c)
       } else {
-        List {
-          ForEach(keys, id: \.self) { key in
-            Section {
-              ForEach(grouped.groups[key] ?? []) { task in
-                logbookTaskRow(task)
-              }
-            } header: {
-              SectionLabel(text: key)
-            }
-          }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .stackedListTailInset()
+        swiftUILogbookBody(colors: c)
       }
     }
     .stackedTabletCentered()
@@ -76,14 +71,71 @@ struct LogbookView: View {
     }
   }
 
+  @ViewBuilder
+  private func uikitLogbookBody(colors: AppThemeColors) -> some View {
+    let grouped = groupedTasks
+    UIKitHostedTaskList(
+      sections: grouped.keys.map { key in
+        UIKitTaskSection(
+          id: key,
+          header: .plain(key),
+          tasks: grouped.groups[key] ?? [],
+          muted: true
+        )
+      },
+      showProject: true,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      rowInsets: rowInsets,
+      background: colors.background,
+      onToggle: { uncomplete($0) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { patchLogbookSubtask($0) },
+      onSubtaskDeleted: { task, sub in
+        SubtaskListPatch.remove(parentTaskId: task.id, subtask: sub, from: &tasks)
+      },
+      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onComplete: { uncomplete($0) },
+      onDuplicate: { duplicate($0) },
+      onDelete: { delete($0) },
+      onRefresh: { _Concurrency.Task { await load() } }
+    )
+    .stackedScrollEdgeChrome()
+  }
+
+  @ViewBuilder
+  private func swiftUILogbookBody(colors: AppThemeColors) -> some View {
+    let grouped = groupedTasks
+    let keys = grouped.keys
+    List {
+      ForEach(keys, id: \.self) { key in
+        Section {
+          ForEach(grouped.groups[key] ?? []) { task in
+            logbookTaskRow(task)
+          }
+        } header: {
+          SectionLabel(text: key)
+        }
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .stackedListTailInset()
+  }
+
   private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
+    displayMode.taskListRowInsets
   }
 
   @ViewBuilder
   private func logbookTaskRow(_ task: Task) -> some View {
     TaskRow(
       task: task,
+      style: displayMode.taskRowStyle,
+      flatSubtaskPanel: displayMode.flatSubtaskPanel,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: { uncomplete(task) },
       onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },

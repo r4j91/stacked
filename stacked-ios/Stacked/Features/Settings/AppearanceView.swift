@@ -15,7 +15,7 @@ struct AppearanceView: View {
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
   /// Uma seção aberta por vez — accordion leve no padrão do app (tudo fechado ao entrar).
   @State private var expandedSection: AppearanceSectionID? = nil
@@ -300,7 +300,7 @@ struct AppearanceView: View {
   }
 
   private var scrollFluiditySummary: String {
-    if useUIKitTaskList { return "Lista UIKit · app" }
+    if useUIKitTaskList { return "Listas mais fluidas" }
     if disableAllGlass { return "Glass desativado" }
     if alwaysStaticGlass { return "Glass estático" }
     if alwaysFrozenDockGlass { return "Navbar sem glass" }
@@ -309,7 +309,7 @@ struct AppearanceView: View {
 
   private var scrollFluidityFooter: String {
     if useUIKitTaskList {
-      return "UIKit nas listas de tarefas (Inbox, Hoje, Em breve, Projetos) com os mesmos modos Balões/Lista. Desligue para voltar ao SwiftUI List."
+      return "Scroll mais fluido nas listas de tarefas (Inbox, Hoje, Em breve, Projetos, Registro, Busca e filtros). Desligue para voltar ao SwiftUI List."
     }
     if disableAllGlass {
       return "Fill sólido em todo o app — sem ver o que passa atrás. Use “Glass estático” se quiser translúcido sem morph."
@@ -433,10 +433,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Lista UIKit (experimental)")
+        Text("Listas mais fluidas")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Listas de tarefas com UICollectionView — mesmos modos e TaskRow. Desligue = SwiftUI.")
+        Text("UICollectionView nas filas de tarefas — mesmos modos Balões/Lista. Desligue = SwiftUI.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
