@@ -131,7 +131,6 @@ struct TaskRow: View {
     .frame(minHeight: headerHeight)
     .background {
       if light {
-        // UIKIT_SCROLL_POLISH: shape.fill(c.surface.opacity(0.72))
         shape
           .fill(cardSurfaceFill(light: true))
           .overlay {
@@ -360,6 +359,8 @@ struct TaskRow: View {
         contentRevision: subtaskRevealContentRevision,
         stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell,
         snapOpen: snapRevealOpen,
+        // Fill opaco no clip (Balões e Balões light) — translucido no UIView
+        // compostava sobre preto e deixava vão claro na curva inferior.
         panelFill: style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : nil
       ) {
         subtaskList
@@ -466,6 +467,7 @@ struct TaskRow: View {
       if flatSubtaskPanel {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
       } else if style.isCardFamily {
+        // Paridade SwiftUI — Divider surfaceVariant em Balões / Balões light.
         Divider().overlay(c.surfaceVariant)
       }
 
@@ -547,31 +549,32 @@ struct TaskRow: View {
           )
         }
       }
-      // Rodapé opaco — Clear deixava ver o card (tarja) sob o painel no UIKit.
-      Rectangle()
-        .fill(style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : Color.clear)
-        .frame(height: 8)
+      // Folga inferior — o panelFill do clip já pinta até a curva do card.
+      Color.clear.frame(height: 4)
     }
-    .background(subtaskPanelFill)
+    .background(subtaskListBackground)
   }
 
-  /// UIKIT_SCROLL_POLISH: fundo solido sob o card = theme.colors.background (CV).
+  /// Fill do card. UIKit: opaco (paridade surface@0.72 sobre o bg). SwiftUI List: translucido.
   private func cardSurfaceFill(light: Bool) -> Color {
     let c = theme.colors
-    if !stabilizeExpandInSelfSizingCell {
-      return light ? c.surface.opacity(0.72) : c.surface
-    }
-    if light {
+    if !light { return c.surface }
+    if stabilizeExpandInSelfSizingCell {
       return Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
     }
-    return c.surface
+    return c.surface.opacity(0.72)
   }
 
+  /// Fundo SwiftUI das subtarefas — mesma tinta do `panelFill`.
+  private var subtaskListBackground: Color {
+    subtaskPanelFill
+  }
+
+  /// Tinta do painel. UIKit: surfaceVariant@0.45 composto sobre o card (sem buraco na curva).
   private var subtaskPanelFill: Color {
     let c = theme.colors
     if flatSubtaskPanel { return .clear }
     guard style.isCardFamily else { return .clear }
-    // UIKIT_SCROLL_POLISH: c.surfaceVariant.opacity(0.45)
     if !stabilizeExpandInSelfSizingCell {
       return c.surfaceVariant.opacity(0.45)
     }
@@ -583,18 +586,37 @@ struct TaskRow: View {
 
   /// src over dst com alpha de src (sem blend transparente em runtime).
   private static func opaqueBlend(src: Color, dst: Color, alpha: CGFloat) -> Color {
-    let s = UIColor(src)
-    let d = UIColor(dst)
-    var sr: CGFloat = 0, sg: CGFloat = 0, sb: CGFloat = 0, sa: CGFloat = 0
-    var dr: CGFloat = 0, dg: CGFloat = 0, db: CGFloat = 0, da: CGFloat = 0
-    s.getRed(&sr, green: &sg, blue: &sb, alpha: &sa)
-    d.getRed(&dr, green: &dg, blue: &db, alpha: &da)
     let a = min(max(alpha, 0), 1)
+    let s = rgbaComponents(UIColor(src))
+    let d = rgbaComponents(UIColor(dst))
     return Color(
-      red: sr * a + dr * (1 - a),
-      green: sg * a + dg * (1 - a),
-      blue: sb * a + db * (1 - a)
+      red: s.r * a + d.r * (1 - a),
+      green: s.g * a + d.g * (1 - a),
+      blue: s.b * a + d.b * (1 - a)
     )
+  }
+
+  private static func rgbaComponents(_ color: UIColor) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    if color.getRed(&r, green: &g, blue: &b, alpha: &a) {
+      return (r, g, b, a)
+    }
+    var w: CGFloat = 0
+    if color.getWhite(&w, alpha: &a) {
+      return (w, w, w, a)
+    }
+    guard
+      let space = CGColorSpace(name: CGColorSpace.sRGB),
+      let converted = color.cgColor.converted(to: space, intent: .defaultIntent, options: nil),
+      let comps = converted.components
+    else {
+      return (0, 0, 0, 1)
+    }
+    if comps.count >= 3 {
+      return (comps[0], comps[1], comps[2], converted.alpha)
+    }
+    let gray = comps.first ?? 0
+    return (gray, gray, gray, converted.alpha)
   }
 
 
