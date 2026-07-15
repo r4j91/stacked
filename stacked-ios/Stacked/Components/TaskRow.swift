@@ -13,6 +13,11 @@ struct TaskRow: View {
   var showProject: Bool = true
   var allLabels: [TaskLabel] = []
   var deferHeavyWork: Bool = false
+  /// UIKit cells: não restaurar expansão salva no appear (evita altura fantasma + hitch).
+  var restoreExpansionOnAppear: Bool = true
+  /// UIKit `UIHostingConfiguration`: evita animar o layout do header (título/chevron “chutam”).
+  /// Altura anima só no `SubtaskExpandReveal`; chevron usa o `.animation` próprio.
+  var stabilizeExpandInSelfSizingCell: Bool = false
   var rowInteractionsEnabled: Bool = true
   var onToggle: () -> Void
   var onTap: (() -> Void)?
@@ -247,7 +252,8 @@ struct TaskRow: View {
         expanded: expanded,
         reduceMotion: reduceMotion,
         layoutPass: subtaskRevealLayoutPass,
-        contentRevision: subtaskRevealContentRevision
+        contentRevision: subtaskRevealContentRevision,
+        stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell
       ) {
         subtaskList
       }
@@ -331,7 +337,10 @@ struct TaskRow: View {
       HapticService.selection()
       toggleSubtaskExpansion()
     } label: {
-      SubtaskExpandChevron(expanded: expanded)
+      SubtaskExpandChevron(
+        expanded: expanded,
+        stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell
+      )
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }
@@ -516,7 +525,7 @@ struct TaskRow: View {
     if expanded || subtaskRevealActive {
       syncSubtasks()
     }
-    if !deferHeavyWork {
+    if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
     }
   }
@@ -535,13 +544,15 @@ struct TaskRow: View {
     subtasksDone = []
     expanded = false
     subtaskRevealActive = false
-    if !deferHeavyWork {
+    if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
     }
   }
 
   private func handleHeavyWorkAllowed() {
-    restoreSubtaskExpansionIfNeeded()
+    if restoreExpansionOnAppear {
+      restoreSubtaskExpansionIfNeeded()
+    }
     guard expanded, subtaskRevealActive else { return }
     _Concurrency.Task { @MainActor in
       if allLabels.isEmpty, labelCatalog.isEmpty {
@@ -555,6 +566,12 @@ struct TaskRow: View {
     if !subtaskRevealActive {
       syncSubtasks()
       subtaskRevealActive = true
+      if stabilizeExpandInSelfSizingCell {
+        // Uma passagem: sem yield/AppMotion no `expanded` (isso deslocava o título na cell).
+        expanded = true
+        ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
+        return
+      }
       expanded = false
       _Concurrency.Task { @MainActor in
         await _Concurrency.Task.yield()
@@ -567,8 +584,12 @@ struct TaskRow: View {
       return
     }
     let willExpand = !expanded
-    AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+    if stabilizeExpandInSelfSizingCell {
       expanded = willExpand
+    } else {
+      AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+        expanded = willExpand
+      }
     }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
     if !willExpand {
@@ -578,7 +599,13 @@ struct TaskRow: View {
 
   /// Desmonta o UIHostingController após o collapse — evita updateUIView pesado no scroll.
   private func scheduleSubtaskRevealTeardown() {
-    let delayMs = reduceMotion ? 0 : 230
+    let delayMs: Int
+    if stabilizeExpandInSelfSizingCell {
+      // Depois do slide (220ms) + reâncora (~3 frames) — teardown cedo faz a row pular.
+      delayMs = reduceMotion ? 0 : 380
+    } else {
+      delayMs = reduceMotion ? 0 : 230
+    }
     _Concurrency.Task { @MainActor in
       try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
       guard !expanded else { return }
@@ -887,13 +914,23 @@ struct SubtaskExpandChevron: View {
 
   let expanded: Bool
   var size: CGFloat = 12
+  /// Em cell self-sizing, spring no chevron + resize da cell = “pulo”. Ease curto fica estável.
+  var stabilizeInSelfSizingCell: Bool = false
 
   var body: some View {
     StackedIcons.image(.chevronDown)
       .font(.system(size: size, weight: .semibold))
       .foregroundStyle(theme.colors.textTertiary)
       .rotationEffect(.degrees(expanded ? 0 : -90))
-      .animation(AppMotion.subtaskChevronTurn(reduceMotion: reduceMotion), value: expanded)
+      .animation(chevronAnimation, value: expanded)
+  }
+
+  private var chevronAnimation: Animation? {
+    if reduceMotion { return nil }
+    if stabilizeInSelfSizingCell {
+      return .easeOut(duration: 0.18)
+    }
+    return AppMotion.subtaskChevronTurn(reduceMotion: false)
   }
 }
 

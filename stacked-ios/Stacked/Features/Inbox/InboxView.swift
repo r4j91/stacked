@@ -17,8 +17,11 @@ struct InboxView: View {
     useUIKitTaskList
       && !store.inboxLoading
       && store.inboxError == nil
-      && !store.inboxPending.isEmpty
-      && !(showCompleted && !store.inboxCompleted.isEmpty)
+      && (!store.inboxPending.isEmpty || (showCompleted && !store.inboxCompleted.isEmpty))
+  }
+
+  private var cardInsets: EdgeInsets {
+    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
   }
 
   var body: some View {
@@ -59,36 +62,63 @@ struct InboxView: View {
 
   @ViewBuilder
   private func uikitInboxBody(subtitle: String, colors: AppThemeColors) -> some View {
-    VStack(spacing: 0) {
-      TaskListScreenHeader(
-        title: "Caixa de entrada",
-        subtitle: subtitle,
-        showCompletedKey: ShowCompletedPreferences.inboxKey,
-        showCompletedDefault: false
-      )
-      .padding(.top, 4)
-      .padding(.bottom, 8)
+    UIKitHostedTaskList(
+      sections: inboxUIKitSections,
+      showProject: true,
+      style: .card,
+      rowInsets: cardInsets,
+      background: colors.background,
+      leadingChrome: {
+        AnyView(
+          TaskListScreenHeader(
+            title: "Caixa de entrada",
+            subtitle: subtitle,
+            showCompletedKey: ShowCompletedPreferences.inboxKey,
+            showCompletedDefault: false
+          )
+          .padding(.top, 4)
+          .padding(.bottom, 8)
+        )
+      },
+      onToggleSection: { id in
+        if id == "completed" {
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+            completedExpanded.toggle()
+          }
+        }
+      },
+      onToggle: { store.completeInbox($0) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { store.applySubtaskPatch($0) },
+      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
+      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onComplete: { store.completeInbox($0) },
+      onDuplicate: { store.duplicateInbox($0) },
+      onDelete: { store.deleteInbox($0) },
+      onRefresh: { _Concurrency.Task { await store.loadInbox() } }
+    )
+    .stackedScrollEdgeChrome()
+  }
 
-      UIKitHostedTaskList(
-        tasks: store.inboxPending,
-        deferHeavyWork: !allowRowHeavyWork,
-        showProject: true,
-        style: .card,
-        background: colors.background,
-        onToggle: { store.completeInbox($0) },
-        onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
-        onSubtaskTap: { task, sub in
-          subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-        },
-        onSubtaskChanged: { store.applySubtaskPatch($0) },
-        onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-        onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
-        onComplete: { store.completeInbox($0) },
-        onDuplicate: { store.duplicateInbox($0) },
-        onDelete: { store.deleteInbox($0) },
-        onRefresh: { _Concurrency.Task { await store.loadInbox() } }
+  private var inboxUIKitSections: [UIKitTaskSection] {
+    var sections: [UIKitTaskSection] = []
+    if !store.inboxPending.isEmpty {
+      sections.append(UIKitTaskSection(id: "pending", title: nil, tasks: store.inboxPending))
+    }
+    if showCompleted, !store.inboxCompleted.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .completedToggle(count: store.inboxCompleted.count, expanded: completedExpanded),
+          tasks: store.inboxCompleted,
+          dimmed: true
+        )
       )
     }
+    return sections
   }
 
   @ViewBuilder
@@ -157,7 +187,7 @@ struct InboxView: View {
               ForEach(store.inboxCompleted) { task in
                 TaskRow(task: task, deferHeavyWork: !allowRowHeavyWork) { }
                   .opacity(0.7)
-                  .listRowInsets(rowInsets)
+                  .listRowInsets(cardInsets)
                   .listRowSeparator(.hidden)
                   .listRowBackground(Color.clear)
               }
@@ -170,10 +200,6 @@ struct InboxView: View {
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
     .refreshable { await store.loadInbox() }
-  }
-
-  private var rowInsets: EdgeInsets {
-    EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
   }
 
   @ViewBuilder
@@ -195,7 +221,7 @@ struct InboxView: View {
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .taskCompleteRemovalTransition()
-    .listRowInsets(rowInsets)
+    .listRowInsets(cardInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
     .taskContextMenu(

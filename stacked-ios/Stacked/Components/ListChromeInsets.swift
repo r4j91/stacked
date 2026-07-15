@@ -41,12 +41,10 @@ struct ListTailSpacer: View {
 }
 
 extension View {
-  /// iOS 26 — remove fade/blur tardio nas bordas do scroll (`.soft` padrão do sistema).
-  /// Só `.hard` na base em todo o app: `.hard` no topo desloca o texto no 1º frame do scroll.
+  /// UIKit lists — sem scrollEdgeEffect no wrapper (hard = tarja; soft = hitch).
+  /// Edge effects ficam desligados no `UICollectionView`; só reporta scroll pro dock glass.
   func stackedScrollEdgeChrome() -> some View {
-    self
-      .scrollEdgeEffectStyle(.hard, for: .bottom)
-      .stackedReportListScrollForDockGlass()
+    self.stackedReportListScrollForDockGlass()
   }
 
   /// Padding inferior para listas — paridade bottomListInset (sem duplicar ListTailSpacer).
@@ -61,12 +59,13 @@ extension View {
     .stackedReportListScrollForDockGlass()
   }
 
-  /// Dashboard — só borda inferior; sem `.hard` no topo (evita tarja / micro-shift no scroll).
+  /// Dashboard — soft no topo (fade), hard na base; sem `.hard` no topo.
   func stackedDashboardListChrome() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
+    .scrollEdgeEffectStyle(.soft, for: .top)
     .scrollEdgeEffectStyle(.hard, for: .bottom)
     .stackedReportListScrollForDockGlass()
   }
@@ -81,13 +80,14 @@ extension View {
     }
   }
 
-  /// Drill-down (projeto / filtros) — mesmo edge chrome das abas: só `.hard` na base.
-  /// Antes tinha `.hard` no topo e gerava o mesmo micro-shift ao iniciar o scroll.
+  /// Drill-down (projeto / filtros) — mesmo edge chrome da Home: soft topo + hard base.
+  /// Antes tinha `.hard` no topo e gerava micro-shift ao iniciar o scroll.
   func stackedDrillDownListChrome() -> some View {
     safeAreaPadding(
       .bottom,
       AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
     )
+    .scrollEdgeEffectStyle(.soft, for: .top)
     .scrollEdgeEffectStyle(.hard, for: .bottom)
     .stackedReportListScrollForDockGlass()
   }

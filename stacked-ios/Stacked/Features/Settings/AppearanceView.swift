@@ -273,13 +273,11 @@ struct AppearanceView: View {
 
   private func openAppearanceSection(_ id: AppearanceSectionID) {
     accordionTeardownTask?.cancel()
-    mountedSection = id
-    _Concurrency.Task { @MainActor in
-      await _Concurrency.Task.yield()
-      guard !_Concurrency.Task.isCancelled else { return }
-      AppMotion.animate(AppMotion.subtaskExpandSpring, reduceMotion: reduceMotion) {
-        expandedSection = id
-      }
+    // Mesmo passo: mount + expand. Yield antigo montava o painel com
+    // expanded=false/EmptyView e o SubtaskExpandReveal ficava em altura 0.
+    AppMotion.animate(AppMotion.subtaskExpandSpring, reduceMotion: reduceMotion) {
+      mountedSection = id
+      expandedSection = id
     }
   }
 
@@ -302,7 +300,7 @@ struct AppearanceView: View {
   }
 
   private var scrollFluiditySummary: String {
-    if useUIKitTaskList { return "Lista UIKit · Inbox" }
+    if useUIKitTaskList { return "Lista UIKit · app" }
     if disableAllGlass { return "Glass desativado" }
     if alwaysStaticGlass { return "Glass estático" }
     if alwaysFrozenDockGlass { return "Navbar sem glass" }
@@ -311,7 +309,7 @@ struct AppearanceView: View {
 
   private var scrollFluidityFooter: String {
     if useUIKitTaskList {
-      return "UIKit experimental só na Caixa de entrada (sem “Concluídas” abertas). Desligue para voltar ao SwiftUI List."
+      return "UIKit nas listas de tarefas (Inbox, Hoje, Em breve, Projetos) com os mesmos modos Balões/Lista. Desligue para voltar ao SwiftUI List."
     }
     if disableAllGlass {
       return "Fill sólido em todo o app — sem ver o que passa atrás. Use “Glass estático” se quiser translúcido sem morph."
@@ -438,7 +436,7 @@ struct AppearanceView: View {
         Text("Lista UIKit (experimental)")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Inbox com UICollectionView — mesmo visual de rows. Fácil desligar.")
+        Text("Listas de tarefas com UICollectionView — mesmos modos e TaskRow. Desligue = SwiftUI.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Aparência — lista experimental UIKit (UICollectionView + SwiftUI rows).
-/// Desligado por padrão; fácil A/B e revert sem perder o resto das opts de scroll.
+/// Desligado por padrão; cobre Inbox / Hoje / Em breve / Projetos. Desligar = SwiftUI List.
 enum UIKitTaskListStorage {
   static let key = "experimental.uikitTaskList"
 

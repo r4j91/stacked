@@ -4,11 +4,22 @@ import SwiftUI
 struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
   @State private var store = UpcomingStore.shared
   @State private var allowRowHeavyWork = false
   @State private var detailRoute: TaskDetailRoute?
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
+
+  /// UIKit na lista de schedule quando só há tarefas (sem subtarefa/evento).
+  private var prefersUIKitList: Bool {
+    guard useUIKitTaskList,
+          !store.isLoading,
+          store.error == nil || !store.groupedSchedule.isEmpty,
+          !store.groupedSchedule.isEmpty
+    else { return false }
+    return store.groupedSchedule.allSatisfy { UIKitScheduleSupport.onlyTasks($0.items) != nil }
+  }
 
   var body: some View {
     let c = theme.colors
@@ -20,76 +31,38 @@ struct UpcomingView: View {
           .padding(.bottom, AppSpacing.sm)
       }
 
-      List {
-        Section {
-          ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
-            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-        }
-
-        Section {
-          modeToggle
-            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-        }
-
-        if store.mode == .agenda {
-          Section {
-            HStack(spacing: 6) {
-              Image(systemName: "list.bullet")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(c.accent)
-              Text(store.agendaPeriodLabel)
-                .font(AppTypography.completedSectionHeader)
-                .foregroundStyle(c.accent)
+      if prefersUIKitList {
+        UIKitHostedTaskList(
+          sections: upcomingUIKitSections,
+          showProject: true,
+          style: .card,
+          rowInsets: rowInsets,
+          background: c.background,
+          leadingChrome: {
+            AnyView(upcomingListChrome)
+          },
+          onToggle: { store.complete($0) },
+          onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+          onSubtaskTap: { task, sub in
+            subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+          },
+          onSubtaskChanged: { store.applySubtaskPatch($0) },
+          onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
+          onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+          onComplete: { store.complete($0) },
+          onDuplicate: { task in
+            _Concurrency.Task {
+              _ = try? await TaskRepository.shared.duplicateTask(task)
+              await store.load()
             }
-            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-          }
-        }
-
-        if store.isLoading {
-          Section {
-            ProgressView()
-              .tint(c.accent)
-              .frame(maxWidth: .infinity)
-              .listRowBackground(Color.clear)
-          }
-        } else if let err = store.error, store.tasks.isEmpty && store.scheduledSubtasks.isEmpty {
-          Section {
-            LoadErrorView(message: err) {
-              _Concurrency.Task { await store.load() }
-            }
-            .listRowBackground(Color.clear)
-          }
-        } else if store.groupedSchedule.isEmpty {
-          Section {
-            EmptyStateView(
-              icon: .navUpcoming,
-              title: "Nenhuma tarefa",
-              subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento."
-            )
-            .stackedListEmptyStateRow()
-          }
-        } else {
-          ForEach(store.groupedSchedule, id: \.day) { group in
-            Section {
-              ForEach(group.items) { item in
-                scheduleRow(item)
-              }
-            } header: {
-              ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
-            }
-          }
-        }
-
+          },
+          onDelete: { store.delete($0) },
+          onRefresh: { _Concurrency.Task { await store.load() } }
+        )
+        .stackedScrollEdgeChrome()
+      } else {
+        upcomingSwiftUIList
       }
-      .listStyle(.plain)
-      .scrollContentBackground(.hidden)
-      .stackedListTailInset()
     }
     .stackedTabletCentered()
     .background(c.background)
@@ -113,6 +86,112 @@ struct UpcomingView: View {
       }
       .environment(ThemeManager.shared)
     }
+  }
+
+  private var upcomingUIKitSections: [UIKitTaskSection] {
+    store.groupedSchedule.compactMap { group in
+      guard let tasks = UIKitScheduleSupport.onlyTasks(group.items) else { return nil }
+      let dayId = String(Int(group.day.timeIntervalSince1970))
+      return UIKitTaskSection(
+        id: dayId,
+        title: TaskMapper.dayLabel(for: group.day).uppercased(),
+        tasks: tasks
+      )
+    }
+  }
+
+  private var upcomingListChrome: some View {
+    let c = theme.colors
+    return VStack(alignment: .leading, spacing: AppSpacing.sm) {
+      ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
+      modeToggle
+        .padding(.horizontal, AppSpacing.lg)
+      if store.mode == .agenda {
+        HStack(spacing: 6) {
+          Image(systemName: "list.bullet")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(c.accent)
+          Text(store.agendaPeriodLabel)
+            .font(AppTypography.completedSectionHeader)
+            .foregroundStyle(c.accent)
+        }
+        .padding(.horizontal, AppSpacing.xl)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var upcomingSwiftUIList: some View {
+    let c = theme.colors
+    List {
+      Section {
+        ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
+          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
+      Section {
+        modeToggle
+          .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
+      if store.mode == .agenda {
+        Section {
+          HStack(spacing: 6) {
+            Image(systemName: "list.bullet")
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(c.accent)
+            Text(store.agendaPeriodLabel)
+              .font(AppTypography.completedSectionHeader)
+              .foregroundStyle(c.accent)
+          }
+          .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+        }
+      }
+
+      if store.isLoading {
+        Section {
+          ProgressView()
+            .tint(c.accent)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+        }
+      } else if let err = store.error, store.tasks.isEmpty && store.scheduledSubtasks.isEmpty {
+        Section {
+          LoadErrorView(message: err) {
+            _Concurrency.Task { await store.load() }
+          }
+          .listRowBackground(Color.clear)
+        }
+      } else if store.groupedSchedule.isEmpty {
+        Section {
+          EmptyStateView(
+            icon: .navUpcoming,
+            title: "Nenhuma tarefa",
+            subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento."
+          )
+          .stackedListEmptyStateRow()
+        }
+      } else {
+        ForEach(store.groupedSchedule, id: \.day) { group in
+          Section {
+            ForEach(group.items) { item in
+              scheduleRow(item)
+            }
+          } header: {
+            ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
+          }
+        }
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .stackedListTailInset()
   }
 
   private var modeToggle: some View {

@@ -5,6 +5,7 @@ struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
   /// PERF_FASEB3_3A — T2 desligado do path ativo (sempre false via ScrollPerfDebugStorage).
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
   private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
@@ -16,8 +17,133 @@ struct TodayView: View {
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @Namespace private var taskDetailZoom
 
+  /// UIKit quando só há tarefas (sem subtarefa/evento misturados).
+  private var prefersUIKitList: Bool {
+    guard useUIKitTaskList,
+          !store.todayLoading || !store.todayTimeline.isEmpty || !store.todayOverdueItems.isEmpty,
+          store.todayError == nil
+    else { return false }
+    let hasContent = !store.todayOverdueItems.isEmpty
+      || !store.todayTimeline.isEmpty
+      || (showCompleted && !store.todayCompleted.isEmpty)
+    guard hasContent else { return false }
+    return UIKitScheduleSupport.allTaskOnly([store.todayOverdueItems, store.todayTimeline])
+  }
+
   var body: some View {
     let c = theme.colors
+
+    Group {
+      if prefersUIKitList {
+        uikitTodayBody(colors: c)
+      } else {
+        swiftUITodayBody(colors: c)
+      }
+    }
+    .stackedTabletCentered()
+    .background(c.background)
+    .stackedListRowWorkGate($allowRowHeavyWork)
+    .onAppear {
+      ScrollHitchProbe.noteScreen("Hoje")
+      openPendingTaskIfNeeded()
+    }
+    .onChange(of: router.pendingTaskId) { _, _ in openPendingTaskIfNeeded() }
+    .fullScreenCover(item: $detailRoute, onDismiss: {
+      _Concurrency.Task {
+        await TaskDetailDismissRefresh.afterDismiss(tab: .today) {
+          await store.loadToday()
+          await store.loadInbox()
+        }
+      }
+    }) { route in
+      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
+        TaskDetailView(taskId: route.taskId)
+        .environment(ThemeManager.shared)
+      }
+    }
+    .sheet(item: $subtaskDetailRoute) { route in
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot) { await store.loadToday() }
+      }
+      .environment(ThemeManager.shared)
+    }
+  }
+
+  @ViewBuilder
+  private func uikitTodayBody(colors: AppThemeColors) -> some View {
+    UIKitHostedTaskList(
+      sections: todayUIKitSections,
+      showProject: true,
+      style: .card,
+      rowInsets: rowInsets,
+      background: colors.background,
+      leadingChrome: {
+        AnyView(
+          TaskListScreenHeader(
+            title: "Hoje",
+            subtitle: NavTab.today.subtitle,
+            showCompletedKey: ShowCompletedPreferences.todayKey,
+            showCompletedDefault: false
+          )
+          .padding(.top, 4)
+          .padding(.bottom, 8)
+        )
+      },
+      onToggleSection: { id in
+        if id == "completed" {
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+            completedExpanded.toggle()
+          }
+        }
+      },
+      onToggle: { store.completeToday($0) },
+      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { store.applySubtaskPatch($0) },
+      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
+      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onComplete: { store.completeToday($0) },
+      onDuplicate: { store.duplicateToday($0) },
+      onDelete: { store.deleteToday($0) },
+      onRefresh: { _Concurrency.Task { await store.loadToday() } }
+    )
+    .stackedScrollEdgeChrome()
+  }
+
+  private var todayUIKitSections: [UIKitTaskSection] {
+    var sections: [UIKitTaskSection] = []
+    let overdue = UIKitScheduleSupport.onlyTasks(store.todayOverdueItems) ?? []
+    let today = UIKitScheduleSupport.onlyTasks(store.todayTimeline) ?? []
+
+    if !overdue.isEmpty {
+      sections.append(UIKitTaskSection(id: "overdue", title: "ATRASADAS", tasks: overdue))
+    }
+    if !today.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "today",
+          title: overdue.isEmpty ? nil : "HOJE",
+          tasks: today
+        )
+      )
+    }
+    if showCompleted, !store.todayCompleted.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .completedToggle(count: store.todayCompleted.count, expanded: completedExpanded),
+          tasks: store.todayCompleted,
+          dimmed: true
+        )
+      )
+    }
+    return sections
+  }
+
+  @ViewBuilder
+  private func swiftUITodayBody(colors: AppThemeColors) -> some View {
     let timeline = store.todayTimeline
 
     List {
@@ -36,7 +162,7 @@ struct TodayView: View {
       if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
         Section {
           ProgressView()
-            .tint(c.accent)
+            .tint(colors.accent)
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
         }
@@ -80,17 +206,16 @@ struct TodayView: View {
         if showCompleted && !store.todayCompleted.isEmpty {
           Section {
             Button {
-              // SUBSTITUIDO_FASE2: withAnimation { completedExpanded.toggle() }
               AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
             } label: {
               HStack {
                 Text("Concluídas (\(store.todayCompleted.count))")
                   .font(AppTypography.completedSectionHeader)
-                  .foregroundStyle(c.textSecondary)
+                  .foregroundStyle(colors.textSecondary)
                 Spacer()
                 Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
                   .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(c.textTertiary)
+                  .foregroundStyle(colors.textTertiary)
               }
             }
             .listRowBackground(Color.clear)
@@ -107,40 +232,11 @@ struct TodayView: View {
           }
         }
       }
-
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedListTailInset()
-    .stackedTabletCentered()
-    .background(c.background)
     .refreshable { await store.loadToday() }
-    .stackedListRowWorkGate($allowRowHeavyWork)
-    .onAppear {
-      // PERF_FASEB3_ETAPA1
-      ScrollHitchProbe.noteScreen("Hoje")
-      openPendingTaskIfNeeded()
-    }
-    .onChange(of: router.pendingTaskId) { _, _ in openPendingTaskIfNeeded() }
-    .fullScreenCover(item: $detailRoute, onDismiss: {
-      _Concurrency.Task {
-        await TaskDetailDismissRefresh.afterDismiss(tab: .today) {
-          await store.loadToday()
-          await store.loadInbox()
-        }
-      }
-    }) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId)
-        .environment(ThemeManager.shared)
-      }
-    }
-    .sheet(item: $subtaskDetailRoute) { route in
-      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
-        await SubtaskSaveHandler.handle(snapshot) { await store.loadToday() }
-      }
-      .environment(ThemeManager.shared)
-    }
   }
 
   private var rowInsets: EdgeInsets {

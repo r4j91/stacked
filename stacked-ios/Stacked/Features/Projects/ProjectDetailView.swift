@@ -9,6 +9,7 @@ struct ProjectDetailView: View {
 
   @AppStorage("display_mode") private var displayMode = "cards"
   @AppStorage private var showCompleted: Bool
+  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = false
   /// PERF_FASEB3_3A — T2 desligado do path ativo.
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
   private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
@@ -94,91 +95,29 @@ struct ProjectDetailView: View {
 
   private var taskReorderMode: Bool { editMode == .active }
 
+  /// UIKit só com conteúdo real; ordenar / skeleton / erro ficam no SwiftUI List.
+  private var prefersUIKitList: Bool {
+    useUIKitTaskList
+      && revealListContent
+      && !isLoading
+      && loadError == nil
+      && !taskReorderMode
+      && (!pending.isEmpty || (showCompleted && !completed.isEmpty) || !sections.isEmpty)
+  }
+
   var body: some View {
     let c = theme.colors
 
-    List {
-      if revealListContent {
-        if isLoading {
-          TaskListSkeleton(rowCount: 6)
-        } else if let err = loadError {
-          Section {
-            LoadErrorView(message: err) {
-              _Concurrency.Task { await store.load() }
-            }
-            .listRowBackground(Color.clear)
-          }
-        } else {
-          // PERF_FASEC1: um bucket por body — evita pending.filter por seção.
-          let buckets = pendingSectionBuckets
-          ForEach(sections) { section in
-            projectSectionBlock(
-              section: section,
-              tasks: buckets.bySectionId[section.id] ?? []
-            )
-          }
-
-          if !buckets.uncategorized.isEmpty {
-            projectSectionBlock(
-              id: ProjectSectionCollapse.uncategorizedId,
-              title: "SEM SEÇÃO",
-              tasks: buckets.uncategorized,
-              showsHeader: !sections.isEmpty
-            )
-          }
-
-          if pending.isEmpty && completed.isEmpty && sections.isEmpty {
-            Section {
-              EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
-              .stackedListEmptyStateRow()
-            }
-          }
-
-          if showCompleted && !completed.isEmpty {
-            Section {
-              CollapsibleSectionHeader(
-                title: "CONCLUÍDAS",
-                count: completed.count,
-                expanded: completedExpanded,
-                onToggle: {
-                  AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-                    completedExpanded.toggle()
-                    ProjectDetailPreferences.setCompletedExpanded(
-                      completedExpanded,
-                      projectId: projectId
-                    )
-                  }
-                }
-              )
-              .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
-
-              if completedExpanded {
-                ForEach(completed) { task in
-                  completedProjectTaskRow(task)
-                }
-              }
-            }
-          }
-        }
+    Group {
+      if prefersUIKitList {
+        projectUIKitList
       } else {
-        TaskListSkeleton(rowCount: 6)
-      }
-
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
+        projectSwiftUIList
       }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
     .environment(\.editMode, $editMode)
-    .stackedDrillDownListChrome()
     .onAppear { ScrollHitchProbe.noteScreen("Projeto") }
-    .background(c.background)
+    .background(c.background.ignoresSafeArea(.all))
     .stackedDrillDownNavChrome(title: projectName, background: c.background)
     .stackedDrillDownGlassBackButton()
     .toolbar {
@@ -452,15 +391,225 @@ struct ProjectDetailView: View {
     displayModeEnum.taskListRowInsets
   }
 
+  private var projectUIKitList: some View {
+    let c = theme.colors
+    let mode = displayModeEnum
+    return UIKitHostedTaskList(
+      sections: projectUIKitSections,
+      showProject: false,
+      style: mode.taskRowStyle,
+      flatSubtaskQueue: mode.flatSubtaskPanel,
+      rowInsets: rowInsets,
+      background: c.background,
+      onToggleSection: handleUIKitSectionToggle,
+      onRenameSection: { section in
+        renameSectionTarget = section
+        renameSectionName = section.name
+      },
+      onDeleteSection: { section in
+        deleteSectionTarget = section
+      },
+      onToggle: toggleProjectTask,
+      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { store.applySubtaskPatch($0) },
+      onSubtaskDeleted: { task, sub in
+        store.removeSubtask(parentId: task.id, subtask: sub)
+        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
+      },
+      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onComplete: toggleProjectTask,
+      onDuplicate: { task in
+        ensureStoreLinked()
+        store.duplicate(task)
+      },
+      onDelete: { task in
+        ensureStoreLinked()
+        store.delete(task)
+      },
+      onRefresh: {
+        ensureStoreLinked()
+        _Concurrency.Task { await store.load() }
+      },
+      onWhatsAppCopy: { whatsAppCopyTask = $0 }
+    )
+    // Full-bleed embaixo — sem faixa preta do safe area atrás do dock.
+    .ignoresSafeArea(edges: .bottom)
+    .stackedScrollEdgeChrome()
+  }
+
+  private func handleUIKitSectionToggle(_ id: String) {
+    if id == "completed" {
+      AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+        completedExpanded.toggle()
+        ProjectDetailPreferences.setCompletedExpanded(completedExpanded, projectId: projectId)
+      }
+    } else {
+      toggleSection(id)
+    }
+  }
+
+  private func toggleProjectTask(_ task: Task) {
+    ensureStoreLinked()
+    if task.done { store.uncomplete(task) } else { store.complete(task) }
+  }
+
+  private var projectUIKitSections: [UIKitTaskSection] {
+    let buckets = pendingSectionBuckets
+    var result: [UIKitTaskSection] = []
+
+    for section in sections {
+      let tasks = buckets.bySectionId[section.id] ?? []
+      let expanded = isSectionExpanded(section.id)
+      result.append(
+        UIKitTaskSection(
+          id: section.id,
+          header: .collapsible(
+            title: section.name.uppercased(),
+            count: tasks.count,
+            expanded: expanded
+          ),
+          tasks: tasks,
+          projectSection: section
+        )
+      )
+    }
+
+    if !buckets.uncategorized.isEmpty {
+      let id = ProjectSectionCollapse.uncategorizedId
+      let showHeader = !sections.isEmpty
+      if showHeader {
+        result.append(
+          UIKitTaskSection(
+            id: id,
+            header: .collapsible(
+              title: "SEM SEÇÃO",
+              count: buckets.uncategorized.count,
+              expanded: isSectionExpanded(id)
+            ),
+            tasks: buckets.uncategorized
+          )
+        )
+      } else {
+        result.append(
+          UIKitTaskSection(id: id, title: nil, tasks: buckets.uncategorized)
+        )
+      }
+    }
+
+    if showCompleted && !completed.isEmpty {
+      result.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .collapsible(
+            title: "CONCLUÍDAS",
+            count: completed.count,
+            expanded: completedExpanded
+          ),
+          tasks: completed,
+          dimmed: true
+        )
+      )
+    }
+
+    return result
+  }
+
+  @ViewBuilder
+  private var projectSwiftUIList: some View {
+    List {
+      if revealListContent {
+        if isLoading {
+          TaskListSkeleton(rowCount: 6)
+        } else if let err = loadError {
+          Section {
+            LoadErrorView(message: err) {
+              _Concurrency.Task { await store.load() }
+            }
+            .listRowBackground(Color.clear)
+          }
+        } else {
+          let buckets = pendingSectionBuckets
+          ForEach(sections) { section in
+            projectSectionBlock(
+              section: section,
+              tasks: buckets.bySectionId[section.id] ?? []
+            )
+          }
+
+          if !buckets.uncategorized.isEmpty {
+            projectSectionBlock(
+              id: ProjectSectionCollapse.uncategorizedId,
+              title: "SEM SEÇÃO",
+              tasks: buckets.uncategorized,
+              showsHeader: !sections.isEmpty
+            )
+          }
+
+          if pending.isEmpty && completed.isEmpty && sections.isEmpty {
+            Section {
+              EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
+              .stackedListEmptyStateRow()
+            }
+          }
+
+          if showCompleted && !completed.isEmpty {
+            Section {
+              CollapsibleSectionHeader(
+                title: "CONCLUÍDAS",
+                count: completed.count,
+                expanded: completedExpanded,
+                onToggle: {
+                  AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+                    completedExpanded.toggle()
+                    ProjectDetailPreferences.setCompletedExpanded(
+                      completedExpanded,
+                      projectId: projectId
+                    )
+                  }
+                }
+              )
+              .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 0, trailing: 16))
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+
+              if completedExpanded {
+                ForEach(completed) { task in
+                  completedProjectTaskRow(task)
+                }
+              }
+            }
+          }
+        }
+      } else {
+        TaskListSkeleton(rowCount: 6)
+      }
+
+      Section {
+        ListTailSpacer()
+          .listRowInsets(EdgeInsets())
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
+  }
+
   private func isSectionExpanded(_ id: String) -> Bool {
     !collapsedSectionIds.contains(id)
   }
 
   private func toggleSection(_ id: String) {
-    if collapsedSectionIds.contains(id) {
-      collapsedSectionIds.remove(id)
-    } else {
-      collapsedSectionIds.insert(id)
+    AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
+      if collapsedSectionIds.contains(id) {
+        collapsedSectionIds.remove(id)
+      } else {
+        collapsedSectionIds.insert(id)
+      }
     }
     ProjectDetailPreferences.setCollapsedSectionIds(collapsedSectionIds, projectId: projectId)
   }
