@@ -162,7 +162,11 @@ struct TaskRow: View {
 
       HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
         Button(action: onToggle) {
-          PriorityDot(priority: task.priority, done: task.done)
+          PriorityDot(
+            priority: task.priority,
+            done: task.done,
+            scrollStable: stabilizeExpandInSelfSizingCell
+          )
             .padding(12)
         }
         .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
@@ -448,7 +452,8 @@ struct TaskRow: View {
       borderWidth: DoneCircle.RingStyle.borderWidth,
       tickSize: 13,
       ringColor: sub.priority?.color ?? theme.colors.textTertiary,
-      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
+      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+      scrollStable: stabilizeExpandInSelfSizingCell
     )
   }
 
@@ -938,6 +943,8 @@ struct PriorityDot: View {
   @Environment(ThemeManager.self) private var theme
   let priority: Priority?
   let done: Bool
+  /// UIKit cell + scroll: bitmap idle — anéis vetoriais “nadam” no AA.
+  var scrollStable: Bool = false
 
   var body: some View {
     DoneCircle(
@@ -946,7 +953,8 @@ struct PriorityDot: View {
       borderWidth: DoneCircle.RingStyle.borderWidth,
       tickSize: 13,
       ringColor: priority?.color ?? theme.colors.textTertiary,
-      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha
+      ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+      scrollStable: scrollStable
     )
     .accessibilityHidden(true)
   }

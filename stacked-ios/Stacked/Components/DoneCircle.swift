@@ -38,17 +38,18 @@ struct DoneCircle: View {
   var body: some View {
     Group {
       if usesRaster {
-        Image(uiImage: DoneCircleRaster.image(
-          done: done,
-          size: size,
-          borderWidth: borderWidth,
-          ringColor: UIColor(ringColor),
-          ringFillAlpha: ringFillAlpha,
-          tickSize: tickSize
-        ))
-        .resizable()
-        .interpolation(.high)
-        .frame(width: size, height: size)
+        // UIImageView + nearest: SwiftUI Image com bilinear ainda “treme” em Y fracionário.
+        DoneCircleRasterView(
+          image: DoneCircleRaster.image(
+            done: done,
+            size: size,
+            borderWidth: borderWidth,
+            ringColor: UIColor(ringColor),
+            ringFillAlpha: ringFillAlpha,
+            tickSize: tickSize
+          ),
+          size: size
+        )
       } else {
         vectorGlyph
       }
@@ -127,6 +128,36 @@ struct DoneCircle: View {
         preferVector = false
       }
     }
+  }
+}
+
+/// `UIImageView` com filtro nearest — evita shimmer bilinear do `Image` no scroll.
+private struct DoneCircleRasterView: UIViewRepresentable {
+  let image: UIImage
+  let size: CGFloat
+
+  func makeUIView(context: Context) -> UIImageView {
+    let view = UIImageView(image: image)
+    view.contentMode = .scaleToFill
+    view.clipsToBounds = true
+    view.isUserInteractionEnabled = false
+    view.layer.magnificationFilter = .nearest
+    view.layer.minificationFilter = .nearest
+    view.setContentHuggingPriority(.required, for: .horizontal)
+    view.setContentHuggingPriority(.required, for: .vertical)
+    view.setContentCompressionResistancePriority(.required, for: .horizontal)
+    view.setContentCompressionResistancePriority(.required, for: .vertical)
+    return view
+  }
+
+  func updateUIView(_ uiView: UIImageView, context: Context) {
+    if uiView.image !== image {
+      uiView.image = image
+    }
+  }
+
+  func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIImageView, context: Context) -> CGSize? {
+    CGSize(width: size, height: size)
   }
 }
 
