@@ -96,6 +96,26 @@ final class TaskStore {
     rebuildTodayDerived()
   }
 
+  func applyWhatsappRoutinePatch(taskId: String, enabled: Bool) {
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &todayPending)
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &todayCompleted)
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &inboxPending)
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &inboxCompleted)
+    todayScheduledSubtasks = todayScheduledSubtasks.map { entry in
+      var parent = entry.parent
+      if parent.id == taskId {
+        parent.whatsappRoutine = enabled
+      }
+      return SubtaskScheduleEntry(subtask: entry.subtask, parent: parent)
+    }
+    rebuildTodayDerived()
+  }
+
+  private func patchWhatsappRoutine(taskId: String, enabled: Bool, in tasks: inout [Task]) {
+    guard let index = tasks.firstIndex(where: { $0.id == taskId }) else { return }
+    tasks[index].whatsappRoutine = enabled
+  }
+
   func loadToday() async {
     loadTodayGeneration += 1
     let generation = loadTodayGeneration
@@ -187,6 +207,7 @@ final class TaskStore {
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         guard let idx = todayPending.firstIndex(where: { $0.id == taskId }) else { return }
         var updated = todayPending[idx]
@@ -229,6 +250,7 @@ final class TaskStore {
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         guard let idx = inboxPending.firstIndex(where: { $0.id == taskId }) else { return }
         var updated = inboxPending[idx]

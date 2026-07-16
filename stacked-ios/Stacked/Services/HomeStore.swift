@@ -333,6 +333,17 @@ final class ProjectDetailStore {
     SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &completed)
   }
 
+  func applyWhatsappRoutinePatch(taskId: String, enabled: Bool) {
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &pending)
+    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &completed)
+    syncCache()
+  }
+
+  private func patchWhatsappRoutine(taskId: String, enabled: Bool, in tasks: inout [Task]) {
+    guard let index = tasks.firstIndex(where: { $0.id == taskId }) else { return }
+    tasks[index].whatsappRoutine = enabled
+  }
+
   func load() async {
     let hadData = !pending.isEmpty || !completed.isEmpty
     if !hadData { isLoading = true }
@@ -393,6 +404,7 @@ final class ProjectDetailStore {
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         guard let idx = pending.firstIndex(where: { $0.id == taskId }) else { return }
         var updated = pending[idx]

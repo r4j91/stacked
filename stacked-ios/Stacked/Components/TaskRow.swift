@@ -1031,6 +1031,8 @@ struct TaskRow: View {
     let newDone = !rowSubtasksDone[index]
     if newDone {
       HapticService.taskCompleted()
+      // UIKit reconfigure remonta o círculo — marca para o fill sobreviver.
+      TaskCompleteAnimationBridge.mark(sub.idOrFallback)
     } else {
       HapticService.light()
     }

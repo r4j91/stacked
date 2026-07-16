@@ -92,6 +92,7 @@ struct DoneCircle: View {
       // UIKIT_SCROLL_POLISH: reuse/reconfigure — só sync; animate só toggle do usuário.
       if suppressDoneAnimation {
         suppressDoneAnimation = false
+        if isDone, playUserCompleteAnimationIfPending() { return }
         preferVector = false
         syncVisualState(animated: false)
         return
@@ -101,6 +102,7 @@ struct DoneCircle: View {
         return
       }
       if isDone && !wasDone {
+        // Não consume o mark — remount UIKit ainda pode precisar recomeçar o fill.
         if scrollStable { preferVector = true }
         playCompleteAnimation()
       } else if !isDone && wasDone {
@@ -116,13 +118,27 @@ struct DoneCircle: View {
       return
     }
     guard boundRowIdentity != rowIdentity else {
-      syncVisualState(animated: false)
+      if done { _ = playUserCompleteAnimationIfPending() }
+      else { syncVisualState(animated: false) }
       return
     }
     boundRowIdentity = rowIdentity
+    if done, playUserCompleteAnimationIfPending() {
+      suppressDoneAnimation = false
+      return
+    }
     preferVector = false
     suppressDoneAnimation = true
     syncVisualState(animated: false)
+  }
+
+  /// Remount UIKit com done já true — toca o fill se o tap acabou de marcar o id.
+  @discardableResult
+  private func playUserCompleteAnimationIfPending() -> Bool {
+    guard TaskCompleteAnimationBridge.consume(rowIdentity) else { return false }
+    if scrollStable { preferVector = true }
+    playCompleteAnimation()
+    return true
   }
 
   private var vectorGlyph: some View {

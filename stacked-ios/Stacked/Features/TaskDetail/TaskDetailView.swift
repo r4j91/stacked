@@ -38,10 +38,17 @@ struct TaskDetailView: View {
   @State private var showWhatsAppPreview = false
 
   var onDismiss: () -> Void = {}
+  var onWhatsappRoutineChanged: (String, Bool) -> Void = { _, _ in }
 
-  init(taskId: String, seed: Task? = nil, onDismiss: @escaping () -> Void = {}) {
+  init(
+    taskId: String,
+    seed: Task? = nil,
+    onDismiss: @escaping () -> Void = {},
+    onWhatsappRoutineChanged: @escaping (String, Bool) -> Void = { _, _ in }
+  ) {
     _vm = State(initialValue: TaskDetailViewModel(taskId: taskId, seed: seed))
     self.onDismiss = onDismiss
+    self.onWhatsappRoutineChanged = onWhatsappRoutineChanged
   }
 
   var body: some View {
@@ -671,7 +678,10 @@ struct TaskDetailView: View {
     let c = theme.colors
     let binding = Binding(
       get: { vm.whatsappRoutine },
-      set: { vm.setWhatsappRoutine($0) }
+      set: { enabled in
+        vm.setWhatsappRoutine(enabled)
+        onWhatsappRoutineChanged(vm.taskId, enabled)
+      }
     )
     return HStack(spacing: 12) {
       StackedIcons.image(.copy)

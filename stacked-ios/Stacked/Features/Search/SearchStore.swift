@@ -104,6 +104,7 @@ final class SearchStore {
     regroupResults()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         allTasks.removeAll { $0.id == taskId }
         rebuildSearchIndex()

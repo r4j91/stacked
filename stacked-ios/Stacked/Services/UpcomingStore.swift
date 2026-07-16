@@ -213,6 +213,7 @@ final class UpcomingStore {
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         tasks.removeAll { $0.id == taskId }
         rebuildScheduleDerived()

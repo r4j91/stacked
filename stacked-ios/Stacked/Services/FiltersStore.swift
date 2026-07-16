@@ -446,6 +446,7 @@ final class FiltersStore {
       filterResults.remove(at: i)
       HapticService.taskCompleted()
       TaskCompletionMotion.afterDwell(
+        rowIdentity: taskId,
         animatedRemoval: { [self] in
           if case .savedFilter = mode {
             var doneTask = snapshot
@@ -486,6 +487,7 @@ final class FiltersStore {
     HapticService.taskCompleted()
 
     TaskCompletionMotion.afterDwell(
+      rowIdentity: taskId,
       animatedRemoval: { [self] in
         filterTasks.removeAll { $0.id == taskId }
         if case .savedFilter = mode {

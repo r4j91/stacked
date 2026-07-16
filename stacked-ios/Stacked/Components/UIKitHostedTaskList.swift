@@ -842,7 +842,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var hasher = Hasher()
     hasher.combine(task.done)
     hasher.combine(task.title)
+    hasher.combine(task.description)
     hasher.combine(task.priority)
+    hasher.combine(task.whatsappRoutine)
     hasher.combine(task.subtasksDoneCount)
     hasher.combine(task.subtasksTotalCount)
     // Chips de data são relativos a “hoje” — sem isto a cell UIKit fica com “Hoje”

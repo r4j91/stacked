@@ -275,7 +275,14 @@ struct ProjectDetailView: View {
       _Concurrency.Task { await store.load() }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId, seed: route.seed)
+        TaskDetailView(
+          taskId: route.taskId,
+          seed: route.seed,
+          onWhatsappRoutineChanged: { taskId, enabled in
+            store.applyWhatsappRoutinePatch(taskId: taskId, enabled: enabled)
+            TaskStore.shared.applyWhatsappRoutinePatch(taskId: taskId, enabled: enabled)
+          }
+        )
         .environment(ThemeManager.shared)
       }
     }
