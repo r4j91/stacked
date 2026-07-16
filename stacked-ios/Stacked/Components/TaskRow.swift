@@ -345,19 +345,7 @@ struct TaskRow: View {
       taskContentTapArea(expandReserve: expandReserve)
 
       HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
-        Button(action: onToggle) {
-          PriorityDot(
-            priority: task.priority,
-            done: task.done,
-            scrollStable: stabilizeExpandInSelfSizingCell,
-            rowIdentity: task.id
-          )
-            .padding(12)
-        }
-        .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
-        .disabled(!rowInteractionsEnabled)
-        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
-        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
+        completeCircleButton
 
         Spacer(minLength: 0)
 
@@ -365,6 +353,7 @@ struct TaskRow: View {
           Color.clear
             .frame(width: 44)
             .padding(.trailing, expandTrailing)
+            .allowsHitTesting(false)
         }
       }
     }
@@ -390,6 +379,34 @@ struct TaskRow: View {
 
   private var showsWhatsAppCopyButton: Bool {
     task.whatsappRoutine && task.hasDescription && onWhatsAppCopy != nil
+  }
+
+  /// Círculo de concluir — borderless no UIKit (PressableStyle quebra hit-test no host aninhado).
+  @ViewBuilder
+  private var completeCircleButton: some View {
+    let label = PriorityDot(
+      priority: task.priority,
+      done: task.done,
+      scrollStable: stabilizeExpandInSelfSizingCell,
+      rowIdentity: task.id
+    )
+    .padding(12)
+    .contentShape(Rectangle())
+
+    if stabilizeExpandInSelfSizingCell {
+      Button(action: onToggle) { label }
+        .buttonStyle(.borderless)
+        .disabled(!rowInteractionsEnabled)
+        .zIndex(1)
+        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
+        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
+    } else {
+      Button(action: onToggle) { label }
+        .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
+        .disabled(!rowInteractionsEnabled)
+        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
+        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
+    }
   }
 
   @ViewBuilder
@@ -425,32 +442,40 @@ struct TaskRow: View {
   @ViewBuilder
   private func taskContentTapArea(expandReserve: CGFloat) -> some View {
     let centerTitle = centersTitleInRow
-    let content = HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
-      Color.clear.frame(width: 46)
-      rowTextContent
+    // Gesture só no texto — a coluna do círculo fica livre para o Button (UIKit hit-test).
+    HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
+      Color.clear
+        .frame(width: 46)
+        .allowsHitTesting(false)
+      taskTitleTapTarget
         .padding(.vertical, centerTitle ? 4 : 10)
         .padding(.trailing, (task.hasSubtasks || showsWhatsAppCopyButton) ? 4 : 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       if task.hasSubtasks || showsWhatsAppCopyButton {
-        Color.clear.frame(width: expandReserve)
+        Color.clear
+          .frame(width: expandReserve)
+          .allowsHitTesting(false)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .contentShape(Rectangle())
+  }
 
+  @ViewBuilder
+  private var taskTitleTapTarget: some View {
+    let text = rowTextContent.contentShape(Rectangle())
     if let onTap, let openTaskContextMenu, rowInteractionsEnabled {
       // Long-press exclusivo antes do tap: evita abrir TaskDetail ao soltar após o menu.
       // CTXMENU_ANCHOR_FIX: NÃO usar LongPress.sequenced(before: Drag) — o onEnded
       // só rodava ao soltar o dedo. Abrir no reconhecimento do long-press (dedo ainda baixo).
-      content.gesture(
+      text.gesture(
         LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
           .onEnded { _ in openTaskContextMenu(nil) }
           .exclusively(before: TapGesture().onEnded { onTap() })
       )
     } else if let onTap {
-      content.onTapGesture(perform: onTap)
+      text.onTapGesture(perform: onTap)
     } else {
-      content
+      text
     }
   }
 
@@ -1036,7 +1061,7 @@ struct TaskRow: View {
         guard !_Concurrency.Task.isCancelled else { return }
         if let idx = rowDisplaySubtasks.firstIndex(where: { subtaskHoldKey($0) == holdKey }) {
           rowDisplaySubtasks[idx] = subtaskWithDone(rowDisplaySubtasks[idx], done: !newDone)
-          if idx < subtasksDone.count { subtasksDone[idx] = !newDone }
+          if idx < rowSubtasksDone.count { rowSubtasksDone[idx] = !newDone }
         }
         return
       }
@@ -1051,13 +1076,15 @@ struct TaskRow: View {
         guard !_Concurrency.Task.isCancelled else { return }
         rowSubtaskSortHoldId = nil
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          // UIKIT_SCROLL_POLISH: usar rowDisplaySubtasks — `displaySubtasks` (@State)
+          // fica [] no split host e esvaziava o painel após concluir.
+          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(rowDisplaySubtasks)
           rowSubtasksDone = rowDisplaySubtasks.map(\.done)
         }
       } else {
         rowSubtaskSortHoldId = nil
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(rowDisplaySubtasks)
           rowSubtasksDone = rowDisplaySubtasks.map(\.done)
         }
       }
