@@ -29,6 +29,14 @@ struct TaskRow: View {
   var onWhatsAppCopy: (() -> Void)?
   /// UIKit list: collapse/expand → limpa cache de altura e reconfigure da cell.
   var onSubtaskExpansionChanged: ((Bool) -> Void)?
+  /// UIKIT_SCROLL_POLISH: session compartilhada (header/painel em hosts separados).
+  var splitStore: TaskRowSplitSession? = nil
+  /// UIKIT_SCROLL_POLISH: fatia renderizada neste host.
+  var bodyMode: TaskRowBodyMode = .full
+  /// UIKIT_SCROLL_POLISH: chrome do card fica no container UIKit (split).
+  var suppressCardChrome: Bool = false
+
+  @ObservedObject private var splitStoreObject: TaskRowSplitSession
 
   @State private var expanded = false
   @State private var subtaskRevealActive = false
@@ -57,7 +65,10 @@ struct TaskRow: View {
     onSubtaskChanged: ((SubtaskSaveSnapshot) -> Void)? = nil,
     onSubtaskDeleted: ((Subtask) -> Void)? = nil,
     onWhatsAppCopy: (() -> Void)? = nil,
-    onSubtaskExpansionChanged: ((Bool) -> Void)? = nil
+    onSubtaskExpansionChanged: ((Bool) -> Void)? = nil,
+    splitStore: TaskRowSplitSession? = nil,
+    bodyMode: TaskRowBodyMode = .full,
+    suppressCardChrome: Bool = false
   ) {
     self.task = task
     self.style = style
@@ -75,6 +86,10 @@ struct TaskRow: View {
     self.onSubtaskDeleted = onSubtaskDeleted
     self.onWhatsAppCopy = onWhatsAppCopy
     self.onSubtaskExpansionChanged = onSubtaskExpansionChanged
+    self.splitStore = splitStore
+    self.bodyMode = bodyMode
+    self.suppressCardChrome = suppressCardChrome
+    _splitStoreObject = ObservedObject(wrappedValue: splitStore ?? .unused)
 
     // UIKit recycle: 1º frame já expandido — onAppear false→true saltava a lista no fling.
     let seedOpen =
@@ -104,6 +119,78 @@ struct TaskRow: View {
     }
   }
 
+
+  private var usesSplitStore: Bool { splitStore != nil }
+
+  private var rowExpanded: Bool {
+    usesSplitStore ? splitStoreObject.expanded : expanded
+  }
+  private func setRowExpanded(_ value: Bool) {
+    if usesSplitStore { splitStoreObject.expanded = value } else { expanded = value }
+  }
+
+  private var rowRevealActive: Bool {
+    usesSplitStore ? splitStoreObject.subtaskRevealActive : subtaskRevealActive
+  }
+  private func setRowRevealActive(_ value: Bool) {
+    if usesSplitStore { splitStoreObject.subtaskRevealActive = value } else { subtaskRevealActive = value }
+  }
+
+  private var rowRevealLayoutPass: Int {
+    usesSplitStore ? splitStoreObject.subtaskRevealLayoutPass : subtaskRevealLayoutPass
+  }
+  private func bumpSubtaskRevealLayout() {
+    if usesSplitStore {
+      splitStoreObject.subtaskRevealLayoutPass &+= 1
+    } else {
+      subtaskRevealLayoutPass &+= 1
+    }
+  }
+
+  private var rowSnapRevealOpen: Bool {
+    usesSplitStore ? splitStoreObject.snapRevealOpen : snapRevealOpen
+  }
+  private func setRowSnapRevealOpen(_ value: Bool) {
+    if usesSplitStore { splitStoreObject.snapRevealOpen = value } else { snapRevealOpen = value }
+  }
+
+  private var rowDisplaySubtasks: [Subtask] {
+    get { usesSplitStore ? splitStoreObject.displaySubtasks : displaySubtasks }
+    nonmutating set {
+      if usesSplitStore { splitStoreObject.displaySubtasks = newValue } else { displaySubtasks = newValue }
+    }
+  }
+
+  private var rowSubtasksDone: [Bool] {
+    get { usesSplitStore ? splitStoreObject.subtasksDone : subtasksDone }
+    nonmutating set {
+      if usesSplitStore { splitStoreObject.subtasksDone = newValue } else { subtasksDone = newValue }
+    }
+  }
+
+  private var rowSubtaskSortHoldId: String? {
+    get { usesSplitStore ? splitStoreObject.subtaskSortHoldId : subtaskSortHoldId }
+    nonmutating set {
+      if usesSplitStore { splitStoreObject.subtaskSortHoldId = newValue } else { subtaskSortHoldId = newValue }
+    }
+  }
+
+  private var rowLabelCatalog: [TaskLabel] {
+    get { usesSplitStore ? splitStoreObject.labelCatalog : labelCatalog }
+    nonmutating set {
+      if usesSplitStore { splitStoreObject.labelCatalog = newValue } else { labelCatalog = newValue }
+    }
+  }
+
+  private var rowSubtaskReorderTask: _Concurrency.Task<Void, Never>? {
+    get {
+      usesSplitStore ? splitStoreObject.subtaskReorderTask : subtaskReorderTask
+    }
+    nonmutating set {
+      if usesSplitStore { splitStoreObject.subtaskReorderTask = newValue } else { subtaskReorderTask = newValue }
+    }
+  }
+
   var body: some View {
     switch style {
     case .card: cardBody(light: false)
@@ -120,28 +207,37 @@ struct TaskRow: View {
     // Clip estável sempre — ligar/desligar clip no expand destruía a árvore e
     // o chevron de subtarefas no Balões light precisava de vários toques.
 
-    return VStack(spacing: 0) {
-      rowHeader(expandTrailing: 8, expandTop: 8)
-        // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
-        .frame(height: headerHeight)
-
-      subtasksExpansion
-    }
-    // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight)
-    .frame(minHeight: headerHeight)
-    .background {
-      if light {
-        shape
-          .fill(cardSurfaceFill(light: true))
-          .overlay {
-            shape.strokeBorder(c.textPrimary.opacity(0.055), lineWidth: 1)
-          }
-      } else {
-        shape.fill(cardSurfaceFill(light: false))
+    // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
+    let core = VStack(spacing: 0) {
+      if bodyMode != .panelOnly {
+        rowHeader(expandTrailing: 8, expandTop: 8)
+          .frame(height: headerHeight)
+      }
+      if bodyMode != .headerOnly {
+        subtasksExpansion
       }
     }
-    .clipShape(shape)
-    // Todoist: lift no card inteiro; âncora continua no header.
+    .frame(minHeight: bodyMode == .panelOnly ? 0 : headerHeight)
+
+    return Group {
+      if suppressCardChrome {
+        core
+      } else {
+        core
+          .background {
+            if light {
+              shape
+                .fill(cardSurfaceFill(light: true))
+                .overlay {
+                  shape.strokeBorder(c.textPrimary.opacity(0.055), lineWidth: 1)
+                }
+            } else {
+              shape.fill(cardSurfaceFill(light: false))
+            }
+          }
+          .clipShape(shape)
+      }
+    }
     .taskContextMenuLiftHost()
     .accessibilityElement(children: .combine)
     .accessibilityLabel(taskAccessibilityLabel)
@@ -154,17 +250,21 @@ struct TaskRow: View {
     let expandTrailing: CGFloat = premium ? 10 : 12
     let expandTop: CGFloat = premium ? 6 : 8
 
+    // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
     return VStack(spacing: 0) {
-      rowHeader(expandTrailing: expandTrailing, expandTop: expandTop)
-        .opacity(task.done ? 0.45 : 1)
-        // PERF_FASEB2_ETAPA3: altura exata do header
-        .frame(height: headerHeight)
-
-      if !premium {
-        TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
+      if bodyMode != .panelOnly {
+        rowHeader(expandTrailing: expandTrailing, expandTop: expandTop)
+          .opacity(task.done ? 0.45 : 1)
+          .frame(height: headerHeight)
       }
 
-      subtasksExpansion
+      if bodyMode != .headerOnly {
+        if !premium && bodyMode == .full {
+          TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
+        }
+
+        subtasksExpansion
+      }
     }
     .overlay(alignment: .bottom) {
       if premium {
@@ -187,14 +287,14 @@ struct TaskRow: View {
       subtaskCount: task.subtasks.count,
       subtasksRevision: taskSubtasksRevision,
       deferHeavyWork: deferHeavyWork,
-      expanded: expanded,
-      shouldLoadLabels: task.hasSubtasks && allLabels.isEmpty && labelCatalog.isEmpty,
+      expanded: rowExpanded,
+      shouldLoadLabels: task.hasSubtasks && allLabels.isEmpty && rowLabelCatalog.isEmpty,
       onAppearRow: handleRowAppear,
       onSubtasksChanged: handleSubtasksChanged,
       onTaskIdentityChanged: handleTaskIdentityChanged,
       onHeavyWorkAllowed: handleHeavyWorkAllowed,
       onLoadLabels: {
-        labelCatalog = await LabelCatalogCache.labels()
+        rowLabelCatalog = await LabelCatalogCache.labels()
         bumpSubtaskRevealLayout()
       }
     )
@@ -231,17 +331,16 @@ struct TaskRow: View {
       || task.commentCount > 0
   }
 
-  private func bumpSubtaskRevealLayout() {
-    subtaskRevealLayoutPass &+= 1
-  }
-
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
     let showsWhatsApp = showsWhatsAppCopyButton
     // Empilhados na rail: só uma coluna (~40pt), não 80pt lado a lado.
     let expandReserve: CGFloat = (task.hasSubtasks || showsWhatsApp) ? 40 : 0
     let centerTitle = centersTitleInRow
     let trailingBottom: CGFloat = 6
+    let headerH = exactHeaderHeight
 
+    // Chevron/WhatsApp em overlay no header de altura FIXA — no grow da cell UIKit,
+    // `maxHeight: .infinity` + Spacer fazia o chevron descer ao centro do card e voltar.
     return ZStack(alignment: centerTitle ? .leading : .topLeading) {
       taskContentTapArea(expandReserve: expandReserve)
 
@@ -263,24 +362,28 @@ struct TaskRow: View {
         Spacer(minLength: 0)
 
         if task.hasSubtasks || showsWhatsApp {
-          VStack(spacing: 0) {
-            if task.hasSubtasks {
-              expandButton
-                .padding(.top, expandTop)
-                .disabled(!rowInteractionsEnabled)
-            }
-            Spacer(minLength: 0)
-            if showsWhatsApp, let onWhatsAppCopy {
-              whatsAppCopyButton(action: onWhatsAppCopy)
-                .padding(.bottom, trailingBottom)
-            }
-          }
-          .padding(.trailing, expandTrailing)
+          Color.clear
+            .frame(width: 44)
+            .padding(.trailing, expandTrailing)
         }
       }
     }
-    // PERF_FASEB2_ETAPA3: .frame(minHeight: AppLayout.taskRowHeight) — altura vem do pai.
-    .frame(maxHeight: .infinity)
+    .frame(height: headerH, alignment: .topLeading)
+    .overlay(alignment: .topTrailing) {
+      if task.hasSubtasks {
+        expandButton
+          .padding(.top, expandTop)
+          .padding(.trailing, expandTrailing)
+          .disabled(!rowInteractionsEnabled)
+      }
+    }
+    .overlay(alignment: .bottomTrailing) {
+      if showsWhatsApp, let onWhatsAppCopy {
+        whatsAppCopyButton(action: onWhatsAppCopy)
+          .padding(.bottom, trailingBottom)
+          .padding(.trailing, expandTrailing)
+      }
+    }
     // Âncora só no header — lift visual fica no container (card/lista).
     .taskContextMenuAnchorHost()
   }
@@ -353,14 +456,14 @@ struct TaskRow: View {
 
   @ViewBuilder
   private var subtasksExpansion: some View {
-    if task.hasSubtasks, subtaskRevealActive {
+    if task.hasSubtasks, rowRevealActive {
       SubtaskExpandReveal(
-        expanded: expanded,
+        expanded: rowExpanded,
         reduceMotion: reduceMotion,
-        layoutPass: subtaskRevealLayoutPass,
+        layoutPass: rowRevealLayoutPass,
         contentRevision: subtaskRevealContentRevision,
         stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell,
-        snapOpen: snapRevealOpen,
+        snapOpen: rowSnapRevealOpen,
         // Fill opaco no clip (Balões e Balões light) — translucido no UIView
         // compostava sobre preto e deixava vão claro na curva inferior.
         panelFill: style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : nil
@@ -448,7 +551,7 @@ struct TaskRow: View {
       toggleSubtaskExpansion()
     } label: {
       SubtaskExpandChevron(
-        expanded: expanded,
+        expanded: rowExpanded,
         stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell,
         taskId: task.id
       )
@@ -456,7 +559,9 @@ struct TaskRow: View {
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .accessibilityLabel(expanded ? "Recolher subtarefas" : "Expandir subtarefas")
+    // ui-ux-pro-max: não herdar animação de layout do `expanded` (CLS no open).
+    .transaction { $0.animation = nil }
+    .accessibilityLabel(rowExpanded ? "Recolher subtarefas" : "Expandir subtarefas")
     .accessibilityValue("\(displayedSubtasksDone) de \(displayedSubtasksTotal) concluídas")
   }
 
@@ -472,8 +577,8 @@ struct TaskRow: View {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
       }
 
-      ForEach(Array(displaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
-        let done = index < subtasksDone.count ? subtasksDone[index] : sub.done
+      ForEach(Array(rowDisplaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
+        let done = index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
         // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
         let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !sub.labelIds.isEmpty
@@ -541,7 +646,7 @@ struct TaskRow: View {
         .padding(.leading, subtaskLeading)
         .padding(.trailing, 12)
 
-        if index < displaySubtasks.count - 1 {
+        if index < rowDisplaySubtasks.count - 1 {
           TaskExpandDivider(
             indent: style.isCardFamily
               ? TaskExpandDividerStyle.cardSubtaskInset
@@ -634,8 +739,8 @@ struct TaskRow: View {
   private func deleteInlineSubtask(_ sub: Subtask) {
     HapticService.warning()
     let key = subtaskHoldKey(sub)
-    displaySubtasks.removeAll { subtaskHoldKey($0) == key }
-    subtasksDone = displaySubtasks.map(\.done)
+    rowDisplaySubtasks.removeAll { subtaskHoldKey($0) == key }
+    rowSubtasksDone = rowDisplaySubtasks.map(\.done)
 
     guard let id = sub.id, !id.isEmpty else {
       onSubtaskDeleted?(sub)
@@ -657,23 +762,23 @@ struct TaskRow: View {
   }
 
   private func resolvedLabels(for sub: Subtask) -> [TaskLabel] {
-    let source = !allLabels.isEmpty ? allLabels : labelCatalog
+    let source = !allLabels.isEmpty ? allLabels : rowLabelCatalog
     return sub.labelIds.compactMap { id in source.first(where: { $0.id == id }) }
   }
 
   private var displayedSubtasksDone: Int {
     // PERF_FASEB2_ETAPA4: subtasksDone.isEmpty ? task.subtasks.filter(\.done).count : ...
-    subtasksDone.isEmpty ? task.subtasksDoneCount : subtasksDone.filter { $0 }.count
+    rowSubtasksDone.isEmpty ? task.subtasksDoneCount : rowSubtasksDone.filter { $0 }.count
   }
 
   private var displayedSubtasksTotal: Int {
     // PERF_FASEB2_ETAPA4: subtasksDone.isEmpty ? task.subtasks.count : ...
-    subtasksDone.isEmpty ? task.subtasksTotalCount : subtasksDone.count
+    rowSubtasksDone.isEmpty ? task.subtasksTotalCount : rowSubtasksDone.count
   }
 
   private var displayedSubtasksCounterLabel: String? {
     guard displayedSubtasksTotal > 0 else { return nil }
-    if subtasksDone.isEmpty, let memo = task.subtasksCounterLabel {
+    if rowSubtasksDone.isEmpty, let memo = task.subtasksCounterLabel {
       return memo
     }
     return "\(displayedSubtasksDone)/\(displayedSubtasksTotal)"
@@ -682,15 +787,15 @@ struct TaskRow: View {
   /// Só muda quando subtarefas / done / labels mudam — evita reassign do UIHostingController no scroll.
   private var subtaskRevealContentRevision: Int {
     var hasher = Hasher()
-    hasher.combine(displaySubtasks.count)
-    hasher.combine(labelCatalog.count)
-    for label in labelCatalog {
+    hasher.combine(rowDisplaySubtasks.count)
+    hasher.combine(rowLabelCatalog.count)
+    for label in rowLabelCatalog {
       hasher.combine(label.id)
     }
-    for (index, sub) in displaySubtasks.enumerated() {
+    for (index, sub) in rowDisplaySubtasks.enumerated() {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.title)
-      hasher.combine(index < subtasksDone.count ? subtasksDone[index] : sub.done)
+      hasher.combine(index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done)
       hasher.combine(sub.dueDateChipLabel)
       hasher.combine(sub.timeDisplay)
       hasher.combine(sub.description)
@@ -701,7 +806,7 @@ struct TaskRow: View {
 
   private func handleRowAppear() {
     // PERF_FASEC1: sort/sync só com painel aberto — idle usa counters do Task.
-    if expanded || subtaskRevealActive {
+    if rowExpanded || rowRevealActive {
       syncSubtasks()
     }
     if restoreExpansionOnAppear, !deferHeavyWork {
@@ -710,20 +815,20 @@ struct TaskRow: View {
   }
 
   private func handleSubtasksChanged() {
-    guard expanded || subtaskRevealActive else { return }
-    let previousCount = displaySubtasks.count
+    guard rowExpanded || rowRevealActive else { return }
+    let previousCount = rowDisplaySubtasks.count
     syncSubtasks()
-    if expanded, task.subtasks.count != previousCount {
+    if rowExpanded, task.subtasks.count != previousCount {
       bumpSubtaskRevealLayout()
     }
   }
 
   private func handleTaskIdentityChanged() {
-    displaySubtasks = []
-    subtasksDone = []
-    expanded = false
-    subtaskRevealActive = false
-    snapRevealOpen = false
+    rowDisplaySubtasks = []
+    rowSubtasksDone = []
+    setRowExpanded(false)
+    setRowRevealActive(false)
+    setRowSnapRevealOpen(false)
     if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
     }
@@ -733,44 +838,47 @@ struct TaskRow: View {
     if restoreExpansionOnAppear {
       restoreSubtaskExpansionIfNeeded()
     }
-    guard expanded, subtaskRevealActive else { return }
+    guard rowExpanded, rowRevealActive else { return }
     _Concurrency.Task { @MainActor in
-      if allLabels.isEmpty, labelCatalog.isEmpty {
-        labelCatalog = await LabelCatalogCache.labels()
+      if allLabels.isEmpty, rowLabelCatalog.isEmpty {
+        rowLabelCatalog = await LabelCatalogCache.labels()
       }
       bumpSubtaskRevealLayout()
     }
   }
 
   private func toggleSubtaskExpansion() {
-    if !subtaskRevealActive {
+    if !rowRevealActive {
       syncSubtasks()
-      subtaskRevealActive = true
+      setRowRevealActive(true)
       if stabilizeExpandInSelfSizingCell {
         // Uma passagem: sem yield/AppMotion no `expanded` (isso deslocava o título na cell).
-        expanded = true
+        // Sem Transaction.disablesAnimations — isso impedia o UIViewRepresentable de aplicar a altura.
+        setRowExpanded(true)
+        bumpSubtaskRevealLayout()
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
         onSubtaskExpansionChanged?(true)
         return
       }
-      expanded = false
+      setRowExpanded(false)
       _Concurrency.Task { @MainActor in
         await _Concurrency.Task.yield()
-        guard subtaskRevealActive else { return }
+        guard rowRevealActive else { return }
         AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
-          expanded = true
+          setRowExpanded(true)
         }
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
         onSubtaskExpansionChanged?(true)
       }
       return
     }
-    let willExpand = !expanded
+    let willExpand = !rowExpanded
     if stabilizeExpandInSelfSizingCell {
-      expanded = willExpand
+      setRowExpanded(willExpand)
+      if willExpand { bumpSubtaskRevealLayout() }
     } else {
       AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
-        expanded = willExpand
+        setRowExpanded(willExpand)
       }
     }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
@@ -791,34 +899,34 @@ struct TaskRow: View {
     }
     _Concurrency.Task { @MainActor in
       try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
-      guard !expanded else { return }
-      subtaskRevealActive = false
-      snapRevealOpen = false
+      guard !rowExpanded else { return }
+      setRowRevealActive(false)
+      setRowSnapRevealOpen(false)
     }
   }
 
   private func restoreSubtaskExpansionIfNeeded() {
     guard task.hasSubtasks else {
-      expanded = false
-      subtaskRevealActive = false
-      snapRevealOpen = false
+      setRowExpanded(false)
+      setRowRevealActive(false)
+      setRowSnapRevealOpen(false)
       return
     }
     let saved = ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id)
     guard saved else {
-      expanded = false
-      subtaskRevealActive = false
-      snapRevealOpen = false
+      setRowExpanded(false)
+      setRowRevealActive(false)
+      setRowSnapRevealOpen(false)
       return
     }
     // Já veio expandido do init (UIKit seed) — só garante lista e solta o snap.
-    if stabilizeExpandInSelfSizingCell, expanded, subtaskRevealActive {
-      if displaySubtasks.isEmpty { syncSubtasks() }
-      if snapRevealOpen {
+    if stabilizeExpandInSelfSizingCell, rowExpanded, rowRevealActive {
+      if rowDisplaySubtasks.isEmpty { syncSubtasks() }
+      if rowSnapRevealOpen {
         _Concurrency.Task { @MainActor in
           try? await _Concurrency.Task.sleep(for: .milliseconds(40))
-          guard expanded else { return }
-          snapRevealOpen = false
+          guard rowExpanded else { return }
+          setRowSnapRevealOpen(false)
         }
       }
       return
@@ -829,26 +937,26 @@ struct TaskRow: View {
       var transaction = Transaction()
       transaction.disablesAnimations = true
       withTransaction(transaction) {
-        snapRevealOpen = true
-        subtaskRevealActive = true
-        expanded = true
+        setRowSnapRevealOpen(true)
+        setRowRevealActive(true)
+        setRowExpanded(true)
       }
       bumpSubtaskRevealLayout()
       _Concurrency.Task { @MainActor in
         try? await _Concurrency.Task.sleep(for: .milliseconds(40))
-        guard expanded else { return }
-        snapRevealOpen = false
+        guard rowExpanded else { return }
+        setRowSnapRevealOpen(false)
       }
       return
     }
     // List SwiftUI: yield evita altura 0 no 1º frame do reveal.
-    subtaskRevealActive = true
-    expanded = false
+    setRowRevealActive(true)
+    setRowExpanded(false)
     _Concurrency.Task { @MainActor in
       await _Concurrency.Task.yield()
-      guard subtaskRevealActive,
+      guard rowRevealActive,
             ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id) else { return }
-      expanded = true
+      setRowExpanded(true)
       bumpSubtaskRevealLayout()
       try? await _Concurrency.Task.sleep(for: .milliseconds(50))
       bumpSubtaskRevealLayout()
@@ -857,15 +965,15 @@ struct TaskRow: View {
 
   private func syncSubtasks() {
     let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
-    if subtaskSortHoldId != nil, !displaySubtasks.isEmpty {
-      displaySubtasks = displaySubtasks.map { local in
+    if rowSubtaskSortHoldId != nil, !rowDisplaySubtasks.isEmpty {
+      rowDisplaySubtasks = rowDisplaySubtasks.map { local in
         sorted.first(where: { subtaskHoldKey($0) == subtaskHoldKey(local) }) ?? local
       }
-      subtasksDone = displaySubtasks.map(\.done)
+      rowSubtasksDone = rowDisplaySubtasks.map(\.done)
       return
     }
-    displaySubtasks = sorted
-    subtasksDone = sorted.map(\.done)
+    rowDisplaySubtasks = sorted
+    rowSubtasksDone = sorted.map(\.done)
   }
 
   private func subtaskHoldKey(_ sub: Subtask) -> String {
@@ -893,9 +1001,9 @@ struct TaskRow: View {
   }
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
-    guard index < subtasksDone.count else { return }
+    guard index < rowSubtasksDone.count else { return }
     guard sub.id != nil || sub.taskId != nil else { return }
-    let newDone = !subtasksDone[index]
+    let newDone = !rowSubtasksDone[index]
     if newDone {
       HapticService.taskCompleted()
     } else {
@@ -903,17 +1011,17 @@ struct TaskRow: View {
     }
 
     let holdKey = subtaskHoldKey(sub)
-    var updated = displaySubtasks
+    var updated = rowDisplaySubtasks
     updated[index] = subtaskWithDone(sub, done: newDone)
-    displaySubtasks = updated
-    subtasksDone[index] = newDone
+    rowDisplaySubtasks = updated
+    rowSubtasksDone[index] = newDone
 
     // Patch otimista no store ANTES do delay de reorder — senão fechar/abrir lê task velho.
     let snapshot = subtaskSnapshot(sub, done: newDone)
     onSubtaskChanged?(snapshot)
 
-    subtaskReorderTask?.cancel()
-    subtaskReorderTask = _Concurrency.Task { @MainActor in
+    rowSubtaskReorderTask?.cancel()
+    rowSubtaskReorderTask = _Concurrency.Task { @MainActor in
       // Persistência não depende do sleep de reorder (cancel matava o save).
       do {
         try await SubtaskRepository.shared.toggleDone(
@@ -926,8 +1034,8 @@ struct TaskRow: View {
         // Reverte store + UI se o backend falhar.
         onSubtaskChanged?(subtaskSnapshot(sub, done: !newDone))
         guard !_Concurrency.Task.isCancelled else { return }
-        if let idx = displaySubtasks.firstIndex(where: { subtaskHoldKey($0) == holdKey }) {
-          displaySubtasks[idx] = subtaskWithDone(displaySubtasks[idx], done: !newDone)
+        if let idx = rowDisplaySubtasks.firstIndex(where: { subtaskHoldKey($0) == holdKey }) {
+          rowDisplaySubtasks[idx] = subtaskWithDone(rowDisplaySubtasks[idx], done: !newDone)
           if idx < subtasksDone.count { subtasksDone[idx] = !newDone }
         }
         return
@@ -936,21 +1044,21 @@ struct TaskRow: View {
       guard !_Concurrency.Task.isCancelled else { return }
 
       if newDone {
-        subtaskSortHoldId = holdKey
+        rowSubtaskSortHoldId = holdKey
         if !reduceMotion {
           try? await _Concurrency.Task.sleep(for: AppMotion.subtaskCompleteReorderDelay)
         }
         guard !_Concurrency.Task.isCancelled else { return }
-        subtaskSortHoldId = nil
+        rowSubtaskSortHoldId = nil
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-          displaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
-          subtasksDone = displaySubtasks.map(\.done)
+          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          rowSubtasksDone = rowDisplaySubtasks.map(\.done)
         }
       } else {
-        subtaskSortHoldId = nil
+        rowSubtaskSortHoldId = nil
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
-          displaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
-          subtasksDone = displaySubtasks.map(\.done)
+          rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(displaySubtasks)
+          rowSubtasksDone = rowDisplaySubtasks.map(\.done)
         }
       }
 
@@ -1144,59 +1252,75 @@ private struct TaskRowScrollLifecycle: ViewModifier {
 }
 
 /// Chevron de expandir subtarefas — paridade web (`rotate-90`: → fechado, ↓ aberto).
+/// ui-ux-pro-max: animar só transform (não position/layout). Ícone e size iguais à seção.
 struct SubtaskExpandChevron: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let expanded: Bool
   var size: CGFloat = 12
-  /// Em cell self-sizing, spring no chevron + resize da cell = “pulo”. Ease curto fica estável.
   var stabilizeInSelfSizingCell: Bool = false
-  /// UIKIT_SCROLL_POLISH: id estável — reuse/restore não dispara `.animation`.
   var taskId: String = ""
 
-  @State private var boundTaskId: String = ""
-  @State private var animationsArmed = false
+  /// Ângulo local — `withAnimation` no open UIKit herdava o resize da cell (CLS).
+  @State private var angle: Double
+
+  init(
+    expanded: Bool,
+    size: CGFloat = 12,
+    stabilizeInSelfSizingCell: Bool = false,
+    taskId: String = ""
+  ) {
+    self.expanded = expanded
+    self.size = size
+    self.stabilizeInSelfSizingCell = stabilizeInSelfSizingCell
+    self.taskId = taskId
+    _angle = State(initialValue: expanded ? 0 : -90)
+  }
 
   var body: some View {
-    // UIKIT_SCROLL_POLISH: raster nearest encolhia o chevron vs .font(semibold).
-    // Volta ao vetor com o mesmo tamanho óptico de antes.
     StackedIcons.image(.chevronDown)
       .font(.system(size: size, weight: .semibold))
       .foregroundStyle(theme.colors.textTertiary)
-      .rotationEffect(.degrees(expanded ? 0 : -90))
-      // UIKIT_SCROLL_POLISH: .animation(chevronAnimation, value: expanded) sempre ligado
-      .animation(animationsArmed ? chevronAnimation : nil, value: expanded)
-      .onAppear { armAnimationsAfterBind() }
-      .onChange(of: taskId) { _, _ in armAnimationsAfterBind(reset: true) }
-  }
-
-  private var chevronAnimation: Animation? {
-    if reduceMotion { return nil }
-    if stabilizeInSelfSizingCell {
-      return .easeOut(duration: 0.18)
-    }
-    return AppMotion.subtaskChevronTurn(reduceMotion: false)
-  }
-
-  private func armAnimationsAfterBind(reset: Bool = false) {
-    if taskId.isEmpty {
-      animationsArmed = true
-      return
-    }
-    if reset || boundTaskId != taskId {
-      boundTaskId = taskId
-      animationsArmed = false
-      _Concurrency.Task { @MainActor in
-        await _Concurrency.Task.yield()
-        guard boundTaskId == taskId else { return }
-        animationsArmed = true
+      .rotationEffect(.degrees(angle))
+      // Só `angle` — nunca `expanded` (senão a posição anima com a cell).
+      .animation(chevronTurnAnimation, value: angle)
+      .onChange(of: taskId) { _, _ in
+        snapAngle(expanded ? 0 : -90)
       }
+      .onChange(of: expanded) { _, isOpen in
+        // UIKit open: ângulo no próximo turno — depois do layout da cell
+        // (mesmo frame = `.animation(value:)` ainda interpolava a posição).
+        if stabilizeInSelfSizingCell, isOpen {
+          DispatchQueue.main.async {
+            turn(to: true)
+          }
+        } else {
+          turn(to: isOpen)
+        }
+      }
+  }
+
+  private var chevronTurnAnimation: Animation? {
+    reduceMotion ? nil : AppMotion.subtaskChevronTurnSpring
+  }
+
+  private func snapAngle(_ value: Double) {
+    var t = Transaction()
+    t.disablesAnimations = true
+    withTransaction(t) { angle = value }
+  }
+
+  private func turn(to isOpen: Bool) {
+    let target: Double = isOpen ? 0 : -90
+    guard abs(angle - target) > 0.5 else { return }
+    if reduceMotion {
+      snapAngle(target)
       return
     }
-    if !animationsArmed {
-      animationsArmed = true
-    }
+    // Sem `withAnimation` — a Transaction global animava layout do header na cell UIKit.
+    // `.animation(_, value: angle)` gira só o ícone (mesma curva da seção).
+    angle = target
   }
 }
 

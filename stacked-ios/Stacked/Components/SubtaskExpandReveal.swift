@@ -113,6 +113,8 @@ final class SubtaskExpandContainerView: UIView {
   private var lastAppliedWidth: CGFloat = 0
   private var lastLayoutPass: Int = -1
   private var isAnimating = false
+  /// Remasure async precisa saber se o open usa pin (stabilize).
+  private var stabilizeSelfSizingParent = false
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -202,6 +204,7 @@ final class SubtaskExpandContainerView: UIView {
     snapOpen: Bool = false
   ) {
     attachHostedControllerIfNeeded()
+    self.stabilizeSelfSizingParent = stabilizeSelfSizingParent
 
     // Evita reentrada no meio do close.
     if isAnimating, !expanded, stabilizeSelfSizingParent {
@@ -274,6 +277,13 @@ final class SubtaskExpandContainerView: UIView {
       return
     }
 
+    // Abrir UIKit: cresce a altura e reâncora o offset — topo do card (chevron) fica parado.
+    // pinParent:false fazia o chevron “descer e voltar” no grow da collection.
+    if expanded, stabilizeSelfSizingParent {
+      expandWithPinnedParent(height: target, animated: shouldAnimate)
+      return
+    }
+
     applyVisibleHeight(
       target,
       expanded: expanded,
@@ -319,7 +329,11 @@ final class SubtaskExpandContainerView: UIView {
     fullHeight = measured
     hostHeightConstraint?.constant = measured
     clipHeightConstraint?.constant = measured
-    // Remeasure while já aberto — nunca pin/rouba scroll.
+    // Remeasure no open UIKit: mesmo pin do configure (topo/chevron parado).
+    if stabilizeSelfSizingParent, (selfHeightConstraint?.constant ?? 0) <= 0.5 {
+      expandWithPinnedParent(height: measured, animated: animated)
+      return
+    }
     applyVisibleHeight(measured, expanded: true, animated: animated, pinParent: false)
   }
 
@@ -543,6 +557,9 @@ final class SubtaskExpandContainerView: UIView {
         cell.setNeedsLayout()
         cell.layoutIfNeeded()
       }
+      // UIKIT_SCROLL_POLISH: após constraints internas em 0 — remedir panelHost (ICS).
+      // Sem layoutIfNeeded no panelHost ainda; só se validação mostrar vão residual.
+      self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
       collectionView?.layoutIfNeeded()
     }
     CATransaction.commit()
@@ -574,6 +591,8 @@ final class SubtaskExpandContainerView: UIView {
         cell.setNeedsLayout()
         cell.layoutIfNeeded()
       }
+      // UIKIT_SCROLL_POLISH: após constraints internas em 0 — remedir panelHost (ICS).
+      self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
       collectionView?.layoutIfNeeded()
       Self.restoreCellVisibleY(
         cell: self.enclosingCell(),
@@ -682,6 +701,15 @@ final class SubtaskExpandContainerView: UIView {
     var view: UIView? = superview
     while let current = view {
       if let collection = current as? UICollectionView { return collection }
+      view = current.superview
+    }
+    return nil
+  }
+
+  private func enclosingSplitRowView() -> UIKitSplitTaskRowView? {
+    var view: UIView? = superview
+    while let current = view {
+      if let split = current as? UIKitSplitTaskRowView { return split }
       view = current.superview
     }
     return nil

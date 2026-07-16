@@ -50,6 +50,8 @@ struct TaskContextMenu: ViewModifier {
   var onDuplicate: () -> Void
   var onDelete: () -> Void
   var onRefresh: () -> Void
+  /// UIKIT_SCROLL_POLISH: lift no container UIKit (split) — não no SwiftUI interno.
+  var onLiftPhaseChanged: ((TaskContextLiftPhase) -> Void)? = nil
 
   @State private var model = TaskContextMenuModel()
 
@@ -58,6 +60,11 @@ struct TaskContextMenu: ViewModifier {
     content
       .environment(\.taskContextMenuModel, model)
       .environment(\.openTaskContextMenu, { openContextMenu(at: $0) })
+      // UIKIT_SCROLL_POLISH: LiftHost interno vira no-op quando o split anima o card.
+      .environment(\.taskContextMenuExternalLift, onLiftPhaseChanged != nil)
+      .onChange(of: model.liftPhase) { _, phase in
+        onLiftPhaseChanged?(phase)
+      }
   }
 
   private func openContextMenu(at pressLocation: CGPoint? = nil) {
@@ -205,11 +212,15 @@ struct TaskContextMenu: ViewModifier {
 /// Lift visual do container (card/lista) — paridade Todoist: sobe o bloco inteiro.
 struct TaskContextMenuLiftHost: ViewModifier {
   @Environment(\.taskContextMenuModel) private var model
+  @Environment(\.taskContextMenuExternalLift) private var externalLift
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @ViewBuilder
   func body(content: Content) -> some View {
-    if let model {
+    // UIKIT_SCROLL_POLISH: no split, transform/sombra vêm do UIKitSplitTaskRowView.
+    if externalLift {
+      content
+    } else if let model {
       let lifted = model.isLifted
       content
         .scaleEffect(!reduceMotion && lifted ? TaskContextLift.scale : 1)
@@ -264,10 +275,20 @@ private struct OpenTaskContextMenuKey: EnvironmentKey {
   static let defaultValue: ((CGPoint?) -> Void)? = nil
 }
 
+private struct TaskContextMenuExternalLiftKey: EnvironmentKey {
+  static let defaultValue = false
+}
+
 extension EnvironmentValues {
   var openTaskContextMenu: ((CGPoint?) -> Void)? {
     get { self[OpenTaskContextMenuKey.self] }
     set { self[OpenTaskContextMenuKey.self] = newValue }
+  }
+
+  /// UIKIT_SCROLL_POLISH: true quando o lift é animado no UIKitSplitTaskRowView.
+  var taskContextMenuExternalLift: Bool {
+    get { self[TaskContextMenuExternalLiftKey.self] }
+    set { self[TaskContextMenuExternalLiftKey.self] = newValue }
   }
 }
 
@@ -278,7 +299,8 @@ extension View {
     onComplete: @escaping () -> Void,
     onDuplicate: @escaping () -> Void,
     onDelete: @escaping () -> Void,
-    onRefresh: @escaping () -> Void = {}
+    onRefresh: @escaping () -> Void = {},
+    onLiftPhaseChanged: ((TaskContextLiftPhase) -> Void)? = nil
   ) -> some View {
     modifier(TaskContextMenu(
       task: task,
@@ -286,7 +308,8 @@ extension View {
       onComplete: onComplete,
       onDuplicate: onDuplicate,
       onDelete: onDelete,
-      onRefresh: onRefresh
+      onRefresh: onRefresh,
+      onLiftPhaseChanged: onLiftPhaseChanged
     ))
   }
 

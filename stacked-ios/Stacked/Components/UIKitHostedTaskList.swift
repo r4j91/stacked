@@ -266,6 +266,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
 final class UIKitSizedTaskCell: UICollectionViewListCell {
   /// Preferida pelo layout da collection (antes do sizeThatFits do hosting).
   var lockedHeight: CGFloat?
+  /// UIKIT_SCROLL_POLISH: hosts separados header/painel.
+  var splitRowView: UIKitSplitTaskRowView?
 
   override func prepareForReuse() {
     super.prepareForReuse()
@@ -472,46 +474,47 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           cell.lockedHeight = nil
         }
 
-        cell.contentConfiguration = UIHostingConfiguration {
-          TaskRow(
-            task: task,
-            style: config.style,
-            flatSubtaskPanel: config.flatSubtaskQueue,
-            showProject: config.showProject,
-            deferHeavyWork: false,
-            // Recycle: init já seeda expansão — sem false→true no onAppear.
-            restoreExpansionOnAppear: true,
-            stabilizeExpandInSelfSizingCell: true,
-            onToggle: { config.onToggle(task) },
-            onTap: { config.onTap(task) },
-            onSubtaskTap: { config.onSubtaskTap(task, $0) },
-            onSubtaskChanged: config.onSubtaskChanged,
-            onSubtaskDeleted: { config.onSubtaskDeleted(task, $0) },
-            onWhatsAppCopy: config.onWhatsAppCopy.map { handler in { handler(task) } },
-            onSubtaskExpansionChanged: { [weak self] expanded in
-              self?.handleSubtaskExpansionChanged(taskId: taskId, expanded: expanded)
-            }
-          )
-          // Top-leading: no centro vertical durante o grow da cell (título “chutava”).
-          .frame(maxWidth: .infinity, alignment: .topLeading)
-          .padding(.top, insets.top)
-          .padding(.leading, insets.left)
-          .padding(.bottom, insets.bottom)
-          .padding(.trailing, insets.right)
-          .opacity(dimmed ? 0.7 : (muted ? 0.85 : 1))
-          .taskContextMenu(
-            task: task,
-            onEdit: { config.onEdit(task) },
-            onComplete: { config.onComplete(task) },
-            onDuplicate: { config.onDuplicate(task) },
-            onDelete: { config.onDelete(task) },
-            onRefresh: config.onRefresh
-          )
-          .environment(ThemeManager.shared)
-          .environment(MobileChromeController.shared)
+        // UIKIT_SCROLL_POLISH: era UIHostingConfiguration { TaskRow(...) } único —
+        // self-sizing recalculava o chevron com a altura do painel.
+        cell.contentConfiguration = nil
+        let split: UIKitSplitTaskRowView
+        if let existing = cell.splitRowView {
+          split = existing
+        } else {
+          split = UIKitSplitTaskRowView()
+          split.translatesAutoresizingMaskIntoConstraints = false
+          cell.contentView.addSubview(split)
+          NSLayoutConstraint.activate([
+            split.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
+            split.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
+            split.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
+            split.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
+          ])
+          cell.splitRowView = split
         }
-        .margins(.all, 0)
-        .minSize(height: headerMin)
+        split.apply(.init(
+          task: task,
+          style: config.style,
+          flatSubtaskQueue: config.flatSubtaskQueue,
+          showProject: config.showProject,
+          rowInsets: insets,
+          dimmed: dimmed,
+          muted: muted,
+          onToggle: { config.onToggle(task) },
+          onTap: { config.onTap(task) },
+          onSubtaskTap: { config.onSubtaskTap(task, $0) },
+          onSubtaskChanged: config.onSubtaskChanged,
+          onSubtaskDeleted: { config.onSubtaskDeleted(task, $0) },
+          onWhatsAppCopy: config.onWhatsAppCopy.map { handler in { handler(task) } },
+          onSubtaskExpansionChanged: { [weak self] expanded in
+            self?.handleSubtaskExpansionChanged(taskId: taskId, expanded: expanded)
+          },
+          onEdit: { config.onEdit(task) },
+          onComplete: { config.onComplete(task) },
+          onDuplicate: { config.onDuplicate(task) },
+          onDelete: { config.onDelete(task) },
+          onRefresh: config.onRefresh
+        ))
       }
     }
 
@@ -1064,6 +1067,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     // Solta lock durante a animação — senão a cell fica alta com card pequeno = buraco preto.
     if let cell = cellForTask(taskId) as? UIKitSizedTaskCell {
       cell.lockedHeight = nil
+      // UIKIT_SCROLL_POLISH: resistance dinâmica + invalidate no mesmo frame do toggle.
+      cell.splitRowView?.notifyExpansionChanged(expanded: expanded)
     }
 
     if expanded {
