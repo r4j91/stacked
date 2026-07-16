@@ -6,6 +6,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case moonstone
     case midnight
     case obsidian
+    case anthracite
     case slate
     case titanium
     case sodalite
@@ -13,6 +14,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case jade
     case aventurine
     case amazonite
+    case larimar
 
     var id: String { rawValue }
 
@@ -22,6 +24,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .moonstone: "Moonstone"
         case .midnight: "Midnight"
         case .obsidian: "Obsidian"
+        case .anthracite: "Anthracite"
         case .slate: "Slate"
         case .titanium: "Titanium"
         case .sodalite: "Sodalite"
@@ -29,6 +32,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .jade: "Jade"
         case .aventurine: "Aventurine"
         case .amazonite: "Amazonite"
+        case .larimar: "Larimar"
         }
     }
 
@@ -38,6 +42,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .moonstone: "Claro"
         case .midnight: "Escuro premium"
         case .obsidian: "Preto puro"
+        case .anthracite: "Cinza premium"
         case .slate: "Monocromático"
         case .titanium: "Escuro metálico"
         case .sodalite: "Azul profundo"
@@ -45,6 +50,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .jade: "Verde discreto"
         case .aventurine: "Verde profundo"
         case .amazonite: "Petróleo"
+        case .larimar: "Petróleo cinza"
         }
     }
 
@@ -63,6 +69,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x070808), Color(hex: 0x131515), Color(hex: 0x5E9474))
         case .amazonite:
             return (Color(hex: 0x070B0D), Color(hex: 0x12191C), Color(hex: 0x86ABB0))
+        case .anthracite:
+            return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x00D4D4))
+        case .larimar:
+            return (Color(hex: 0x141C1F), Color(hex: 0x1C262A), Color(hex: 0x86ABB0))
         default:
             let c = colors
             return (c.background, c.surface, c.accent)
@@ -75,6 +85,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .moonstone: .moonstone
         case .midnight: .midnight
         case .obsidian: .obsidian
+        case .anthracite: .anthracite
         case .slate: .slate
         case .titanium: .titanium
         case .sodalite: .sodalite
@@ -82,6 +93,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .jade: .jade
         case .aventurine: .aventurine
         case .amazonite: .amazonite
+        case .larimar: .larimar
         }
     }
 }
@@ -182,6 +194,25 @@ struct AppThemeColors: Equatable {
         fabGradientEnd: Color(hex: 0x00D4D4),
         folderTint: Color(hex: 0x00D4D4),
         navBar: Color(hex: 0x111111),
+        isDark: true
+    )
+
+    /// Anthracite — variante Obsidian com fundo cinza premium (não preto puro).
+    static let anthracite = AppThemeColors(
+        background: Color(hex: 0x1A1A1A),
+        surface: Color(hex: 0x242424),
+        surfaceVariant: Color(hex: 0x2E2E2E),
+        textPrimary: Color(hex: 0xF0F0F0),
+        textSecondary: Color(hex: 0x8A8A8A),
+        textTertiary: Color(hex: 0x5A5A5A),
+        accent: Color(hex: 0x00D4D4),
+        onAccent: Color(hex: 0x1A1A1A),
+        actionAccent: Color(hex: 0x00D4D4),
+        onActionAccent: Color(hex: 0x1A1A1A),
+        fabGradientStart: Color(hex: 0x00D4D4),
+        fabGradientEnd: Color(hex: 0x00D4D4),
+        folderTint: Color(hex: 0x00D4D4),
+        navBar: Color(hex: 0x1F1F1F),
         isDark: true
     )
 
@@ -311,6 +342,25 @@ struct AppThemeColors: Equatable {
         fabGradientEnd: Color(hex: 0x6B8F95),
         folderTint: Color(hex: 0x86ABB0),
         navBar: Color(hex: 0x12191C),
+        isDark: true
+    )
+
+    /// Larimar — variante Amazonite com fundo cinza-petróleo elevado.
+    static let larimar = AppThemeColors(
+        background: Color(hex: 0x141C1F),
+        surface: Color(hex: 0x1C262A),
+        surfaceVariant: Color(hex: 0x263236),
+        textPrimary: Color(hex: 0xE5EBEC),
+        textSecondary: Color(hex: 0x8EA0A3),
+        textTertiary: Color(hex: 0x5C6B6E),
+        accent: Color(hex: 0x86ABB0),
+        onAccent: Color(hex: 0x0E1518),
+        actionAccent: Color(hex: 0x86ABB0),
+        onActionAccent: Color(hex: 0x0E1518),
+        fabGradientStart: Color(hex: 0xA3C6CB),
+        fabGradientEnd: Color(hex: 0x6B8F95),
+        folderTint: Color(hex: 0x86ABB0),
+        navBar: Color(hex: 0x1C262A),
         isDark: true
     )
 }
