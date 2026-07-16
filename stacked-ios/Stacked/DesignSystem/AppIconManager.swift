@@ -30,17 +30,24 @@ enum AppIconId: String, CaseIterable, Identifiable {
     case .grafite: "Grafite"
     case .fosco: "Fosco"
     case .titanio: "Titânio"
-    case .cinzaEscuro: "Cinza Escuro"
-    case .cinzaMedio: "Cinza Médio"
-    case .azulNevoa: "Azul Névoa"
-    case .azulOceano: "Azul Oceano"
+    case .cinzaEscuro: "Cinza escuro"
+    case .cinzaMedio: "Cinza médio"
+    case .azulNevoa: "Azul névoa"
+    case .azulOceano: "Azul oceano"
     }
   }
 
   var subtitle: String {
     switch self {
-    case .default: "Ícone atual"
-    default: "Variante \(displayName)"
+    case .default: "Ícone principal"
+    case .carvao: "Preto profundo"
+    case .grafite: "Cinza frio"
+    case .fosco: "Acabamento fosco"
+    case .titanio: "Tom metálico"
+    case .cinzaEscuro: "Cinza mais escuro"
+    case .cinzaMedio: "Cinza equilibrado"
+    case .azulNevoa: "Azul suave"
+    case .azulOceano: "Azul intenso"
     }
   }
 

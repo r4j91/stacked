@@ -13,7 +13,7 @@ struct ProductivitySettingsView: View {
           HStack(spacing: 12) {
             settingsLabel(
               icon: "text.alignleft",
-              title: "Descrição no Quick Add",
+              title: "Descrição ao criar",
               subtitle: "Campo de notas abaixo do título ao criar tarefas"
             )
             Spacer(minLength: 8)

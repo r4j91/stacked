@@ -62,7 +62,7 @@ struct SettingsView: View {
           NavigationLink {
             ProductivitySettingsView().environment(theme)
           } label: {
-            settingsRow(icon: .productivity, label: "Captura rápida", subtitle: "Descrição no Quick Add")
+            settingsRow(icon: .productivity, label: "Captura rápida", subtitle: "Descrição ao criar tarefas")
           }
           .settingsNavigationLinkStyle()
           .settingsGroupedNavigationRow(position: .first, showDivider: true)
@@ -70,7 +70,7 @@ struct SettingsView: View {
           NavigationLink {
             DetailNotesSettingsView().environment(theme)
           } label: {
-            settingsRow(icon: .edit, label: "Detalhe da tarefa", subtitle: "Notas em painel ou inline")
+            settingsRow(icon: .edit, label: "Detalhe da tarefa", subtitle: "Notas no menu ou sob o título")
           }
           .settingsNavigationLinkStyle()
           .settingsGroupedNavigationRow(position: .last)
@@ -82,7 +82,7 @@ struct SettingsView: View {
           NavigationLink {
             LabelsManagementView().environment(theme)
           } label: {
-            settingsRow(icon: .tag, label: "Gerenciar Etiquetas", subtitle: "Criar e editar")
+            settingsRow(icon: .tag, label: "Etiquetas", subtitle: "Criar e editar")
           }
           .settingsNavigationLinkStyle()
           .settingsGroupedNavigationRow(position: .first, showDivider: true)

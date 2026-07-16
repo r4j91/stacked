@@ -66,7 +66,7 @@ struct AppearanceView: View {
           summary: navBarStyle.displayName,
           footer: isIslandNavStyle
             ? nil
-            : "O botão + na barra só funciona no estilo Ilha."
+            : "O botão + integrado só está disponível no estilo Ilha."
         ) {
           ForEach(Array(navStyles.enumerated()), id: \.element) { index, style in
             navBarStyleRow(style)
@@ -80,7 +80,7 @@ struct AppearanceView: View {
 
         appearancePanel(
           id: .scrollFluidity,
-          title: "Scroll e listas",
+          title: "Barra e listas",
           summary: scrollFluiditySummary,
           footer: scrollFluidityFooter
         ) {
@@ -99,7 +99,7 @@ struct AppearanceView: View {
           id: .homeHero,
           title: "Hero da Home",
           summary: homeHeroStyle.displayName,
-          footer: "Toque em ⋯ para ocultar um estilo do menu."
+          footer: "Use ⋯ para ocultar um estilo. Você pode restaurá-lo depois."
         ) {
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
             let styles = HomeHeroStyle.styles(in: group)
@@ -130,7 +130,7 @@ struct AppearanceView: View {
             id: .hiddenHeroes,
             title: "Estilos ocultos",
             summary: "\(hiddenStyles.count)",
-            footer: "Toque em Restaurar para o estilo voltar ao menu."
+            footer: "Toque em Restaurar para devolver o estilo ao menu."
           ) {
             ForEach(Array(hiddenStyles.enumerated()), id: \.element) { index, style in
               hiddenHeroStyleRow(style)
@@ -146,7 +146,7 @@ struct AppearanceView: View {
             id: .appIcon,
             title: "Ícone do app",
             summary: iconManager.currentId.displayName,
-            footer: "O iPhone pede confirmação ao trocar o ícone."
+            footer: "O iPhone pede confirmação antes de trocar o ícone."
           ) {
             ForEach(Array(icons.enumerated()), id: \.element) { index, iconId in
               iconRow(iconId)
@@ -173,27 +173,27 @@ struct AppearanceView: View {
       }
     }
     .alert(
-      "Excluir este estilo?",
+      "Ocultar este estilo?",
       isPresented: Binding(
         get: { stylePendingHide != nil },
         set: { if !$0 { stylePendingHide = nil } }
       ),
       presenting: stylePendingHide
     ) { style in
-      Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+      Button("Ocultar \"\(style.displayName)\"", role: .destructive) {
         hideHeroStyle(style)
       }
-      Button("Cancelar", role: .cancel) {
+      Button("Manter no menu", role: .cancel) {
         stylePendingHide = nil
       }
     } message: { style in
-      Text("Só “\(style.displayName)” some do menu. Dá para restaurar depois em Estilos ocultos.")
+      Text("“\(style.displayName)” some do menu. Dá para restaurar depois em Estilos ocultos.")
     }
     .alert("Não foi possível trocar o ícone", isPresented: Binding(
       get: { iconErrorMessage != nil },
       set: { if !$0 { iconErrorMessage = nil } }
     )) {
-      Button("OK", role: .cancel) { iconErrorMessage = nil }
+      Button("Entendi", role: .cancel) { iconErrorMessage = nil }
     } message: {
       Text(iconErrorMessage ?? "")
     }
@@ -306,26 +306,26 @@ struct AppearanceView: View {
 
   private var scrollFluiditySummary: String {
     if useUIKitTaskList { return "Listas mais fluidas" }
-    if disableAllGlass { return "Sem efeito glass" }
-    if alwaysStaticGlass { return "Glass estático" }
-    if alwaysFrozenDockGlass { return "Barra sem glass" }
-    return freezeDockGlassWhileScrolling ? "Glass pausado ao rolar" : "Glass ao vivo"
+    if disableAllGlass { return "Sem translucidez" }
+    if alwaysStaticGlass { return "Efeito quieto" }
+    if alwaysFrozenDockGlass { return "Barra sem efeito" }
+    return freezeDockGlassWhileScrolling ? "Efeito pausado ao rolar" : "Efeito ao vivo"
   }
 
   private var scrollFluidityFooter: String {
     if useUIKitTaskList {
-      return "Listas de tarefas rolam com menos trancos. Desligue se preferir o modo anterior."
+      return "Listas de tarefas rolam com menos trancos. Desligue para voltar ao modo anterior."
     }
     if disableAllGlass {
-      return "Barra e botões opacos. Para fundo translúcido quieto, use Glass estático."
+      return "Barra e botões ficam opacos. Para translucidez sem animação, use Efeito quieto."
     }
     if alwaysStaticGlass {
-      return "Fundos translúcidos quietos, sem animação do efeito."
+      return "Fundo translúcido sem animação do efeito."
     }
     if alwaysFrozenDockGlass {
-      return "Só a barra de navegação fica quieta; o restante continua ao vivo."
+      return "Só a barra fica sem efeito; o restante continua ao vivo."
     }
-    return "Pausar ao rolar congela a barra. Glass estático deixa tudo quieto. Desativar glass remove a translucidez."
+    return "Pausar ao rolar congela a barra. Efeito quieto deixa tudo estável. Sem translucidez remove o efeito."
   }
 
   // MARK: - Rows
@@ -336,10 +336,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Glass estático")
+        Text("Efeito quieto")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Fundo translúcido quieto, sem animação.")
+        Text("Fundo translúcido, sem animação.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -362,10 +362,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Desativar glass")
+        Text("Sem translucidez")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Fundo opaco; não mostra o que passa atrás.")
+        Text("Fundo opaco, sem mostrar o que passa atrás.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -387,7 +387,7 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Pausar glass ao rolar")
+        Text("Pausar efeito ao rolar")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
         Text("Congela o efeito da barra enquanto a lista rola.")
@@ -413,10 +413,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Barra sem glass")
+        Text("Barra sem efeito")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Só a barra fica quieta; ainda dá para ver atrás.")
+        Text("Só a barra fica sem efeito; ainda dá para ver atrás.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -441,7 +441,7 @@ struct AppearanceView: View {
         Text("Listas mais fluidas")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Rolar das listas fica mais suave. Desligue para o modo anterior.")
+        Text("Rolagem das listas mais suave. Desligue para o modo anterior.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -577,7 +577,7 @@ struct AppearanceView: View {
       .buttonStyle(.plain)
       .contextMenu {
         if style.canHideFromPicker {
-          Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+          Button("Ocultar \"\(style.displayName)\"", role: .destructive) {
             stylePendingHide = style
           }
         }
@@ -587,7 +587,7 @@ struct AppearanceView: View {
 
       if style.canHideFromPicker {
         Menu {
-          Button("Excluir \"\(style.displayName)\"", role: .destructive) {
+          Button("Ocultar \"\(style.displayName)\"", role: .destructive) {
             stylePendingHide = style
           }
         } label: {

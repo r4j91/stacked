@@ -13,8 +13,8 @@ struct DetailNotesSettingsView: View {
           HStack(spacing: 12) {
             settingsLabel(
               icon: "note.text",
-              title: "Notas em painel",
-              subtitle: "No detalhe, editor de notas no menu ancorado. Desligado usa o campo sob o título"
+              title: "Notas no menu",
+              subtitle: "No detalhe, abre o editor pelo menu. Desligado usa o campo sob o título."
             )
             Spacer(minLength: 8)
             SettingsSwitchToggle(
