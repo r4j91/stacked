@@ -45,6 +45,23 @@ final class ProjectDetailCache {
     )
   }
 
+  func applyTaskSnapshot(_ task: Task) {
+    for (projectId, var snapshot) in cache {
+      let pendingIndex = snapshot.pending.firstIndex { $0.id == task.id }
+      let completedIndex = snapshot.completed.firstIndex { $0.id == task.id }
+      snapshot.pending.removeAll { $0.id == task.id }
+      snapshot.completed.removeAll { $0.id == task.id }
+      if task.projectId == projectId {
+        if task.done {
+          snapshot.completed.insert(task, at: min(completedIndex ?? 0, snapshot.completed.count))
+        } else {
+          snapshot.pending.insert(task, at: min(pendingIndex ?? 0, snapshot.pending.count))
+        }
+      }
+      cache[projectId] = snapshot
+    }
+  }
+
   /// Virada de dia: reavalia chips de todos os snapshots em memória.
   func refreshRelativeDateChips() {
     for (id, snap) in cache {

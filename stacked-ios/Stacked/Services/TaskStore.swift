@@ -21,7 +21,9 @@ final class TaskStore {
   private(set) var inboxLoading = false
   private(set) var inboxError: String?
 
-  private init() {}
+  private init() {
+    TaskCardMutationCenter.register(self)
+  }
 
   private(set) var todayOverdue: [Task] = []
   private(set) var todayOverdueItems: [ScheduleItem] = []
@@ -67,6 +69,8 @@ final class TaskStore {
 
   private var loadTodayGeneration = 0
   private var loadInboxGeneration = 0
+  private var hasLoadedToday = false
+  private var hasLoadedInbox = false
 
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     SubtaskListPatch.apply(snapshot, to: &todayPending)
@@ -96,24 +100,54 @@ final class TaskStore {
     rebuildTodayDerived()
   }
 
-  func applyWhatsappRoutinePatch(taskId: String, enabled: Bool) {
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &todayPending)
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &todayCompleted)
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &inboxPending)
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &inboxCompleted)
-    todayScheduledSubtasks = todayScheduledSubtasks.map { entry in
-      var parent = entry.parent
-      if parent.id == taskId {
-        parent.whatsappRoutine = enabled
+  func taskCardDidMutate(_ task: Task) {
+    let todayPendingIndex = todayPending.firstIndex { $0.id == task.id }
+    let todayCompletedIndex = todayCompleted.firstIndex { $0.id == task.id }
+    let wasInToday = todayPendingIndex != nil || todayCompletedIndex != nil
+    todayPending.removeAll { $0.id == task.id }
+    todayCompleted.removeAll { $0.id == task.id }
+    let today = Calendar.current.startOfDay(for: Date())
+    if wasInToday, task.done {
+      todayCompleted.insert(task, at: min(todayCompletedIndex ?? 0, todayCompleted.count))
+    } else if (wasInToday || hasLoadedToday),
+              let due = task.dueDate,
+              Calendar.current.startOfDay(for: due) <= today {
+      todayPending.insert(task, at: min(todayPendingIndex ?? 0, todayPending.count))
+    }
+
+    let inboxPendingIndex = inboxPending.firstIndex { $0.id == task.id }
+    let inboxCompletedIndex = inboxCompleted.firstIndex { $0.id == task.id }
+    let wasInInbox = inboxPendingIndex != nil || inboxCompletedIndex != nil
+    inboxPending.removeAll { $0.id == task.id }
+    inboxCompleted.removeAll { $0.id == task.id }
+    if (wasInInbox || hasLoadedInbox), task.dueDate == nil, task.projectId == nil {
+      if task.done {
+        if wasInInbox {
+          inboxCompleted.insert(task, at: min(inboxCompletedIndex ?? 0, inboxCompleted.count))
+        }
+      } else {
+        inboxPending.insert(task, at: min(inboxPendingIndex ?? 0, inboxPending.count))
       }
-      return SubtaskScheduleEntry(subtask: entry.subtask, parent: parent)
+    }
+
+    let hadScheduledSubtasks = todayScheduledSubtasks.contains { $0.parent.id == task.id }
+    todayScheduledSubtasks.removeAll { $0.parent.id == task.id }
+    if (hadScheduledSubtasks || hasLoadedToday), !task.done {
+      let todayStart = Calendar.current.startOfDay(for: Date())
+      todayScheduledSubtasks.append(contentsOf: task.subtasks.compactMap { subtask in
+        guard !subtask.done,
+              let due = subtask.dueDate,
+              Calendar.current.startOfDay(for: due) <= todayStart
+        else { return nil }
+        return SubtaskScheduleEntry(subtask: subtask, parent: task)
+      })
+      todayScheduledSubtasks.sort {
+        let lhs = $0.subtask.dueDate ?? .distantFuture
+        let rhs = $1.subtask.dueDate ?? .distantFuture
+        return lhs == rhs ? $0.subtask.order < $1.subtask.order : lhs < rhs
+      }
     }
     rebuildTodayDerived()
-  }
-
-  private func patchWhatsappRoutine(taskId: String, enabled: Bool, in tasks: inout [Task]) {
-    guard let index = tasks.firstIndex(where: { $0.id == taskId }) else { return }
-    tasks[index].whatsappRoutine = enabled
   }
 
   func loadToday() async {
@@ -134,6 +168,7 @@ final class TaskStore {
       todayPending = p
       todayCompleted = c
       todayScheduledSubtasks = subs
+      hasLoadedToday = true
       todayCalendarEvents = EventKitCalendarService.shared.fetchTodayEvents()
       rebuildTodayDerived()
       WidgetSnapshotSync.updateFromToday(pending: p, completed: c)
@@ -157,6 +192,7 @@ final class TaskStore {
       guard generation == loadInboxGeneration else { return }
       inboxPending = p
       inboxCompleted = c
+      hasLoadedInbox = true
     } catch {
       if AsyncLoad.isCancellation(error) { return }
       guard generation == loadInboxGeneration else { return }
@@ -359,6 +395,8 @@ final class TaskStore {
     }
   }
 }
+
+extension TaskStore: TaskCardMutationObserver {}
 
 // SUBSTITUIDO_FASE3B: remoção imediata do pending no mesmo frame do tap
 // func completeToday(_ task: Task) {

@@ -68,10 +68,13 @@ final class TaskDetailViewModel {
 
   private var titleSaveTask: _Concurrency.Task<Void, Never>?
   private var descSaveTask: _Concurrency.Task<Void, Never>?
+  private var pendingSaveTasks: [UUID: _Concurrency.Task<Void, Never>] = [:]
+  private var saveQueueTail: _Concurrency.Task<Void, Never>?
   private var subtaskReorderTask: _Concurrency.Task<Void, Never>?
   private var subtaskSortHoldId: String?
   private var loadGeneration = 0
   private var whatsappRoutineReady = false
+  private var seedLabels: [TaskLabel] = []
 
   init(taskId: String, seed: Task? = nil) {
     self.taskId = taskId
@@ -115,6 +118,7 @@ final class TaskDetailViewModel {
       comments = try await commentsReq
       guard generation == loadGeneration else { return }
       selectedLabelIds = Set(task.labels.map(\.id))
+      publishCardSnapshot()
     } catch {
       guard generation == loadGeneration else { return }
       if !hasSeededContent {
@@ -151,13 +155,15 @@ final class TaskDetailViewModel {
     recurrence = task.recurrence
     whatsappRoutine = task.whatsappRoutine
     whatsappRoutineReady = true
+    seedLabels = task.labels
     selectedLabelIds = Set(task.labels.map(\.id))
   }
 
   func setWhatsappRoutine(_ enabled: Bool) {
     whatsappRoutine = enabled
+    publishCardSnapshot()
     guard whatsappRoutineReady else { return }
-    _Concurrency.Task {
+    enqueueSave { [self] in
       await TaskDetailPersistence.autosaveWhatsappRoutine(taskId: taskId, enabled: enabled)
     }
   }
@@ -186,9 +192,14 @@ final class TaskDetailViewModel {
     descSaveTask = nil
     await TaskDetailPersistence.autosaveTitle(taskId: taskId, title: title)
     await TaskDetailPersistence.autosaveDescription(taskId: taskId, description: descriptionText)
+    let pending = Array(pendingSaveTasks.values)
+    for task in pending {
+      await task.value
+    }
   }
 
   func onTitleChanged() {
+    publishCardSnapshot()
     titleSaveTask?.cancel()
     titleSaveTask = _Concurrency.Task {
       try? await _Concurrency.Task.sleep(for: .milliseconds(400))
@@ -205,6 +216,7 @@ final class TaskDetailViewModel {
   }
 
   func onDescriptionChanged() {
+    publishCardSnapshot()
     descSaveTask?.cancel()
     descSaveTask = _Concurrency.Task {
       try? await _Concurrency.Task.sleep(for: .milliseconds(500))
@@ -215,7 +227,8 @@ final class TaskDetailViewModel {
 
   func setPriority(_ p: Priority?) {
     priority = p
-    _Concurrency.Task {
+    publishCardSnapshot()
+    enqueueSave { [self] in
       await TaskDetailPersistence.autosavePriority(taskId: taskId, priority: p)
     }
   }
@@ -229,9 +242,10 @@ final class TaskDetailViewModel {
     } else {
       time = nil
     }
+    publishCardSnapshot()
     let iso = date.map { TaskMapper.dateString($0) }
     let savedTime = time
-    _Concurrency.Task {
+    enqueueSave { [self] in
       // NET_FASEC_ETAPA3 — 1 PATCH (antes: autosaveDueDate + autosaveTime).
       // await TaskDetailPersistence.autosaveDueDate(taskId: taskId, isoDate: iso)
       // await TaskDetailPersistence.autosaveTime(taskId: taskId, time: savedTime)
@@ -256,7 +270,9 @@ final class TaskDetailViewModel {
   func setProject(_ project: Project?) {
     projectId = project?.id
     projectName = project?.name ?? "Sem projeto"
-    _Concurrency.Task {
+    sectionId = nil
+    publishCardSnapshot()
+    enqueueSave { [self] in
       await TaskOptimisticSync.waitUntilReady(taskId: taskId)
       await TaskDetailPersistence.autosaveProject(taskId: taskId, projectId: project?.id)
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
@@ -265,7 +281,8 @@ final class TaskDetailViewModel {
 
   func setLabels(_ ids: Set<String>) {
     selectedLabelIds = ids
-    _Concurrency.Task {
+    publishCardSnapshot()
+    enqueueSave { [self] in
       // Espera create otimista — labels em tarefa ainda não no servidor geravam toast falso.
       await TaskOptimisticSync.waitUntilReady(taskId: taskId)
       let labelIds = Array(ids)
@@ -297,6 +314,7 @@ final class TaskDetailViewModel {
   func toggleDone() {
     let becomingDone = !done
     done.toggle()
+    publishCardSnapshot()
     HapticService.success()
     _Concurrency.Task {
       if becomingDone {
@@ -314,12 +332,16 @@ final class TaskDetailViewModel {
           dueDate: dueDate,
           done: false,
           commentCount: comments.count,
-          recurrence: recurrence
+          recurrence: recurrence,
+          whatsappRoutine: whatsappRoutine
         )
         // PERF_FASEB2_ETAPA2: snapshot de complete também leva memos.
         TaskMapper.applyDisplayMemos(to: &snapshot)
         if let newId = try? await TaskRepository.shared.completeTask(snapshot) {
           await TaskCalendarSync.syncTaskId(newId)
+          if let nextOccurrence = try? await TaskRepository.shared.fetchTaskById(newId) {
+            TaskCardMutationCenter.publish(nextOccurrence)
+          }
         }
         TaskCalendarSync.remove(taskId: taskId)
       } else {
@@ -388,6 +410,7 @@ final class TaskDetailViewModel {
       } else if let synced = self.subtasks.first(where: { $0.id == id }) {
         TaskCalendarSync.sync(synced)
       }
+      self.publishCardSnapshot()
     }
   }
 
@@ -414,6 +437,7 @@ final class TaskDetailViewModel {
         time: nil,
         labelIds: []
       ))
+      publishCardSnapshot()
     } catch {
       self.error = error.localizedDescription
     }
@@ -425,6 +449,7 @@ final class TaskDetailViewModel {
       TaskCalendarSync.remove(subtaskId: id)
       try await SubtaskRepository.shared.deleteSubtask(id: id)
       subtasks.removeAll { $0.id == id }
+      publishCardSnapshot()
     } catch {
       self.error = error.localizedDescription
     }
@@ -442,8 +467,9 @@ final class TaskDetailViewModel {
 
   func setRecurrence(_ type: RecurrenceType?) {
     recurrence = RecurrenceCodec.json(for: type)
+    publishCardSnapshot()
     let value = recurrence
-    _Concurrency.Task {
+    enqueueSave { [self] in
       try? await TaskRepository.shared.updateRecurrence(id: taskId, value: value)
     }
   }
@@ -455,6 +481,7 @@ final class TaskDetailViewModel {
       try await CommentRepository.shared.sendComment(taskId: taskId, text: text)
       newCommentText = ""
       comments = try await CommentRepository.shared.fetchComments(taskId: taskId)
+      publishCardSnapshot()
       HapticService.saved()
     } catch {
       self.error = error.localizedDescription
@@ -471,6 +498,42 @@ final class TaskDetailViewModel {
 
   var selectedLabels: [TaskLabel] {
     allLabels.filter { selectedLabelIds.contains($0.id) }
+  }
+
+  private func publishCardSnapshot() {
+    let availableLabels = allLabels.isEmpty ? seedLabels : allLabels
+    let trimmedDescription = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+    var snapshot = Task(
+      id: taskId,
+      title: title,
+      description: trimmedDescription.isEmpty ? nil : trimmedDescription,
+      project: projectName,
+      projectId: projectId,
+      sectionId: sectionId,
+      priority: priority,
+      time: time,
+      labels: availableLabels.filter { selectedLabelIds.contains($0.id) },
+      subtasks: subtasks,
+      dueDate: dueDate,
+      done: done,
+      commentCount: comments.count,
+      recurrence: recurrence,
+      whatsappRoutine: whatsappRoutine
+    )
+    TaskMapper.applyDisplayMemos(to: &snapshot)
+    TaskCardMutationCenter.publish(snapshot)
+  }
+
+  private func enqueueSave(_ work: @escaping @MainActor () async -> Void) {
+    let id = UUID()
+    let previous = saveQueueTail
+    let queued = _Concurrency.Task { @MainActor [weak self] in
+      await previous?.value
+      await work()
+      self?.pendingSaveTasks[id] = nil
+    }
+    pendingSaveTasks[id] = queued
+    saveQueueTail = queued
   }
 
   var dueDateLabel: String {

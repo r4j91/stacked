@@ -357,6 +357,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var taskContentHashById: [String: Int] = [:]
   /// Altura medida da row com painel expandido — remount no fling não cresce 0→full.
   private var expandedRowHeightCache: [String: CGFloat] = [:]
+  /// Invalida cache quando meta das subtarefas muda (etiqueta etc.) — senão
+  /// `lockedHeight` antigo deixa buraco embaixo ao encolher o painel.
+  private var expandedLayoutSignatureByTask: [String: Int] = [:]
   /// Cancela lock agendado se o usuário fechar antes.
   private var expansionGeneration: [String: UInt] = [:]
   /// Headers observam isto — chevron anima sem remount da cell (reconfigure matava a rotação).
@@ -468,6 +471,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           rowInsets: insets,
           cachedHeight: nil
         )
+        let layoutSig = Self.subtasksExpandLayoutSignature(task.subtasks)
+        if self.expandedLayoutSignatureByTask[taskId] != layoutSig {
+          self.expandedLayoutSignatureByTask[taskId] = layoutSig
+          self.expandedRowHeightCache.removeValue(forKey: taskId)
+        }
         if isExpanded, let cached = self.expandedRowHeightCache[taskId], cached > headerMin {
           cell.lockedHeight = cached
         } else {
@@ -763,6 +771,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     if presentationChanged {
       // Altura/estilo antigos (ex.: Balões→Lista) não batem com o novo modo.
       expandedRowHeightCache.removeAll()
+      expandedLayoutSignatureByTask.removeAll()
       expansionGeneration.removeAll()
     }
 
@@ -845,6 +854,18 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(task.description)
     hasher.combine(task.priority)
     hasher.combine(task.whatsappRoutine)
+    hasher.combine(task.project)
+    hasher.combine(task.projectId)
+    hasher.combine(task.sectionId)
+    hasher.combine(task.time)
+    hasher.combine(task.timeDisplay)
+    hasher.combine(task.recurrence)
+    hasher.combine(task.commentCount)
+    for label in task.labels {
+      hasher.combine(label.id)
+      hasher.combine(label.name)
+      hasher.combine(label.sortOrder)
+    }
     hasher.combine(task.subtasksDoneCount)
     hasher.combine(task.subtasksTotalCount)
     // Chips de data são relativos a “hoje” — sem isto a cell UIKit fica com “Hoje”
@@ -856,6 +877,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       hasher.combine(sub.done)
       hasher.combine(sub.title)
       hasher.combine(sub.order)
+      hasher.combine(sub.description)
+      hasher.combine(sub.priority)
+      hasher.combine(sub.time)
+      hasher.combine(sub.timeDisplay)
+      hasher.combine(sub.labelIds)
       hasher.combine(sub.dueDate?.timeIntervalSince1970)
       hasher.combine(sub.dueDateChipLabel)
     }
@@ -869,6 +895,18 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     case .list: 2
     case .listPremium: 3
     }
+  }
+
+  private static func subtasksExpandLayoutSignature(_ subs: [Subtask]) -> Int {
+    var hasher = Hasher()
+    hasher.combine(subs.count)
+    for sub in subs {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.description?.isEmpty == false)
+      hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.labelIds.count)
+    }
+    return hasher.finalize()
   }
 
   /// Só o “look” da row (não a lista de tasks) — troca de modo de visualização.
@@ -1086,6 +1124,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     }
 
     expandedRowHeightCache.removeValue(forKey: taskId)
+    expandedLayoutSignatureByTask.removeValue(forKey: taskId)
   }
 
   private func cellForTask(_ taskId: String) -> UICollectionViewCell? {
@@ -1112,6 +1151,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     if abs(h - prev) > 0.5 {
       expandedRowHeightCache[taskId] = h
     }
+  }
+
+  func replaceExpandedRowHeightCache(taskId: String, height: CGFloat) {
+    guard height > 40 else { return }
+    expandedRowHeightCache[taskId] = height
   }
 
   func collectionView(

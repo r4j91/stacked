@@ -40,7 +40,9 @@ final class FiltersStore {
   private var savedFilterResultsCache: [String: (pending: [FilterResultItem], completed: [FilterResultItem])] = [:]
   private var presetFilterResultsCache: [TaskFilterKind: [FilterResultItem]] = [:]
 
-  private init() {}
+  private init() {
+    TaskCardMutationCenter.register(self)
+  }
 
   func takePendingPresetFilter() -> TaskFilterKind? {
     defer { pendingPresetFilter = nil }
@@ -364,6 +366,160 @@ final class FiltersStore {
     syncPresetFilterCache()
   }
 
+  func taskCardDidMutate(_ task: Task) {
+    let wasInLegacyArrays = filterTasks.contains { $0.id == task.id }
+      || filterCompletedTasks.contains { $0.id == task.id }
+    if wasInLegacyArrays {
+      filterTasks.removeAll { $0.id == task.id }
+      filterCompletedTasks.removeAll { $0.id == task.id }
+      if task.done {
+        filterCompletedTasks.insert(task, at: 0)
+      } else {
+        filterTasks.insert(task, at: 0)
+      }
+    }
+    let wasInCurrentResults = containsTaskFamily(task.id, in: filterResults)
+      || containsTaskFamily(task.id, in: filterCompletedResults)
+    patchTaskSnapshot(task, in: &filterResults)
+    patchTaskSnapshot(task, in: &filterCompletedResults)
+
+    for key in Array(presetFilterResultsCache.keys) {
+      guard var results = presetFilterResultsCache[key] else { continue }
+      let wasInResults = containsTaskFamily(task.id, in: results)
+      removeTaskFamily(task.id, from: &results)
+      if key == .completedToday {
+        if wasInResults, task.done {
+          results.insert(.task(task), at: 0)
+        }
+      } else if let scope = key.presetDateScope {
+        let criteria = FilterCriteria(labelIds: [], priorities: [], projectId: nil, dateScope: scope)
+        results.insert(
+          contentsOf: FilterMatcher.buildPendingResults(
+            tasks: [task],
+            criteria: criteria,
+            todayStr: TaskMapper.dateString(Date()),
+            weekStr: TaskMapper.weekString()
+          ),
+          at: 0
+        )
+      }
+      presetFilterResultsCache[key] = results
+    }
+    for key in Array(savedFilterResultsCache.keys) {
+      guard var cached = savedFilterResultsCache[key] else { continue }
+      removeTaskFamily(task.id, from: &cached.pending)
+      removeTaskFamily(task.id, from: &cached.completed)
+      if let criteria = savedFilters.first(where: { $0.id == key })?.filter.criteria {
+        cached.pending.insert(
+          contentsOf: FilterMatcher.buildPendingResults(
+            tasks: [task],
+            criteria: criteria,
+            todayStr: TaskMapper.dateString(Date()),
+            weekStr: TaskMapper.weekString()
+          ),
+          at: 0
+        )
+        cached.completed.insert(
+          contentsOf: FilterMatcher.buildCompletedResults(
+            tasks: [task],
+            criteria: criteria,
+            todayStr: TaskMapper.dateString(Date()),
+            weekStr: TaskMapper.weekString()
+          ),
+          at: 0
+        )
+      }
+      savedFilterResultsCache[key] = cached
+    }
+
+    let today = TaskMapper.dateString(Date())
+    let week = TaskMapper.weekString()
+    removeTaskFamily(task.id, from: &filterResults)
+    removeTaskFamily(task.id, from: &filterCompletedResults)
+
+    switch mode {
+    case .dashboard:
+      return
+    case .savedFilter(let filter):
+      filterResults.insert(
+        contentsOf: FilterMatcher.buildPendingResults(
+          tasks: [task],
+          criteria: filter.criteria,
+          todayStr: today,
+          weekStr: week
+        ),
+        at: 0
+      )
+      filterCompletedResults.insert(
+        contentsOf: FilterMatcher.buildCompletedResults(
+          tasks: [task],
+          criteria: filter.criteria,
+          todayStr: today,
+          weekStr: week
+        ),
+        at: 0
+      )
+    case .presetFilter(.completedToday):
+      if wasInCurrentResults, task.done {
+        filterResults.insert(.task(task), at: 0)
+      }
+    case .presetFilter(let kind):
+      guard let scope = kind.presetDateScope else { return }
+      let criteria = FilterCriteria(labelIds: [], priorities: [], projectId: nil, dateScope: scope)
+      filterResults.insert(
+        contentsOf: FilterMatcher.buildPendingResults(
+          tasks: [task],
+          criteria: criteria,
+          todayStr: today,
+          weekStr: week
+        ),
+        at: 0
+      )
+    }
+    syncSavedFilterCache()
+    syncPresetFilterCache()
+  }
+
+  private func removeTaskFamily(_ taskId: String, from results: inout [FilterResultItem]) {
+    results.removeAll { item in
+      switch item {
+      case .task(let task):
+        return task.id == taskId
+      case .subtask(_, let parent, _):
+        return parent.id == taskId
+      }
+    }
+  }
+
+  private func containsTaskFamily(_ taskId: String, in results: [FilterResultItem]) -> Bool {
+    results.contains { item in
+      switch item {
+      case .task(let task):
+        return task.id == taskId
+      case .subtask(_, let parent, _):
+        return parent.id == taskId
+      }
+    }
+  }
+
+  private func patchTaskSnapshot(_ task: Task, in results: inout [FilterResultItem]) {
+    results = results.compactMap { item in
+      switch item {
+      case .task(let current) where current.id == task.id:
+        return .task(task)
+      case .subtask(let subtask, let parent, _) where parent.id == task.id:
+        let updatedIndex = task.subtasks.firstIndex {
+          if let id = subtask.id { return $0.id == id }
+          return $0.order == subtask.order
+        }
+        guard let updatedIndex else { return nil }
+        return .subtask(task.subtasks[updatedIndex], parent: task, index: updatedIndex)
+      default:
+        return item
+      }
+    }
+  }
+
   func removeSubtask(parentId: String, subtask: Subtask) {
     SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterTasks)
     SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &filterCompletedTasks)
@@ -587,3 +743,5 @@ final class FiltersStore {
     }
   }
 }
+
+extension FiltersStore: TaskCardMutationObserver {}

@@ -308,6 +308,11 @@ struct TaskRow: View {
       hasher.combine(sub.done)
       hasher.combine(sub.title)
       hasher.combine(sub.order)
+      hasher.combine(sub.labelIds)
+      hasher.combine(sub.description)
+      hasher.combine(sub.priority)
+      hasher.combine(sub.dueDate?.timeIntervalSince1970)
+      hasher.combine(sub.time)
     }
     hasher.combine(task.subtasksDoneCount)
     return hasher.finalize()
@@ -841,11 +846,27 @@ struct TaskRow: View {
 
   private func handleSubtasksChanged() {
     guard rowExpanded || rowRevealActive else { return }
-    let previousCount = rowDisplaySubtasks.count
+    let previousLayoutSignature = subtasksExpandLayoutSignature(rowDisplaySubtasks)
     syncSubtasks()
-    if rowExpanded, task.subtasks.count != previousCount {
+    // Meta (etiqueta/desc/data) muda altura da row — sem bump o painel fica
+    // sobreposto até fechar/abrir. Count-only era insuficiente.
+    if rowExpanded,
+       previousLayoutSignature != subtasksExpandLayoutSignature(rowDisplaySubtasks) {
       bumpSubtaskRevealLayout()
     }
+  }
+
+  /// Assinatura só do que afeta altura do painel expandido.
+  private func subtasksExpandLayoutSignature(_ subs: [Subtask]) -> Int {
+    var hasher = Hasher()
+    hasher.combine(subs.count)
+    for sub in subs {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.description?.isEmpty == false)
+      hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.labelIds.count)
+    }
+    return hasher.finalize()
   }
 
   private func handleTaskIdentityChanged() {

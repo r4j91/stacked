@@ -298,6 +298,7 @@ final class ProjectDetailStore {
       completed = nextCompleted
       isLoading = false
     }
+    TaskCardMutationCenter.register(self)
   }
 
   func adoptSnapshot(_ snapshot: ProjectDetailSnapshot) {
@@ -333,15 +334,19 @@ final class ProjectDetailStore {
     SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &completed)
   }
 
-  func applyWhatsappRoutinePatch(taskId: String, enabled: Bool) {
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &pending)
-    patchWhatsappRoutine(taskId: taskId, enabled: enabled, in: &completed)
+  func taskCardDidMutate(_ task: Task) {
+    let pendingIndex = pending.firstIndex { $0.id == task.id }
+    let completedIndex = completed.firstIndex { $0.id == task.id }
+    pending.removeAll { $0.id == task.id }
+    completed.removeAll { $0.id == task.id }
+    if task.projectId == projectId {
+      if task.done {
+        completed.insert(task, at: min(completedIndex ?? 0, completed.count))
+      } else {
+        pending.insert(task, at: min(pendingIndex ?? 0, pending.count))
+      }
+    }
     syncCache()
-  }
-
-  private func patchWhatsappRoutine(taskId: String, enabled: Bool, in tasks: inout [Task]) {
-    guard let index = tasks.firstIndex(where: { $0.id == taskId }) else { return }
-    tasks[index].whatsappRoutine = enabled
   }
 
   func load() async {
@@ -537,3 +542,5 @@ final class ProjectDetailStore {
     )
   }
 }
+
+extension ProjectDetailStore: TaskCardMutationObserver {}

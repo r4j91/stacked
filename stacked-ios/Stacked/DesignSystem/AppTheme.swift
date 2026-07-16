@@ -20,6 +20,15 @@ enum AppThemeId: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Curadoria principal do seletor. Os demais continuam em “Mais temas”.
+    static let recommended: [AppThemeId] = [
+        .slate,
+        .graphite,
+        .moonstone,
+        .anthracite,
+        .larimar,
+    ]
+
     var displayName: String {
         switch self {
         case .graphite: "Graphite"

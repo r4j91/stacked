@@ -16,6 +16,7 @@ final class UIKitSplitTaskRowView: UIView {
   private var panelHost: UIHostingController<AnyView>?
   private var headerHeightConstraint: NSLayoutConstraint?
   private var lastTaskId: String?
+  var currentTaskId: String? { lastTaskId }
   private var lastPanelHeight: CGFloat = -1
   private var rowInsets: UIEdgeInsets = .zero
   private var style: TaskRowStyle = .card
@@ -131,10 +132,19 @@ final class UIKitSplitTaskRowView: UIView {
       applyLiftPhase(.normal, animated: false)
     } else if store.subtaskRevealActive || store.expanded {
       let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
-      if store.displaySubtasks.map(\.idOrFallback) != sorted.map(\.idOrFallback) {
+      if store.displaySubtasks != sorted {
+        let needsRemeasure =
+          Self.expandLayoutSignature(store.displaySubtasks)
+          != Self.expandLayoutSignature(sorted)
         store.displaySubtasks = sorted
         store.subtasksDone = sorted.map(\.done)
-        store.subtaskRevealLayoutPass &+= 1
+        if needsRemeasure {
+          store.subtaskRevealLayoutPass &+= 1
+          if let cell = enclosingCell() as? UIKitSizedTaskCell {
+            cell.lockedHeight = nil
+          }
+          invalidatePanelHostIntrinsicSize()
+        }
       }
     }
 
@@ -386,6 +396,18 @@ final class UIKitSplitTaskRowView: UIView {
       || task.dueDate != nil
       || task.subtasksTotalCount > 0
       || task.commentCount > 0
+  }
+
+  private static func expandLayoutSignature(_ subs: [Subtask]) -> Int {
+    var hasher = Hasher()
+    hasher.combine(subs.count)
+    for sub in subs {
+      hasher.combine(sub.idOrFallback)
+      hasher.combine(sub.description?.isEmpty == false)
+      hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.labelIds.count)
+    }
+    return hasher.finalize()
   }
 
   private static func opaqueBlend(src: UIColor, dst: UIColor, alpha: CGFloat) -> UIColor {

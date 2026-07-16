@@ -28,12 +28,15 @@ final class UpcomingStore {
   private(set) var calendarEvents: [CalendarEvent] = []
   private(set) var isLoading = false
   private(set) var error: String?
+  private var hasLoaded = false
 
   var mode: UpcomingCalendarMode = .agenda
   var focusedDay = Date()
   var selectedDay: Date?
 
-  private init() {}
+  private init() {
+    TaskCardMutationCenter.register(self)
+  }
 
   var filteredTasks: [Task] {
     guard let selectedDay else { return tasks }
@@ -124,6 +127,34 @@ final class UpcomingStore {
     rebuildScheduleDerived()
   }
 
+  func taskCardDidMutate(_ task: Task) {
+    if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+      if task.dueDate != nil, !task.done {
+        tasks[index] = task
+      } else {
+        tasks.remove(at: index)
+      }
+    } else if hasLoaded, task.dueDate != nil, !task.done {
+      tasks.append(task)
+    }
+    tasks.sort { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+
+    let hadScheduledSubtasks = scheduledSubtasks.contains { $0.parent.id == task.id }
+    scheduledSubtasks.removeAll { $0.parent.id == task.id }
+    if (hadScheduledSubtasks || hasLoaded), !task.done {
+      scheduledSubtasks.append(contentsOf: task.subtasks.compactMap { subtask in
+        guard !subtask.done, subtask.dueDate != nil else { return nil }
+        return SubtaskScheduleEntry(subtask: subtask, parent: task)
+      })
+      scheduledSubtasks.sort {
+        let lhs = $0.subtask.dueDate ?? .distantFuture
+        let rhs = $1.subtask.dueDate ?? .distantFuture
+        return lhs == rhs ? $0.subtask.order < $1.subtask.order : lhs < rhs
+      }
+    }
+    rebuildScheduleDerived()
+  }
+
   func removeSubtask(parentId: String, subtask: Subtask) {
     SubtaskListPatch.remove(parentTaskId: parentId, subtask: subtask, from: &tasks)
     if let id = subtask.id {
@@ -154,6 +185,7 @@ final class UpcomingStore {
       tasks = fetchedTasks
       scheduledSubtasks = fetchedSubs
       calendarEvents = EventKitCalendarService.shared.fetchUpcomingEvents()
+      hasLoaded = true
       rebuildScheduleDerived()
     } catch {
       if AsyncLoad.isCancellation(error) { return }
@@ -251,3 +283,5 @@ final class UpcomingStore {
     await load()
   }
 }
+
+extension UpcomingStore: TaskCardMutationObserver {}

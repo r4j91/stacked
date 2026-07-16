@@ -51,3 +51,33 @@ struct Task: Identifiable, Equatable {
       || commentCount > 0
   }
 }
+
+/// Propaga o snapshot atual do detalhe para todas as listas em memória.
+/// Observadores são fracos: abrir/fechar projetos não acumula stores.
+@MainActor
+protocol TaskCardMutationObserver: AnyObject {
+  func taskCardDidMutate(_ task: Task)
+}
+
+@MainActor
+enum TaskCardMutationCenter {
+  private static let observers = NSHashTable<AnyObject>.weakObjects()
+
+  static func register(_ observer: TaskCardMutationObserver) {
+    observers.add(observer)
+  }
+
+  static func publish(_ task: Task) {
+    ProjectDetailCache.shared.applyTaskSnapshot(task)
+    for case let observer as TaskCardMutationObserver in observers.allObjects {
+      observer.taskCardDidMutate(task)
+    }
+  }
+}
+
+extension Array where Element == Task {
+  mutating func replaceTaskSnapshot(_ task: Task) {
+    guard let index = firstIndex(where: { $0.id == task.id }) else { return }
+    self[index] = task
+  }
+}

@@ -115,6 +115,8 @@ final class SubtaskExpandContainerView: UIView {
   private var isAnimating = false
   /// Remasure async precisa saber se o open usa pin (stabilize).
   private var stabilizeSelfSizingParent = false
+  /// Altura antes do remasure de meta — detecta encolhe stale.
+  private var contentRemeasureBaseline: CGFloat = 0
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -229,6 +231,18 @@ final class SubtaskExpandContainerView: UIView {
       hostView?.transform = .identity
     }
 
+    // Só content change com painel já aberto (etiqueta etc.).
+    // Não roda no open/close — senão mexe na animação de expandir.
+    if layoutPassChanged, expanded, !stateChanged, !isAnimating, fitWidth > 1 {
+      if let cell = enclosingCell() as? UIKitSizedTaskCell {
+        cell.lockedHeight = nil
+      }
+      contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
+      lastExpanded = expanded
+      scheduleContentRemeasure(hosting: hosting, width: fitWidth)
+      return
+    }
+
     if !isAnimating {
       let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
       if needsMeasure, expanded || fullHeight <= 0 {
@@ -304,11 +318,36 @@ final class SubtaskExpandContainerView: UIView {
     }
   }
 
+  /// Remedir após swap de meta (etiqueta). Dois turns: SwiftUI precisa assentar
+  /// o rootView antes do sizeThatFits encolher — 1 async às vezes ainda mede alto.
+  private func scheduleContentRemeasure(
+    hosting: UIHostingController<AnyView>,
+    width: CGFloat,
+    attempt: Int = 0
+  ) {
+    DispatchQueue.main.async { [weak self] in
+      DispatchQueue.main.async { [weak self] in
+        guard let self, self.lastExpanded == true else { return }
+        hosting.view.invalidateIntrinsicContentSize()
+        hosting.view.setNeedsLayout()
+        hosting.view.layoutIfNeeded()
+        self.remeasureExpanded(
+          hosting: hosting,
+          width: width,
+          animated: false,
+          attempt: attempt,
+          updateHeightCache: true
+        )
+      }
+    }
+  }
+
   private func remeasureExpanded(
     hosting: UIHostingController<AnyView>,
     width: CGFloat,
     animated: Bool,
-    attempt: Int
+    attempt: Int,
+    updateHeightCache: Bool = false
   ) {
     guard !isAnimating else {
       if attempt < 6 {
@@ -316,25 +355,73 @@ final class SubtaskExpandContainerView: UIView {
       }
       return
     }
+
+    if updateHeightCache {
+      // Solta constraints altas antes do sizeThatFits — senão a medida herda o buraco.
+      selfHeightConstraint?.constant = 0
+      clipHeightConstraint?.constant = 0
+      hostHeightConstraint?.constant = 0
+      hosting.view.invalidateIntrinsicContentSize()
+      hosting.view.setNeedsLayout()
+      hosting.view.layoutIfNeeded()
+    }
+
     let measured = measureHeight(hosting: hosting, width: width)
     if measured <= 0 {
       if attempt < 6 {
-        scheduleRemeasure(hosting: hosting, width: width, animated: animated, attempt: attempt + 1)
+        if updateHeightCache {
+          scheduleContentRemeasure(hosting: hosting, width: width, attempt: attempt + 1)
+        } else {
+          scheduleRemeasure(hosting: hosting, width: width, animated: animated, attempt: attempt + 1)
+        }
       }
       return
     }
-    if abs(measured - (selfHeightConstraint?.constant ?? 0)) <= 0.5, fullHeight > 0 {
+
+    if updateHeightCache {
+      let sameAsBaseline = abs(measured - contentRemeasureBaseline) <= 0.5
+      if sameAsBaseline, contentRemeasureBaseline > 0.5, attempt < 4 {
+        selfHeightConstraint?.constant = contentRemeasureBaseline
+        clipHeightConstraint?.constant = contentRemeasureBaseline
+        hostHeightConstraint?.constant = contentRemeasureBaseline
+        scheduleContentRemeasure(hosting: hosting, width: width, attempt: attempt + 1)
+        return
+      }
+    } else if abs(measured - (selfHeightConstraint?.constant ?? 0)) <= 0.5, fullHeight > 0 {
       return
     }
+
     fullHeight = measured
     hostHeightConstraint?.constant = measured
     clipHeightConstraint?.constant = measured
     // Remeasure no open UIKit: mesmo pin do configure (topo/chevron parado).
-    if stabilizeSelfSizingParent, (selfHeightConstraint?.constant ?? 0) <= 0.5 {
+    if stabilizeSelfSizingParent, (selfHeightConstraint?.constant ?? 0) <= 0.5, !updateHeightCache {
       expandWithPinnedParent(height: measured, animated: animated)
       return
     }
+    if let cell = enclosingCell() as? UIKitSizedTaskCell {
+      cell.lockedHeight = nil
+    }
     applyVisibleHeight(measured, expanded: true, animated: animated, pinParent: false)
+    enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
+    if let collectionView = enclosingCollectionView() {
+      collectionView.performBatchUpdates(nil)
+      collectionView.layoutIfNeeded()
+    }
+    if updateHeightCache {
+      syncExpandedHeightCacheAfterRemeasure()
+    }
+  }
+
+  private func syncExpandedHeightCacheAfterRemeasure() {
+    guard let cell = enclosingCell() as? UIKitSizedTaskCell else { return }
+    let height = cell.bounds.height
+    guard height > 40 else { return }
+    cell.lockedHeight = height
+    if let taskId = enclosingSplitRowView()?.currentTaskId,
+       let list = enclosingCollectionView()?.delegate as? UIKitHostedTaskListController {
+      list.replaceExpandedRowHeightCache(taskId: taskId, height: height)
+    }
   }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {

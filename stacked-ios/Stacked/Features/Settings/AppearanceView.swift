@@ -17,6 +17,8 @@ struct AppearanceView: View {
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
+  @State private var showMoreThemes = false
+  @State private var showMoreHeroes = false
   /// Uma seção aberta por vez — accordion leve no padrão do app (tudo fechado ao entrar).
   @State private var expandedSection: AppearanceSectionID? = nil
   /// Mantém o `SubtaskExpandReveal` montado até o collapse terminar (evita ghost).
@@ -37,10 +39,13 @@ struct AppearanceView: View {
 
   var body: some View {
     let c = theme.colors
-    let themes = AppThemeId.allCases
+    let recommendedThemes = AppThemeId.recommended
+    let moreThemes = AppThemeId.allCases.filter { !recommendedThemes.contains($0) }
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
-    let heroGroups = HomeHeroStyleGroup.pickerGroups
+    let heroGroups = showMoreHeroes
+      ? HomeHeroStyleGroup.pickerGroups
+      : [.recommended]
     let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
 
     // ScrollView (não List): accordion custom + List brigam no resize das rows.
@@ -52,11 +57,28 @@ struct AppearanceView: View {
           summary: theme.currentId.displayName,
           footer: nil
         ) {
-          ForEach(Array(themes.enumerated()), id: \.element) { index, themeId in
+          appearanceGroupHeader("Recomendados")
+          ForEach(Array(recommendedThemes.enumerated()), id: \.element) { index, themeId in
             themeRow(themeId)
-            if index < themes.count - 1 {
+            if index < recommendedThemes.count - 1 || showMoreThemes {
               SettingsCardDivider(leadingPadding: 56)
             }
+          }
+          if showMoreThemes {
+            appearanceGroupHeader("Mais temas")
+            ForEach(Array(moreThemes.enumerated()), id: \.element) { index, themeId in
+              themeRow(themeId)
+              if index < moreThemes.count - 1 {
+                SettingsCardDivider(leadingPadding: 56)
+              }
+            }
+          }
+          moreOptionsButton(
+            expanded: showMoreThemes,
+            collapsedTitle: "Mostrar mais \(moreThemes.count) temas",
+            expandedTitle: "Mostrar menos temas"
+          ) {
+            showMoreThemes.toggle()
           }
         }
 
@@ -79,28 +101,12 @@ struct AppearanceView: View {
         }
 
         appearancePanel(
-          id: .scrollFluidity,
-          title: "Barra e listas",
-          summary: scrollFluiditySummary,
-          footer: scrollFluidityFooter
-        ) {
-          alwaysStaticGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          disableAllGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          freezeDockGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          alwaysFrozenDockGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          uikitTaskListRow()
-        }
-
-        appearancePanel(
           id: .homeHero,
           title: "Hero da Home",
           summary: homeHeroStyle.displayName,
           footer: "Use ⋯ para ocultar um estilo. Você pode restaurá-lo depois."
         ) {
+          appearanceGroupHeader("Recomendados")
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
             let styles = HomeHeroStyle.styles(in: group)
             if !styles.isEmpty {
@@ -123,21 +129,12 @@ struct AppearanceView: View {
               }
             }
           }
-        }
-
-        if !hiddenStyles.isEmpty {
-          appearancePanel(
-            id: .hiddenHeroes,
-            title: "Estilos ocultos",
-            summary: "\(hiddenStyles.count)",
-            footer: "Toque em Restaurar para devolver o estilo ao menu."
+          moreOptionsButton(
+            expanded: showMoreHeroes,
+            collapsedTitle: "Mostrar estilos de Clima e Jornada",
+            expandedTitle: "Mostrar apenas recomendados"
           ) {
-            ForEach(Array(hiddenStyles.enumerated()), id: \.element) { index, style in
-              hiddenHeroStyleRow(style)
-              if index < hiddenStyles.count - 1 {
-                SettingsCardDivider(leadingPadding: 16)
-              }
-            }
+            showMoreHeroes.toggle()
           }
         }
 
@@ -156,6 +153,35 @@ struct AppearanceView: View {
             }
           }
         }
+
+        appearancePanel(
+          id: .advanced,
+          title: "Opções avançadas",
+          summary: "Efeitos, desempenho e itens ocultos",
+          footer: scrollFluidityFooter
+        ) {
+          appearanceGroupHeader("Barra e listas · \(scrollFluiditySummary)")
+          alwaysStaticGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          disableAllGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          freezeDockGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          alwaysFrozenDockGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
+          uikitTaskListRow()
+
+          if !hiddenStyles.isEmpty {
+            SettingsCardDivider(leadingPadding: 16)
+            appearanceGroupHeader("Estilos ocultos")
+            ForEach(Array(hiddenStyles.enumerated()), id: \.element) { index, style in
+              hiddenHeroStyleRow(style)
+              if index < hiddenStyles.count - 1 {
+                SettingsCardDivider(leadingPadding: 16)
+              }
+            }
+          }
+        }
       }
       .padding(.horizontal, SettingsChrome.horizontalPadding)
       .padding(.top, 8)
@@ -167,6 +193,12 @@ struct AppearanceView: View {
     .navigationBarTitleDisplayMode(.inline)
     .onAppear {
       iconManager.syncFromSystem()
+      if !AppThemeId.recommended.contains(theme.currentId) {
+        showMoreThemes = true
+      }
+      if homeHeroStyle.pickerGroup != .recommended {
+        showMoreHeroes = true
+      }
       if HomeHeroStyleStorage.migrateRetiredSelectionIfNeeded() {
         homeHeroStyleRaw = UserDefaults.standard.string(forKey: HomeHeroStyleStorage.key)
           ?? HomeHeroStyleStorage.defaultRawValue
@@ -261,6 +293,9 @@ struct AppearanceView: View {
     hasher.combine(id)
     hasher.combine(summary)
     hasher.combine(footer)
+    hasher.combine(showMoreThemes)
+    hasher.combine(showMoreHeroes)
+    hasher.combine(homeHeroStyleHiddenRaw)
     return hasher.finalize()
   }
 
@@ -329,6 +364,42 @@ struct AppearanceView: View {
   }
 
   // MARK: - Rows
+
+  private func appearanceGroupHeader(_ title: String) -> some View {
+    Text(title)
+      .font(AppTypography.metaSmall.weight(.semibold))
+      .foregroundStyle(theme.colors.textTertiary)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.top, 10)
+      .padding(.bottom, 4)
+  }
+
+  private func moreOptionsButton(
+    expanded: Bool,
+    collapsedTitle: String,
+    expandedTitle: String,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button {
+      HapticService.selection()
+      AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion, action)
+    } label: {
+      HStack(spacing: 8) {
+        Text(expanded ? expandedTitle : collapsedTitle)
+          .font(AppTypography.taskPreview.weight(.semibold))
+        Spacer(minLength: 8)
+        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+          .font(.system(size: 11, weight: .semibold))
+      }
+      .foregroundStyle(theme.colors.accent)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, 12)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityValue(expanded ? "Expandido" : "Recolhido")
+  }
 
   private func alwaysStaticGlassRow() -> some View {
     let c = theme.colors
@@ -744,19 +815,17 @@ struct AppearanceView: View {
 private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
-  case scrollFluidity
   case homeHero
-  case hiddenHeroes
   case appIcon
+  case advanced
 
   var icon: StackedIconKey {
     switch self {
     case .theme: .paintbrush
     case .navBar: .grid
-    case .scrollFluidity: .productivity
     case .homeHero: .sun
-    case .hiddenHeroes: .list
     case .appIcon: .checkCircle
+    case .advanced: .productivity
     }
   }
 }

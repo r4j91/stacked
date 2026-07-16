@@ -42,8 +42,11 @@ final class SearchStore {
   private var searchIndex: [SearchTaskIndexEntry] = []
   private var filterTask: _Concurrency.Task<Void, Never>?
   private var debouncedQuery = ""
+  private var hasLoaded = false
 
-  private init() {}
+  private init() {
+    TaskCardMutationCenter.register(self)
+  }
 
   var results: [Task] {
     groupedResults.flatMap(\.tasks)
@@ -51,6 +54,22 @@ final class SearchStore {
 
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     SubtaskListPatch.apply(snapshot, to: &allTasks)
+    rebuildSearchIndex()
+    regroupResults()
+  }
+
+  func taskCardDidMutate(_ task: Task) {
+    if let index = allTasks.firstIndex(where: { $0.id == task.id }) {
+      if task.done {
+        allTasks.remove(at: index)
+      } else {
+        allTasks[index] = task
+      }
+    } else if hasLoaded, !task.done {
+      allTasks.insert(task, at: 0)
+    } else {
+      return
+    }
     rebuildSearchIndex()
     regroupResults()
   }
@@ -66,6 +85,7 @@ final class SearchStore {
     error = nil
     do {
       allTasks = try await TaskRepository.shared.fetchPendingTasksForSearch()
+      hasLoaded = true
       rebuildSearchIndex()
       regroupResults()
     } catch {
@@ -193,3 +213,5 @@ final class SearchStore {
     groupedResults = groups
   }
 }
+
+extension SearchStore: TaskCardMutationObserver {}
