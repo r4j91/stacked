@@ -8,6 +8,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case obsidian
     case anthracite
     case slate
+    case slateCyan
+    case slateAmazonite
     case titanium
     case sodalite
     case hematite
@@ -26,6 +28,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .obsidian: "Obsidian"
         case .anthracite: "Anthracite"
         case .slate: "Slate"
+        case .slateCyan: "Slate Cyan"
+        case .slateAmazonite: "Slate Amazonite"
         case .titanium: "Titanium"
         case .sodalite: "Sodalite"
         case .hematite: "Hematite"
@@ -44,6 +48,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .obsidian: "Preto puro"
         case .anthracite: "Cinza premium"
         case .slate: "Monocromático"
+        case .slateCyan: "Ciano Obsidian"
+        case .slateAmazonite: "Petróleo"
         case .titanium: "Escuro metálico"
         case .sodalite: "Azul profundo"
         case .hematite: "Preto polido"
@@ -71,6 +77,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x070B0D), Color(hex: 0x12191C), Color(hex: 0x86ABB0))
         case .anthracite:
             return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x00D4D4))
+        case .slateCyan:
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x00D4D4))
+        case .slateAmazonite:
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
         case .larimar:
             return (Color(hex: 0x141C1F), Color(hex: 0x1C262A), Color(hex: 0x86ABB0))
         default:
@@ -87,6 +97,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .obsidian: .obsidian
         case .anthracite: .anthracite
         case .slate: .slate
+        case .slateCyan: .slateCyan
+        case .slateAmazonite: .slateAmazonite
         case .titanium: .titanium
         case .sodalite: .sodalite
         case .hematite: .hematite
@@ -230,6 +242,44 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xE8E8EC),
         fabGradientEnd: Color(hex: 0xE8E8EC),
         folderTint: Color(hex: 0xE8E8EC),
+        navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
+    /// Slate Cyan — fundo Slate; acento ciano do Obsidian em botões e detalhes.
+    static let slateCyan = AppThemeColors(
+        background: Color(hex: 0x16161A),
+        surface: Color(hex: 0x1C1C20),
+        surfaceVariant: Color(hex: 0x2C2C32),
+        textPrimary: Color(hex: 0xF2F2F4),
+        textSecondary: Color(hex: 0x9A9AA2),
+        textTertiary: Color(hex: 0x65656D),
+        accent: Color(hex: 0x00D4D4),
+        onAccent: Color(hex: 0x0A0A0A),
+        actionAccent: Color(hex: 0x00D4D4),
+        onActionAccent: Color(hex: 0x0A0A0A),
+        fabGradientStart: Color(hex: 0x00D4D4),
+        fabGradientEnd: Color(hex: 0x00D4D4),
+        folderTint: Color(hex: 0x00D4D4),
+        navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
+    /// Slate Amazonite — fundo Slate; acento petróleo do Amazonite em botões e detalhes.
+    static let slateAmazonite = AppThemeColors(
+        background: Color(hex: 0x16161A),
+        surface: Color(hex: 0x1C1C20),
+        surfaceVariant: Color(hex: 0x2C2C32),
+        textPrimary: Color(hex: 0xF2F2F4),
+        textSecondary: Color(hex: 0x9A9AA2),
+        textTertiary: Color(hex: 0x65656D),
+        accent: Color(hex: 0x86ABB0),
+        onAccent: Color(hex: 0x0A1012),
+        actionAccent: Color(hex: 0x86ABB0),
+        onActionAccent: Color(hex: 0x0A1012),
+        fabGradientStart: Color(hex: 0xA3C6CB),
+        fabGradientEnd: Color(hex: 0x6B8F95),
+        folderTint: Color(hex: 0x86ABB0),
         navBar: Color(hex: 0x16161A),
         isDark: true
     )

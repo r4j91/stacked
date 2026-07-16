@@ -5,6 +5,8 @@ export type AppThemeId =
   | "midnight"
   | "obsidian"
   | "slate"
+  | "slateCyan"
+  | "slateAmazonite"
   | "titanium"
   | "sodalite"
   | "hematite"
@@ -119,6 +121,50 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#65656D",
       accent: "#E8E8EC",
       accentText: "#0A0A0A",
+      navBar: "#16161A",
+      isDark: true,
+    },
+  },
+  slateCyan: {
+    id: "slateCyan",
+    name: "Slate Cyan",
+    subtitle: "Ciano Obsidian",
+    previewSwatch: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      accent: "#00D4D4",
+    },
+    colors: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      surfaceVariant: "#2C2C32",
+      textPrimary: "#F2F2F4",
+      textSecondary: "#9A9AA2",
+      textTertiary: "#65656D",
+      accent: "#00D4D4",
+      accentText: "#0A0A0A",
+      navBar: "#16161A",
+      isDark: true,
+    },
+  },
+  slateAmazonite: {
+    id: "slateAmazonite",
+    name: "Slate Amazonite",
+    subtitle: "Petróleo",
+    previewSwatch: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      accent: "#86ABB0",
+    },
+    colors: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      surfaceVariant: "#2C2C32",
+      textPrimary: "#F2F2F4",
+      textSecondary: "#9A9AA2",
+      textTertiary: "#65656D",
+      accent: "#86ABB0",
+      accentText: "#0A1012",
       navBar: "#16161A",
       isDark: true,
     },
