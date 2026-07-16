@@ -40,7 +40,7 @@ struct AppearanceView: View {
     let themes = AppThemeId.allCases
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
-    let heroGroups = HomeHeroStyleGroup.allCases
+    let heroGroups = HomeHeroStyleGroup.pickerGroups
     let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
 
     // ScrollView (não List): accordion custom + List brigam no resize das rows.
@@ -66,7 +66,7 @@ struct AppearanceView: View {
           summary: navBarStyle.displayName,
           footer: isIslandNavStyle
             ? nil
-            : "FAB integrado na ilha está disponível apenas com a navbar em Ilha."
+            : "O botão + na barra só funciona no estilo Ilha."
         ) {
           ForEach(Array(navStyles.enumerated()), id: \.element) { index, style in
             navBarStyleRow(style)
@@ -80,7 +80,7 @@ struct AppearanceView: View {
 
         appearancePanel(
           id: .scrollFluidity,
-          title: "Fluidez do scroll",
+          title: "Scroll e listas",
           summary: scrollFluiditySummary,
           footer: scrollFluidityFooter
         ) {
@@ -99,28 +99,27 @@ struct AppearanceView: View {
           id: .homeHero,
           title: "Hero da Home",
           summary: homeHeroStyle.displayName,
-          footer: "Em cada estilo, use o menu ⋯ para excluir só aquele card."
+          footer: "Toque em ⋯ para ocultar um estilo do menu."
         ) {
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
             let styles = HomeHeroStyle.styles(in: group)
             if !styles.isEmpty {
-              if group != .recommended {
+              if group == .recommended {
+                Color.clear.frame(height: 2)
+              } else {
                 Text(group.displayName)
                   .font(AppTypography.metaSmall.weight(.semibold))
                   .foregroundStyle(c.textTertiary)
                   .frame(maxWidth: .infinity, alignment: .leading)
                   .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.top, groupIndex == 0 ? 4 : 12)
-                  .padding(.bottom, 4)
+                  .padding(.top, groupIndex == 0 ? 8 : 14)
+                  .padding(.bottom, 2)
               }
               ForEach(Array(styles.enumerated()), id: \.element) { index, style in
                 homeHeroStyleRow(style)
                 if index < styles.count - 1 {
-                  SettingsCardDivider(leadingPadding: 56)
+                  SettingsCardDivider(leadingPadding: 82)
                 }
-              }
-              if groupIndex < heroGroups.count - 1 {
-                SettingsCardDivider(leadingPadding: 16)
               }
             }
           }
@@ -131,7 +130,7 @@ struct AppearanceView: View {
             id: .hiddenHeroes,
             title: "Estilos ocultos",
             summary: "\(hiddenStyles.count)",
-            footer: "Restaure um estilo para ele voltar ao menu de cards."
+            footer: "Toque em Restaurar para o estilo voltar ao menu."
           ) {
             ForEach(Array(hiddenStyles.enumerated()), id: \.element) { index, style in
               hiddenHeroStyleRow(style)
@@ -147,7 +146,7 @@ struct AppearanceView: View {
             id: .appIcon,
             title: "Ícone do app",
             summary: iconManager.currentId.displayName,
-            footer: "O iOS pede confirmação ao trocar o ícone na tela de início."
+            footer: "O iPhone pede confirmação ao trocar o ícone."
           ) {
             ForEach(Array(icons.enumerated()), id: \.element) { index, iconId in
               iconRow(iconId)
@@ -166,7 +165,13 @@ struct AppearanceView: View {
     .background(c.background)
     .navigationTitle("Aparência")
     .navigationBarTitleDisplayMode(.inline)
-    .onAppear { iconManager.syncFromSystem() }
+    .onAppear {
+      iconManager.syncFromSystem()
+      if HomeHeroStyleStorage.migrateRetiredSelectionIfNeeded() {
+        homeHeroStyleRaw = UserDefaults.standard.string(forKey: HomeHeroStyleStorage.key)
+          ?? HomeHeroStyleStorage.defaultRawValue
+      }
+    }
     .alert(
       "Excluir este estilo?",
       isPresented: Binding(
@@ -182,7 +187,7 @@ struct AppearanceView: View {
         stylePendingHide = nil
       }
     } message: { style in
-      Text("Só “\(style.displayName)” some do menu. Você pode restaurar depois em Estilos ocultos.")
+      Text("Só “\(style.displayName)” some do menu. Dá para restaurar depois em Estilos ocultos.")
     }
     .alert("Não foi possível trocar o ícone", isPresented: Binding(
       get: { iconErrorMessage != nil },
@@ -301,26 +306,26 @@ struct AppearanceView: View {
 
   private var scrollFluiditySummary: String {
     if useUIKitTaskList { return "Listas mais fluidas" }
-    if disableAllGlass { return "Glass desativado" }
+    if disableAllGlass { return "Sem efeito glass" }
     if alwaysStaticGlass { return "Glass estático" }
-    if alwaysFrozenDockGlass { return "Navbar sem glass" }
-    return freezeDockGlassWhileScrolling ? "Glass pausado no scroll" : "Glass sempre ao vivo"
+    if alwaysFrozenDockGlass { return "Barra sem glass" }
+    return freezeDockGlassWhileScrolling ? "Glass pausado ao rolar" : "Glass ao vivo"
   }
 
   private var scrollFluidityFooter: String {
     if useUIKitTaskList {
-      return "Scroll mais fluido nas listas de tarefas (Inbox, Hoje, Em breve, Projetos, Registro, Busca e filtros). Desligue para voltar ao SwiftUI List."
+      return "Listas de tarefas rolam com menos trancos. Desligue se preferir o modo anterior."
     }
     if disableAllGlass {
-      return "Fill sólido em todo o app — sem ver o que passa atrás. Use “Glass estático” se quiser translúcido sem morph."
+      return "Barra e botões opacos. Para fundo translúcido quieto, use Glass estático."
     }
     if alwaysStaticGlass {
-      return "Dock, botões, FAB e headers no estilo do glass pausado: dá para ver atrás, sem Liquid Glass ao vivo."
+      return "Fundos translúcidos quietos, sem animação do efeito."
     }
     if alwaysFrozenDockGlass {
-      return "Só o dock fica estático. “Glass estático” aplica o mesmo look (translúcido) em todo o chrome do app."
+      return "Só a barra de navegação fica quieta; o restante continua ao vivo."
     }
-    return "Pausar no scroll congela o dock. “Glass estático” = pausado o tempo todo em chrome (vê atrás). “Desativar glass” = fill opaco."
+    return "Pausar ao rolar congela a barra. Glass estático deixa tudo quieto. Desativar glass remove a translucidez."
   }
 
   // MARK: - Rows
@@ -334,7 +339,7 @@ struct AppearanceView: View {
         Text("Glass estático")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Como o glass pausado: vê atrás, sem morph ao vivo.")
+        Text("Fundo translúcido quieto, sem animação.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -360,7 +365,7 @@ struct AppearanceView: View {
         Text("Desativar glass")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Fill sólido em todo o app — sem ver por trás.")
+        Text("Fundo opaco; não mostra o que passa atrás.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -382,10 +387,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Pausar glass no scroll")
+        Text("Pausar glass ao rolar")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Pausa o morph do dock enquanto as listas rolam (FAB/headers seguem glass estático só se ligado acima).")
+        Text("Congela o efeito da barra enquanto a lista rola.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -408,10 +413,10 @@ struct AppearanceView: View {
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("Navbar sem glass")
+        Text("Barra sem glass")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Só o dock no estilo estático (translúcido).")
+        Text("Só a barra fica quieta; ainda dá para ver atrás.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -436,7 +441,7 @@ struct AppearanceView: View {
         Text("Listas mais fluidas")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("UICollectionView nas filas de tarefas — mesmos modos Balões/Lista. Desligue = SwiftUI.")
+        Text("Rolar das listas fica mais suave. Desligue para o modo anterior.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -516,10 +521,10 @@ struct AppearanceView: View {
     return HStack(spacing: 14) {
       FabIntegratedInIslandPreview(integrated: fabIntegratedInIsland, colors: c)
       VStack(alignment: .leading, spacing: 3) {
-        Text("FAB integrado na ilha")
+        Text("Botão + na ilha")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(isIslandNavStyle ? c.textPrimary : c.textTertiary)
-        Text("O botão + vira um segmento da pill em vez de flutuar acima dela.")
+        Text("O + fica dentro da barra, em vez de flutuar acima.")
           .font(AppTypography.taskPreview)
           .foregroundStyle(c.textSecondary)
       }
@@ -541,27 +546,30 @@ struct AppearanceView: View {
     let c = theme.colors
     let isSelected = homeHeroStyle == style
 
-    return HStack(spacing: 0) {
+    return HStack(alignment: .center, spacing: 12) {
       Button {
         guard !isSelected else { return }
         HapticService.selection()
         homeHeroStyleRaw = style.rawValue
       } label: {
-        HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
           HomeHeroStylePreview(style: style, colors: c, selected: isSelected)
+            .frame(width: 56, height: 36)
+            .clipped()
+
           VStack(alignment: .leading, spacing: 3) {
             Text(style.displayName)
               .font(AppTypography.settingsTitle)
               .foregroundStyle(c.textPrimary)
+              .lineLimit(1)
+              .minimumScaleFactor(0.88)
             Text(style.subtitle)
               .font(AppTypography.taskPreview)
               .foregroundStyle(c.textSecondary)
+              .lineLimit(2)
           }
+
           Spacer(minLength: 8)
-          if isSelected {
-            Image(systemName: "checkmark.circle.fill")
-              .foregroundStyle(c.accent)
-          }
         }
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .contentShape(Rectangle())
@@ -586,11 +594,25 @@ struct AppearanceView: View {
           Image(systemName: "ellipsis.circle")
             .font(.system(size: 18, weight: .regular))
             .foregroundStyle(c.textTertiary)
-            .frame(width: 36, height: 44)
+            .frame(width: 36, height: 36)
             .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
+        .frame(width: 36, height: 36)
+      } else {
+        Color.clear
+          .frame(width: 36, height: 36)
       }
+
+      Group {
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        } else {
+          Color.clear
+        }
+      }
+      .frame(width: 22)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)

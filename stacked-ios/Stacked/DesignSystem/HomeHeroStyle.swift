@@ -66,33 +66,33 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
     case .motivation: "Mensagem"
     case .focusDay: "Foco do dia"
     case .streak: "Sequência"
-    case .motivationIntegrated: "Mensagem integrada"
-    case .focusDayIntegrated: "Foco integrado"
-    case .streakIntegrated: "Sequência integrada"
+    case .motivationIntegrated: "Mensagem + status"
+    case .focusDayIntegrated: "Foco + status"
+    case .streakIntegrated: "Sequência + status"
     case .streakOpen: "Sequência aberta"
-    case .streakOpenCentered: "Sequência centralizada"
-    case .greetingProgress: "Saudação e progresso"
+    case .streakOpenCentered: "Sequência central"
+    case .greetingProgress: "Progresso"
     case .greetingFocus: "Saudação e foco"
-    case .greetingWeather: "Saudação e clima"
-    case .greetingProgressTinted: "Progresso (tom app)"
-    case .greetingFocusTinted: "Foco (tom app)"
-    case .greetingWeatherTinted: "Clima (tom app)"
+    case .greetingWeather: "Clima"
+    case .greetingProgressTinted: "Progresso (tema)"
+    case .greetingFocusTinted: "Foco (tema)"
+    case .greetingWeatherTinted: "Clima (tema)"
     case .greetingWeatherPremium: "Clima premium"
-    case .greetingWeatherPremiumOpen: "Clima premium aberto"
-    case .greetingWeatherPremiumScene: "Clima cena premium"
-    case .greetingWeatherPremiumSceneOpen: "Clima cena aberto"
-    case .greetingWeatherPremiumSceneMono: "Clima cena premium mono"
-    case .greetingWeatherPremiumSceneMonoOpen: "Clima cena mono aberto"
+    case .greetingWeatherPremiumOpen: "Premium aberto"
+    case .greetingWeatherPremiumScene: "Clima cena"
+    case .greetingWeatherPremiumSceneOpen: "Cena aberta"
+    case .greetingWeatherPremiumSceneMono: "Cena mono"
+    case .greetingWeatherPremiumSceneMonoOpen: "Mono aberto"
     case .greetingWeatherMinimal: "Clima minimal"
-    case .greetingWeatherMinimalOpen: "Clima minimal aberto"
+    case .greetingWeatherMinimalOpen: "Minimal aberto"
     case .greetingWeatherRefined: "Clima refinado"
-    case .greetingWeatherRefinedOpen: "Clima refinado aberto"
-    case .greetingWeatherTint: "Clima refinado tom"
-    case .greetingWeatherTintOpen: "Clima refinado tom aberto"
-    case .greetingWeatherSculpt: "Clima refinado escultura"
-    case .greetingWeatherSculptOpen: "Clima escultura aberto"
-    case .greetingWeatherSculptLift: "Clima escultura destaque"
-    case .greetingWeatherSculptLiftOpen: "Clima escultura destaque aberto"
+    case .greetingWeatherRefinedOpen: "Refinado aberto"
+    case .greetingWeatherTint: "Clima com tom"
+    case .greetingWeatherTintOpen: "Tom aberto"
+    case .greetingWeatherSculpt: "Escultura"
+    case .greetingWeatherSculptOpen: "Escultura aberta"
+    case .greetingWeatherSculptLift: "Escultura destaque"
+    case .greetingWeatherSculptLiftOpen: "Destaque aberto"
     case .journeyDaily: "Jornada diária"
     case .journeyMist: "Jornada neblina"
     case .journeyForest: "Jornada floresta"
@@ -111,56 +111,56 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
-    case .classic: "Saudação e status como hoje"
-    case .orbital: "Stack com halo animado"
-    case .orbitalOpen: "Mesma arte, sem o card"
-    case .horizon: "Mini horizonte por hora do dia"
-    case .capsule: "Status em cápsula no topo"
-    case .openType: "Tipografia direta no fundo"
-    case .focus: "Status direto com bandeja"
-    case .motivation: "Frase motivacional do dia"
+    case .classic: "Saudação e status"
+    case .orbital: "Stack com halo"
+    case .orbitalOpen: "Mesma arte, sem card"
+    case .horizon: "Mini horizonte por hora"
+    case .capsule: "Status no topo"
+    case .openType: "Tipografia no fundo"
+    case .focus: "Status com bandeja"
+    case .motivation: "Frase do dia"
     case .focusDay: "Próxima tarefa de hoje"
-    case .streak: "Dias seguidos com conclusões"
-    case .motivationIntegrated: "Mensagem com status no rodapé"
-    case .focusDayIntegrated: "Foco do dia com status no rodapé"
-    case .streakIntegrated: "Sequência com status no rodapé"
-    case .streakOpen: "Sequência sem card, direto no fundo"
-    case .streakOpenCentered: "Sequência aberta com conteúdo ao centro"
-    case .greetingProgress: "Bom dia com barra de progresso do dia"
-    case .greetingFocus: "Saudação com cartão de foco do dia"
-    case .greetingWeather: "Saudação com clima ilustrativo do dia"
-    case .greetingProgressTinted: "Progresso com fundo na cor do app"
-    case .greetingFocusTinted: "Foco com fundo na cor do app"
-    case .greetingWeatherTinted: "Clima real da localização com fundo temático"
-    case .greetingWeatherPremium: "Clima ao vivo com cena ilustrada premium"
-    case .greetingWeatherPremiumOpen: "Clima premium sem card, direto no fundo"
-    case .greetingWeatherPremiumScene: "Clima ao vivo com cena ilustrada no card"
-    case .greetingWeatherPremiumSceneOpen: "Cena ilustrada sem card, direto no fundo"
-    case .greetingWeatherPremiumSceneMono: "Cena ilustrada monocromática no card"
-    case .greetingWeatherPremiumSceneMonoOpen: "Cena monocromática sem card, direto no fundo"
-    case .greetingWeatherMinimal: "Ícone minimal com card escuro"
-    case .greetingWeatherMinimalOpen: "Clima minimal sem card, direto no fundo"
-    case .greetingWeatherRefined: "Ícone monocromático premium com profundidade"
-    case .greetingWeatherRefinedOpen: "Clima refinado sem card, direto no fundo"
-    case .greetingWeatherTint: "Ícone refinado com cor sutil e sombras suaves"
-    case .greetingWeatherTintOpen: "Clima refinado tom sem card, direto no fundo"
-    case .greetingWeatherSculpt: "Ícones em relevo clay no mesmo card do tom"
-    case .greetingWeatherSculptOpen: "Escultura sem card, direto no fundo"
-    case .greetingWeatherSculptLift: "Arte maior como âncora, saudação e status à esquerda"
-    case .greetingWeatherSculptLiftOpen: "Escultura destaque sem card, direto no fundo"
-    case .journeyDaily: "Ilustração editorial com trilha e status do dia"
-    case .journeyMist: "Vale enevoado com temperatura ao vivo"
-    case .journeyForest: "Trilha na mata com clima em tempo real"
-    case .journeySummit: "Crista montanhosa com condições do dia"
-    case .auroraCalm: "Ondas teal suaves como no conceito"
-    case .auroraDusk: "Ribbons violeta e roxo premium"
-    case .auroraEmber: "Brilho titanium cinza monocromático"
-    case .panel: "Foco, status e métricas num card"
-    case .compass: "Direção do dia com status integrado"
-    case .queue: "Fila de hoje com status nas linhas"
-    case .thermometer: "Contadores de atraso, hoje e breve"
-    case .rhythm: "Semana de conclusões, tom factual"
-    case .nextStep: "Próxima ação com contexto de status"
+    case .streak: "Dias seguidos"
+    case .motivationIntegrated: "Status no rodapé"
+    case .focusDayIntegrated: "Status no rodapé"
+    case .streakIntegrated: "Status no rodapé"
+    case .streakOpen: "Sem card, no fundo"
+    case .streakOpenCentered: "Aberto e centralizado"
+    case .greetingProgress: "Saudação e barra do dia"
+    case .greetingFocus: "Cartão de foco do dia"
+    case .greetingWeather: "Clima ilustrativo"
+    case .greetingProgressTinted: "Fundo na cor do app"
+    case .greetingFocusTinted: "Fundo na cor do app"
+    case .greetingWeatherTinted: "Clima ao vivo + tema"
+    case .greetingWeatherPremium: "Cena ilustrada"
+    case .greetingWeatherPremiumOpen: "Sem card, no fundo"
+    case .greetingWeatherPremiumScene: "Cena no card"
+    case .greetingWeatherPremiumSceneOpen: "Sem card, no fundo"
+    case .greetingWeatherPremiumSceneMono: "Cena monocromática"
+    case .greetingWeatherPremiumSceneMonoOpen: "Sem card, no fundo"
+    case .greetingWeatherMinimal: "Ícone e card escuro"
+    case .greetingWeatherMinimalOpen: "Sem card, no fundo"
+    case .greetingWeatherRefined: "Ícone monocromático"
+    case .greetingWeatherRefinedOpen: "Sem card, no fundo"
+    case .greetingWeatherTint: "Ícone com cor sutil"
+    case .greetingWeatherTintOpen: "Sem card, no fundo"
+    case .greetingWeatherSculpt: "Ícones em relevo"
+    case .greetingWeatherSculptOpen: "Sem card, no fundo"
+    case .greetingWeatherSculptLift: "Arte maior à direita"
+    case .greetingWeatherSculptLiftOpen: "Sem card, no fundo"
+    case .journeyDaily: "Trilha e status do dia"
+    case .journeyMist: "Vale com temperatura"
+    case .journeyForest: "Trilha na mata"
+    case .journeySummit: "Crista e clima"
+    case .auroraCalm: "Ondas teal suaves"
+    case .auroraDusk: "Faixas violeta"
+    case .auroraEmber: "Brilho monocromático"
+    case .panel: "Foco e métricas"
+    case .compass: "Direção do dia"
+    case .queue: "Tarefas de hoje"
+    case .thermometer: "Atraso, hoje e breve"
+    case .rhythm: "Conclusões da semana"
+    case .nextStep: "Próxima ação"
     }
   }
 
@@ -203,6 +203,15 @@ enum HomeHeroStyleGroup: String, CaseIterable, Identifiable {
     case .experimental: "Experimental"
     }
   }
+
+  /// Grupos ainda oferecidos em Aparência.
+  static var pickerGroups: [HomeHeroStyleGroup] {
+    [.recommended, .weather, .journey]
+  }
+
+  var isAvailableInPicker: Bool {
+    Self.pickerGroups.contains(self)
+  }
 }
 
 extension HomeHeroStyle {
@@ -227,13 +236,19 @@ extension HomeHeroStyle {
     }
   }
 
+  /// Aurora e Experimental saíram do seletor; estilos legados caem no Clássico.
+  var isAvailableInPicker: Bool {
+    pickerGroup.isAvailableInPicker
+  }
+
   static func styles(in group: HomeHeroStyleGroup) -> [HomeHeroStyle] {
-    allCases.filter { $0.pickerGroup == group && !HomeHeroStyleStorage.isHidden($0) }
+    guard group.isAvailableInPicker else { return [] }
+    return allCases.filter { $0.pickerGroup == group && !HomeHeroStyleStorage.isHidden($0) }
   }
 
   /// Estilos que ainda podem ser ocultados pelo usuário (não remove o Clássico).
   var canHideFromPicker: Bool {
-    self != .classic
+    self != .classic && isAvailableInPicker
   }
 }
 
@@ -245,7 +260,8 @@ enum HomeHeroStyleStorage {
 
   static func style(from rawValue: String) -> HomeHeroStyle {
     let style = HomeHeroStyle(rawValue: rawValue) ?? .classic
-    return isHidden(style) ? .classic : style
+    if !style.isAvailableInPicker || isHidden(style) { return .classic }
+    return style
   }
 
   static func isHidden(_ style: HomeHeroStyle) -> Bool {
@@ -260,13 +276,29 @@ enum HomeHeroStyleStorage {
   }
 
   static func unhide(_ style: HomeHeroStyle) {
+    guard style.isAvailableInPicker else { return }
     var set = hiddenRawValues()
     set.remove(style.rawValue)
     UserDefaults.standard.set(Array(set).sorted().joined(separator: ","), forKey: hiddenKey)
   }
 
   static func hiddenStyles() -> [HomeHeroStyle] {
-    hiddenRawValues().compactMap(HomeHeroStyle.init(rawValue:)).sorted { $0.displayName < $1.displayName }
+    hiddenRawValues()
+      .compactMap(HomeHeroStyle.init(rawValue:))
+      .filter(\.isAvailableInPicker)
+      .sorted { $0.displayName < $1.displayName }
+  }
+
+  /// Se a preferência apontar para Aurora/Experimental (ou estilo oculto), grava Clássico.
+  @discardableResult
+  static func migrateRetiredSelectionIfNeeded() -> Bool {
+    let raw = UserDefaults.standard.string(forKey: key) ?? defaultRawValue
+    let resolved = style(from: raw)
+    if resolved.rawValue != raw {
+      UserDefaults.standard.set(resolved.rawValue, forKey: key)
+      return true
+    }
+    return false
   }
 
   private static func hiddenRawValues() -> Set<String> {

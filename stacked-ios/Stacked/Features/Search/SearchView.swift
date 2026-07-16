@@ -91,7 +91,7 @@ struct SearchView: View {
         }
       }) { route in
         TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-          TaskDetailView(taskId: route.taskId)
+          TaskDetailView(taskId: route.taskId, seed: route.seed)
             .environment(ThemeManager.shared)
             .onAppear { dismissedTaskId = route.taskId }
         }
@@ -123,7 +123,7 @@ struct SearchView: View {
       onToggle: { store.complete($0) },
       onTap: { task in
         dismissedTaskId = task.id
-        detailRoute = TaskDetailRoute(taskId: task.id)
+        detailRoute = TaskDetailRoute(task: task)
       },
       onSubtaskTap: { task, sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
@@ -132,7 +132,7 @@ struct SearchView: View {
       onSubtaskDeleted: { task, sub in
         store.removeSubtask(parentId: task.id, subtask: sub)
       },
-      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
       onComplete: { store.complete($0) },
       onDuplicate: { store.duplicate($0) },
       onDelete: { store.delete($0) },
@@ -156,7 +156,7 @@ struct SearchView: View {
       onToggle: { store.complete(task) },
       onTap: {
         dismissedTaskId = task.id
-        detailRoute = TaskDetailRoute(taskId: task.id)
+        detailRoute = TaskDetailRoute(task: task)
       },
       onSubtaskTap: { sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
@@ -176,7 +176,7 @@ struct SearchView: View {
     .listRowBackground(Color.clear)
     .taskContextMenu(
       task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: task) },
       onComplete: { store.complete(task) },
       onDuplicate: { store.duplicate(task) },
       onDelete: { store.delete(task) },

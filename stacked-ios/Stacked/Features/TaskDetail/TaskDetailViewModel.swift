@@ -3,7 +3,24 @@ import SwiftUI
 
 struct TaskDetailRoute: Identifiable, Equatable {
   let taskId: String
+  /// Snapshot da lista — first paint sem esperar a rede. Identidade do route ignora o seed.
+  let seed: Task?
+
   var id: String { taskId }
+
+  init(taskId: String, seed: Task? = nil) {
+    self.taskId = taskId
+    self.seed = seed
+  }
+
+  init(task: Task) {
+    self.taskId = task.id
+    self.seed = task
+  }
+
+  static func == (lhs: TaskDetailRoute, rhs: TaskDetailRoute) -> Bool {
+    lhs.taskId == rhs.taskId
+  }
 }
 
 struct SubtaskDetailRoute: Identifiable {
@@ -56,8 +73,12 @@ final class TaskDetailViewModel {
   private var loadGeneration = 0
   private var whatsappRoutineReady = false
 
-  init(taskId: String) {
+  init(taskId: String, seed: Task? = nil) {
     self.taskId = taskId
+    if let seed {
+      apply(seed)
+      isLoading = false
+    }
   }
 
   func reloadLabels() async {
@@ -67,8 +88,11 @@ final class TaskDetailViewModel {
   func load() async {
     loadGeneration += 1
     let generation = loadGeneration
-    isLoading = true
-    error = nil
+    let hasSeededContent = !title.isEmpty
+    if !hasSeededContent {
+      isLoading = true
+      error = nil
+    }
     do {
       async let taskReq = TaskRepository.shared.fetchTaskById(taskId)
       async let projectsReq = ProjectRepository.shared.fetchProjects()
@@ -76,8 +100,10 @@ final class TaskDetailViewModel {
       async let commentsReq = CommentRepository.shared.fetchComments(taskId: taskId)
       guard let task = try await taskReq else {
         guard generation == loadGeneration else { return }
-        error = "Tarefa não encontrada"
-        isLoading = false
+        if !hasSeededContent {
+          error = "Tarefa não encontrada"
+          isLoading = false
+        }
         return
       }
       guard generation == loadGeneration else { return }
@@ -91,7 +117,9 @@ final class TaskDetailViewModel {
       selectedLabelIds = Set(task.labels.map(\.id))
     } catch {
       guard generation == loadGeneration else { return }
-      self.error = error.localizedDescription
+      if !hasSeededContent {
+        self.error = error.localizedDescription
+      }
     }
     guard generation == loadGeneration else { return }
     isLoading = false

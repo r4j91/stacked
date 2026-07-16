@@ -51,7 +51,7 @@ struct InboxView: View {
       }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId)
+        TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
       }
     }
@@ -92,13 +92,13 @@ struct InboxView: View {
         }
       },
       onToggle: { store.completeInbox($0) },
-      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onTap: { detailRoute = TaskDetailRoute(task: $0) },
       onSubtaskTap: { task, sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
       onSubtaskChanged: { store.applySubtaskPatch($0) },
       onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
       onComplete: { store.completeInbox($0) },
       onDuplicate: { store.duplicateInbox($0) },
       onDelete: { store.deleteInbox($0) },
@@ -221,7 +221,7 @@ struct InboxView: View {
       onToggle: {
       store.completeInbox(task)
     }, onTap: {
-      detailRoute = TaskDetailRoute(taskId: task.id)
+      detailRoute = TaskDetailRoute(task: task)
     }, onSubtaskTap: { sub in
       subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
     }, onSubtaskChanged: { snapshot in
@@ -237,7 +237,7 @@ struct InboxView: View {
     .listRowBackground(Color.clear)
     .taskContextMenu(
       task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: task) },
       onComplete: { store.completeInbox(task) },
       onDuplicate: { store.duplicateInbox(task) },
       onDelete: { store.deleteInbox(task) },

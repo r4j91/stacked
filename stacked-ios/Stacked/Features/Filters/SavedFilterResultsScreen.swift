@@ -8,7 +8,7 @@ struct SavedFilterResultsScreen: View {
   let initialCompleted: [FilterResultItem]
   let taskDetailNamespace: Namespace.ID
   var activeZoomTaskId: String? = nil
-  let onTaskTap: (String) -> Void
+  let onTaskTap: (Task) -> Void
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
   let onEditFilter: (SavedFilter) -> Void
 
@@ -28,7 +28,7 @@ struct SavedFilterResultsScreen: View {
     initialCompleted: [FilterResultItem],
     taskDetailNamespace: Namespace.ID,
     activeZoomTaskId: String? = nil,
-    onTaskTap: @escaping (String) -> Void,
+    onTaskTap: @escaping (Task) -> Void,
     onSubtaskTap: @escaping (SubtaskDetailRoute) -> Void,
     onEditFilter: @escaping (SavedFilter) -> Void
   ) {
@@ -246,7 +246,7 @@ struct SavedFilterResultsScreen: View {
         ensureStoreLinked()
         store.complete($0)
       },
-      onTap: { onTaskTap($0.id) },
+      onTap: { onTaskTap($0) },
       onSubtaskTap: { task, sub in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
       },
@@ -260,7 +260,7 @@ struct SavedFilterResultsScreen: View {
         store.removeSubtask(parentId: task.id, subtask: sub)
         TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
       },
-      onEdit: { onTaskTap($0.id) },
+      onEdit: { onTaskTap($0) },
       onComplete: {
         ensureStoreLinked()
         store.complete($0)
@@ -368,7 +368,7 @@ struct SavedFilterResultsScreen: View {
         store.complete(task)
       },
       onTap: {
-        onTaskTap(task.id)
+        onTaskTap(task)
       },
       onSubtaskTap: { sub in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
@@ -387,7 +387,7 @@ struct SavedFilterResultsScreen: View {
     .listRowBackground(Color.clear)
     .taskContextMenu(
       task: task,
-      onEdit: { onTaskTap(task.id) },
+      onEdit: { onTaskTap(task) },
       onComplete: {
         ensureStoreLinked()
         store.complete(task)

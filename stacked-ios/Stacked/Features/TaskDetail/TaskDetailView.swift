@@ -39,8 +39,8 @@ struct TaskDetailView: View {
 
   var onDismiss: () -> Void = {}
 
-  init(taskId: String, onDismiss: @escaping () -> Void = {}) {
-    _vm = State(initialValue: TaskDetailViewModel(taskId: taskId))
+  init(taskId: String, seed: Task? = nil, onDismiss: @escaping () -> Void = {}) {
+    _vm = State(initialValue: TaskDetailViewModel(taskId: taskId, seed: seed))
     self.onDismiss = onDismiss
   }
 
@@ -130,17 +130,14 @@ struct TaskDetailView: View {
           .presentationBackground(c.background)
           .presentationDragIndicator(.visible)
       }
-      .task { await vm.load() }
+      .task {
+        initExpandedSectionsIfNeeded()
+        await vm.load()
+        initExpandedSectionsIfNeeded()
+      }
       .onChange(of: vm.isLoading) { wasLoading, isLoading in
         guard wasLoading, !isLoading else { return }
-        if !didInitSubtasksExpanded {
-          subtasksExpanded = !vm.subtasks.isEmpty
-          didInitSubtasksExpanded = true
-        }
-        if !didInitCommentsExpanded {
-          commentsExpanded = false
-          didInitCommentsExpanded = true
-        }
+        initExpandedSectionsIfNeeded()
       }
       .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
         _Concurrency.Task { await vm.reloadLabels() }
@@ -802,6 +799,17 @@ struct TaskDetailView: View {
     Rectangle()
       .fill(theme.colors.textTertiary.opacity(0.12))
       .frame(height: 1)
+  }
+
+  private func initExpandedSectionsIfNeeded() {
+    if !didInitSubtasksExpanded {
+      subtasksExpanded = !vm.subtasks.isEmpty
+      didInitSubtasksExpanded = true
+    }
+    if !didInitCommentsExpanded {
+      commentsExpanded = false
+      didInitCommentsExpanded = true
+    }
   }
 
   private func close() {

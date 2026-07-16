@@ -44,7 +44,7 @@ struct FiltersView: View {
             kind: kind,
             taskDetailNamespace: taskDetailZoom,
             activeZoomTaskId: detailRoute?.taskId,
-            onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
+            onTaskTap: { detailRoute = TaskDetailRoute(task: $0) },
             onSubtaskTap: { subtaskDetailRoute = $0 }
           )
         }
@@ -55,7 +55,7 @@ struct FiltersView: View {
             initialCompleted: store.cachedCompletedResults(for: route.filter.id),
             taskDetailNamespace: taskDetailZoom,
             activeZoomTaskId: detailRoute?.taskId,
-            onTaskTap: { detailRoute = TaskDetailRoute(taskId: $0) },
+            onTaskTap: { detailRoute = TaskDetailRoute(task: $0) },
             onSubtaskTap: { subtaskDetailRoute = $0 },
             onEditFilter: { filter in
               editingFilter = filter
@@ -77,7 +77,7 @@ struct FiltersView: View {
       }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId)
+        TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
       }
     }

@@ -59,7 +59,7 @@ struct LogbookView: View {
       _Concurrency.Task { await load() }
     }) { route in
       TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId)
+        TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
       }
     }
@@ -89,7 +89,7 @@ struct LogbookView: View {
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: { uncomplete($0) },
-      onTap: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onTap: { detailRoute = TaskDetailRoute(task: $0) },
       onSubtaskTap: { task, sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
@@ -97,7 +97,7 @@ struct LogbookView: View {
       onSubtaskDeleted: { task, sub in
         SubtaskListPatch.remove(parentTaskId: task.id, subtask: sub, from: &tasks)
       },
-      onEdit: { detailRoute = TaskDetailRoute(taskId: $0.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
       onComplete: { uncomplete($0) },
       onDuplicate: { duplicate($0) },
       onDelete: { delete($0) },
@@ -138,7 +138,7 @@ struct LogbookView: View {
       flatSubtaskPanel: displayMode.flatSubtaskPanel,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: { uncomplete(task) },
-      onTap: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onTap: { detailRoute = TaskDetailRoute(task: task) },
       onSubtaskTap: { sub in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
       },
@@ -157,7 +157,7 @@ struct LogbookView: View {
     .listRowBackground(Color.clear)
     .taskContextMenu(
       task: task,
-      onEdit: { detailRoute = TaskDetailRoute(taskId: task.id) },
+      onEdit: { detailRoute = TaskDetailRoute(task: task) },
       onComplete: { uncomplete(task) },
       onDuplicate: { duplicate(task) },
       onDelete: { delete(task) },

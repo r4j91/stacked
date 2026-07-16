@@ -101,5 +101,5 @@ extension View {
 
 // SUBSTITUIDO_FASE4C: fullScreenCover sem navigationTransition(.zoom)
 // .fullScreenCover(item: $detailRoute) { route in
-//   TaskDetailView(taskId: route.taskId) { ... }
+//   TaskDetailView(taskId: route.taskId, seed: route.seed) { ... }
 // }

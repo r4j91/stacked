@@ -33,6 +33,7 @@ private struct AppRootView: View {
     .syncWindowBackground(themeManager.colors.background)
     .onAppear {
       UIKitTaskListStorage.registerDefaultsIfNeeded()
+      HomeHeroStyleStorage.migrateRetiredSelectionIfNeeded()
       HapticService.prepare()
     }
     .task {

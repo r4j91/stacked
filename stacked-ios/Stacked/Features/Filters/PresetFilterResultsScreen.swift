@@ -5,7 +5,7 @@ struct PresetFilterResultsScreen: View {
   let kind: TaskFilterKind
   let taskDetailNamespace: Namespace.ID
   var activeZoomTaskId: String? = nil
-  let onTaskTap: (String) -> Void
+  let onTaskTap: (Task) -> Void
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
 
   @Environment(ThemeManager.self) private var theme
@@ -164,7 +164,7 @@ struct PresetFilterResultsScreen: View {
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: { store.complete($0) },
-      onTap: { onTaskTap($0.id) },
+      onTap: { onTaskTap($0) },
       onSubtaskTap: { task, sub in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
       },
@@ -173,7 +173,7 @@ struct PresetFilterResultsScreen: View {
         store.removeSubtask(parentId: task.id, subtask: sub)
         TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
       },
-      onEdit: { onTaskTap($0.id) },
+      onEdit: { onTaskTap($0) },
       onComplete: { store.complete($0) },
       onDuplicate: { task in
         _Concurrency.Task {
@@ -239,7 +239,7 @@ struct PresetFilterResultsScreen: View {
         store.complete(task)
       },
       onTap: {
-        onTaskTap(task.id)
+        onTaskTap(task)
       },
       onSubtaskTap: { sub in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
@@ -257,7 +257,7 @@ struct PresetFilterResultsScreen: View {
     .listRowBackground(Color.clear)
     .taskContextMenu(
       task: task,
-      onEdit: { onTaskTap(task.id) },
+      onEdit: { onTaskTap(task) },
       onComplete: {
         store.complete(task)
       },
