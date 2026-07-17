@@ -137,6 +137,35 @@ final class HomeStore {
     HomeHeroInsights.formattedLongDate()
   }
 
+  var formattedDateline: String {
+    HomeHeroInsights.formattedDateline()
+  }
+
+  var formattedClock: String {
+    HomeHeroInsights.formattedClock()
+  }
+
+  var formattedMediumDate: String {
+    HomeHeroInsights.formattedMediumDate()
+  }
+
+  var weatherCompactLabel: String {
+    HomeHeroInsights.weatherCompactLabel(for: weatherSnapshot)
+  }
+
+  var weatherDegreeLabel: String {
+    HomeHeroInsights.weatherDegreeLabel(for: weatherSnapshot)
+  }
+
+  /// Status para âncoras de orientação (A1–A3).
+  func orientationStatusLabel(overdueCount: Int) -> String {
+    if overdueCount == 1 { return "1 atrasada · Toque para resolver" }
+    if overdueCount > 1 { return "\(overdueCount) atrasadas · Toque para resolver" }
+    if todayPending == 0 { return "Nada para hoje · Em dia" }
+    if todayPending == 1 { return "1 para hoje · Nada atrasado" }
+    return "\(todayPending) para hoje · Nada atrasado"
+  }
+
   var todayProgressPercent: Int {
     guard todayTotal > 0 else { return todayPending == 0 && overdueCount == 0 ? 100 : 0 }
     return Int((Double(todayDone) / Double(todayTotal) * 100).rounded())

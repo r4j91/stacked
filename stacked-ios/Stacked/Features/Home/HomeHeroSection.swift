@@ -36,7 +36,7 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
-    case .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen, .greetingWeatherSculptOpen, .greetingWeatherSculptLiftOpen:
+    case .masthead, .horizonTone, .dayRuler, .dayRail, .openType, .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen, .greetingWeatherSculptOpen, .greetingWeatherSculptLiftOpen:
       return EdgeInsets(top: 8, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
     default:
       return EdgeInsets(top: 4, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl)
@@ -48,6 +48,22 @@ struct HomeHeroSection: View {
     switch style {
     case .classic:
       classicHero
+    case .masthead:
+      HomeHeroMastheadCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .horizonTone:
+      HomeHeroHorizonToneCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .dayRuler:
+      HomeHeroDayRulerCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
+    case .dayRail:
+      HomeHeroDayRailCard(
+        store: store, metrics: metrics, isOverdue: isOverdue, onOpenFilter: onOpenFilter
+      )
     case .orbital:
       overdueButton { orbitalHero }
     case .orbitalOpen:

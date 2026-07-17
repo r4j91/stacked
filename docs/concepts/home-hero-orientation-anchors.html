@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Home: âncoras de orientação</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text-primary: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --priority-high: #EF5A5F;
+      --priority-medium: #F5A623;
+      --tag-green: #8FD46B;
+      --tag-purple: #B18CF5;
+      --phone-w: 340px;
+      --pad-x: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+      background: #0c0d0f;
+      color: var(--text-primary);
+      padding: 40px 20px 80px;
+      line-height: 1.35;
+    }
+
+    header { max-width: 1180px; margin: 0 auto 28px; }
+    header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+    header p { margin-top: 10px; font-size: 14px; color: var(--text-secondary); max-width: 70ch; }
+
+    .controls {
+      max-width: 1180px; margin: 0 auto 28px;
+      display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center;
+      padding: 14px 18px;
+      background: var(--surface); border-radius: 16px;
+      border: 1px solid rgba(242,243,245,0.06);
+    }
+    .control-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .control-group label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-tertiary); margin-right: 4px;
+    }
+    .pill {
+      padding: 7px 12px; border-radius: 999px;
+      border: 1px solid rgba(242,243,245,0.08);
+      background: transparent; color: var(--text-secondary);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      font-family: inherit;
+    }
+    .pill:hover { border-color: rgba(242,243,245,0.14); color: var(--text-primary); }
+    .pill.active {
+      background: rgba(95,211,220,0.12);
+      border-color: rgba(95,211,220,0.28);
+      color: var(--accent);
+    }
+    .pill.overdue.active {
+      background: rgba(239,90,95,0.12);
+      border-color: rgba(239,90,95,0.28);
+      color: var(--priority-high);
+    }
+
+    .grid {
+      max-width: 1180px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px;
+    }
+
+    .panel { display: flex; flex-direction: column; gap: 12px; }
+    .panel-head h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .panel-head p { margin-top: 4px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; max-width: 46ch; }
+
+    .phone {
+      width: var(--phone-w); max-width: 100%; margin: 0 auto;
+      background: var(--bg); border-radius: 28px;
+      border: 1px solid rgba(242,243,245,0.08);
+      overflow: hidden; padding-bottom: 22px;
+    }
+
+    .toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px var(--pad-x) 6px;
+      position: relative; z-index: 1;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(145deg, #3d2f4d, #5a4068);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9);
+    }
+    .toolbar-icons { display: flex; gap: 14px; font-size: 14px; color: var(--text-tertiary); }
+
+    .section-label {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+      color: var(--text-tertiary); margin: 14px var(--pad-x) 6px;
+    }
+    .nav-row {
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px var(--pad-x); font-size: 15px; font-weight: 500;
+    }
+    .nav-row .ic { width: 20px; text-align: center; font-size: 14px; opacity: 0.85; }
+    .nav-row .n { margin-left: auto; font-size: 13.5px; color: var(--text-tertiary); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+    .proj-row {
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px var(--pad-x); font-size: 14.5px; font-weight: 500;
+    }
+    .proj-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+    .proj-row .n { margin-left: auto; font-size: 13.5px; color: var(--text-tertiary); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+    /* ————— shared hero vocabulary ————— */
+    .greet-word { color: var(--text-secondary); font-weight: 500; }
+    .num { font-variant-numeric: tabular-nums; }
+    .st-ok { color: var(--text-secondary); }
+    .st-ok .hl { color: var(--text-primary); font-weight: 700; }
+    .st-bad { color: var(--priority-high); font-weight: 600; }
+    .hero-tap { cursor: pointer; }
+
+    /* ============================================================
+       A1 — Masthead tipográfico (sem card)
+       ============================================================ */
+    .a1 { padding: 10px var(--pad-x) 2px; }
+    .a1-dateline {
+      display: flex; align-items: baseline; justify-content: space-between;
+      font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em;
+      color: var(--text-tertiary);
+    }
+    .a1-dateline .wx { letter-spacing: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .a1-greet {
+      margin-top: 6px;
+      font-size: 27px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.12;
+      text-wrap: balance;
+    }
+    .a1-status { margin-top: 7px; font-size: 13px; }
+    .a1-rule {
+      margin-top: 13px; height: 1px;
+      background: rgba(242,243,245,0.07);
+    }
+
+    /* ============================================================
+       A2 — Horizonte tonal (o fundo orienta, sem card)
+       ============================================================ */
+    .phone.a2-phone { position: relative; }
+    .a2-wash {
+      position: absolute; top: 0; left: 0; right: 0; height: 176px;
+      pointer-events: none;
+      transition: background 0.6s ease;
+    }
+    .a2-wash.morning {
+      background: linear-gradient(180deg, rgba(245,196,120,0.055) 0%, rgba(245,196,120,0.02) 55%, transparent 100%);
+    }
+    .a2-wash.afternoon {
+      background: linear-gradient(180deg, rgba(95,211,220,0.05) 0%, rgba(95,211,220,0.018) 55%, transparent 100%);
+    }
+    .a2-wash.night {
+      background: linear-gradient(180deg, rgba(122,110,214,0.06) 0%, rgba(122,110,214,0.022) 55%, transparent 100%);
+    }
+    .a2-wash.overdue-tint {
+      background: linear-gradient(180deg, rgba(239,90,95,0.055) 0%, rgba(239,90,95,0.02) 55%, transparent 100%);
+    }
+    .a2 { position: relative; z-index: 1; padding: 12px var(--pad-x) 4px; }
+    .a2-greet { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.12; }
+    .a2-meta {
+      margin-top: 6px; display: flex; align-items: baseline; gap: 8px;
+      font-size: 12.5px; color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+    }
+    .a2-meta .sep { opacity: 0.5; }
+    .a2-status { margin-top: 8px; font-size: 13px; }
+
+    /* ============================================================
+       A3 — Régua do dia (instrumento)
+       ============================================================ */
+    .a3 { padding: 10px var(--pad-x) 4px; }
+    .a3-greet { font-size: 24px; font-weight: 800; letter-spacing: -0.028em; line-height: 1.12; }
+    .a3-ruler {
+      margin-top: 13px;
+      display: flex; align-items: flex-end; gap: 0;
+      height: 16px;
+    }
+    .a3-tick {
+      flex: 1; display: flex; justify-content: center; align-items: flex-end; height: 100%;
+    }
+    .a3-tick i {
+      display: block; width: 1.5px; height: 7px; border-radius: 1px;
+      background: rgba(242,243,245,0.10);
+      transition: background 0.3s, height 0.3s;
+    }
+    .a3-tick.filled i { background: rgba(242,243,245,0.32); }
+    .a3-tick.now i { height: 15px; width: 2.5px; background: var(--accent); }
+    .a3-tick.now.alert i { background: var(--priority-high); }
+    .a3-meta {
+      margin-top: 8px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      font-size: 12.5px; font-variant-numeric: tabular-nums;
+    }
+    .a3-meta .clock { color: var(--text-primary); font-weight: 700; }
+    .a3-meta .rest { color: var(--text-tertiary); }
+    .a3-status { margin-top: 5px; font-size: 13px; }
+
+    /* ============================================================
+       A4 — Monólito (card único, material puro)
+       ============================================================ */
+    .a4-slot { padding: 10px var(--pad-x) 4px; }
+    .a4 {
+      border-radius: 20px;
+      background:
+        radial-gradient(120% 90% at 20% 0%, rgba(242,243,245,0.028), transparent 60%),
+        var(--surface);
+      padding: 15px 16px 14px;
+      transition: background 0.4s;
+    }
+    .a4.alert {
+      background:
+        radial-gradient(120% 90% at 20% 0%, rgba(239,90,95,0.05), transparent 60%),
+        var(--surface);
+    }
+    .a4-top {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      font-size: 11.5px; color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+    .a4-greet { margin-top: 5px; font-size: 25px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.12; }
+    .a4-status { margin-top: 8px; font-size: 13px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+
+    footer {
+      max-width: 1180px; margin: 30px auto 0;
+      padding: 16px 18px; border-radius: 14px;
+      background: var(--surface); border: 1px solid rgba(242,243,245,0.06);
+      font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;
+    }
+    footer strong { color: var(--text-primary); }
+    footer ul { margin: 8px 0 0 18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Home — âncoras de orientação (uma âncora, sem card genérico)</h1>
+    <p>
+      Quatro direções para o topo da Home, todas respondendo "onde estou agora?" com um único bloco.
+      Nenhuma usa ilustração, cena de clima ou caixa-com-ícone. A diferença entre elas é
+      <strong>estrutural</strong>: tipografia aberta, fundo que orienta, instrumento, ou card reduzido a material puro.
+    </p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Hora</label>
+      <button class="pill" data-time="morning">Manhã</button>
+      <button class="pill" data-time="afternoon">Tarde</button>
+      <button class="pill active" data-time="night">Noite</button>
+    </div>
+    <div class="control-group">
+      <label>Estado</label>
+      <button class="pill active" data-state="clear">Tudo em dia</button>
+      <button class="pill overdue" data-state="overdue">3 atrasadas</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ A1 ============ -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>A1 — Masthead tipográfico</h2>
+        <p>Sem card. Dateline discreta em cima, saudação grande, uma linha de status. A hierarquia é só peso e tamanho — a home vira uma "primeira página", não um dashboard.</p>
+      </div>
+      <div class="phone">
+        <div class="toolbar"><div class="avatar">RO</div><div class="toolbar-icons"><span>◔</span><span>◎</span><span>⚙</span></div></div>
+        <div class="a1">
+          <div class="a1-dateline">
+            <span class="a1-date">QUI · 16 JUL</span>
+            <span class="wx a1-wx">21° limpo</span>
+          </div>
+          <div class="a1-greet"><span class="greet-word greet-phrase">Boa noite,</span><br>Renan.</div>
+          <div class="a1-status status-slot"></div>
+          <div class="a1-rule"></div>
+        </div>
+        <div class="section-label">VISÃO GERAL</div>
+        <div class="nav-row"><span class="ic">📥</span>Inbox <span class="n">2</span></div>
+        <div class="nav-row"><span class="ic">☀️</span>Hoje <span class="n">3</span></div>
+        <div class="nav-row"><span class="ic">📅</span>Em breve <span class="n">12</span></div>
+        <div class="section-label">MEUS PROJETOS</div>
+        <div class="proj-row"><span class="proj-dot" style="background:#4D9FEC"></span>Trabalho <span class="n">8</span></div>
+        <div class="proj-row"><span class="proj-dot" style="background:#8FD46B"></span>Casa <span class="n">4</span></div>
+      </div>
+    </article>
+
+    <!-- ============ A2 ============ -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>A2 — Horizonte tonal</h2>
+        <p>Sem card: o próprio fundo do topo recebe um tom quase imperceptível que muda com a hora (âmbar de manhã, ciano à tarde, violeta à noite). O ambiente orienta; o texto só confirma.</p>
+      </div>
+      <div class="phone a2-phone">
+        <div class="a2-wash night"></div>
+        <div class="toolbar"><div class="avatar">RO</div><div class="toolbar-icons"><span>◔</span><span>◎</span><span>⚙</span></div></div>
+        <div class="a2">
+          <div class="a2-greet"><span class="greet-word greet-phrase">Boa noite,</span> Renan.</div>
+          <div class="a2-meta">
+            <span class="a2-clock">19:43</span>
+            <span class="sep">·</span>
+            <span>Quinta, 16 de julho</span>
+            <span class="sep">·</span>
+            <span class="a2-wx">21°</span>
+          </div>
+          <div class="a2-status status-slot"></div>
+        </div>
+        <div class="section-label">VISÃO GERAL</div>
+        <div class="nav-row"><span class="ic">📥</span>Inbox <span class="n">2</span></div>
+        <div class="nav-row"><span class="ic">☀️</span>Hoje <span class="n">3</span></div>
+        <div class="nav-row"><span class="ic">📅</span>Em breve <span class="n">12</span></div>
+        <div class="section-label">MEUS PROJETOS</div>
+        <div class="proj-row"><span class="proj-dot" style="background:#4D9FEC"></span>Trabalho <span class="n">8</span></div>
+        <div class="proj-row"><span class="proj-dot" style="background:#8FD46B"></span>Casa <span class="n">4</span></div>
+      </div>
+    </article>
+
+    <!-- ============ A3 ============ -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>A3 — Régua do dia</h2>
+        <p>Instrumento, não decoração: 24 ticks marcam o dia, o tick "agora" é o único accent da tela. Lê como painel de controle silencioso — a assinatura mais "Stacked" das quatro.</p>
+      </div>
+      <div class="phone">
+        <div class="toolbar"><div class="avatar">RO</div><div class="toolbar-icons"><span>◔</span><span>◎</span><span>⚙</span></div></div>
+        <div class="a3">
+          <div class="a3-greet"><span class="greet-word greet-phrase">Boa noite,</span> Renan.</div>
+          <div class="a3-ruler" aria-hidden="true"></div>
+          <div class="a3-meta">
+            <span class="clock a3-clock">19:43</span>
+            <span class="rest">Quinta, 16 jul · <span class="a3-wx">21°</span></span>
+          </div>
+          <div class="a3-status status-slot"></div>
+        </div>
+        <div class="section-label">VISÃO GERAL</div>
+        <div class="nav-row"><span class="ic">📥</span>Inbox <span class="n">2</span></div>
+        <div class="nav-row"><span class="ic">☀️</span>Hoje <span class="n">3</span></div>
+        <div class="nav-row"><span class="ic">📅</span>Em breve <span class="n">12</span></div>
+        <div class="section-label">MEUS PROJETOS</div>
+        <div class="proj-row"><span class="proj-dot" style="background:#4D9FEC"></span>Trabalho <span class="n">8</span></div>
+        <div class="proj-row"><span class="proj-dot" style="background:#8FD46B"></span>Casa <span class="n">4</span></div>
+      </div>
+    </article>
+
+    <!-- ============ A4 ============ -->
+    <article class="panel">
+      <div class="panel-head">
+        <h2>A4 — Monólito</h2>
+        <p>Se ainda quiser card: um só, sem borda, sem ícone, sem ilustração. A única "decoração" é um levantamento radial de 3% no tom — material, não enfeite. Comparação de controle contra as versões abertas.</p>
+      </div>
+      <div class="phone">
+        <div class="toolbar"><div class="avatar">RO</div><div class="toolbar-icons"><span>◔</span><span>◎</span><span>⚙</span></div></div>
+        <div class="a4-slot">
+          <div class="a4">
+            <div class="a4-top">
+              <span>Quinta, 16 de julho</span>
+              <span class="a4-wx">19:43 · 21°</span>
+            </div>
+            <div class="a4-greet"><span class="greet-word greet-phrase">Boa noite,</span> Renan.</div>
+            <div class="a4-status status-slot"></div>
+          </div>
+        </div>
+        <div class="section-label">VISÃO GERAL</div>
+        <div class="nav-row"><span class="ic">📥</span>Inbox <span class="n">2</span></div>
+        <div class="nav-row"><span class="ic">☀️</span>Hoje <span class="n">3</span></div>
+        <div class="nav-row"><span class="ic">📅</span>Em breve <span class="n">12</span></div>
+        <div class="section-label">MEUS PROJETOS</div>
+        <div class="proj-row"><span class="proj-dot" style="background:#4D9FEC"></span>Trabalho <span class="n">8</span></div>
+        <div class="proj-row"><span class="proj-dot" style="background:#8FD46B"></span>Casa <span class="n">4</span></div>
+      </div>
+    </article>
+
+  </div>
+
+  <footer>
+    <strong>Como comparar:</strong>
+    <ul>
+      <li><strong>A1 vs A2:</strong> mesmo conteúdo, presença diferente. A1 é neutra e editorial; A2 carrega humor de hora do dia sem desenhar nada.</li>
+      <li><strong>A3</strong> é a única com um elemento visual novo (a régua) — mas ele é dado, não enfeite: mostra onde o dia está.</li>
+      <li><strong>A4</strong> responde "e se o problema não for o card, mas o que colocamos dentro dele?" — card mínimo, zero chrome.</li>
+      <li>Em todas, o estado <em>atrasadas</em> muda apenas a linha de status (e o tick/tom onde faz sentido) — o alerta aparece quando importa, não mora na tela.</li>
+    </ul>
+  </footer>
+
+  <script>
+    let currentTime = 'night';
+    let currentState = 'clear';
+
+    const GREET = { morning: 'Bom dia,', afternoon: 'Boa tarde,', night: 'Boa noite,' };
+    const CLOCK = { morning: '08:12', afternoon: '15:27', night: '19:43' };
+    const HOUR  = { morning: 8, afternoon: 15, night: 19 };
+    const WX    = { morning: '17° limpo', afternoon: '24° limpo', night: '21° limpo' };
+
+    // A3 ruler
+    const ruler = document.querySelector('.a3-ruler');
+    for (let h = 0; h < 24; h++) {
+      const t = document.createElement('span');
+      t.className = 'a3-tick';
+      t.innerHTML = '<i></i>';
+      ruler.appendChild(t);
+    }
+
+    function statusHTML() {
+      if (currentState === 'overdue') {
+        return '<span class="st-bad">3 atrasadas · toque para resolver</span>';
+      }
+      return '<span class="st-ok"><span class="hl num">3</span> para hoje · nada atrasado</span>';
+    }
+
+    function render() {
+      document.querySelectorAll('.greet-phrase').forEach(el => { el.textContent = GREET[currentTime]; });
+      document.querySelectorAll('.status-slot').forEach(el => { el.innerHTML = statusHTML(); });
+
+      document.querySelector('.a1-wx').textContent = WX[currentTime];
+      document.querySelector('.a2-clock').textContent = CLOCK[currentTime];
+      document.querySelector('.a2-wx').textContent = WX[currentTime].split(' ')[0];
+      document.querySelector('.a3-clock').textContent = CLOCK[currentTime];
+      document.querySelector('.a3-wx').textContent = WX[currentTime].split(' ')[0];
+      document.querySelector('.a4-wx').textContent = CLOCK[currentTime] + ' · ' + WX[currentTime].split(' ')[0];
+
+      // A2 wash
+      const wash = document.querySelector('.a2-wash');
+      wash.className = 'a2-wash ' + (currentState === 'overdue' ? 'overdue-tint' : currentTime);
+
+      // A3 ticks
+      const now = HOUR[currentTime];
+      document.querySelectorAll('.a3-tick').forEach((t, i) => {
+        t.classList.toggle('filled', i < now);
+        t.classList.toggle('now', i === now);
+        t.classList.toggle('alert', i === now && currentState === 'overdue');
+      });
+
+      // A4 material
+      document.querySelector('.a4').classList.toggle('alert', currentState === 'overdue');
+    }
+
+    document.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentTime = btn.dataset.time;
+        document.querySelectorAll('[data-time]').forEach(b => b.classList.toggle('active', b === btn));
+        render();
+      });
+    });
+    document.querySelectorAll('[data-state]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentState = btn.dataset.state;
+        document.querySelectorAll('[data-state]').forEach(b => b.classList.toggle('active', b === btn));
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

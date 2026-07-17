@@ -29,6 +29,14 @@ struct HomeHeroStylePreview: View {
     switch style {
     case .classic:
       classicPreview
+    case .masthead:
+      mastheadPreview
+    case .horizonTone:
+      horizonTonePreview
+    case .dayRuler:
+      dayRulerPreview
+    case .dayRail:
+      dayRailPreview
     case .orbital:
       orbitalPreview
     case .orbitalOpen:
@@ -128,6 +136,103 @@ struct HomeHeroStylePreview: View {
     case .nextStep:
       nextStepPreview
     }
+  }
+
+  private var mastheadPreview: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      HStack {
+        RoundedRectangle(cornerRadius: 0.5)
+          .fill(colors.textTertiary.opacity(0.45))
+          .frame(width: 18, height: 1.5)
+        Spacer(minLength: 0)
+        RoundedRectangle(cornerRadius: 0.5)
+          .fill(colors.textTertiary.opacity(0.35))
+          .frame(width: 10, height: 1.5)
+      }
+      RoundedRectangle(cornerRadius: 1)
+        .fill(colors.textSecondary.opacity(0.45))
+        .frame(width: 14, height: 2)
+      RoundedRectangle(cornerRadius: 1)
+        .fill(colors.textPrimary.opacity(0.85))
+        .frame(width: 24, height: 4)
+      RoundedRectangle(cornerRadius: 0.5)
+        .fill(colors.textPrimary.opacity(0.08))
+        .frame(height: 1)
+        .padding(.top, 1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var horizonTonePreview: some View {
+    ZStack(alignment: .topLeading) {
+      LinearGradient(
+        colors: [colors.accent.opacity(0.18), colors.accent.opacity(0.04), .clear],
+        startPoint: .top,
+        endPoint: .bottom
+      )
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+          RoundedRectangle(cornerRadius: 0.5)
+            .fill(colors.textSecondary.opacity(0.45))
+            .frame(width: 10, height: 2)
+          RoundedRectangle(cornerRadius: 1)
+            .fill(colors.textPrimary.opacity(0.85))
+            .frame(width: 16, height: 4)
+        }
+        RoundedRectangle(cornerRadius: 0.5)
+          .fill(colors.textTertiary.opacity(0.4))
+          .frame(width: 28, height: 1.5)
+        RoundedRectangle(cornerRadius: 0.5)
+          .fill(colors.textSecondary.opacity(0.5))
+          .frame(width: 20, height: 1.5)
+      }
+      .padding(4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var dayRulerPreview: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      RoundedRectangle(cornerRadius: 1)
+        .fill(colors.textPrimary.opacity(0.8))
+        .frame(width: 22, height: 3)
+      HStack(alignment: .bottom, spacing: 1.2) {
+        ForEach(0..<12, id: \.self) { i in
+          Capsule()
+            .fill(i == 7 ? colors.accent.opacity(0.9) : colors.textPrimary.opacity(i < 7 ? 0.35 : 0.12))
+            .frame(width: 1.2, height: i == 7 ? 8 : 4)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      RoundedRectangle(cornerRadius: 0.5)
+        .fill(colors.textTertiary.opacity(0.45))
+        .frame(width: 26, height: 1.5)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var dayRailPreview: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      RoundedRectangle(cornerRadius: 1)
+        .fill(colors.textPrimary.opacity(0.8))
+        .frame(width: 20, height: 3)
+      HStack(spacing: 3) {
+        ZStack(alignment: .leading) {
+          Capsule().fill(colors.textPrimary.opacity(0.12)).frame(height: 2)
+          Capsule().fill(colors.accent.opacity(0.45)).frame(width: 18, height: 2)
+          Circle().fill(colors.accent).frame(width: 4, height: 4)
+            .offset(x: 16)
+        }
+        .frame(height: 6)
+        RoundedRectangle(cornerRadius: 0.5)
+          .fill(colors.textPrimary.opacity(0.55))
+          .frame(width: 8, height: 2)
+      }
+      RoundedRectangle(cornerRadius: 0.5)
+        .fill(colors.textTertiary.opacity(0.4))
+        .frame(width: 24, height: 1.5)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var classicPreview: some View {

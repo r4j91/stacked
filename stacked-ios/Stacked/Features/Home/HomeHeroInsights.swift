@@ -154,6 +154,53 @@ enum HomeHeroInsights {
     return first.uppercased() + raw.dropFirst()
   }
 
+  /// Dateline editorial: "QUI · 16 JUL"
+  static func formattedDateline(from date: Date = Date()) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "pt_BR")
+    formatter.dateFormat = "EEE · d MMM"
+    return formatter.string(from: date)
+      .replacingOccurrences(of: ".", with: "")
+      .uppercased()
+  }
+
+  /// Relógio compacto: "19:43"
+  static func formattedClock(from date: Date = Date()) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "pt_BR")
+    formatter.dateFormat = "HH:mm"
+    return formatter.string(from: date)
+  }
+
+  /// Data média: "Quinta, 16 jul"
+  static func formattedMediumDate(from date: Date = Date()) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "pt_BR")
+    formatter.dateFormat = "EEEE, d MMM"
+    let raw = formatter.string(from: date).replacingOccurrences(of: ".", with: "")
+    guard let first = raw.first else { return raw }
+    return first.uppercased() + raw.dropFirst()
+  }
+
+  static func weatherCompactLabel(for snapshot: WeatherSnapshot) -> String {
+    let short: String = {
+      switch snapshot.style {
+      case .sunny, .clear: return "limpo"
+      case .partlyCloudy: return "parcial"
+      case .cloudy: return "nublado"
+      case .rainy: return "chuva"
+      case .stormy: return "tempestade"
+      case .snowy: return "neve"
+      case .foggy: return "neblina"
+      }
+    }()
+    return "\(snapshot.temperatureC)° \(short)"
+  }
+
+  static func weatherDegreeLabel(for snapshot: WeatherSnapshot) -> String {
+    "\(snapshot.temperatureC)°"
+  }
+
   static func placeholderWeather(for timeOfDay: HomeTimeOfDay) -> WeatherSnapshot {
     switch timeOfDay {
     case .morning:

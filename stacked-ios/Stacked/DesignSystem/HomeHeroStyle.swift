@@ -2,6 +2,10 @@ import SwiftUI
 
 enum HomeHeroStyle: String, CaseIterable, Identifiable {
   case classic
+  case masthead
+  case horizonTone
+  case dayRuler
+  case dayRail
   case orbital
   case orbitalOpen
   case horizon
@@ -57,6 +61,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .classic: "Clássico"
+    case .masthead: "Masthead"
+    case .horizonTone: "Horizonte tonal"
+    case .dayRuler: "Régua do dia"
+    case .dayRail: "Trilho do dia"
     case .orbital: "Orbital"
     case .orbitalOpen: "Orbital aberto"
     case .horizon: "Horizonte"
@@ -112,6 +120,10 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   var subtitle: String {
     switch self {
     case .classic: "Saudação e status do dia"
+    case .masthead: "Tipografia aberta, sem card"
+    case .horizonTone: "Fundo sutil que muda com a hora"
+    case .dayRuler: "Instrumento do progresso do dia"
+    case .dayRail: "Trilho compacto com posição atual"
     case .orbital: "Stack com halo"
     case .orbitalOpen: "Mesma arte, sem card"
     case .horizon: "Mini horizonte por hora"
@@ -217,7 +229,7 @@ enum HomeHeroStyleGroup: String, CaseIterable, Identifiable {
 extension HomeHeroStyle {
   var pickerGroup: HomeHeroStyleGroup {
     switch self {
-    case .classic, .panel, .greetingWeatherRefined, .journeyDaily:
+    case .classic, .masthead, .horizonTone, .dayRuler, .dayRail, .panel, .greetingWeatherRefined, .journeyDaily:
       return .recommended
     case .greetingWeather, .greetingWeatherTinted, .greetingWeatherPremium, .greetingWeatherPremiumOpen,
          .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen,
@@ -338,6 +350,21 @@ struct HomeHeroMetrics {
 
   static func forStyle(_ style: HomeHeroStyle) -> HomeHeroMetrics {
     switch style {
+    case .masthead, .horizonTone, .dayRuler, .dayRail:
+      return HomeHeroMetrics(
+        phraseSize: 13,
+        nameSize: 27,
+        statusSize: 13,
+        orbitalArtSize: 48,
+        cardPaddingH: 14,
+        cardPaddingV: 12,
+        rowSpacing: 14,
+        focusTitleSize: 16,
+        focusSubtitleSize: 13,
+        capsuleStatusSize: 11,
+        openVerticalPadding: 6,
+        dividerTopPadding: 12
+      )
     case .orbitalOpen, .streakOpen, .streakOpenCentered, .greetingWeatherPremiumOpen, .greetingWeatherPremiumSceneOpen, .greetingWeatherPremiumSceneMonoOpen, .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTintOpen, .greetingWeatherSculptOpen, .greetingWeatherSculptLiftOpen:
       return HomeHeroMetrics(
         phraseSize: 14,
