@@ -7,6 +7,8 @@ export type AppThemeId =
   | "slate"
   | "slateCyan"
   | "slateAmazonite"
+  | "ashCyan"
+  | "ashAmazonite"
   | "titanium"
   | "sodalite"
   | "hematite"
@@ -166,6 +168,50 @@ export const themes: Record<AppThemeId, AppTheme> = {
       accent: "#86ABB0",
       accentText: "#0A1012",
       navBar: "#16161A",
+      isDark: true,
+    },
+  },
+  ashCyan: {
+    id: "ashCyan",
+    name: "Ash Cyan",
+    subtitle: "Cinza Things · ciano suave",
+    previewSwatch: {
+      background: "#191D22",
+      surface: "#22272E",
+      accent: "#6BB5BA",
+    },
+    colors: {
+      background: "#191D22",
+      surface: "#22272E",
+      surfaceVariant: "#2C333B",
+      textPrimary: "#E6EBEF",
+      textSecondary: "#96A0AA",
+      textTertiary: "#66707A",
+      accent: "#6BB5BA",
+      accentText: "#0C1214",
+      navBar: "#191D22",
+      isDark: true,
+    },
+  },
+  ashAmazonite: {
+    id: "ashAmazonite",
+    name: "Ash Amazonite",
+    subtitle: "Cinza Things · petróleo",
+    previewSwatch: {
+      background: "#191D22",
+      surface: "#22272E",
+      accent: "#9DC2C7",
+    },
+    colors: {
+      background: "#191D22",
+      surface: "#22272E",
+      surfaceVariant: "#2C333B",
+      textPrimary: "#E6EBEF",
+      textSecondary: "#96A0AA",
+      textTertiary: "#66707A",
+      accent: "#9DC2C7",
+      accentText: "#0C1416",
+      navBar: "#191D22",
       isDark: true,
     },
   },

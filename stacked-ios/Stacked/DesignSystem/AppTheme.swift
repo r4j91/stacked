@@ -10,6 +10,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case slate
     case slateCyan
     case slateAmazonite
+    case ashCyan
+    case ashAmazonite
     case titanium
     case sodalite
     case hematite
@@ -39,6 +41,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: "Slate"
         case .slateCyan: "Slate Cyan"
         case .slateAmazonite: "Slate Amazonite"
+        case .ashCyan: "Ash Cyan"
+        case .ashAmazonite: "Ash Amazonite"
         case .titanium: "Titanium"
         case .sodalite: "Sodalite"
         case .hematite: "Hematite"
@@ -59,6 +63,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: "Monocromático"
         case .slateCyan: "Ciano Obsidian"
         case .slateAmazonite: "Petróleo"
+        case .ashCyan: "Cinza Things · ciano suave"
+        case .ashAmazonite: "Cinza Things · petróleo"
         case .titanium: "Escuro metálico"
         case .sodalite: "Azul profundo"
         case .hematite: "Preto polido"
@@ -90,6 +96,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x00D4D4))
         case .slateAmazonite:
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
+        case .ashCyan:
+            return (Color(hex: 0x191D22), Color(hex: 0x22272E), Color(hex: 0x6BB5BA))
+        case .ashAmazonite:
+            return (Color(hex: 0x191D22), Color(hex: 0x22272E), Color(hex: 0x9DC2C7))
         case .larimar:
             return (Color(hex: 0x141C1F), Color(hex: 0x1C262A), Color(hex: 0x86ABB0))
         default:
@@ -108,6 +118,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: .slate
         case .slateCyan: .slateCyan
         case .slateAmazonite: .slateAmazonite
+        case .ashCyan: .ashCyan
+        case .ashAmazonite: .ashAmazonite
         case .titanium: .titanium
         case .sodalite: .sodalite
         case .hematite: .hematite
@@ -290,6 +302,44 @@ struct AppThemeColors: Equatable {
         fabGradientEnd: Color(hex: 0x6B8F95),
         folderTint: Color(hex: 0x86ABB0),
         navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
+    /// Ash Cyan — cinza Things (#191D22); ciano mineral, sem neon.
+    static let ashCyan = AppThemeColors(
+        background: Color(hex: 0x191D22),
+        surface: Color(hex: 0x22272E),
+        surfaceVariant: Color(hex: 0x2C333B),
+        textPrimary: Color(hex: 0xE6EBEF),
+        textSecondary: Color(hex: 0x96A0AA),
+        textTertiary: Color(hex: 0x66707A),
+        accent: Color(hex: 0x6BB5BA),
+        onAccent: Color(hex: 0x0C1214),
+        actionAccent: Color(hex: 0x6BB5BA),
+        onActionAccent: Color(hex: 0x0C1214),
+        fabGradientStart: Color(hex: 0x6BB5BA),
+        fabGradientEnd: Color(hex: 0x6BB5BA),
+        folderTint: Color(hex: 0x6BB5BA),
+        navBar: Color(hex: 0x191D22),
+        isDark: true
+    )
+
+    /// Ash Amazonite — cinza Things; petróleo mais legível que o Slate Amazonite.
+    static let ashAmazonite = AppThemeColors(
+        background: Color(hex: 0x191D22),
+        surface: Color(hex: 0x22272E),
+        surfaceVariant: Color(hex: 0x2C333B),
+        textPrimary: Color(hex: 0xE6EBEF),
+        textSecondary: Color(hex: 0x96A0AA),
+        textTertiary: Color(hex: 0x66707A),
+        accent: Color(hex: 0x9DC2C7),
+        onAccent: Color(hex: 0x0C1416),
+        actionAccent: Color(hex: 0x9DC2C7),
+        onActionAccent: Color(hex: 0x0C1416),
+        fabGradientStart: Color(hex: 0xB5D4D8),
+        fabGradientEnd: Color(hex: 0x7EADB3),
+        folderTint: Color(hex: 0x9DC2C7),
+        navBar: Color(hex: 0x191D22),
         isDark: true
     )
 
