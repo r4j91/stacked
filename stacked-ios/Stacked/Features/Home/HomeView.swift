@@ -3,6 +3,8 @@ import SwiftUI
 // Paridade lib/screens/home_screen.dart
 struct HomeView: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.isTabActive) private var isTabActive
   var onNavigateToTab: (NavTab) -> Void
   var onOpenFilter: (TaskFilterKind) -> Void
 
@@ -61,8 +63,18 @@ struct HomeView: View {
       }
       .refreshable { await store.load() }
       .task {
+        store.refreshTemporal()
         await NotificationService.shared.prefetchPreview()
         await store.refreshWeatherIfNeeded()
+      }
+      .onChange(of: isTabActive) { _, active in
+        guard active else { return }
+        refreshHomeOnFocus(reloadCounts: true)
+      }
+      .onChange(of: scenePhase) { _, phase in
+        guard phase == .active, isTabActive else { return }
+        // Contagens já vão pelo RootView; aqui só o “agora” do hero.
+        store.refreshTemporal()
       }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
@@ -106,6 +118,13 @@ struct HomeView: View {
       .presentationDetents([.medium, .large])
       .stackedEditableSheetPresentation(background: theme.colors.background)
     }
+  }
+
+  /// Volta à aba Home: atualiza relógio/trilho e reforça contagens do status.
+  private func refreshHomeOnFocus(reloadCounts: Bool) {
+    store.refreshTemporal()
+    guard reloadCounts else { return }
+    _Concurrency.Task { await store.refreshCounts() }
   }
 
   private func projectModel(for route: ProjectRoute) -> Project {

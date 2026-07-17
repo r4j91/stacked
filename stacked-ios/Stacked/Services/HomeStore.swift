@@ -24,8 +24,15 @@ final class HomeStore {
   private(set) var streakWeekCompleted: [Bool] = Array(repeating: false, count: 7)
   private(set) var weatherSnapshot: HomeHeroInsights.WeatherSnapshot =
     HomeWeatherService.shared.startupSnapshot(fallbackTimeOfDay: .current)
+  /// Âncora de “agora” para relógio/saudação/trilho — só atualiza no foreground/aba, sem timer.
+  private(set) var temporalAnchor = Date()
 
   private init() {}
+
+  /// Recalcula hora/saudação/trilho sem refetch. Chamar ao voltar à Home ou ao foreground.
+  func refreshTemporal() {
+    temporalAnchor = Date()
+  }
 
   var motivationContent: (quote: String, footnote: String) {
     HomeMotivationQuotes.forToday()
@@ -76,13 +83,13 @@ final class HomeStore {
   }
 
   var greetingPhrase: String {
-    let hour = Calendar.current.component(.hour, from: Date())
+    let hour = Calendar.current.component(.hour, from: temporalAnchor)
     if hour < 12 { return "Bom dia," }
     if hour < 18 { return "Boa tarde," }
     return "Boa noite,"
   }
 
-  var timeOfDay: HomeTimeOfDay { .current }
+  var timeOfDay: HomeTimeOfDay { HomeTimeOfDay.at(temporalAnchor) }
 
   var greeting: String {
     let base = greetingPhrase.dropLast() // "Bom dia," → "Bom dia"
@@ -134,19 +141,31 @@ final class HomeStore {
   }
 
   var formattedLongDate: String {
-    HomeHeroInsights.formattedLongDate()
+    HomeHeroInsights.formattedLongDate(from: temporalAnchor)
   }
 
   var formattedDateline: String {
-    HomeHeroInsights.formattedDateline()
+    HomeHeroInsights.formattedDateline(from: temporalAnchor)
   }
 
   var formattedClock: String {
-    HomeHeroInsights.formattedClock()
+    HomeHeroInsights.formattedClock(from: temporalAnchor)
   }
 
   var formattedMediumDate: String {
-    HomeHeroInsights.formattedMediumDate()
+    HomeHeroInsights.formattedMediumDate(from: temporalAnchor)
+  }
+
+  /// Fração do dia [0, 1] para o trilho — amarrada ao temporalAnchor.
+  var dayProgress: Double {
+    let cal = Calendar.current
+    let h = Double(cal.component(.hour, from: temporalAnchor))
+    let m = Double(cal.component(.minute, from: temporalAnchor))
+    return min(1, max(0, (h + m / 60) / 24))
+  }
+
+  var currentHour: Int {
+    Calendar.current.component(.hour, from: temporalAnchor)
   }
 
   var weatherCompactLabel: String {

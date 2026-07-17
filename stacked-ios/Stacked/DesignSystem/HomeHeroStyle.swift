@@ -229,17 +229,17 @@ enum HomeHeroStyleGroup: String, CaseIterable, Identifiable {
 extension HomeHeroStyle {
   var pickerGroup: HomeHeroStyleGroup {
     switch self {
-    case .classic, .masthead, .horizonTone, .dayRuler, .dayRail, .panel, .greetingWeatherRefined, .journeyDaily:
+    case .dayRail, .masthead, .horizonTone, .classic:
       return .recommended
     case .greetingWeather, .greetingWeatherTinted, .greetingWeatherPremium, .greetingWeatherPremiumOpen,
          .greetingWeatherPremiumScene, .greetingWeatherPremiumSceneOpen,
          .greetingWeatherPremiumSceneMono, .greetingWeatherPremiumSceneMonoOpen,
          .greetingWeatherMinimal,
-         .greetingWeatherMinimalOpen, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen,
+         .greetingWeatherMinimalOpen, .greetingWeatherRefined, .greetingWeatherRefinedOpen, .greetingWeatherTint, .greetingWeatherTintOpen,
          .greetingWeatherSculpt, .greetingWeatherSculptOpen,
          .greetingWeatherSculptLift, .greetingWeatherSculptLiftOpen:
       return .weather
-    case .journeyMist, .journeyForest, .journeySummit:
+    case .journeyDaily, .journeyMist, .journeyForest, .journeySummit:
       return .journey
     case .auroraCalm, .auroraDusk, .auroraEmber:
       return .aurora
@@ -248,19 +248,24 @@ extension HomeHeroStyle {
     }
   }
 
-  /// Aurora e Experimental saíram do seletor; estilos legados caem no Clássico.
+  /// Aurora e Experimental saíram do seletor; estilos legados caem no padrão.
   var isAvailableInPicker: Bool {
     pickerGroup.isAvailableInPicker
   }
 
   static func styles(in group: HomeHeroStyleGroup) -> [HomeHeroStyle] {
     guard group.isAvailableInPicker else { return [] }
-    return allCases.filter { $0.pickerGroup == group && !HomeHeroStyleStorage.isHidden($0) }
+    let styles = allCases.filter { $0.pickerGroup == group && !HomeHeroStyleStorage.isHidden($0) }
+    guard group == .recommended else { return styles }
+    let preferred: [HomeHeroStyle] = [.dayRail, .masthead, .horizonTone, .classic]
+    let head = preferred.filter { styles.contains($0) }
+    let tail = styles.filter { !preferred.contains($0) }
+    return head + tail
   }
 
-  /// Estilos que ainda podem ser ocultados pelo usuário (não remove o Clássico).
+  /// Estilos que ainda podem ser ocultados pelo usuário (não remove o padrão).
   var canHideFromPicker: Bool {
-    self != .classic && isAvailableInPicker
+    self != .dayRail && self != .classic && isAvailableInPicker
   }
 }
 
@@ -268,11 +273,12 @@ enum HomeHeroStyleStorage {
   static let key = "homeHeroStyle"
   static let hiddenKey = "homeHeroStyleHidden"
 
-  static var defaultRawValue: String { HomeHeroStyle.classic.rawValue }
+  static var defaultStyle: HomeHeroStyle { .dayRail }
+  static var defaultRawValue: String { defaultStyle.rawValue }
 
   static func style(from rawValue: String) -> HomeHeroStyle {
-    let style = HomeHeroStyle(rawValue: rawValue) ?? .classic
-    if !style.isAvailableInPicker || isHidden(style) { return .classic }
+    let style = HomeHeroStyle(rawValue: rawValue) ?? defaultStyle
+    if !style.isAvailableInPicker || isHidden(style) { return defaultStyle }
     return style
   }
 
@@ -301,7 +307,7 @@ enum HomeHeroStyleStorage {
       .sorted { $0.displayName < $1.displayName }
   }
 
-  /// Se a preferência apontar para Aurora/Experimental (ou estilo oculto), grava Clássico.
+  /// Se a preferência apontar para estilo aposentado/oculto, grava o padrão (Trilho).
   @discardableResult
   static func migrateRetiredSelectionIfNeeded() -> Bool {
     let raw = UserDefaults.standard.string(forKey: key) ?? defaultRawValue
@@ -325,8 +331,10 @@ enum HomeTimeOfDay {
   case afternoon
   case night
 
-  static var current: HomeTimeOfDay {
-    let hour = Calendar.current.component(.hour, from: Date())
+  static var current: HomeTimeOfDay { at(Date()) }
+
+  static func at(_ date: Date) -> HomeTimeOfDay {
+    let hour = Calendar.current.component(.hour, from: date)
     if hour < 12 { return .morning }
     if hour < 18 { return .afternoon }
     return .night

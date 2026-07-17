@@ -187,13 +187,9 @@ struct HomeHeroDayRulerCard: View {
   let isOverdue: Bool
   var onOpenFilter: (TaskFilterKind) -> Void
 
-  private var currentHour: Int {
-    Calendar.current.component(.hour, from: Date())
-  }
-
   var body: some View {
     let c = theme.colors
-    let now = currentHour
+    let now = store.currentHour
 
     let content = VStack(alignment: .leading, spacing: 0) {
       orientationGreetingInline(
@@ -266,11 +262,7 @@ struct HomeHeroDayRailCard: View {
   var onOpenFilter: (TaskFilterKind) -> Void
 
   private var dayProgress: CGFloat {
-    let cal = Calendar.current
-    let now = Date()
-    let h = CGFloat(cal.component(.hour, from: now))
-    let m = CGFloat(cal.component(.minute, from: now))
-    return min(1, max(0, (h + m / 60) / 24))
+    CGFloat(store.dayProgress)
   }
 
   var body: some View {

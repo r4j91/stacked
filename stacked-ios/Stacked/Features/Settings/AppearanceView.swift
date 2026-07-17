@@ -104,7 +104,7 @@ struct AppearanceView: View {
           id: .homeHero,
           title: "Hero da Home",
           summary: homeHeroStyle.displayName,
-          footer: "Use ⋯ para ocultar um estilo. Você pode restaurá-lo depois."
+          footer: "Recomendados: Trilho, Masthead, Horizonte e Clássico. Use ⋯ para ocultar. Clima e Jornada ficam em Mais."
         ) {
           appearanceGroupHeader("Recomendados")
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
