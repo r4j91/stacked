@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Novos temas (mockups)</title>
+  <style>
+    :root {
+      --page-bg: #0e0f11;
+      --page-ink: #e8eaed;
+      --page-muted: #8b909a;
+      --page-line: rgba(255,255,255,0.08);
+      --radius: 28px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(95, 211, 220, 0.07), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(138, 164, 192, 0.06), transparent 50%),
+        var(--page-bg);
+      color: var(--page-ink);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    header {
+      max-width: 720px;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--page-muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--page-line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      color: var(--page-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 28px;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .meta h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .meta .tag {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--page-muted);
+    }
+
+    .meta p {
+      margin: 8px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--page-muted);
+    }
+
+    .swatches {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .hex-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+      margin-top: 10px;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--page-muted);
+    }
+
+    .hex-row span b {
+      color: #c5c9d1;
+      font-weight: 600;
+    }
+
+    /* Phone frame */
+    .phone {
+      --bg: #1a1b1e;
+      --surface: #242529;
+      --variant: #2c2d33;
+      --text: #f2f3f5;
+      --muted: #9296a0;
+      --tertiary: #6b6e76;
+      --accent: #5fd3dc;
+      --accent-text: #0a0a0a;
+      --border: rgba(255,255,255,0.08);
+      --p1: #ef5a5f;
+      --p2: #f5a623;
+      --p3: #4d9fec;
+      --done: #8fd46b;
+
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 9 / 17.5;
+      border-radius: var(--radius);
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 24px 48px rgba(0,0,0,0.45);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      padding: 14px 22px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      opacity: 0.9;
+    }
+
+    .screen {
+      flex: 1;
+      padding: 8px 14px 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 4px 2px 12px;
+    }
+
+    .title-row h3 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .title-row .count {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      padding: 10px 2px 6px;
+      letter-spacing: 0.01em;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      min-height: 52px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      margin-bottom: 2px;
+    }
+
+    .task:hover { background: var(--surface); }
+    .task.selected {
+      background: var(--variant);
+      outline: 1px solid var(--border);
+    }
+
+    .check {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 50%;
+      border: 2px solid var(--ring, var(--p3));
+      background: transparent;
+    }
+
+    .check.done {
+      border-color: var(--done);
+      background: color-mix(in srgb, var(--done) 25%, transparent);
+      box-shadow: inset 0 0 0 3px var(--bg);
+    }
+
+    .task-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    .task-title.dim {
+      color: var(--tertiary);
+      text-decoration: line-through;
+    }
+
+    .task-meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--chip, var(--accent)) 18%, transparent);
+      color: var(--chip, var(--accent));
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--chip);
+    }
+
+    .fab {
+      position: absolute;
+      right: 18px;
+      bottom: 78px;
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: var(--accent);
+      color: var(--accent-text);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1;
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+
+    .nav {
+      margin: 8px 12px 14px;
+      height: 58px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--surface) 92%, #000);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+      backdrop-filter: blur(12px);
+    }
+
+    .nav span {
+      width: 40px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: var(--tertiary);
+      font-size: 16px;
+    }
+
+    .nav span.on {
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent);
+    }
+
+    /* Themes */
+    .phone.graphite {
+      --bg: #1A1B1E; --surface: #242529; --variant: #2C2D33;
+      --text: #F2F3F5; --muted: #9296A0; --tertiary: #6B6E76;
+      --accent: #5FD3DC; --accent-text: #0A0A0A;
+    }
+    .phone.basalt {
+      --bg: #1F2024; --surface: #2A2B30; --variant: #34353B;
+      --text: #F1F2F4; --muted: #9599A3; --tertiary: #6E727C;
+      --accent: #9AA3B2; --accent-text: #121318;
+    }
+    .phone.fogsteel {
+      --bg: #181C24; --surface: #222833; --variant: #2C3442;
+      --text: #E9EEF6; --muted: #8E98A8; --tertiary: #5F697A;
+      --accent: #7EA2C8; --accent-text: #0C121A;
+    }
+    .phone.char {
+      --bg: #1C1A18; --surface: #282421; --variant: #332E2A;
+      --text: #F3EEE8; --muted: #A3998F; --tertiary: #6F675F;
+      --accent: #D4A574; --accent-text: #1A140E;
+    }
+    .phone.chlorite {
+      --bg: #191C1A; --surface: #242825; --variant: #2E332F;
+      --text: #EEF2EE; --muted: #939A93; --tertiary: #656C65;
+      --accent: #8FBE9A; --accent-text: #0E1510;
+    }
+
+    .ref-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--page-line);
+      font-size: 11px;
+      color: var(--page-muted);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .section {
+      margin-top: 48px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .section > p {
+      margin: 0 0 24px;
+      color: var(--page-muted);
+      font-size: 14px;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .compare { grid-template-columns: repeat(5, 160px); }
+    }
+
+    .strip {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--page-line);
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .strip .band {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .strip .band small {
+      display: block;
+      font-weight: 500;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    .strip .accent-bar {
+      height: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Novos temas · mockups</h1>
+      <p>
+        Quatro propostas escuras com base em cinza (não preto puro), alinhadas ao Stacked.
+        Inclui o Graphite atual como referência. Abra este arquivo no browser para comparar.
+      </p>
+      <div class="note">
+        Direção pedida: grafite neutro + ardósia azulada + duas surpresas.
+        Fundos sobem de cinza médio-escuro para superfícies um pouco mais claras (hierarquia clássica), sem cair no preto #000.
+      </div>
+    </header>
+
+    <section class="section" style="margin-top: 0">
+      <h2>Faixas rápidas</h2>
+      <p>Fundo → superfície → accent em uma olhada.</p>
+      <div class="compare">
+        <div class="strip">
+          <div class="band" style="background:#1A1B1E;color:#F2F3F5">Graphite<small>atual</small></div>
+          <div class="band" style="background:#242529;color:#9296A0;flex:0.7">surface</div>
+          <div class="accent-bar" style="background:#5FD3DC"></div>
+        </div>
+        <div class="strip">
+          <div class="band" style="background:#1F2024;color:#F1F2F4">Basalt<small>neutro</small></div>
+          <div class="band" style="background:#2A2B30;color:#9599A3;flex:0.7">surface</div>
+          <div class="accent-bar" style="background:#9AA3B2"></div>
+        </div>
+        <div class="strip">
+          <div class="band" style="background:#181C24;color:#E9EEF6">Fogsteel<small>ardósia</small></div>
+          <div class="band" style="background:#222833;color:#8E98A8;flex:0.7">surface</div>
+          <div class="accent-bar" style="background:#7EA2C8"></div>
+        </div>
+        <div class="strip">
+          <div class="band" style="background:#1C1A18;color:#F3EEE8">Char<small>surpresa</small></div>
+          <div class="band" style="background:#282421;color:#A3998F;flex:0.7">surface</div>
+          <div class="accent-bar" style="background:#D4A574"></div>
+        </div>
+        <div class="strip">
+          <div class="band" style="background:#191C1A;color:#EEF2EE">Chlorite<small>surpresa</small></div>
+          <div class="band" style="background:#242825;color:#939A93;flex:0.7">surface</div>
+          <div class="accent-bar" style="background:#8FBE9A"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Telas “Hoje”</h2>
+      <p>Mesma UI, só a paleta muda. Prioridades e chips de projeto ficam iguais para isolar o tema.</p>
+
+      <div class="grid">
+        <!-- Graphite ref -->
+        <article class="card">
+          <div class="meta">
+            <h2>Graphite <span class="ref-badge">referência</span></h2>
+            <div class="tag">Atual · padrão</div>
+            <p>Cinza frio com accent ciano. Base do design system hoje.</p>
+            <div class="swatches">
+              <i class="swatch" style="background:#1A1B1E"></i>
+              <i class="swatch" style="background:#242529"></i>
+              <i class="swatch" style="background:#2C2D33"></i>
+              <i class="swatch" style="background:#5FD3DC"></i>
+            </div>
+          </div>
+          <div class="phone graphite" data-mock></div>
+        </article>
+
+        <!-- Basalt -->
+        <article class="card">
+          <div class="meta">
+            <h2>Basalt</h2>
+            <div class="tag">Grafite neutro · proposto</div>
+            <p>Um degrau mais cinza e “pedra” que o Graphite. Accent prata-aço, quase monocromático, sem frio ciano.</p>
+            <div class="swatches">
+              <i class="swatch" style="background:#1F2024"></i>
+              <i class="swatch" style="background:#2A2B30"></i>
+              <i class="swatch" style="background:#34353B"></i>
+              <i class="swatch" style="background:#9AA3B2"></i>
+            </div>
+            <div class="hex-row">
+              <span><b>bg</b> #1F2024</span>
+              <span><b>surface</b> #2A2B30</span>
+              <span><b>variant</b> #34353B</span>
+              <span><b>accent</b> #9AA3B2</span>
+            </div>
+          </div>
+          <div class="phone basalt" data-mock></div>
+        </article>
+
+        <!-- Fogsteel -->
+        <article class="card">
+          <div class="meta">
+            <h2>Fogsteel</h2>
+            <div class="tag">Ardósia azulada · proposto</div>
+            <p>Cinza com leve azul (névoa de aço). Mais suave que Sodalite/Titanium; ainda legível como ferramenta.</p>
+            <div class="swatches">
+              <i class="swatch" style="background:#181C24"></i>
+              <i class="swatch" style="background:#222833"></i>
+              <i class="swatch" style="background:#2C3442"></i>
+              <i class="swatch" style="background:#7EA2C8"></i>
+            </div>
+            <div class="hex-row">
+              <span><b>bg</b> #181C24</span>
+              <span><b>surface</b> #222833</span>
+              <span><b>variant</b> #2C3442</span>
+              <span><b>accent</b> #7EA2C8</span>
+            </div>
+          </div>
+          <div class="phone fogsteel" data-mock></div>
+        </article>
+
+        <!-- Char -->
+        <article class="card">
+          <div class="meta">
+            <h2>Char</h2>
+            <div class="tag">Surpresa · carvão quente</div>
+            <p>Cinza com calor de carvão e accent bronze. Boa para sessão longa à noite sem o frio do ciano.</p>
+            <div class="swatches">
+              <i class="swatch" style="background:#1C1A18"></i>
+              <i class="swatch" style="background:#282421"></i>
+              <i class="swatch" style="background:#332E2A"></i>
+              <i class="swatch" style="background:#D4A574"></i>
+            </div>
+            <div class="hex-row">
+              <span><b>bg</b> #1C1A18</span>
+              <span><b>surface</b> #282421</span>
+              <span><b>variant</b> #332E2A</span>
+              <span><b>accent</b> #D4A574</span>
+            </div>
+          </div>
+          <div class="phone char" data-mock></div>
+        </article>
+
+        <!-- Chlorite -->
+        <article class="card">
+          <div class="meta">
+            <h2>Chlorite</h2>
+            <div class="tag">Surpresa · tinta azeitona</div>
+            <p>Cinza esverdeado sóbrio. Accent sage baixo-saturação; lembra papel-tinta, não “nature app”.</p>
+            <div class="swatches">
+              <i class="swatch" style="background:#191C1A"></i>
+              <i class="swatch" style="background:#242825"></i>
+              <i class="swatch" style="background:#2E332F"></i>
+              <i class="swatch" style="background:#8FBE9A"></i>
+            </div>
+            <div class="hex-row">
+              <span><b>bg</b> #191C1A</span>
+              <span><b>surface</b> #242825</span>
+              <span><b>variant</b> #2E332F</span>
+              <span><b>accent</b> #8FBE9A</span>
+            </div>
+          </div>
+          <div class="phone chlorite" data-mock></div>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const MOCK_HTML = `
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="screen">
+        <div class="title-row">
+          <h3>Hoje</h3>
+          <span class="count">4 tarefas</span>
+        </div>
+        <div class="section-label">Manhã</div>
+        <div class="task selected">
+          <div class="check" style="--ring: var(--p1)"></div>
+          <div>
+            <div class="task-title">Revisar backlog do sprint</div>
+            <div class="task-meta">
+              <span class="chip" style="--chip:#B18CF5"><span class="dot"></span>Ideia</span>
+              <span>Produto</span>
+              <span>09:30</span>
+            </div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="check" style="--ring: var(--p2)"></div>
+          <div>
+            <div class="task-title">Responder e-mails prioritários</div>
+            <div class="task-meta">
+              <span>Inbox</span>
+              <span>11:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="section-label">Tarde</div>
+        <div class="task">
+          <div class="check" style="--ring: var(--p3)"></div>
+          <div>
+            <div class="task-title">Ajustar tokens de aparência</div>
+            <div class="task-meta">
+              <span class="chip" style="--chip:#8FD46B"><span class="dot"></span>Em andamento</span>
+              <span>Design</span>
+            </div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="check done"></div>
+          <div>
+            <div class="task-title dim">Standup com o time</div>
+            <div class="task-meta"><span>Concluída</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="fab">+</div>
+      <nav class="nav" aria-hidden="true">
+        <span>○</span><span>○</span><span class="on">◉</span><span>○</span><span>○</span>
+      </nav>
+    `;
+
+    document.querySelectorAll("[data-mock]").forEach((el) => {
+      el.innerHTML = MOCK_HTML;
+    });
+  </script>
+</body>
+</html>
