@@ -10,6 +10,8 @@ struct AppearanceView: View {
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.hiddenKey) private var homeHeroStyleHiddenRaw = ""
+  @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
+  @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
@@ -35,6 +37,14 @@ struct AppearanceView: View {
 
   private var homeHeroStyle: HomeHeroStyle {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
+  }
+
+  private var labelChipStyle: LabelChipStyle {
+    LabelChipStyleStorage.style(from: labelChipStyleRaw)
+  }
+
+  private var dueDateChipStyle: DueDateChipStyle {
+    DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
   }
 
   var body: some View {
@@ -98,6 +108,34 @@ struct AppearanceView: View {
           }
           SettingsCardDivider(leadingPadding: 56)
           fabIntegratedInIslandRow()
+        }
+
+        appearancePanel(
+          id: .labelChips,
+          title: "Etiquetas nos cards",
+          summary: labelChipStyle.displayName,
+          footer: "Só as etiquetas de tarefa e subtarefa. Prioridade continua no estilo suave."
+        ) {
+          ForEach(Array(LabelChipStyle.allCases.enumerated()), id: \.element) { index, style in
+            labelChipStyleRow(style)
+            if index < LabelChipStyle.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 90)
+            }
+          }
+        }
+
+        appearancePanel(
+          id: .dueDateChips,
+          title: "Data nos cards",
+          summary: dueDateChipStyle.displayName,
+          footer: "Vencimento em tarefa e subtarefa. O ícone de calendário não usa mais o dia fixo do glyph."
+        ) {
+          ForEach(Array(DueDateChipStyle.allCases.enumerated()), id: \.element) { index, style in
+            dueDateChipStyleRow(style)
+            if index < DueDateChipStyle.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 90)
+            }
+          }
         }
 
         appearancePanel(
@@ -296,6 +334,8 @@ struct AppearanceView: View {
     hasher.combine(showMoreThemes)
     hasher.combine(showMoreHeroes)
     hasher.combine(homeHeroStyleHiddenRaw)
+    hasher.combine(labelChipStyleRaw)
+    hasher.combine(dueDateChipStyleRaw)
     return hasher.finalize()
   }
 
@@ -586,6 +626,74 @@ struct AppearanceView: View {
     .buttonStyle(.plain)
   }
 
+  private func labelChipStyleRow(_ style: LabelChipStyle) -> some View {
+    let c = theme.colors
+    let isSelected = labelChipStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      labelChipStyleRaw = style.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        LabelChipStylePreview(style: style, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(style.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(style.subtitle)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func dueDateChipStyleRow(_ style: DueDateChipStyle) -> some View {
+    let c = theme.colors
+    let isSelected = dueDateChipStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      dueDateChipStyleRaw = style.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        DueDateChipStylePreview(style: style, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(style.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(style.subtitle)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
   private func fabIntegratedInIslandRow() -> some View {
     let c = theme.colors
 
@@ -815,6 +923,8 @@ struct AppearanceView: View {
 private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
+  case labelChips
+  case dueDateChips
   case homeHero
   case appIcon
   case advanced
@@ -823,6 +933,8 @@ private enum AppearanceSectionID: String, Hashable {
     switch self {
     case .theme: .paintbrush
     case .navBar: .grid
+    case .labelChips: .tag
+    case .dueDateChips: .calendar
     case .homeHero: .sun
     case .appIcon: .checkCircle
     case .advanced: .productivity

@@ -5,9 +5,12 @@ import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { parseDueDate, formatTaskDate, dueDateChipColor } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
+import { DueDateChip } from "@/components/ui/due-date-chip";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { AppIcon } from "@/components/ui/app-icon";
-import { TaskDone01Icon, Calendar03Icon, Folder01Icon } from "@/lib/icons/nav-icons";
+import { TaskDone01Icon, Folder01Icon } from "@/lib/icons/nav-icons";
+import { useLabelChipStyle } from "@/lib/theme/use-label-chip-style";
+import { useDueDateChipStyle } from "@/lib/theme/use-due-date-chip-style";
 
 type TaskMetaLineProps = {
   task: Task;
@@ -18,6 +21,8 @@ type TaskMetaLineProps = {
 
 export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLineProps) {
   const { labels: contextLabels } = useWorkbench();
+  const labelChipStyle = useLabelChipStyle();
+  const dueDateChipStyle = useDueDateChipStyle();
   const allLabels = labelsProp ?? contextLabels;
   const subs = task.subtasks ?? [];
   const due = parseDueDate(task.dueDate);
@@ -39,13 +44,9 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
     items.push(
       <span
         key="proj"
-        className="inline-flex max-w-full items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-xs font-medium text-[var(--color-text-secondary)]"
-        style={{
-          backgroundColor: "var(--color-surface-variant)",
-          borderColor: "color-mix(in srgb, var(--color-text-secondary) 28%, transparent)",
-        }}
+        className="inline-flex max-w-full items-center gap-1 truncate text-xs font-medium text-[var(--color-text-secondary)]"
       >
-        <AppIcon icon={Folder01Icon} size={11} strokeWidth={1.75} />
+        <AppIcon icon={Folder01Icon} size={14} strokeWidth={1.75} />
         <span className="truncate">{task.project}</span>
       </span>,
     );
@@ -56,11 +57,19 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
   }
 
   for (const label of taskLabels.slice(0, 3)) {
-    items.push(<TagChip key={label.id} label={label.name} color={label.color} />);
+    items.push(
+      <TagChip key={label.id} label={label.name} color={label.color} style={labelChipStyle} />,
+    );
   }
   if (taskLabels.length > 3) {
     items.push(
-      <TagChip key="more" label={`+${taskLabels.length - 3}`} color="var(--color-text-tertiary)" showIcon={false} />,
+      <TagChip
+        key="more"
+        label={`+${taskLabels.length - 3}`}
+        color="var(--color-text-tertiary)"
+        showIcon={false}
+        style={labelChipStyle}
+      />,
     );
   }
 
@@ -68,11 +77,12 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
     const dateLabel = formatTaskDate(due);
     if (dateLabel) {
       items.push(
-        <TagChip
+        <DueDateChip
           key="d"
           label={dateLabel}
           color={dueDateChipColor(due, task.done)}
-          icon={Calendar03Icon}
+          day={due?.getDate() ?? null}
+          style={dueDateChipStyle}
         />,
       );
     }
@@ -101,6 +111,8 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
 
 export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabels?: number }) {
   const { labels: allLabels } = useWorkbench();
+  const labelChipStyle = useLabelChipStyle();
+  const dueDateChipStyle = useDueDateChipStyle();
 
   let subLabels =
     (sub.labelIds ?? [])
@@ -115,7 +127,9 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
   const items: React.ReactNode[] = [];
 
   for (const label of subLabels.slice(0, maxLabels)) {
-    items.push(<TagChip key={label.id} label={label.name} color={label.color} />);
+    items.push(
+      <TagChip key={label.id} label={label.name} color={label.color} style={labelChipStyle} />,
+    );
   }
   if (subLabels.length > maxLabels) {
     items.push(
@@ -124,6 +138,7 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
         label={`+${subLabels.length - maxLabels}`}
         color="var(--color-text-tertiary)"
         showIcon={false}
+        style={labelChipStyle}
       />,
     );
   }
@@ -133,11 +148,12 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
     const dateLabel = formatTaskDate(due);
     if (dateLabel) {
       items.push(
-        <TagChip
+        <DueDateChip
           key="d"
           label={dateLabel}
           color={dueDateChipColor(due, sub.done)}
-          icon={Calendar03Icon}
+          day={due?.getDate() ?? null}
+          style={dueDateChipStyle}
         />,
       );
     }

@@ -1,6 +1,38 @@
 import SwiftUI
 import UIKit
 
+/// PERF_SCROLL_345 (item 4): estado de fling da lista UIKit. Rows configuradas
+/// durante o scroll nascem com `deferHeavyWork` e liberam (labels/bump) no settle.
+@MainActor
+final class UIKitListScrollWorkGate: ObservableObject {
+  @Published var isScrolling = false
+}
+
+/// Observa o gate SÓ quando a row foi configurada no meio do fling — rows
+/// configuradas com a lista parada não re-renderizam a cada begin/end de scroll.
+private struct UIKitScrollGatedRow<Content: View>: View {
+  let gate: UIKitListScrollWorkGate?
+  let observesGate: Bool
+  @ViewBuilder let content: (_ deferHeavyWork: Bool) -> Content
+
+  var body: some View {
+    if observesGate, let gate {
+      UIKitScrollGateObserver(gate: gate, content: content)
+    } else {
+      content(false)
+    }
+  }
+}
+
+private struct UIKitScrollGateObserver<Content: View>: View {
+  @ObservedObject var gate: UIKitListScrollWorkGate
+  @ViewBuilder let content: (_ deferHeavyWork: Bool) -> Content
+
+  var body: some View {
+    content(gate.isScrolling)
+  }
+}
+
 /// Cell content com DOIS hosts: header fixo (chevron) + painel expansível.
 /// UIKIT_SCROLL_POLISH: substitui o UIHostingConfiguration único do TaskRow —
 /// self-sizing só mede o painel; o chevron não entra na árvore de altura animada.
@@ -105,6 +137,10 @@ final class UIKitSplitTaskRowView: UIView {
     var rowInsets: UIEdgeInsets
     var dimmed: Bool
     var muted: Bool
+    /// PERF_SCROLL_345 (item 4): gate compartilhado do controller da lista.
+    var scrollGate: UIKitListScrollWorkGate?
+    /// true quando a cell foi (re)configurada com a lista em fling.
+    var configuredWhileScrolling: Bool = false
     var onToggle: () -> Void
     var onTap: () -> Void
     var onSubtaskTap: (Subtask) -> Void
@@ -162,64 +198,74 @@ final class UIKitSplitTaskRowView: UIView {
     let opacity: Double = config.dimmed ? 0.7 : (config.muted ? 0.85 : 1)
     let isCard = config.style.isCardFamily
 
-    let header = TaskRow(
-      task: task,
-      style: config.style,
-      flatSubtaskPanel: config.flatSubtaskQueue,
-      showProject: config.showProject,
-      allLabels: [],
-      deferHeavyWork: false,
-      restoreExpansionOnAppear: false,
-      stabilizeExpandInSelfSizingCell: true,
-      rowInteractionsEnabled: true,
-      onToggle: config.onToggle,
-      onTap: config.onTap,
-      onSubtaskTap: config.onSubtaskTap,
-      onSubtaskChanged: config.onSubtaskChanged,
-      onSubtaskDeleted: { config.onSubtaskDeleted($0) },
-      onWhatsAppCopy: config.onWhatsAppCopy,
-      onSubtaskExpansionChanged: config.onSubtaskExpansionChanged,
-      splitStore: store,
-      bodyMode: .headerOnly,
-      suppressCardChrome: isCard
-    )
-    .opacity(opacity)
-    .taskContextMenu(
-      task: task,
-      onEdit: config.onEdit,
-      onComplete: config.onComplete,
-      onDuplicate: config.onDuplicate,
-      onDelete: config.onDelete,
-      onRefresh: config.onRefresh,
-      onLiftPhaseChanged: { [weak self] phase in
-        self?.applyLiftPhase(phase, animated: true)
-      }
-    )
+    // PERF_SCROLL_345 (item 4): row nascida no fling adia labels/bump até o settle.
+    let gate = config.scrollGate
+    let observesGate = config.configuredWhileScrolling && gate != nil
+    // Local — o builder da row é lazy agora; capturar `self.store` reteria a view.
+    let sessionStore = store
+
+    let header = UIKitScrollGatedRow(gate: gate, observesGate: observesGate) { deferHeavy in
+      TaskRow(
+        task: task,
+        style: config.style,
+        flatSubtaskPanel: config.flatSubtaskQueue,
+        showProject: config.showProject,
+        allLabels: [],
+        deferHeavyWork: deferHeavy,
+        restoreExpansionOnAppear: false,
+        stabilizeExpandInSelfSizingCell: true,
+        rowInteractionsEnabled: true,
+        onToggle: config.onToggle,
+        onTap: config.onTap,
+        onSubtaskTap: config.onSubtaskTap,
+        onSubtaskChanged: config.onSubtaskChanged,
+        onSubtaskDeleted: { config.onSubtaskDeleted($0) },
+        onWhatsAppCopy: config.onWhatsAppCopy,
+        onSubtaskExpansionChanged: config.onSubtaskExpansionChanged,
+        splitStore: sessionStore,
+        bodyMode: .headerOnly,
+        suppressCardChrome: isCard
+      )
+      .opacity(opacity)
+      .taskContextMenu(
+        task: task,
+        onEdit: config.onEdit,
+        onComplete: config.onComplete,
+        onDuplicate: config.onDuplicate,
+        onDelete: config.onDelete,
+        onRefresh: config.onRefresh,
+        onLiftPhaseChanged: { [weak self] phase in
+          self?.applyLiftPhase(phase, animated: true)
+        }
+      )
+    }
     .environment(ThemeManager.shared)
     .environment(MobileChromeController.shared)
 
-    let panel = TaskRow(
-      task: task,
-      style: config.style,
-      flatSubtaskPanel: config.flatSubtaskQueue,
-      showProject: config.showProject,
-      allLabels: [],
-      deferHeavyWork: false,
-      restoreExpansionOnAppear: false,
-      stabilizeExpandInSelfSizingCell: true,
-      rowInteractionsEnabled: true,
-      onToggle: config.onToggle,
-      onTap: nil,
-      onSubtaskTap: config.onSubtaskTap,
-      onSubtaskChanged: config.onSubtaskChanged,
-      onSubtaskDeleted: { config.onSubtaskDeleted($0) },
-      onWhatsAppCopy: nil,
-      onSubtaskExpansionChanged: config.onSubtaskExpansionChanged,
-      splitStore: store,
-      bodyMode: .panelOnly,
-      suppressCardChrome: isCard
-    )
-    .opacity(opacity)
+    let panel = UIKitScrollGatedRow(gate: gate, observesGate: observesGate) { deferHeavy in
+      TaskRow(
+        task: task,
+        style: config.style,
+        flatSubtaskPanel: config.flatSubtaskQueue,
+        showProject: config.showProject,
+        allLabels: [],
+        deferHeavyWork: deferHeavy,
+        restoreExpansionOnAppear: false,
+        stabilizeExpandInSelfSizingCell: true,
+        rowInteractionsEnabled: true,
+        onToggle: config.onToggle,
+        onTap: nil,
+        onSubtaskTap: config.onSubtaskTap,
+        onSubtaskChanged: config.onSubtaskChanged,
+        onSubtaskDeleted: { config.onSubtaskDeleted($0) },
+        onWhatsAppCopy: nil,
+        onSubtaskExpansionChanged: config.onSubtaskExpansionChanged,
+        splitStore: sessionStore,
+        bodyMode: .panelOnly,
+        suppressCardChrome: isCard
+      )
+      .opacity(opacity)
+    }
     .environment(ThemeManager.shared)
     .environment(MobileChromeController.shared)
 

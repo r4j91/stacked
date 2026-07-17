@@ -3,6 +3,8 @@ import SwiftUI
 // Paridade lib/widgets/task_tile.dart TaskMetaLine + TagChip
 struct TaskMetaLine: View {
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
+  @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
 
   let labels: [TaskLabel]
   var dueDate: Date?
@@ -18,6 +20,14 @@ struct TaskMetaLine: View {
   var commentCount: Int = 0
   var projectName: String?
   var maxLabels: Int = 2
+
+  private var labelChipStyle: LabelChipStyle {
+    LabelChipStyleStorage.style(from: labelChipStyleRaw)
+  }
+
+  private var dueDateChipStyle: DueDateChipStyle {
+    DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
+  }
 
   private var showsProject: Bool {
     guard let projectName, !projectName.isEmpty else { return false }
@@ -86,12 +96,17 @@ struct TaskMetaLine: View {
         }
 
         ForEach(visibleLabels) { label in
-          TagChip(label: label.name, color: label.color)
+          TagChip(label: label.name, color: label.color, style: labelChipStyle)
             .layoutPriority(-1)
         }
 
         if overflowLabelCount > 0 {
-          TagChip(label: "+\(overflowLabelCount)", color: c.textTertiary, showIcon: false)
+          TagChip(
+            label: "+\(overflowLabelCount)",
+            color: c.textTertiary,
+            showIcon: false,
+            style: labelChipStyle
+          )
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -102,16 +117,22 @@ struct TaskMetaLine: View {
 
   @ViewBuilder
   private var dueDateChip: some View {
-    // PERF_FASEB2_ETAPA2: sem fallback TaskMapper no body.
-    // let color = dueDateColor ?? TaskMapper.dateColor(for: date, done: dateDone)
-    // let label = dueDateLabel ?? TaskMapper.dueDateChipLabel(for: date)
     if let label = dueDateLabel, let color = dueDateColor {
-      TagChip(label: label, color: color, icon: .calendar)
+      DueDateChip(
+        label: label,
+        color: color,
+        day: dueDate.map { Calendar.current.component(.day, from: $0) },
+        style: dueDateChipStyle
+      )
     } else {
-      // Placeholder de largura estável se memo ausente (não deve ocorrer após Etapa 2).
-      TagChip(label: "···", color: theme.colors.textTertiary, icon: .calendar)
-        .opacity(0.45)
-        .accessibilityHidden(true)
+      DueDateChip(
+        label: "···",
+        color: theme.colors.textTertiary,
+        day: nil,
+        style: dueDateChipStyle
+      )
+      .opacity(0.45)
+      .accessibilityHidden(true)
     }
   }
 
@@ -125,7 +146,7 @@ struct TaskMetaLine: View {
   }
 }
 
-/// Contexto de projeto: quiet chip (folder + name), não compete com tags coloridas.
+/// Contexto de projeto — mesmo visual Plano das etiquetas (ícone + texto, sem container).
 struct ProjectChip: View {
   @Environment(ThemeManager.self) private var theme
   let name: String
@@ -133,44 +154,224 @@ struct ProjectChip: View {
   var body: some View {
     let c = theme.colors
     HStack(alignment: .center, spacing: 4) {
-      StackedIcons.icon(.folder, size: 11, color: c.textSecondary)
+      StackedIcons.icon(.folder, size: 14, color: c.textSecondary)
       Text(name)
         .font(.system(size: 12, weight: .medium))
         .foregroundStyle(c.textSecondary)
         .lineLimit(1)
     }
-    .padding(.horizontal, 7)
-    .padding(.vertical, 3)
-    .background(c.surfaceVariant.opacity(0.85))
-    .clipShape(RoundedRectangle(cornerRadius: 6))
-    .overlay(
-      RoundedRectangle(cornerRadius: 6)
-        .stroke(c.textSecondary.opacity(0.28), lineWidth: 0.8)
-    )
   }
 }
 
 struct TagChip: View {
+  @Environment(ThemeManager.self) private var theme
+
   let label: String
   let color: Color
   var showIcon: Bool = true
   var icon: StackedIconKey = .tag
+  /// `.soft` fixo para prioridade; etiquetas passam a preferência do Aparência.
+  var style: LabelChipStyle = .soft
 
   var body: some View {
+    switch style {
+    case .soft:
+      softChip
+    case .flat:
+      flatChip
+    case .dot:
+      dotChip
+    case .ink:
+      inkChip
+    case .outline:
+      outlineChip
+    }
+  }
+
+  private var softChip: some View {
+    chipContent(textColor: color, iconColor: color)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 3)
+      .background(color.opacity(0.12))
+      .clipShape(RoundedRectangle(cornerRadius: 6))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.30), lineWidth: 0.8))
+  }
+
+  private var flatChip: some View {
+    chipContent(textColor: color, iconColor: color)
+  }
+
+  private var dotChip: some View {
+    HStack(alignment: .center, spacing: 5) {
+      Circle()
+        .fill(color)
+        .frame(width: 6, height: 6)
+      Text(label)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(theme.colors.textSecondary)
+        .lineLimit(1)
+    }
+  }
+
+  private var inkChip: some View {
+    chipContent(textColor: theme.colors.textSecondary, iconColor: color)
+  }
+
+  private var outlineChip: some View {
+    chipContent(textColor: color, iconColor: color)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 3)
+      .clipShape(RoundedRectangle(cornerRadius: 6))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.50), lineWidth: 0.8))
+  }
+
+  @ViewBuilder
+  private func chipContent(textColor: Color, iconColor: Color) -> some View {
     HStack(alignment: .center, spacing: 4) {
       if showIcon {
-        StackedIcons.icon(icon, size: 11, color: color)
+        StackedIcons.icon(icon, size: 14, color: iconColor)
       }
+      Text(label)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(textColor)
+        .lineLimit(1)
+    }
+  }
+}
+
+/// Mini preview do estilo de etiqueta no menu Aparência.
+struct LabelChipStylePreview: View {
+  let style: LabelChipStyle
+  let colors: AppThemeColors
+  var selected: Bool = false
+
+  private let sample = Color(hex: 0xB18CF5)
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(colors.surface)
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .strokeBorder(
+          selected ? colors.accent.opacity(0.55) : colors.textTertiary.opacity(0.35),
+          lineWidth: selected ? 1.2 : 0.8
+        )
+      TagChip(label: "Ideia", color: sample, style: style)
+        .scaleEffect(0.92)
+    }
+    .frame(width: 72, height: 36)
+  }
+}
+
+/// Data na meta line — estilos do Aparência (independente das etiquetas).
+struct DueDateChip: View {
+  @Environment(ThemeManager.self) private var theme
+
+  let label: String
+  let color: Color
+  var day: Int? = nil
+  var style: DueDateChipStyle = .soft
+
+  var body: some View {
+    switch style {
+    case .soft:
+      softChip
+    case .flat:
+      flatChip
+    case .plain:
+      plainChip
+    case .day:
+      dayChip
+    case .outline:
+      outlineChip
+    }
+  }
+
+  private var softChip: some View {
+    chipContent(textColor: color, showIcon: true)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 3)
+      .background(color.opacity(0.12))
+      .clipShape(RoundedRectangle(cornerRadius: 6))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.30), lineWidth: 0.8))
+  }
+
+  private var flatChip: some View {
+    chipContent(textColor: color, showIcon: true)
+  }
+
+  private var plainChip: some View {
+    Text(label)
+      .font(.system(size: 12, weight: .medium))
+      .foregroundStyle(color)
+      .lineLimit(1)
+  }
+
+  private var dayChip: some View {
+    HStack(alignment: .center, spacing: 5) {
+      dayBadge
       Text(label)
         .font(.system(size: 12, weight: .medium))
         .foregroundStyle(color)
         .lineLimit(1)
     }
-    .padding(.horizontal, 7)
-    .padding(.vertical, 3)
-    .background(color.opacity(0.12))
-    .clipShape(RoundedRectangle(cornerRadius: 6))
-    .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.30), lineWidth: 0.8))
+  }
+
+  private var outlineChip: some View {
+    chipContent(textColor: color, showIcon: true)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 3)
+      .clipShape(RoundedRectangle(cornerRadius: 6))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.50), lineWidth: 0.8))
+  }
+
+  private var dayBadge: some View {
+    Text(day.map(String.init) ?? "–")
+      .font(.system(size: 9, weight: .bold, design: .rounded))
+      .foregroundStyle(color)
+      .frame(width: 16, height: 14)
+      .background(color.opacity(0.14))
+      .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: 3, style: .continuous)
+          .stroke(color.opacity(0.40), lineWidth: 0.7)
+      )
+  }
+
+  private func chipContent(textColor: Color, showIcon: Bool) -> some View {
+    HStack(alignment: .center, spacing: 4) {
+      if showIcon {
+        StackedIcons.icon(.calendar, size: 14, color: color)
+      }
+      Text(label)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(textColor)
+        .lineLimit(1)
+    }
+  }
+}
+
+/// Mini preview do estilo de data no menu Aparência.
+struct DueDateChipStylePreview: View {
+  let style: DueDateChipStyle
+  let colors: AppThemeColors
+  var selected: Bool = false
+
+  private let sample = Color(hex: 0x5FD3DC)
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(colors.surface)
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .strokeBorder(
+          selected ? colors.accent.opacity(0.55) : colors.textTertiary.opacity(0.35),
+          lineWidth: selected ? 1.2 : 0.8
+        )
+      DueDateChip(label: "Hoje", color: sample, day: 17, style: style)
+        .scaleEffect(0.92)
+    }
+    .frame(width: 72, height: 36)
   }
 }
 

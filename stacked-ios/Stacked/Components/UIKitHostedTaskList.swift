@@ -364,6 +364,13 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var expansionGeneration: [String: UInt] = [:]
   /// Headers observam isto — chevron anima sem remount da cell (reconfigure matava a rotação).
   private let headerFlags = UIKitSectionHeaderFlags()
+  /// PERF_SCROLL_345 (item 4): rows configuradas no fling adiam labels/bump até o settle.
+  private let scrollWorkGate = UIKitListScrollWorkGate()
+  /// true entre begin drag e settle (fim do drag sem decelerate, ou fim do decelerate).
+  private var isUserScrolling = false
+  /// PERF_SCROLL_345 (item 3): reconfigure de conteúdo chegado no meio do fling —
+  /// aplica uma vez só no settle em vez de custar frames durante o gesto.
+  private var pendingContentRefresh = false
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -380,6 +387,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     collectionView.backgroundColor = .clear
     collectionView.alwaysBounceVertical = true
     collectionView.delegate = self
+    // PERF_SCROLL_345 (item 5): células próximas pré-preparadas + rasters quentes.
+    collectionView.isPrefetchingEnabled = true
+    collectionView.prefetchDataSource = self
     // Automático: safe area (navbar/home). Inset extra = dock+FAB (+home se safe=0).
     collectionView.contentInsetAdjustmentBehavior = .automatic
     // Soft top (blur) hitchava o scroll; hard bottom virava tarja opaca no projeto.
@@ -508,6 +518,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           rowInsets: insets,
           dimmed: dimmed,
           muted: muted,
+          scrollGate: self.scrollWorkGate,
+          configuredWhileScrolling: self.isUserScrolling,
           onToggle: { config.onToggle(task) },
           onTap: { config.onTap(task) },
           onSubtaskTap: { config.onSubtaskTap(task, $0) },
@@ -755,12 +767,21 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     let presentationChanged = presentationKey != lastPresentationKey
 
     if fingerprint == lastFingerprint {
+      // PERF_SCROLL_345 (item 3): store “pingando” no meio do fling não custa
+      // frames — o refresh de conteúdo é aplicado uma vez só no settle.
+      // Estrutura (fingerprint) mudando ainda aplica na hora, mesmo rolando.
+      if isUserScrolling {
+        pendingContentRefresh = true
+        return
+      }
       // Mesma estrutura — ainda assim refresca bodies (done de subtarefa etc.).
       reconfigureChangedTasks(in: configuration)
       return
     }
     lastFingerprint = fingerprint
     lastPresentationKey = presentationKey
+    // Rebuild estrutural cobre o conteúdo — refresh pendente do fling fica obsoleto.
+    pendingContentRefresh = false
     taskContentHashById = [:]
     for section in configuration.sections {
       for task in Self.tasks(in: section) {
@@ -1163,6 +1184,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     willDisplay cell: UICollectionViewCell,
     forItemAt indexPath: IndexPath
   ) {
+    // PERF_SCROLL_345 (item 4): no fling não agenda hop por cell —
+    // `cacheVisibleExpandedHeights()` no settle cobre as visíveis.
+    guard !isUserScrolling else { return }
     guard let item = dataSource.itemIdentifier(for: indexPath),
           case .task(let id, _) = item else { return }
     DispatchQueue.main.async { [weak self, weak cell] in
@@ -1185,6 +1209,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   }
 
   func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+    isUserScrolling = true
+    if !scrollWorkGate.isScrolling {
+      scrollWorkGate.isScrolling = true
+    }
     reportScrolling(true)
   }
 
@@ -1192,6 +1220,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     if !decelerate {
       pixelSnapContentOffsetIfSettled(scrollView)
       reportScrolling(false)
+      handleScrollSettled()
       cacheVisibleExpandedHeights()
     }
   }
@@ -1199,7 +1228,23 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
     pixelSnapContentOffsetIfSettled(scrollView)
     reportScrolling(false)
+    handleScrollSettled()
     cacheVisibleExpandedHeights()
+  }
+
+  /// PERF_SCROLL_345: settle — libera rows adiadas (item 4) e aplica o
+  /// reconfigure de conteúdo que chegou durante o gesto (item 3).
+  private func handleScrollSettled() {
+    isUserScrolling = false
+    if scrollWorkGate.isScrolling {
+      scrollWorkGate.isScrolling = false
+    }
+    if pendingContentRefresh {
+      pendingContentRefresh = false
+      if let config {
+        reconfigureChangedTasks(in: config)
+      }
+    }
   }
 
   private func cacheVisibleExpandedHeights() {
@@ -1218,6 +1263,47 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           FreezeDockGlassWhileScrollingStorage.isEnabled
     else { return }
     MobileChromeController.shared.setContentScrolling(scrolling)
+  }
+}
+
+// MARK: - PERF_SCROLL_345 (item 5): prefetch de rasters para células próximas
+
+extension UIKitHostedTaskListController: UICollectionViewDataSourcePrefetching {
+  func collectionView(
+    _ collectionView: UICollectionView,
+    prefetchItemsAt indexPaths: [IndexPath]
+  ) {
+    guard dataSource != nil, config != nil else { return }
+    let fallbackRing = UIColor(ThemeManager.shared.colors.textTertiary)
+    for indexPath in indexPaths {
+      guard let item = dataSource.itemIdentifier(for: indexPath),
+            case .task(let id, _) = item,
+            let task = taskById[id] else { continue }
+      warmRasterImages(for: task, fallbackRing: fallbackRing)
+    }
+  }
+
+  /// Anel done/prioridade + relógio já em cache quando a cell entra na tela —
+  /// só desenha combos novos (cache por chave); repetições são hit de dicionário.
+  private func warmRasterImages(for task: Task, fallbackRing: UIColor) {
+    func warmRing(done: Bool, priority: Priority?) {
+      let ring = priority.map { UIColor($0.color) } ?? fallbackRing
+      _ = DoneCircleRaster.image(
+        done: done,
+        size: DoneCircle.listRowCircleSize,
+        borderWidth: DoneCircle.RingStyle.borderWidth,
+        ringColor: ring,
+        ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+        tickSize: 13
+      )
+    }
+    warmRing(done: task.done, priority: task.priority)
+    if task.hasSubtasks, ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id) {
+      for sub in task.subtasks {
+        warmRing(done: sub.done, priority: sub.priority)
+      }
+    }
+    _ = UIKitRowIconRaster.image(key: .clock, size: 11, color: fallbackRing)
   }
 }
 

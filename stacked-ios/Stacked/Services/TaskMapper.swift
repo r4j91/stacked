@@ -266,6 +266,7 @@ enum TaskMapper {
     if !done {
       if d < today { return AppColors.dateOverdue }
       if d == today { return AppColors.dateDueToday }
+      return AppColors.dateUpcoming
     }
     return AppColors.textTertiary
   }

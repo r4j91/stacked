@@ -41,7 +41,7 @@ enum StackedIcons {
     case .checkCircle: Hugeicons.checkmarkCircle01
     case .repeatIcon: Hugeicons.repeatIcon
     case .sun: Hugeicons.sun01
-    case .calendar: Hugeicons.calendar01
+    case .calendar: Hugeicons.calendar03
     case .money: Hugeicons.money01
     case .arrowUp: Hugeicons.arrowUp01
     case .comment: Hugeicons.comment01
