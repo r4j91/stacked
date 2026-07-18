@@ -4,6 +4,7 @@ export type AppThemeId =
   | "moonstone"
   | "midnight"
   | "obsidian"
+  | "anthracite"
   | "slate"
   | "slateCyan"
   | "slateAmazonite"
@@ -12,6 +13,10 @@ export type AppThemeId =
   | "titanium"
   | "sodalite"
   | "hematite"
+  | "jade"
+  | "aventurine"
+  | "amazonite"
+  | "larimar"
 
 export type AppThemeColors = {
   background: string
@@ -107,6 +112,28 @@ export const themes: Record<AppThemeId, AppTheme> = {
       accent: "#00D4D4",
       accentText: "#0A0A0A",
       navBar: "#111111",
+      isDark: true,
+    },
+  },
+  anthracite: {
+    id: "anthracite",
+    name: "Anthracite",
+    subtitle: "Cinza premium",
+    previewSwatch: {
+      background: "#1A1A1A",
+      surface: "#242424",
+      accent: "#00D4D4",
+    },
+    colors: {
+      background: "#1A1A1A",
+      surface: "#242424",
+      surfaceVariant: "#2E2E2E",
+      textPrimary: "#F0F0F0",
+      textSecondary: "#8A8A8A",
+      textTertiary: "#5A5A5A",
+      accent: "#00D4D4",
+      accentText: "#1A1A1A",
+      navBar: "#1F1F1F",
       isDark: true,
     },
   },
@@ -281,7 +308,105 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  jade: {
+    id: "jade",
+    name: "Jade",
+    subtitle: "Verde discreto",
+    previewSwatch: {
+      background: "#121313",
+      surface: "#191B1B",
+      accent: "#7FAA92",
+    },
+    colors: {
+      background: "#121313",
+      surface: "#191B1B",
+      surfaceVariant: "#212423",
+      textPrimary: "#EAEDEB",
+      textSecondary: "#9AA19D",
+      textTertiary: "#626864",
+      // Web: acento de ação (iOS actionAccent) — FAB/botões
+      accent: "#7FAA92",
+      accentText: "#0C110E",
+      navBar: "#191B1B",
+      isDark: true,
+    },
+  },
+  aventurine: {
+    id: "aventurine",
+    name: "Aventurine",
+    subtitle: "Verde profundo",
+    previewSwatch: {
+      background: "#0B0C0C",
+      surface: "#131515",
+      accent: "#5E9474",
+    },
+    colors: {
+      background: "#0B0C0C",
+      surface: "#131515",
+      surfaceVariant: "#1A1D1C",
+      textPrimary: "#ECEFED",
+      textSecondary: "#949B97",
+      textTertiary: "#5B615D",
+      accent: "#5E9474",
+      accentText: "#F2F7F4",
+      navBar: "#131515",
+      isDark: true,
+    },
+  },
+  amazonite: {
+    id: "amazonite",
+    name: "Amazonite",
+    subtitle: "Petróleo",
+    previewSwatch: {
+      background: "#0B1113",
+      surface: "#12191C",
+      accent: "#86ABB0",
+    },
+    colors: {
+      background: "#0B1113",
+      surface: "#12191C",
+      surfaceVariant: "#182124",
+      textPrimary: "#E5EBEC",
+      textSecondary: "#8EA0A3",
+      textTertiary: "#59696C",
+      accent: "#86ABB0",
+      accentText: "#0A1012",
+      navBar: "#12191C",
+      isDark: true,
+    },
+  },
+  larimar: {
+    id: "larimar",
+    name: "Larimar",
+    subtitle: "Petróleo cinza",
+    previewSwatch: {
+      background: "#141C1F",
+      surface: "#1C262A",
+      accent: "#86ABB0",
+    },
+    colors: {
+      background: "#141C1F",
+      surface: "#1C262A",
+      surfaceVariant: "#263236",
+      textPrimary: "#E5EBEC",
+      textSecondary: "#8EA0A3",
+      textTertiary: "#5C6B6E",
+      accent: "#86ABB0",
+      accentText: "#0E1518",
+      navBar: "#1C262A",
+      isDark: true,
+    },
+  },
 }
+
+/** Paridade iOS AppThemeId.recommended */
+export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
+  "slate",
+  "graphite",
+  "moonstone",
+  "anthracite",
+  "larimar",
+]
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"
 

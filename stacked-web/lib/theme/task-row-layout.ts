@@ -52,3 +52,31 @@ export function subscribeTaskRowLayout(onStoreChange: () => void) {
     window.removeEventListener("storage", handler);
   };
 }
+
+export function layoutUsesEyebrow(layout: TaskRowLayout): boolean {
+  return layout === "f2" || layout === "x2";
+}
+
+/** Paridade iOS TaskRowLayoutStorage.showsEyebrow */
+export function showsTaskRowEyebrow({
+  layout,
+  project,
+  showProject = true,
+  priority,
+}: {
+  layout: TaskRowLayout;
+  project?: string | null;
+  showProject?: boolean;
+  priority?: string | null;
+}): boolean {
+  if (!layoutUsesEyebrow(layout)) return false;
+  const hasProject =
+    showProject && Boolean(project) && project !== "Sem projeto";
+  if (layout === "f2") return hasProject || Boolean(priority);
+  return hasProject;
+}
+
+/** Hora no trailing do título só no layout atual (F2/X2 fundem na meta). */
+export function showsTrailingTime(layout: TaskRowLayout): boolean {
+  return layout === "default";
+}

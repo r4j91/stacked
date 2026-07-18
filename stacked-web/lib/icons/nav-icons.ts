@@ -30,4 +30,5 @@ export {
   UserIcon,
   ArrowUp01Icon,
   KeyboardIcon,
+  BubbleChatIcon,
 } from "@hugeicons/core-free-icons"

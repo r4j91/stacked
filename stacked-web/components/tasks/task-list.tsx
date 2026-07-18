@@ -14,11 +14,14 @@ import { buildTodayTimeline } from "@/lib/utils/schedule-items";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
+import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
+import { showsTrailingTime } from "@/lib/theme/task-row-layout";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
+import { taskShowsWhatsAppCopy } from "@/lib/utils/whatsapp-routine-message";
 import {
   Sun01Icon,
   InboxIcon,
@@ -32,6 +35,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   if (!open || !task.subtasks?.length) return null;
 
   const subs = task.subtasks;
+  const trailingTime = showsTrailingTime(layout);
 
   return (
     <div className="subtask-tree relative mr-2 mt-0.5 space-y-0.5 pb-1.5">
@@ -44,6 +48,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
         const key = `${task.id}:${i}` as SubtaskKey;
         const selected = selectedSubtaskKey === key;
         const isLast = i === subs.length - 1;
+        const notes = s.notes?.trim();
         return (
           <div key={key} className="relative pl-5">
             <div
@@ -67,7 +72,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
                   selectSubtask(task.id, i);
                 }
               }}
-              className={`flex min-h-9 cursor-pointer items-start gap-2.5 rounded-[var(--radius-sm)] px-2 py-1 transition-colors ${
+              className={`flex min-h-9 cursor-pointer items-start gap-2.5 rounded-[var(--radius-sm)] px-2 py-1 transition-colors duration-150 ${
                 selected ? "bg-[var(--color-hover-overlay)]" : "hover:bg-[var(--color-hover-overlay)]/70"
               }`}
             >
@@ -83,9 +88,27 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
               />
               <div className="min-w-0 flex-1">
                 <TaskRowEyebrow layout={layout} priority={s.priority} />
-                <span className={`block min-w-0 truncate text-[13px] font-medium ${s.done ? "text-[var(--color-text-tertiary)] line-through" : "text-[var(--color-text-secondary)]"}`}>
-                  {s.name}
-                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className={`min-w-0 flex-1 truncate text-[13px] font-medium ${
+                      s.done
+                        ? "text-[var(--color-text-tertiary)] line-through"
+                        : "text-[var(--color-text-secondary)]"
+                    }`}
+                  >
+                    {s.name}
+                  </span>
+                  {trailingTime ? <TaskRowTime time={s.time} /> : null}
+                </div>
+                {notes ? (
+                  <p
+                    className={`mt-0.5 truncate text-[12px] text-[var(--color-text-tertiary)] ${
+                      s.done ? "line-through opacity-60" : ""
+                    }`}
+                  >
+                    {notes}
+                  </p>
+                ) : null}
                 <SubtaskMetaLine sub={s} />
               </div>
             </div>
@@ -130,6 +153,8 @@ export const TaskRow = memo(function TaskRow({
   const isExpanded = expandedSubtasks.has(task.id);
   const isSelected = !embedded && selectedTaskId === task.id;
   const isKeyboardFocused = !embedded && keyboardFocused;
+  const hasRail = subs.length > 0 || taskShowsWhatsAppCopy(task);
+  const trailingTime = showsTrailingTime(layout);
 
   return (
     <>
@@ -163,7 +188,9 @@ export const TaskRow = memo(function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`group/reorder-row task-row task-row-grid mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 ${
+          className={`group/reorder-row task-row task-row-grid mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 transition-[background-color,border-color,opacity] duration-150 ${
+            hasRail ? "" : "task-row-grid--no-rail "
+          }${
             reorderDragOver
               ? reorderDropPosition === "after"
                 ? "reorder-drop-target reorder-drop-target-after border-transparent"
@@ -198,9 +225,16 @@ export const TaskRow = memo(function TaskRow({
               project={task.project}
               priority={task.priority}
             />
-            <p className={`truncate text-[15.5px] font-semibold leading-snug ${task.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}>
-              {task.title}
-            </p>
+            <div className="flex items-baseline gap-1.5">
+              <p
+                className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
+                  task.done ? "text-[var(--color-text-tertiary)] line-through" : ""
+                }`}
+              >
+                {task.title}
+              </p>
+              {trailingTime ? <TaskRowTime time={task.time} /> : null}
+            </div>
             {task.preview && (
               <p className={`mt-0.5 truncate text-[12.5px] text-[var(--color-text-secondary)] ${task.done ? "opacity-60 line-through" : ""}`}>
                 {task.preview}
@@ -208,12 +242,14 @@ export const TaskRow = memo(function TaskRow({
             )}
             <TaskMetaLine task={task} labels={labels} />
           </div>
-          <TaskRowTrailingRail
-            task={task}
-            hasSubtasks={subs.length > 0}
-            isExpanded={isExpanded}
-            onToggleSubtasks={() => toggleSubtaskExpand(task.id)}
-          />
+          {hasRail ? (
+            <TaskRowTrailingRail
+              task={task}
+              hasSubtasks={subs.length > 0}
+              isExpanded={isExpanded}
+              onToggleSubtasks={() => toggleSubtaskExpand(task.id)}
+            />
+          ) : null}
         </div>
       </SwipeableTaskRow>
       {subs.length > 0 && (

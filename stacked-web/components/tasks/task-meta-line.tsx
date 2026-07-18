@@ -14,10 +14,16 @@ import { TagChip } from "@/components/ui/tag-chip";
 import { DueDateChip } from "@/components/ui/due-date-chip";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { AppIcon } from "@/components/ui/app-icon";
-import { TaskDone01Icon, Folder01Icon, Calendar03Icon } from "@/lib/icons/nav-icons";
+import {
+  TaskDone01Icon,
+  Folder01Icon,
+  Calendar03Icon,
+  BubbleChatIcon,
+} from "@/lib/icons/nav-icons";
 import { useLabelChipStyle } from "@/lib/theme/use-label-chip-style";
 import { useDueDateChipStyle } from "@/lib/theme/use-due-date-chip-style";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
+import { layoutUsesEyebrow } from "@/lib/theme/task-row-layout";
 import { priorityColor } from "@/lib/utils/priority";
 
 type TaskMetaLineProps = {
@@ -25,6 +31,7 @@ type TaskMetaLineProps = {
   /** Em breve: tarefas já agrupadas por dia — omitir chip de data */
   hideDate?: boolean;
   labels?: Label[];
+  maxLabels?: number;
 };
 
 type ChipLabel = { id: string; name: string; color: string };
@@ -62,7 +69,7 @@ function FusedScheduleFlat({
     if (!label) return null;
     return (
       <span
-        className="inline-flex max-w-full items-center gap-1 truncate text-xs font-semibold tabular-nums"
+        className="inline-flex max-w-full shrink items-center gap-1 truncate text-xs font-semibold tabular-nums"
         style={{ color }}
       >
         <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
@@ -94,21 +101,23 @@ function PriorityFlag({ priority }: { priority: NonNullable<Task["priority"]> })
 function LabelItems({
   taskLabels,
   labelChipStyle,
+  maxLabels,
 }: {
   taskLabels: ChipLabel[];
   labelChipStyle: ReturnType<typeof useLabelChipStyle>;
+  maxLabels: number;
 }) {
   const items: React.ReactNode[] = [];
-  for (const label of taskLabels.slice(0, 3)) {
+  for (const label of taskLabels.slice(0, maxLabels)) {
     items.push(
       <TagChip key={label.id} label={label.name} color={label.color} style={labelChipStyle} />,
     );
   }
-  if (taskLabels.length > 3) {
+  if (taskLabels.length > maxLabels) {
     items.push(
       <TagChip
         key="more"
-        label={`+${taskLabels.length - 3}`}
+        label={`+${taskLabels.length - maxLabels}`}
         color="var(--color-text-tertiary)"
         showIcon={false}
         style={labelChipStyle}
@@ -122,7 +131,7 @@ function SubtaskCount({ subs }: { subs: Subtask[] }) {
   if (!subs.length) return null;
   const doneSubs = subs.filter((s) => s.done).length;
   return (
-    <span className="inline-flex items-center gap-1 text-[12px] text-[var(--color-text-tertiary)]">
+    <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-[var(--color-text-tertiary)]">
       <AppIcon icon={TaskDone01Icon} size={12} strokeWidth={1.75} />
       <span className="tabular-nums">
         {doneSubs}/{subs.length}
@@ -131,7 +140,31 @@ function SubtaskCount({ subs }: { subs: Subtask[] }) {
   );
 }
 
-export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLineProps) {
+function CommentCount({ count }: { count?: number }) {
+  if (!count || count <= 0) return null;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-[var(--color-text-tertiary)]">
+      <AppIcon icon={BubbleChatIcon} size={12} strokeWidth={1.75} />
+      <span className="tabular-nums">{count}</span>
+    </span>
+  );
+}
+
+function ProjectChip({ name }: { name: string }) {
+  return (
+    <span className="inline-flex max-w-[40%] shrink items-center gap-1 truncate text-xs font-medium text-[var(--color-text-secondary)]">
+      <AppIcon icon={Folder01Icon} size={14} strokeWidth={1.75} />
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+export function TaskMetaLine({
+  task,
+  hideDate,
+  labels: labelsProp,
+  maxLabels = 2,
+}: TaskMetaLineProps) {
   const { labels: contextLabels } = useWorkbench();
   const labelChipStyle = useLabelChipStyle();
   const dueDateChipStyle = useDueDateChipStyle();
@@ -140,10 +173,11 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
   const subs = task.subtasks ?? [];
   const due = parseDueDate(task.dueDate);
   const taskLabels = resolveTaskLabels(task, allLabels);
+  const usesEyebrow = layoutUsesEyebrow(layout);
 
   const items: React.ReactNode[] = [];
 
-  if (layout === "f2" || layout === "x2") {
+  if (usesEyebrow) {
     if (layout === "x2" && task.priority) {
       items.push(<PriorityFlag key="prio" priority={task.priority} />);
     }
@@ -162,29 +196,19 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
       );
     }
 
-    items.push(...LabelItems({ taskLabels, labelChipStyle }));
+    items.push(...LabelItems({ taskLabels, labelChipStyle, maxLabels }));
 
     if (subs.length) {
       items.push(<SubtaskCount key="sub" subs={subs} />);
     }
+
+    items.push(<CommentCount key="cmt" count={task.commentCount} />);
   } else {
+    // Paridade iOS: projeto → data → subtarefas → comentários → etiquetas
+    // (hora vai no trailing do título, não na meta)
     if (task.project && task.project !== "Sem projeto") {
-      items.push(
-        <span
-          key="proj"
-          className="inline-flex max-w-full items-center gap-1 truncate text-xs font-medium text-[var(--color-text-secondary)]"
-        >
-          <AppIcon icon={Folder01Icon} size={14} strokeWidth={1.75} />
-          <span className="truncate">{task.project}</span>
-        </span>,
-      );
+      items.push(<ProjectChip key="proj" name={task.project} />);
     }
-
-    if (task.time) {
-      items.push(<TaskRowTime key="time" time={task.time} />);
-    }
-
-    items.push(...LabelItems({ taskLabels, labelChipStyle }));
 
     if (!hideDate && task.dueDate) {
       const dateLabel = formatTaskDate(due);
@@ -204,12 +228,16 @@ export function TaskMetaLine({ task, hideDate, labels: labelsProp }: TaskMetaLin
     if (subs.length) {
       items.push(<SubtaskCount key="sub" subs={subs} />);
     }
+
+    items.push(<CommentCount key="cmt" count={task.commentCount} />);
+
+    items.push(...LabelItems({ taskLabels, labelChipStyle, maxLabels }));
   }
 
   if (!items.length) return task.done ? <span className="text-xs text-[var(--color-text-tertiary)]">—</span> : null;
 
   return (
-    <div className="task-meta-line mt-1.5 flex min-h-[22px] flex-wrap items-center gap-1.5">
+    <div className="task-meta-line mt-1.5 flex min-h-[22px] items-center gap-1.5 overflow-hidden">
       {items}
     </div>
   );
@@ -220,6 +248,7 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
   const labelChipStyle = useLabelChipStyle();
   const dueDateChipStyle = useDueDateChipStyle();
   const layout = useTaskRowLayout();
+  const usesEyebrow = layoutUsesEyebrow(layout);
 
   let subLabels =
     (sub.labelIds ?? [])
@@ -233,7 +262,7 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
 
   const items: React.ReactNode[] = [];
 
-  if (layout === "f2" || layout === "x2") {
+  if (usesEyebrow) {
     if (layout === "x2" && sub.priority) {
       items.push(<PriorityFlag key="prio" priority={sub.priority} />);
     }
@@ -251,36 +280,9 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
       );
     }
 
-    items.push(...LabelItems({ taskLabels: subLabels.slice(0, maxLabels), labelChipStyle }));
-    if (subLabels.length > maxLabels) {
-      items.push(
-        <TagChip
-          key="more"
-          label={`+${subLabels.length - maxLabels}`}
-          color="var(--color-text-tertiary)"
-          showIcon={false}
-          style={labelChipStyle}
-        />,
-      );
-    }
+    items.push(...LabelItems({ taskLabels: subLabels, labelChipStyle, maxLabels }));
   } else {
-    for (const label of subLabels.slice(0, maxLabels)) {
-      items.push(
-        <TagChip key={label.id} label={label.name} color={label.color} style={labelChipStyle} />,
-      );
-    }
-    if (subLabels.length > maxLabels) {
-      items.push(
-        <TagChip
-          key="more"
-          label={`+${subLabels.length - maxLabels}`}
-          color="var(--color-text-tertiary)"
-          showIcon={false}
-          style={labelChipStyle}
-        />,
-      );
-    }
-
+    // Paridade iOS default: data → etiquetas (hora no trailing do título)
     if (sub.dueDate) {
       const due = parseDueDate(sub.dueDate);
       const dateLabel = formatTaskDate(due);
@@ -297,12 +299,12 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
       }
     }
 
-    if (sub.time) {
-      items.push(<TaskRowTime key="time" time={sub.time} />);
-    }
+    items.push(...LabelItems({ taskLabels: subLabels, labelChipStyle, maxLabels }));
   }
 
   if (!items.length) return null;
 
-  return <div className="mt-0.5 flex flex-wrap items-center gap-1">{items}</div>;
+  return (
+    <div className="task-meta-line mt-0.5 flex items-center gap-1 overflow-hidden">{items}</div>
+  );
 }

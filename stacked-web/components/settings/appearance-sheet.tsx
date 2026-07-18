@@ -7,7 +7,12 @@ import { AppIcon } from "@/components/ui/app-icon";
 import { TagChip } from "@/components/ui/tag-chip";
 import { DueDateChip } from "@/components/ui/due-date-chip";
 import { Cancel01Icon, Tick01Icon } from "@/lib/icons/nav-icons";
-import { themes, type AppTheme, type AppThemeId } from "@/lib/theme/themes";
+import {
+  themes,
+  RECOMMENDED_THEME_IDS,
+  type AppTheme,
+  type AppThemeId,
+} from "@/lib/theme/themes";
 import {
   LABEL_CHIP_STYLES,
   writeLabelChipStyle,
@@ -61,36 +66,35 @@ export function AppearanceSheet() {
       <div className="scroll-thin space-y-4 overflow-y-auto p-2">
         <section>
           <p className="px-2.5 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Tema
+            Tema · Recomendados
           </p>
           <div className="space-y-1">
-            {(Object.keys(themes) as AppThemeId[]).map((id) => {
-              const theme = themes[id];
-              const selected = themeId === id;
-              return (
-                <button
+            {RECOMMENDED_THEME_IDS.map((id) => (
+              <ThemeOption
+                key={id}
+                theme={themes[id]}
+                selected={themeId === id}
+                onSelect={() => setThemeId(id)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Tema · Mais
+          </p>
+          <div className="space-y-1">
+            {(Object.keys(themes) as AppThemeId[])
+              .filter((id) => !RECOMMENDED_THEME_IDS.includes(id))
+              .map((id) => (
+                <ThemeOption
                   key={id}
-                  type="button"
-                  onClick={() => setThemeId(id)}
-                  className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
-                    selected
-                      ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
-                      : "hover:bg-[var(--color-hover-overlay)]"
-                  }`}
-                >
-                  <ThemePreview theme={theme} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{theme.name}</p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)]">{theme.subtitle}</p>
-                  </div>
-                  {selected && (
-                    <span className="text-[var(--color-text)]">
-                      <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                  theme={themes[id]}
+                  selected={themeId === id}
+                  onSelect={() => setThemeId(id)}
+                />
+              ))}
           </div>
         </section>
 
@@ -197,6 +201,39 @@ export function AppearanceSheet() {
         </section>
       </div>
     </AnchoredPopover>
+  );
+}
+
+function ThemeOption({
+  theme,
+  selected,
+  onSelect,
+}: {
+  theme: AppTheme;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors duration-150 ${
+        selected
+          ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
+          : "hover:bg-[var(--color-hover-overlay)]"
+      }`}
+    >
+      <ThemePreview theme={theme} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{theme.name}</p>
+        <p className="text-[11px] text-[var(--color-text-tertiary)]">{theme.subtitle}</p>
+      </div>
+      {selected && (
+        <span className="text-[var(--color-text)]">
+          <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
+        </span>
+      )}
+    </button>
   );
 }
 

@@ -56,10 +56,16 @@
 
 /* Conteúdo centralizado — paridade iOS AppLayout (640 / 720 / 920) */
 :root {
-  --content-max-width: 640px;
+  --content-max-width: 100%;
   --mobile-scroll-inset: calc(env(safe-area-inset-bottom, 0px) + 150px);
   --mobile-pill-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
   --mobile-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+}
+
+@media (min-width: 600px) {
+  :root {
+    --content-max-width: 640px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -303,7 +309,8 @@ textarea:focus:not(:focus-visible) {
 
 .expand-panel {
   display: grid;
-  transition: grid-template-rows 0.2s ease-out;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .expand-panel[data-open="true"] {
@@ -460,6 +467,15 @@ textarea:focus:not(:focus-visible) {
 
 .task-meta-line {
   min-height: 22px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.task-row {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
 }
 
 .reorder-gutter {
