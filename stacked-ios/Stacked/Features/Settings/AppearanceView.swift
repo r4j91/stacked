@@ -12,6 +12,7 @@ struct AppearanceView: View {
   @AppStorage(HomeHeroStyleStorage.hiddenKey) private var homeHeroStyleHiddenRaw = ""
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
@@ -45,6 +46,10 @@ struct AppearanceView: View {
 
   private var dueDateChipStyle: DueDateChipStyle {
     DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
+  }
+
+  private var taskRowLayout: TaskRowLayout {
+    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
   }
 
   var body: some View {
@@ -108,6 +113,20 @@ struct AppearanceView: View {
           }
           SettingsCardDivider(leadingPadding: 56)
           fabIntegratedInIslandRow()
+        }
+
+        appearancePanel(
+          id: .taskRowLayout,
+          title: "Layout dos cards",
+          summary: taskRowLayout.displayName,
+          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida plana; etiquetas seguem o estilo escolhido em Etiquetas nos cards."
+        ) {
+          ForEach(Array(TaskRowLayout.allCases.enumerated()), id: \.element) { index, layout in
+            taskRowLayoutRow(layout)
+            if index < TaskRowLayout.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 90)
+            }
+          }
         }
 
         appearancePanel(
@@ -336,6 +355,7 @@ struct AppearanceView: View {
     hasher.combine(homeHeroStyleHiddenRaw)
     hasher.combine(labelChipStyleRaw)
     hasher.combine(dueDateChipStyleRaw)
+    hasher.combine(taskRowLayoutRaw)
     return hasher.finalize()
   }
 
@@ -660,6 +680,40 @@ struct AppearanceView: View {
     .buttonStyle(.plain)
   }
 
+  private func taskRowLayoutRow(_ layout: TaskRowLayout) -> some View {
+    let c = theme.colors
+    let isSelected = taskRowLayout == layout
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      taskRowLayoutRaw = layout.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        TaskRowLayoutPreview(layout: layout, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(layout.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(layout.subtitle)
+            .font(AppTypography.taskPreview)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
   private func dueDateChipStyleRow(_ style: DueDateChipStyle) -> some View {
     let c = theme.colors
     let isSelected = dueDateChipStyle == style
@@ -923,6 +977,7 @@ struct AppearanceView: View {
 private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
+  case taskRowLayout
   case labelChips
   case dueDateChips
   case homeHero
@@ -933,6 +988,7 @@ private enum AppearanceSectionID: String, Hashable {
     switch self {
     case .theme: .paintbrush
     case .navBar: .grid
+    case .taskRowLayout: .list
     case .labelChips: .tag
     case .dueDateChips: .calendar
     case .homeHero: .sun

@@ -10,9 +10,16 @@ struct TaskRowScrollPlaceholder: View {
 
   var body: some View {
     let c = theme.colors
+    let layout = TaskRowLayoutStorage.current
     let height = AppLayout.taskRowHeaderHeight(
       hasDescription: task.hasDescription,
-      hasMeta: showsMeta
+      hasMeta: AppLayout.taskRowShowsMeta(task: task, showProject: showProject, layout: layout),
+      hasEyebrow: TaskRowLayoutStorage.showsEyebrow(
+        layout: layout,
+        projectName: showProject ? task.project : nil,
+        showProject: showProject,
+        priority: task.priority
+      )
     )
     RoundedRectangle(cornerRadius: style.isCardFamily ? 12 : 0)
       .fill(style == .cardLight ? c.surface.opacity(0.72) : c.surface)
@@ -25,15 +32,5 @@ struct TaskRowScrollPlaceholder: View {
           .padding(.leading, 46)
       }
       .accessibilityHidden(true)
-  }
-
-  private var showsMeta: Bool {
-    let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
-    return showsProject
-      || !task.labels.isEmpty
-      || task.priority != nil
-      || task.dueDate != nil
-      || task.subtasksTotalCount > 0
-      || task.commentCount > 0
   }
 }

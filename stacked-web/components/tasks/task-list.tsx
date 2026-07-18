@@ -13,7 +13,9 @@ import { CalendarEventRow } from "@/components/calendar/calendar-event-row";
 import { buildTodayTimeline } from "@/lib/utils/schedule-items";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine, SubtaskMetaLine } from "@/components/tasks/task-meta-line";
+import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
+import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
@@ -26,6 +28,7 @@ import {
 
 export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone } = useWorkbench();
+  const layout = useTaskRowLayout();
   if (!open || !task.subtasks?.length) return null;
 
   const subs = task.subtasks;
@@ -79,6 +82,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
                 }}
               />
               <div className="min-w-0 flex-1">
+                <TaskRowEyebrow layout={layout} priority={s.priority} />
                 <span className={`block min-w-0 truncate text-[13px] font-medium ${s.done ? "text-[var(--color-text-tertiary)] line-through" : "text-[var(--color-text-secondary)]"}`}>
                   {s.name}
                 </span>
@@ -121,6 +125,7 @@ export const TaskRow = memo(function TaskRow({
   const { selectedTaskId, selectTask, openTaskInspector, toggleTaskDone, deferTask, deleteTask, expandedSubtasks, toggleSubtaskExpand } =
     useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
+  const layout = useTaskRowLayout();
   const subs = task.subtasks ?? [];
   const isExpanded = expandedSubtasks.has(task.id);
   const isSelected = !embedded && selectedTaskId === task.id;
@@ -188,6 +193,11 @@ export const TaskRow = memo(function TaskRow({
             }}
           />
           <div className="task-row-grid__content min-w-0 flex-1">
+            <TaskRowEyebrow
+              layout={layout}
+              project={task.project}
+              priority={task.priority}
+            />
             <p className={`truncate text-[15.5px] font-semibold leading-snug ${task.done ? "text-[var(--color-text-tertiary)] line-through" : ""}`}>
               {task.title}
             </p>

@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stacked — Ideias de cards de tarefa</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface-variant: #2C2D33;
+      --text: #F2F3F5;
+      --text-secondary: #9296A0;
+      --text-tertiary: #6B6E76;
+      --accent: #5FD3DC;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-purple: #B18CF5;
+      --tag-green: #8FD46B;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.4;
+      padding: 32px 20px 80px;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header.page-head {
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    header.page-head .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    header.page-head h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    header.page-head p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 52ch;
+    }
+
+    nav.toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    nav.toc a {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+    }
+    nav.toc a:hover {
+      color: var(--text);
+      border-color: rgba(95, 211, 220, 0.35);
+    }
+
+    .idea {
+      margin-bottom: 48px;
+      scroll-margin-top: 24px;
+    }
+    .idea-head {
+      margin-bottom: 14px;
+    }
+    .idea-head .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+    .idea-head .badge .n {
+      color: var(--accent);
+    }
+    .idea-head h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+    .idea-head p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 58ch;
+    }
+    .idea-head .pros {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .idea-head .pros strong {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .phone {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 10px;
+      overflow: hidden;
+    }
+    .phone-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      padding: 4px 8px 10px;
+    }
+
+    /* Shared primitives */
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text-tertiary);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .check.p1 { border-color: var(--p1); }
+    .check.p2 { border-color: var(--p2); }
+    .check.p3 { border-color: var(--p3); }
+
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .desc {
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chip svg { flex-shrink: 0; opacity: 0.9; }
+    .chip-soft {
+      background: color-mix(in srgb, var(--c) 12%, transparent);
+      border-color: color-mix(in srgb, var(--c) 28%, transparent);
+      color: var(--c);
+    }
+    .chip-outline {
+      background: transparent;
+      border-color: color-mix(in srgb, var(--c) 45%, transparent);
+      color: var(--c);
+    }
+    .dot-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .dot-label .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--c);
+      flex-shrink: 0;
+    }
+
+    .meta-plain {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .meta-plain.overdue { color: var(--p1); }
+    .meta-plain.today { color: var(--accent); }
+    .sep {
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      font-weight: 400;
+      margin: 0 2px;
+    }
+
+    .ico {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    /* ── A: Atual ── */
+    .a-row {
+      display: flex;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+    }
+    .a-body { flex: 1; min-width: 0; }
+    .a-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      min-height: 22px;
+    }
+
+    /* ── B: Tipográfica ── */
+    .b-row {
+      display: flex;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+    }
+    .b-body { flex: 1; min-width: 0; }
+    .b-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0;
+      margin-top: 5px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .b-meta .piece {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .b-meta .piece + .piece::before {
+      content: "·";
+      margin: 0 7px;
+      color: var(--text-tertiary);
+      opacity: 0.55;
+    }
+    .b-prio {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .b-prio.p1 { color: var(--p1); }
+    .b-prio.p2 { color: var(--p2); }
+    .b-prio.p3 { color: var(--p3); }
+
+    /* ── C: Trilho temporal ── */
+    .c-row {
+      display: flex;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+      align-items: flex-start;
+    }
+    .c-body { flex: 1; min-width: 0; }
+    .c-rail {
+      flex-shrink: 0;
+      text-align: right;
+      min-width: 56px;
+      padding-top: 1px;
+    }
+    .c-rail .when {
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .c-rail .when.overdue { color: var(--p1); }
+    .c-rail .when.today { color: var(--accent); }
+    .c-rail .clock {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+    .c-sub {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+    .c-proj {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── D: Dois andares + tags dots ── */
+    .d-row {
+      display: flex;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+    }
+    .d-body { flex: 1; min-width: 0; }
+    .d-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .d-top .title { flex: 1; min-width: 0; }
+    .d-when {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .d-when.overdue { color: var(--p1); }
+    .d-when.today { color: var(--accent); }
+    .d-floor {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .d-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .d-tags {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .d-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .d-tag-more {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+    }
+
+    /* ── E: Data+hora fundidos ── */
+    .e-row {
+      display: flex;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+    }
+    .e-body { flex: 1; min-width: 0; }
+    .e-meta {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .e-schedule {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 650;
+      padding: 2px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .e-schedule.today {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+    .e-schedule.overdue {
+      color: var(--p1);
+      background: color-mix(in srgb, var(--p1) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--p1) 28%, transparent);
+    }
+    .e-schedule.neutral {
+      color: var(--text-secondary);
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+    }
+    .e-prio-flag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .e-prio-flag.p1 {
+      color: var(--p1);
+      background: color-mix(in srgb, var(--p1) 14%, transparent);
+    }
+    .e-prio-flag.p2 {
+      color: var(--p2);
+      background: color-mix(in srgb, var(--p2) 14%, transparent);
+    }
+
+    /* ── F: Projeto como eyebrow ── */
+    .f-row {
+      display: flex;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      margin-bottom: 4px;
+    }
+    .f-body { flex: 1; min-width: 0; }
+    .f-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .f-proj {
+      font-size: 11px;
+      font-weight: 650;
+      color: var(--text-tertiary);
+      letter-spacing: 0.01em;
+    }
+    .f-dot-sep {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+      opacity: 0.6;
+    }
+    .f-prio {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .f-prio.p1 { color: var(--p1); }
+    .f-prio.p2 { color: var(--p2); }
+    .f-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    /* ── G: Surface card (mais “card”) ── */
+    .g-list { display: flex; flex-direction: column; gap: 8px; }
+    .g-row {
+      display: flex;
+      gap: 12px;
+      padding: 14px 14px;
+      border-radius: var(--radius-lg);
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+    }
+    .g-body { flex: 1; min-width: 0; }
+    .g-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Compare strip */
+    .compare {
+      margin-top: 56px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+    }
+    .compare h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .compare p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    td { color: var(--text-secondary); }
+    td:first-child { color: var(--text); font-weight: 600; width: 28%; }
+
+    footer.note {
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-head">
+      <div class="eyebrow">Mock · só visual</div>
+      <h1>Ideias de cards de tarefa</h1>
+      <p>
+        Seis direções para hierarquia de metadados (etiquetas, data, hora, projeto, prioridade).
+        Nada disso está no app — escolha a que gostar (ou misture) antes de implementar.
+      </p>
+      <nav class="toc">
+        <a href="#a">A · Atual</a>
+        <a href="#b">B · Tipográfica</a>
+        <a href="#c">C · Trilho</a>
+        <a href="#d">D · Dois andares</a>
+        <a href="#e">E · Agenda fundida</a>
+        <a href="#f">F · Eyebrow</a>
+        <a href="#g">G · Card surface</a>
+      </nav>
+    </header>
+
+    <!-- ════════════ A ════════════ -->
+    <section class="idea" id="a">
+      <div class="idea-head">
+        <div class="badge"><span class="n">A</span> · Baseline</div>
+        <h2>Como está hoje</h2>
+        <p>Checkbox + título + meta em wrap com chips soft. Prioridade só no anel do checkbox. Projeto, hora, etiquetas e data competem na mesma linha.</p>
+        <p class="pros"><strong>Prós:</strong> familiar, flexível. <strong>Contras:</strong> meta barulhenta; prioridade fácil de perder; data/hora não se destacam.</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="a-row">
+          <div class="check p1"></div>
+          <div class="a-body">
+            <div class="title">Revisar proposta do cliente</div>
+            <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+            <div class="a-meta">
+              <span class="meta-plain">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+                Trabalho
+              </span>
+              <span class="meta-plain">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                14:30
+              </span>
+              <span class="chip chip-soft" style="--c: var(--tag-purple)">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 11.4 12.7 3.5H4v8.7l7.9 7.9a2 2 0 0 0 2.8 0l5.9-5.9a2 2 0 0 0 0-2.8Z"/></svg>
+                Ideia
+              </span>
+              <span class="chip chip-soft" style="--c: var(--tag-green)">Em Andamento</span>
+              <span class="chip chip-soft" style="--c: var(--accent)">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                Hoje
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="a-row">
+          <div class="check p2"></div>
+          <div class="a-body">
+            <div class="title">Comprar café e filtro</div>
+            <div class="a-meta">
+              <span class="meta-plain">Pessoal</span>
+              <span class="chip chip-soft" style="--c: var(--p1)">Amanhã</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ B ════════════ -->
+    <section class="idea" id="b">
+      <div class="idea-head">
+        <div class="badge"><span class="n">B</span> · Quiet Control Room</div>
+        <h2>Tipográfica (estilo Things 3)</h2>
+        <p>Zero chips coloridos. Meta vira texto com separadores · . Prioridade como label P1/P2. Etiquetas viram pontos coloridos + nome. Muito mais calmo.</p>
+        <p class="pros"><strong>Prós:</strong> densidade limpa, escaneável, fiel ao DESIGN.md. <strong>Contras:</strong> etiquetas menos “gostosas”; menos pop visual.</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="b-row">
+          <div class="check p1"></div>
+          <div class="b-body">
+            <div class="title">Revisar proposta do cliente</div>
+            <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+            <div class="b-meta">
+              <span class="piece"><span class="b-prio p1">P1</span></span>
+              <span class="piece">Trabalho</span>
+              <span class="piece" style="color: var(--accent)">Hoje · 14:30</span>
+              <span class="piece">
+                <span class="dot-label" style="--c: var(--tag-purple)"><span class="dot"></span>Ideia</span>
+              </span>
+              <span class="piece">
+                <span class="dot-label" style="--c: var(--tag-green)"><span class="dot"></span>Em Andamento</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="b-row">
+          <div class="check p2"></div>
+          <div class="b-body">
+            <div class="title">Comprar café e filtro</div>
+            <div class="b-meta">
+              <span class="piece"><span class="b-prio p2">P2</span></span>
+              <span class="piece">Pessoal</span>
+              <span class="piece">Amanhã</span>
+            </div>
+          </div>
+        </div>
+        <div class="b-row">
+          <div class="check"></div>
+          <div class="b-body">
+            <div class="title">Ler artigo sobre deep work</div>
+            <div class="b-meta">
+              <span class="piece">Inbox</span>
+              <span class="piece">
+                <span class="dot-label" style="--c: var(--tag-purple)"><span class="dot"></span>Ideia</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ C ════════════ -->
+    <section class="idea" id="c">
+      <div class="idea-head">
+        <div class="badge"><span class="n">C</span> · Scan de agenda</div>
+        <h2>Trilho temporal à direita</h2>
+        <p>Data e hora fixas na coluna direita (tabular). Esquerda: título + projeto + etiquetas. Prioridade no anel do checkbox. Ideal para Hoje / Em breve.</p>
+        <p class="pros"><strong>Prós:</strong> agenda legível em coluna; título respira. <strong>Contras:</strong> ocupa largura; em mobile com muitos meta pode apertar o título.</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="c-row">
+          <div class="check p1"></div>
+          <div class="c-body">
+            <div class="title">Revisar proposta do cliente</div>
+            <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+            <div class="c-sub">
+              <span class="c-proj">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h7l2 2h9v10H3z"/></svg>
+                Trabalho
+              </span>
+              <span class="dot-label" style="--c: var(--tag-purple)"><span class="dot"></span>Ideia</span>
+              <span class="dot-label" style="--c: var(--tag-green)"><span class="dot"></span>Em Andamento</span>
+            </div>
+          </div>
+          <div class="c-rail">
+            <div class="when today">Hoje</div>
+            <div class="clock">14:30</div>
+          </div>
+        </div>
+        <div class="c-row">
+          <div class="check p2"></div>
+          <div class="c-body">
+            <div class="title">Comprar café e filtro</div>
+            <div class="c-sub">
+              <span class="c-proj">Pessoal</span>
+            </div>
+          </div>
+          <div class="c-rail">
+            <div class="when">Amanhã</div>
+            <div class="clock">09:00</div>
+          </div>
+        </div>
+        <div class="c-row">
+          <div class="check p1"></div>
+          <div class="c-body">
+            <div class="title">Enviar nota fiscal</div>
+            <div class="c-sub">
+              <span class="c-proj">Finanças</span>
+              <span class="chip chip-soft" style="--c: var(--tag-green)">Urgente</span>
+            </div>
+          </div>
+          <div class="c-rail">
+            <div class="when overdue">Ontem</div>
+            <div class="clock">17:00</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ D ════════════ -->
+    <section class="idea" id="d">
+      <div class="idea-head">
+        <div class="badge"><span class="n">D</span> · Compacto</div>
+        <h2>Dois andares + etiquetas como pontos</h2>
+        <p>Andar 1: título | data·hora. Andar 2: projeto + P1 + pontos de etiqueta. Máxima densidade sem wrap bagunçado. Etiquetas viram só cor (tooltip/long-press no real).</p>
+        <p class="pros"><strong>Prós:</strong> altura estável ~56px; lista muito limpa. <strong>Contras:</strong> perde o nome da etiqueta na linha (só cor).</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="d-row">
+          <div class="check p1"></div>
+          <div class="d-body">
+            <div class="d-top">
+              <div class="title">Revisar proposta do cliente</div>
+              <div class="d-when today">Hoje · 14:30</div>
+            </div>
+            <div class="d-floor">
+              <div class="d-left">
+                <span class="meta-plain">Trabalho</span>
+                <span class="b-prio p1">P1</span>
+                <div class="d-tags">
+                  <span class="d-tag-dot" style="background: var(--tag-purple)" title="Ideia"></span>
+                  <span class="d-tag-dot" style="background: var(--tag-green)" title="Em Andamento"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-row">
+          <div class="check p2"></div>
+          <div class="d-body">
+            <div class="d-top">
+              <div class="title">Comprar café e filtro</div>
+              <div class="d-when">Amanhã · 09:00</div>
+            </div>
+            <div class="d-floor">
+              <div class="d-left">
+                <span class="meta-plain">Pessoal</span>
+                <span class="b-prio p2">P2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-row">
+          <div class="check"></div>
+          <div class="d-body">
+            <div class="d-top">
+              <div class="title">Planejar sprint da semana</div>
+              <div class="d-when today">Hoje</div>
+            </div>
+            <div class="d-floor">
+              <div class="d-left">
+                <span class="meta-plain">Trabalho</span>
+                <div class="d-tags">
+                  <span class="d-tag-dot" style="background: var(--tag-green)"></span>
+                  <span class="d-tag-dot" style="background: var(--p3)"></span>
+                  <span class="d-tag-dot" style="background: var(--tag-purple)"></span>
+                  <span class="d-tag-more">+2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ E ════════════ -->
+    <section class="idea" id="e">
+      <div class="idea-head">
+        <div class="badge"><span class="n">E</span> · Um chip de agenda</div>
+        <h2>Data + hora fundidos + flag de prioridade</h2>
+        <p>Um único chip de agenda (“Hoje · 14:30”) em vez de dois. Prioridade vira flag P1 curta. Etiquetas mantêm chip soft. Menos peças, mesma informação.</p>
+        <p class="pros"><strong>Prós:</strong> evolução suave do atual; agenda unificada. <strong>Contras:</strong> ainda usa vários chips; wrap pode voltar com 3+ etiquetas.</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="e-row">
+          <div class="check p1"></div>
+          <div class="e-body">
+            <div class="title">Revisar proposta do cliente</div>
+            <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+            <div class="e-meta">
+              <span class="e-prio-flag p1">P1</span>
+              <span class="meta-plain">Trabalho</span>
+              <span class="e-schedule today">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+                Hoje · 14:30
+              </span>
+              <span class="chip chip-soft" style="--c: var(--tag-purple)">Ideia</span>
+              <span class="chip chip-soft" style="--c: var(--tag-green)">Em Andamento</span>
+            </div>
+          </div>
+        </div>
+        <div class="e-row">
+          <div class="check p2"></div>
+          <div class="e-body">
+            <div class="title">Comprar café e filtro</div>
+            <div class="e-meta">
+              <span class="e-prio-flag p2">P2</span>
+              <span class="meta-plain">Pessoal</span>
+              <span class="e-schedule neutral">Amanhã · 09:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="e-row">
+          <div class="check p1"></div>
+          <div class="e-body">
+            <div class="title">Enviar nota fiscal</div>
+            <div class="e-meta">
+              <span class="e-prio-flag p1">P1</span>
+              <span class="meta-plain">Finanças</span>
+              <span class="e-schedule overdue">Ontem · 17:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ F ════════════ -->
+    <section class="idea" id="f">
+      <div class="idea-head">
+        <div class="badge"><span class="n">F</span> · Contexto acima</div>
+        <h2>Projeto + prioridade como eyebrow</h2>
+        <p>Acima do título: “Trabalho · P1”. Título fica limpo. Embaixo só agenda e etiquetas. Hierarquia clara: onde → o quê → quando/como.</p>
+        <p class="pros"><strong>Prós:</strong> projeto e prioridade sempre visíveis; título protagonista. <strong>Contras:</strong> linha um pouco mais alta (~64px com descrição).</p>
+      </div>
+      <div class="phone">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="f-row">
+          <div class="check p1"></div>
+          <div class="f-body">
+            <div class="f-eyebrow">
+              <span class="f-proj">Trabalho</span>
+              <span class="f-dot-sep"></span>
+              <span class="f-prio p1">P1</span>
+            </div>
+            <div class="title">Revisar proposta do cliente</div>
+            <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+            <div class="f-meta">
+              <span class="e-schedule today">Hoje · 14:30</span>
+              <span class="chip chip-soft" style="--c: var(--tag-purple)">Ideia</span>
+              <span class="chip chip-soft" style="--c: var(--tag-green)">Em Andamento</span>
+            </div>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="check p2"></div>
+          <div class="f-body">
+            <div class="f-eyebrow">
+              <span class="f-proj">Pessoal</span>
+              <span class="f-dot-sep"></span>
+              <span class="f-prio p2">P2</span>
+            </div>
+            <div class="title">Comprar café e filtro</div>
+            <div class="f-meta">
+              <span class="e-schedule neutral">Amanhã · 09:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="check"></div>
+          <div class="f-body">
+            <div class="f-eyebrow">
+              <span class="f-proj">Inbox</span>
+            </div>
+            <div class="title">Ler artigo sobre deep work</div>
+            <div class="f-meta">
+              <span class="chip chip-soft" style="--c: var(--tag-purple)">Ideia</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ G ════════════ -->
+    <section class="idea" id="g">
+      <div class="idea-head">
+        <div class="badge"><span class="n">G</span> · Mais “card”</div>
+        <h2>Surface elevada com meta separada</h2>
+        <p>Cada tarefa vira um card de surfaceVariant com divisor interno. Mais “premium”, menos lista densa. Bom se quiser afastar do visual linha-a-linha.</p>
+        <p class="pros"><strong>Prós:</strong> sensação de objeto; meta organizada. <strong>Contras:</strong> menos densidade (contra o norte de 52–56px); lista fica mais longa.</p>
+      </div>
+      <div class="phone" style="background: var(--bg)">
+        <div class="phone-label">Lista · Hoje</div>
+        <div class="g-list">
+          <div class="g-row">
+            <div class="check p1"></div>
+            <div class="g-body">
+              <div class="title">Revisar proposta do cliente</div>
+              <div class="desc">Incluir escopo da fase 2 e prazo realista…</div>
+              <div class="g-meta">
+                <span class="e-prio-flag p1">P1</span>
+                <span class="meta-plain">Trabalho</span>
+                <span class="e-schedule today">Hoje · 14:30</span>
+                <span class="chip chip-soft" style="--c: var(--tag-purple)">Ideia</span>
+                <span class="chip chip-soft" style="--c: var(--tag-green)">Em Andamento</span>
+              </div>
+            </div>
+          </div>
+          <div class="g-row">
+            <div class="check p2"></div>
+            <div class="g-body">
+              <div class="title">Comprar café e filtro</div>
+              <div class="g-meta">
+                <span class="e-prio-flag p2">P2</span>
+                <span class="meta-plain">Pessoal</span>
+                <span class="e-schedule neutral">Amanhã · 09:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Compare -->
+    <section class="compare">
+      <h2>Comparativo rápido</h2>
+      <p>O que cada ideia prioriza visualmente.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Ideia</th>
+            <th>Prioridade</th>
+            <th>Projeto</th>
+            <th>Data / hora</th>
+            <th>Etiquetas</th>
+            <th>Densidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A Atual</td>
+            <td>Anel do check</td>
+            <td>Texto + ícone</td>
+            <td>Chips separados</td>
+            <td>Chips soft</td>
+            <td>Média (wrap)</td>
+          </tr>
+          <tr>
+            <td>B Tipográfica</td>
+            <td>Label P1</td>
+            <td>Texto</td>
+            <td>Texto “Hoje · 14:30”</td>
+            <td>Ponto + nome</td>
+            <td>Alta, calma</td>
+          </tr>
+          <tr>
+            <td>C Trilho</td>
+            <td>Anel</td>
+            <td>Texto</td>
+            <td>Coluna direita</td>
+            <td>Pontos / chips</td>
+            <td>Alta</td>
+          </tr>
+          <tr>
+            <td>D Dois andares</td>
+            <td>Label P1</td>
+            <td>Texto</td>
+            <td>Direita no título</td>
+            <td>Só pontos</td>
+            <td>Máxima</td>
+          </tr>
+          <tr>
+            <td>E Agenda fundida</td>
+            <td>Flag P1</td>
+            <td>Texto</td>
+            <td>1 chip</td>
+            <td>Chips soft</td>
+            <td>Média</td>
+          </tr>
+          <tr>
+            <td>F Eyebrow</td>
+            <td>No eyebrow</td>
+            <td>No eyebrow</td>
+            <td>Chip fundido</td>
+            <td>Chips soft</td>
+            <td>Média-baixa</td>
+          </tr>
+          <tr>
+            <td>G Card surface</td>
+            <td>Flag</td>
+            <td>Texto</td>
+            <td>Chip fundido</td>
+            <td>Chips soft</td>
+            <td>Baixa</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="note">
+      Recomendação inicial alinhada ao DESIGN.md (“Quiet Control Room”): <strong style="color: var(--text-secondary)">B</strong> ou <strong style="color: var(--text-secondary)">D</strong> para o dia a dia;
+      <strong style="color: var(--text-secondary)">C</strong> se a agenda for o foco da tela;
+      <strong style="color: var(--text-secondary)">E</strong> se quiser evoluir o atual sem mudar a linguagem.
+      Me diga qual (ou combinação) prefere que eu implemento.
+    </footer>
+  </div>
+</body>
+</html>

@@ -331,8 +331,25 @@ struct TaskDetailView: View {
   private func subtaskEditorRow(_ sub: Subtask) -> some View {
     let c = theme.colors
     let labels = subtaskLabels(for: sub)
+    let layout = TaskRowLayoutStorage.current
     let hasDescription = sub.description?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-    let hasMeta = sub.dueDate != nil || !labels.isEmpty || hasDescription
+    let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
+      layout: layout,
+      projectName: nil,
+      showProject: false,
+      priority: sub.priority
+    )
+    let showsMetaLine: Bool = {
+      if layout.usesEyebrow {
+        if layout == .x2, sub.priority != nil { return true }
+        if sub.dueDate != nil { return true }
+        if sub.timeDisplay != nil { return true }
+        if !labels.isEmpty { return true }
+        return false
+      }
+      return sub.dueDate != nil || !labels.isEmpty
+    }()
+    let hasMeta = hasDescription || showsMetaLine || showsEyebrow
 
     return HStack(alignment: hasMeta ? .top : .center, spacing: 8) {
       Button {
@@ -359,6 +376,13 @@ struct TaskDetailView: View {
         }
       ) {
         VStack(alignment: .leading, spacing: 2) {
+          if showsEyebrow {
+            TaskRowEyebrow(
+              projectName: nil,
+              priority: sub.priority,
+              layout: layout
+            )
+          }
           Text(sub.title)
             .font(AppTypography.taskTitle)
             .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
@@ -376,13 +400,15 @@ struct TaskDetailView: View {
             )
           }
 
-          if sub.dueDate != nil || !labels.isEmpty {
+          if showsMetaLine {
             TaskMetaLine(
               labels: labels,
               dueDate: sub.dueDate,
+              priority: sub.priority,
               dueDateLabel: sub.dueDateChipLabel,
               dueDateColor: sub.dueDateChipColor,
               dateDone: sub.done,
+              timeDisplay: sub.timeDisplay,
               maxLabels: 4
             )
           }

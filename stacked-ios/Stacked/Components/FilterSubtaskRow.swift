@@ -2,16 +2,32 @@ import SwiftUI
 
 struct FilterSubtaskRow: View {
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+
   let subtask: Subtask
   let parent: Task
   let labelCatalog: [TaskLabel]
   var onToggle: () -> Void
   var onTap: () -> Void
 
+  private var taskRowLayout: TaskRowLayout {
+    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
+
   var body: some View {
     let c = theme.colors
     let labels = resolvedLabels
-    let hasExtra = (subtask.description?.isEmpty == false) || subtask.dueDate != nil || !labels.isEmpty
+    let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
+      layout: taskRowLayout,
+      projectName: nil,
+      showProject: false,
+      priority: subtask.priority
+    )
+    let showsMetaLine = subtaskShowsMetaLine(labels: labels)
+    let hasExtra =
+      (subtask.description?.isEmpty == false)
+      || showsMetaLine
+      || showsEyebrow
 
     HStack(alignment: hasExtra ? .top : .center, spacing: 0) {
       Button(action: onToggle) {
@@ -23,6 +39,13 @@ struct FilterSubtaskRow: View {
 
       Button(action: onTap) {
         VStack(alignment: .leading, spacing: 2) {
+          if showsEyebrow {
+            TaskRowEyebrow(
+              projectName: nil,
+              priority: subtask.priority,
+              layout: taskRowLayout
+            )
+          }
           HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(subtask.title)
               .font(AppTypography.taskTitle)
@@ -31,7 +54,7 @@ struct FilterSubtaskRow: View {
               .lineLimit(1)
               .layoutPriority(1)
             Spacer(minLength: 4)
-            if let timeDisplay = subtask.timeDisplay {
+            if taskRowLayout == .default, let timeDisplay = subtask.timeDisplay {
               HStack(spacing: 2) {
                 StackedIcons.icon(.clock, size: 11, color: c.textTertiary)
                 Text(timeDisplay)
@@ -47,13 +70,15 @@ struct FilterSubtaskRow: View {
             .foregroundStyle(c.textTertiary)
             .lineLimit(1)
 
-          if hasExtra {
+          if showsMetaLine {
             TaskMetaLine(
               labels: labels,
               dueDate: subtask.dueDate,
+              priority: subtask.priority,
               dueDateLabel: subtask.dueDateChipLabel,
               dueDateColor: subtask.dueDateChipColor,
-              dateDone: subtask.done
+              dateDone: subtask.done,
+              timeDisplay: subtask.timeDisplay
             )
           }
         }
@@ -80,5 +105,16 @@ struct FilterSubtaskRow: View {
   private var resolvedLabels: [TaskLabel] {
     let source = !labelCatalog.isEmpty ? labelCatalog : parent.labels
     return subtask.labelIds.compactMap { id in source.first(where: { $0.id == id }) }
+  }
+
+  private func subtaskShowsMetaLine(labels: [TaskLabel]) -> Bool {
+    if taskRowLayout.usesEyebrow {
+      if taskRowLayout == .x2, subtask.priority != nil { return true }
+      if subtask.dueDate != nil { return true }
+      if subtask.timeDisplay != nil { return true }
+      if !labels.isEmpty { return true }
+      return false
+    }
+    return subtask.dueDate != nil || !labels.isEmpty
   }
 }

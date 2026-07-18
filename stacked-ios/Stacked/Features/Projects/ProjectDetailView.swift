@@ -11,6 +11,7 @@ struct ProjectDetailView: View {
   @AppStorage(ProjectDisplayMode.storageKey) private var displayMode = ProjectDisplayMode.defaultRawValue
   @AppStorage private var showCompleted: Bool
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
   /// PERF_FASEB3_3A — T2 desligado do path ativo.
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
   private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
@@ -440,9 +441,9 @@ struct ProjectDetailView: View {
       },
       onWhatsAppCopy: { whatsAppCopyTask = $0 }
     )
-    // Remonta o host UIKit ao trocar Balões/Lista — senão o diffable
-    // reusa cells com o estilo antigo até sair/voltar do projeto.
-    .id(displayMode)
+    // Remonta o host UIKit ao trocar Balões/Lista ou layout dos cards —
+    // senão o diffable reusa cells com o estilo/layout antigo até sair/voltar.
+    .id("\(displayMode)-\(taskRowLayoutRaw)")
     // Full-bleed embaixo — sem faixa preta do safe area atrás do dock.
     .ignoresSafeArea(edges: .bottom)
     .stackedScrollEdgeChrome()

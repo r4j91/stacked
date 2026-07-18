@@ -65,6 +65,8 @@ struct UIKitTaskSection: Equatable {
 
 /// UICollectionView + `UIHostingConfiguration` — baseline fluido (919c1ec) + seções/modos.
 struct UIKitHostedTaskList: UIViewControllerRepresentable {
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+
   var sections: [UIKitTaskSection]
   var showProject: Bool = true
   var style: TaskRowStyle = .card
@@ -93,6 +95,10 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil
   /// Catálogo de etiquetas para `FilterSubtaskRow` (filtros); vazio = usa `parent.labels`.
   var labelCatalog: [TaskLabel] = []
+
+  private var taskRowLayout: TaskRowLayout {
+    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
 
   init(
     tasks: [Task],
@@ -237,6 +243,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       flatSubtaskQueue: flatSubtaskQueue,
       rowInsets: snappedInsets,
       background: UIColor(background),
+      taskRowLayout: taskRowLayout,
       leadingChrome: leadingChrome,
       onToggleSection: onToggleSection,
       onRenameSection: onRenameSection,
@@ -302,6 +309,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var flatSubtaskQueue: Bool
     var rowInsets: UIEdgeInsets
     var background: UIColor
+    var taskRowLayout: TaskRowLayout
     var leadingChrome: (() -> AnyView)?
     var onToggleSection: ((String) -> Void)?
     var onRenameSection: ((ProjectSection) -> Void)?
@@ -796,7 +804,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       expansionGeneration.removeAll()
     }
 
-    let styleCode = Self.styleCode(configuration.style)
+    let styleCode = Self.rowPresentationCode(
+      style: configuration.style,
+      layout: configuration.taskRowLayout
+    )
     var snapshot = NSDiffableDataSourceSnapshot<SectionID, ItemID>()
     if configuration.leadingChrome != nil {
       snapshot.appendSections([.chrome])
@@ -828,7 +839,14 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     // Diffable: se os ItemIDs forem iguais (ex.: Balões↔Balões+), apply não
     // reconfigura — força refresh das task cells para o novo layout.
     if presentationChanged {
+      clearVisibleLockedHeights()
       reconfigureAllTaskItems()
+    }
+  }
+
+  private func clearVisibleLockedHeights() {
+    for cell in collectionView.visibleCells {
+      (cell as? UIKitSizedTaskCell)?.lockedHeight = nil
     }
   }
 
@@ -847,7 +865,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   /// Após patch otimista de subtarefa: `taskById` já está novo; cell precisa do Task fresco.
   private func reconfigureChangedTasks(in configuration: Configuration) {
     guard dataSource != nil else { return }
-    let styleCode = Self.styleCode(configuration.style)
+    let styleCode = Self.rowPresentationCode(
+      style: configuration.style,
+      layout: configuration.taskRowLayout
+    )
     var dirty: [ItemID] = []
     dirty.reserveCapacity(8)
     for section in configuration.sections {
@@ -893,6 +914,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     // stale até trocar o modo de visualização (rebuild estrutural).
     hasher.combine(task.dueDate?.timeIntervalSince1970)
     hasher.combine(task.dueDateChipLabel)
+    hasher.combine(TaskRowLayoutStorage.current.rawValue)
     for sub in task.subtasks {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.done)
@@ -918,6 +940,19 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     }
   }
 
+  private static func layoutCode(_ layout: TaskRowLayout) -> Int {
+    switch layout {
+    case .default: 0
+    case .f2: 1
+    case .x2: 2
+    }
+  }
+
+  /// Estilo visual + layout de meta (F2/X2) — muda o ItemID e remonta as cells.
+  private static func rowPresentationCode(style: TaskRowStyle, layout: TaskRowLayout) -> Int {
+    styleCode(style) * 10 + layoutCode(layout)
+  }
+
   private static func subtasksExpandLayoutSignature(_ subs: [Subtask]) -> Int {
     var hasher = Hasher()
     hasher.combine(subs.count)
@@ -930,10 +965,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     return hasher.finalize()
   }
 
-  /// Só o “look” da row (não a lista de tasks) — troca de modo de visualização.
+  /// Só o “look” da row (não a lista de tasks) — troca de modo de visualização / layout.
   private static func presentationKey(_ configuration: Configuration) -> Int {
     var hasher = Hasher()
     hasher.combine(styleCode(configuration.style))
+    hasher.combine(layoutCode(configuration.taskRowLayout))
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
@@ -952,6 +988,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.rowInsets.right)
     hasher.combine(configuration.rowInsets.bottom)
     hasher.combine(styleCode(configuration.style))
+    hasher.combine(layoutCode(configuration.taskRowLayout))
     for section in configuration.sections {
       hasher.combine(section.id)
       hasher.combine(section.dimmed)
@@ -1150,14 +1187,20 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
   private func cellForTask(_ taskId: String) -> UICollectionViewCell? {
     guard let config, dataSource != nil else { return nil }
-    let item = ItemID.task(id: taskId, style: Self.styleCode(config.style))
+    let item = ItemID.task(
+      id: taskId,
+      style: Self.rowPresentationCode(style: config.style, layout: config.taskRowLayout)
+    )
     guard let indexPath = dataSource.indexPath(for: item) else { return nil }
     return collectionView.cellForItem(at: indexPath)
   }
 
   private func reconfigureTaskCell(taskId: String) {
     guard dataSource != nil, let config else { return }
-    let item = ItemID.task(id: taskId, style: Self.styleCode(config.style))
+    let item = ItemID.task(
+      id: taskId,
+      style: Self.rowPresentationCode(style: config.style, layout: config.taskRowLayout)
+    )
     var snap = dataSource.snapshot()
     guard snap.itemIdentifiers.contains(item) else { return }
     snap.reconfigureItems([item])

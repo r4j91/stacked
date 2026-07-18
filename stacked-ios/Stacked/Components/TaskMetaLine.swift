@@ -5,6 +5,7 @@ struct TaskMetaLine: View {
   @Environment(ThemeManager.self) private var theme
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
 
   let labels: [TaskLabel]
   var dueDate: Date?
@@ -19,6 +20,9 @@ struct TaskMetaLine: View {
   var subtasksCounterLabel: String? = nil
   var commentCount: Int = 0
   var projectName: String?
+  var timeDisplay: String? = nil
+  /// Em breve / agrupado por dia — omitir data (hora ainda pode aparecer).
+  var hideDate: Bool = false
   var maxLabels: Int = 2
 
   private var labelChipStyle: LabelChipStyle {
@@ -29,18 +33,48 @@ struct TaskMetaLine: View {
     DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
   }
 
+  private var layout: TaskRowLayout {
+    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
+
   private var showsProject: Bool {
     guard let projectName, !projectName.isEmpty else { return false }
     return projectName != "Sem projeto"
   }
 
+  private var fusedScheduleLabel: String? {
+    if hideDate {
+      return timeDisplay
+    }
+    guard let dueDateLabel, !dueDateLabel.isEmpty else {
+      return timeDisplay
+    }
+    if let timeDisplay, !timeDisplay.isEmpty {
+      return "\(dueDateLabel) · \(timeDisplay)"
+    }
+    return dueDateLabel
+  }
+
   private var hasMeta: Bool {
-    showsProject
-      || !labels.isEmpty
-      || priority != nil
-      || dueDate != nil
-      || subtasksTotal > 0
-      || commentCount > 0
+    switch layout {
+    case .f2:
+      return !labels.isEmpty
+        || fusedScheduleLabel != nil
+        || subtasksTotal > 0
+        || commentCount > 0
+    case .x2:
+      return priority != nil
+        || !labels.isEmpty
+        || fusedScheduleLabel != nil
+        || subtasksTotal > 0
+        || commentCount > 0
+    case .default:
+      return showsProject
+        || !labels.isEmpty
+        || dueDate != nil
+        || subtasksTotal > 0
+        || commentCount > 0
+    }
   }
 
   private var visibleLabels: [TaskLabel] {
@@ -60,53 +94,73 @@ struct TaskMetaLine: View {
   var body: some View {
     if hasMeta {
       let c = theme.colors
-      // PERF_FASEB2_ETAPA3: uma linha — FlowLayout multi-linha removido do path quente.
-      // PERF_FASEB2_ETAPA3 (legado FlowLayout):
-      // FlowLayout(spacing: 6, lineSpacing: 4) {
-      //   if showsProject, let projectName { Text(projectName)... }
-      //   ForEach(Array(labels.prefix(maxLabels))) { ... }
-      //   if labels.count > maxLabels { TagChip("+N") }
-      //   if let priority { TagChip(...) }
-      //   if let dueDate { dueDateChip(dueDate) }
-      //   if subtasksTotal > 0 { metaCounter(...) }
-      //   if commentCount > 0 { metaCounter(...) }
-      // }
-      // .padding(.top, 4)
       HStack(spacing: 6) {
-        // Projeto primeiro (contexto) → data / contadores → atributos (prioridade, labels).
-        if showsProject, let projectName {
-          ProjectChip(name: projectName)
-            .layoutPriority(-1)
-        }
+        if layout == .default {
+          if showsProject, let projectName {
+            ProjectChip(name: projectName)
+              .layoutPriority(-1)
+          }
 
-        if dueDate != nil {
-          dueDateChip
-        }
+          if dueDate != nil {
+            dueDateChip
+          }
 
-        if let counter = resolvedSubtasksLabel {
-          metaCounter(icon: .logbook, value: counter)
-        }
+          if let counter = resolvedSubtasksLabel {
+            metaCounter(icon: .logbook, value: counter)
+          }
 
-        if commentCount > 0 {
-          metaCounter(icon: .comment, value: "\(commentCount)")
-        }
+          if commentCount > 0 {
+            metaCounter(icon: .comment, value: "\(commentCount)")
+          }
 
-        if let priority {
-          TagChip(label: priority.label, color: priority.color, showIcon: true, icon: .flag)
-        }
+          // Prioridade no layout atual fica no anel do checkbox (não na meta).
 
-        ForEach(visibleLabels) { label in
-          TagChip(label: label.name, color: label.color, style: labelChipStyle)
-            .layoutPriority(-1)
-        }
+          ForEach(visibleLabels) { label in
+            TagChip(label: label.name, color: label.color, style: labelChipStyle)
+              .layoutPriority(-1)
+          }
 
-        if overflowLabelCount > 0 {
-          TagChip(
-            label: "+\(overflowLabelCount)",
-            color: c.textTertiary,
-            showIcon: false,
-            style: labelChipStyle
-          )
+          if overflowLabelCount > 0 {
+            TagChip(
+              label: "+\(overflowLabelCount)",
+              color: c.textTertiary,
+              showIcon: false,
+              style: labelChipStyle
+            )
+          }
+        } else {
+          if layout == .x2, let priority {
+            PriorityFlagChip(priority: priority)
+          }
+
+          if let fused = fusedScheduleLabel {
+            FusedScheduleFlat(
+              label: fused,
+              color: dueDateColor ?? c.textSecondary
+            )
+          }
+
+          ForEach(visibleLabels) { label in
+            TagChip(label: label.name, color: label.color, style: labelChipStyle)
+              .layoutPriority(-1)
+          }
+
+          if overflowLabelCount > 0 {
+            TagChip(
+              label: "+\(overflowLabelCount)",
+              color: c.textTertiary,
+              showIcon: false,
+              style: labelChipStyle
+            )
+          }
+
+          if let counter = resolvedSubtasksLabel {
+            metaCounter(icon: .logbook, value: counter)
+          }
+
+          if commentCount > 0 {
+            metaCounter(icon: .comment, value: "\(commentCount)")
+          }
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -143,6 +197,79 @@ struct TaskMetaLine: View {
         .font(AppTypography.meta)
         .foregroundStyle(theme.colors.textTertiary)
     }
+  }
+}
+
+/// Eyebrow F2/X2 — projeto · P1 acima do título.
+struct TaskRowEyebrow: View {
+  @Environment(ThemeManager.self) private var theme
+  let projectName: String?
+  let priority: Priority?
+  let layout: TaskRowLayout
+
+  private var hasProject: Bool {
+    guard let projectName, !projectName.isEmpty else { return false }
+    return projectName != "Sem projeto"
+  }
+
+  private var showPriority: Bool {
+    layout == .f2 && priority != nil
+  }
+
+  var body: some View {
+    if hasProject || showPriority {
+      HStack(spacing: 6) {
+        if hasProject, let projectName {
+          Text(projectName)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(theme.colors.textTertiary)
+            .lineLimit(1)
+        }
+        if hasProject && showPriority {
+          Circle()
+            .fill(theme.colors.textTertiary.opacity(0.6))
+            .frame(width: 3, height: 3)
+        }
+        if showPriority, let priority {
+          Text(priority.label)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(priority.color)
+            .tracking(0.4)
+        }
+      }
+      .padding(.bottom, 2)
+    }
+  }
+}
+
+/// Agenda fundida plana (Hoje · 14:30) — layouts F2/X2.
+private struct FusedScheduleFlat: View {
+  let label: String
+  let color: Color
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 4) {
+      StackedIcons.icon(.calendar, size: 14, color: color)
+      Text(label)
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(color)
+        .lineLimit(1)
+        .monospacedDigit()
+    }
+  }
+}
+
+private struct PriorityFlagChip: View {
+  let priority: Priority
+
+  var body: some View {
+    Text(priority.label)
+      .font(.system(size: 10, weight: .bold))
+      .foregroundStyle(priority.color)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 2)
+      .background(priority.color.opacity(0.14))
+      .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
   }
 }
 
@@ -236,6 +363,55 @@ struct TagChip: View {
         .foregroundStyle(textColor)
         .lineLimit(1)
     }
+  }
+}
+
+/// Mini preview do layout de card no menu Aparência.
+struct TaskRowLayoutPreview: View {
+  let layout: TaskRowLayout
+  let colors: AppThemeColors
+  var selected: Bool = false
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(colors.surface)
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .strokeBorder(
+          selected ? colors.accent.opacity(0.55) : colors.textTertiary.opacity(0.35),
+          lineWidth: selected ? 1.2 : 0.8
+        )
+      VStack(alignment: .leading, spacing: 3) {
+        switch layout {
+        case .default:
+          Capsule().fill(colors.textPrimary.opacity(0.7)).frame(width: 44, height: 3)
+          HStack(spacing: 3) {
+            Capsule().fill(colors.textSecondary.opacity(0.55)).frame(width: 14, height: 2)
+            Capsule().fill(Color(hex: 0xB18CF5).opacity(0.55)).frame(width: 12, height: 4)
+            Capsule().fill(colors.accent.opacity(0.45)).frame(width: 12, height: 4)
+          }
+        case .f2:
+          HStack(spacing: 2) {
+            Capsule().fill(colors.textTertiary).frame(width: 16, height: 2)
+            Circle().fill(AppColors.priorityHigh).frame(width: 3, height: 3)
+          }
+          Capsule().fill(colors.textPrimary.opacity(0.7)).frame(width: 44, height: 3)
+          Capsule().fill(colors.accent.opacity(0.7)).frame(width: 28, height: 2)
+        case .x2:
+          Capsule().fill(colors.textTertiary).frame(width: 16, height: 2)
+          Capsule().fill(colors.textPrimary.opacity(0.7)).frame(width: 44, height: 3)
+          HStack(spacing: 3) {
+            RoundedRectangle(cornerRadius: 2)
+              .fill(AppColors.priorityHigh.opacity(0.4))
+              .frame(width: 10, height: 6)
+            Capsule().fill(colors.accent.opacity(0.7)).frame(width: 22, height: 2)
+          }
+        }
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+      .padding(.horizontal, 10)
+    }
+    .frame(width: 72, height: 36)
   }
 }
 

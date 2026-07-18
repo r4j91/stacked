@@ -7,6 +7,7 @@ struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.openTaskContextMenu) private var openTaskContextMenu
+  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -318,22 +319,34 @@ struct TaskRow: View {
     return hasher.finalize()
   }
 
+  private var taskRowLayout: TaskRowLayout {
+    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
+
+  private var rowShowsEyebrow: Bool {
+    TaskRowLayoutStorage.showsEyebrow(
+      layout: taskRowLayout,
+      projectName: showProject ? task.project : nil,
+      showProject: showProject,
+      priority: task.priority
+    )
+  }
+
   /// PERF_FASEB2_ETAPA3: altura determinística — (tem desc?, tem meta?).
   private var exactHeaderHeight: CGFloat {
     AppLayout.taskRowHeaderHeight(
       hasDescription: task.hasDescription,
-      hasMeta: rowShowsMeta
+      hasMeta: rowShowsMeta,
+      hasEyebrow: rowShowsEyebrow
     )
   }
 
   private var rowShowsMeta: Bool {
-    let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
-    return showsProject
-      || !task.labels.isEmpty
-      || task.priority != nil
-      || task.dueDate != nil
-      || task.subtasksTotalCount > 0
-      || task.commentCount > 0
+    AppLayout.taskRowShowsMeta(
+      task: task,
+      showProject: showProject,
+      layout: taskRowLayout
+    )
   }
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
@@ -507,6 +520,13 @@ struct TaskRow: View {
   private var rowTextContent: some View {
     let c = theme.colors
     VStack(alignment: .leading, spacing: 0) {
+      if rowShowsEyebrow {
+        TaskRowEyebrow(
+          projectName: showProject ? task.project : nil,
+          priority: task.priority,
+          layout: taskRowLayout
+        )
+      }
       titleRow
       if let desc = task.description, !desc.isEmpty {
         NotesMarkupText(
@@ -524,6 +544,7 @@ struct TaskRow: View {
         TaskMetaLine(
           labels: task.labels,
           dueDate: task.dueDate,
+          priority: task.priority,
           dueDateLabel: task.dueDateChipLabel,
           dueDateColor: task.dueDateChipColor,
           dateDone: task.done,
@@ -531,7 +552,8 @@ struct TaskRow: View {
           subtasksTotal: displayedSubtasksTotal,
           subtasksCounterLabel: displayedSubtasksCounterLabel,
           commentCount: task.commentCount,
-          projectName: showProject ? task.project : nil
+          projectName: showProject ? task.project : nil,
+          timeDisplay: task.timeDisplay
         )
       }
     }
@@ -539,6 +561,7 @@ struct TaskRow: View {
 
   private var centersTitleInRow: Bool {
     guard !task.hasSubtasks else { return false }
+    if rowShowsEyebrow { return false }
     if task.hasDescription { return false }
     if task.timeDisplay != nil { return false }
     if !task.labels.isEmpty { return false }
@@ -550,6 +573,7 @@ struct TaskRow: View {
 
   private var titleRow: some View {
     let c = theme.colors
+    let showTrailingTime = taskRowLayout == .default
     return HStack(alignment: .firstTextBaseline, spacing: 6) {
       Text(task.title)
         .font(AppTypography.taskTitle)
@@ -562,7 +586,7 @@ struct TaskRow: View {
 
       Spacer(minLength: 4)
 
-      if let timeDisplay = task.timeDisplay {
+      if showTrailingTime, let timeDisplay = task.timeDisplay {
         HStack(spacing: 2) {
           rowClockIcon(color: c.textTertiary)
           // SUBSTITUIDO_FASE5: TaskMapper.formatTimeDisplay(time) no body
@@ -610,12 +634,23 @@ struct TaskRow: View {
       ForEach(Array(rowDisplaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
         let done = index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done
         let labels = resolvedLabels(for: sub)
+        let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
+          layout: taskRowLayout,
+          projectName: nil,
+          showProject: false,
+          priority: sub.priority
+        )
+        let showsMetaLine = subtaskShowsMetaLine(sub, labels: labels)
         // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
-        let hasMeta = (sub.description?.isEmpty == false) || sub.dueDate != nil || !sub.labelIds.isEmpty
-        HStack(alignment: hasMeta ? .top : .center, spacing: 0) {
+        let hasExtra =
+          (sub.description?.isEmpty == false)
+          || showsMetaLine
+          || showsEyebrow
+          || !sub.labelIds.isEmpty
+        HStack(alignment: hasExtra ? .top : .center, spacing: 0) {
           Button { toggleSubtask(at: index, sub: sub) } label: {
             subtaskDot(sub: sub, done: done)
-              .frame(width: 44, height: hasMeta ? 48 : 44)
+              .frame(width: 44, height: hasExtra ? 48 : 44)
               .contentShape(Rectangle())
           }
           // Host aninhado no UIKit: PressableStyle + scale atrapalhava o hit-test.
@@ -629,6 +664,13 @@ struct TaskRow: View {
             onDelete: { deleteInlineSubtask(sub) }
           ) {
             VStack(alignment: .leading, spacing: 0) {
+              if showsEyebrow {
+                TaskRowEyebrow(
+                  projectName: nil,
+                  priority: sub.priority,
+                  layout: taskRowLayout
+                )
+              }
               HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(sub.title)
                   .font(AppTypography.subtaskRowTitle)
@@ -637,7 +679,7 @@ struct TaskRow: View {
                   .lineLimit(2)
                   .layoutPriority(1)
                 Spacer(minLength: 4)
-                if let timeDisplay = sub.timeDisplay {
+                if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
                   HStack(spacing: 2) {
                     rowClockIcon(color: c.textTertiary)
                     Text(timeDisplay)
@@ -658,17 +700,19 @@ struct TaskRow: View {
                 )
                 .padding(.top, 2)
               }
-              if hasMeta {
+              if showsMetaLine {
                 TaskMetaLine(
                   labels: labels,
                   dueDate: sub.dueDate,
+                  priority: sub.priority,
                   dueDateLabel: sub.dueDateChipLabel,
                   dueDateColor: sub.dueDateChipColor,
-                  dateDone: done
+                  dateDone: done,
+                  timeDisplay: sub.timeDisplay
                 )
               }
             }
-            .padding(.vertical, hasMeta ? 9 : 12)
+            .padding(.vertical, hasExtra ? 9 : 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
           }
@@ -789,6 +833,17 @@ struct TaskRow: View {
         }
       }
     }
+  }
+
+  private func subtaskShowsMetaLine(_ sub: Subtask, labels: [TaskLabel]) -> Bool {
+    if taskRowLayout.usesEyebrow {
+      if taskRowLayout == .x2, sub.priority != nil { return true }
+      if sub.dueDate != nil { return true }
+      if sub.timeDisplay != nil { return true }
+      if !labels.isEmpty { return true }
+      return false
+    }
+    return sub.dueDate != nil || !labels.isEmpty
   }
 
   private func resolvedLabels(for sub: Subtask) -> [TaskLabel] {

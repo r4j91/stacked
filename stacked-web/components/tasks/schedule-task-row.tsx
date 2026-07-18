@@ -4,9 +4,11 @@ import { memo } from "react";
 import type { Task } from "@/lib/types/task";
 import { DoneCircle } from "@/components/ui/done-circle";
 import { TaskMetaLine } from "@/components/tasks/task-meta-line";
+import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { InlineSubtasks } from "@/components/tasks/task-list";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
 import { useWorkbench } from "@/components/shell/workbench-context";
+import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 
 type ScheduleTaskRowProps = {
   task: Task;
@@ -22,6 +24,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
   onToggleDone,
 }: ScheduleTaskRowProps) {
   const { expandedSubtasks, toggleSubtaskExpand } = useWorkbench();
+  const layout = useTaskRowLayout();
   const subs = task.subtasks ?? [];
   const isExpanded = expandedSubtasks.has(task.id);
 
@@ -57,6 +60,11 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
           }}
         />
         <div className="task-row-grid__content min-w-0 flex-1">
+          <TaskRowEyebrow
+            layout={layout}
+            project={task.project}
+            priority={task.priority}
+          />
           <p
             className={`truncate text-[15.5px] font-semibold leading-snug ${
               task.done ? "text-[var(--color-text-tertiary)] line-through" : ""

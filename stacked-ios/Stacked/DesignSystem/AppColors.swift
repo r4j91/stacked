@@ -14,8 +14,8 @@ enum AppColors {
 
   static let dateDueToday = Color(hex: 0x7ECC49)
   static let dateOverdue = Color(hex: 0xDC4C3E)
-  /// Data futura — tom do accent Ash Cyan (#6BB5BA).
-  static let dateUpcoming = Color(hex: 0x6BB5BA)
+  /// Data futura — cinza cool (não compete com o accent).
+  static let dateUpcoming = Color(hex: 0x8A9099)
   /// Chip de data concluída / neutro.
   static let textTertiary = Color(hex: 0x6B6E76)
 

@@ -159,7 +159,12 @@ final class UIKitSplitTaskRowView: UIView {
     let task = config.task
     let headerH = AppLayout.taskRowHeaderHeight(
       hasDescription: task.hasDescription,
-      hasMeta: Self.rowShowsMeta(task: task, showProject: config.showProject)
+      hasMeta: AppLayout.taskRowShowsMeta(task: task, showProject: config.showProject),
+      hasEyebrow: TaskRowLayoutStorage.showsEyebrow(
+        projectName: config.showProject ? task.project : nil,
+        showProject: config.showProject,
+        priority: task.priority
+      )
     )
 
     if lastTaskId != task.id {
@@ -432,16 +437,6 @@ final class UIKitSplitTaskRowView: UIView {
       chromeBackdrop.layer.borderWidth = 0
       chromeBackdrop.layer.borderColor = nil
     }
-  }
-
-  private static func rowShowsMeta(task: Task, showProject: Bool) -> Bool {
-    let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
-    return showsProject
-      || !task.labels.isEmpty
-      || task.priority != nil
-      || task.dueDate != nil
-      || task.subtasksTotalCount > 0
-      || task.commentCount > 0
   }
 
   private static func expandLayoutSignature(_ subs: [Subtask]) -> Int {
