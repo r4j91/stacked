@@ -9,6 +9,8 @@ enum ProjectDisplayMode: String, CaseIterable {
   case cardsLight
   case list
   case listPremium
+  /// Lista organizada: gutter 16pt (paridade cards), hairline só no header.
+  case listComfort
 
   /// AppStorage compartilhado (projeto + Inbox/Hoje/…).
   static let storageKey = "display_mode"
@@ -22,17 +24,18 @@ enum ProjectDisplayMode: String, CaseIterable {
     case .cardsLight: "Balões light"
     case .list: "Lista"
     case .listPremium: "Lista premium"
+    case .listComfort: "Lista+"
     }
   }
 
   var usesCardStyle: Bool {
     switch self {
     case .cards, .cardsRefined, .cardsLight: true
-    case .list, .listPremium: false
+    case .list, .listPremium, .listComfort: false
     }
   }
 
-  var flatSubtaskPanel: Bool {
+  var flatSubtaskQueue: Bool {
     self == .cardsRefined
   }
 
@@ -42,10 +45,11 @@ enum ProjectDisplayMode: String, CaseIterable {
     case .cardsLight: .cardLight
     case .list: .list
     case .listPremium: .listPremium
+    case .listComfort: .listComfort
     }
   }
 
-  /// Insets da List — card modes respiram; list premium tem gutter leve Things-style.
+  /// Insets da List — card modes respiram; listas variam de flush a confortável.
   var taskListRowInsets: EdgeInsets {
     switch self {
     case .cards, .cardsRefined, .cardsLight:
@@ -53,14 +57,16 @@ enum ProjectDisplayMode: String, CaseIterable {
     case .list:
       EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     case .listPremium:
-      EdgeInsets(top: 1, leading: 12, bottom: 1, trailing: 12)
+      EdgeInsets(top: 1, leading: 14, bottom: 1, trailing: 14)
+    case .listComfort:
+      EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16)
     }
   }
 
   var menuIcon: HugeiconsAsset {
     switch self {
     case .cards, .cardsRefined, .cardsLight: Hugeicons.grid
-    case .list, .listPremium: Hugeicons.listView
+    case .list, .listPremium, .listComfort: Hugeicons.listView
     }
   }
 
@@ -68,6 +74,7 @@ enum ProjectDisplayMode: String, CaseIterable {
     switch raw {
     case "list": .list
     case "listPremium", "listRefined": .listPremium
+    case "listComfort", "listPlus": .listComfort
     case "cardsRefined": .cardsRefined
     case "cardsLight": .cardsLight
     case "cards": .cards
@@ -83,12 +90,27 @@ enum TaskRowStyle {
   case cardLight
   case list
   case listPremium
+  case listComfort
 
   var isCardFamily: Bool {
     switch self {
     case .card, .cardLight: true
-    case .list, .listPremium: false
+    case .list, .listPremium, .listComfort: false
     }
   }
-}
 
+  var isListFamily: Bool { !isCardFamily }
+
+  /// Hairline Things-style sob o header (nunca no painel de subtarefas / UIKit panelHost).
+  var showsListHairline: Bool {
+    switch self {
+    case .listPremium, .listComfort: true
+    default: false
+    }
+  }
+
+  /// Divisor indentado entre header e 1ª subtarefa (só Lista clássica).
+  var showsListParentDivider: Bool {
+    self == .list
+  }
+}

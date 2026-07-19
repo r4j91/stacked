@@ -937,6 +937,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     case .cardLight: 1
     case .list: 2
     case .listPremium: 3
+    case .listComfort: 4
     }
   }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct StackedApp: App {
@@ -39,8 +40,34 @@ private struct AppRootView: View {
     .task {
       await MainActor.run {
         IconCache.shared.warmUp()
+        let colors = ThemeManager.shared.colors
+        let tertiary = UIColor(colors.textTertiary)
+        UIKitRowIconRaster.warmCommon(
+          textTertiary: tertiary,
+          accent: UIColor(colors.accent)
+        )
+        for done in [false, true] {
+          _ = DoneCircleRaster.image(
+            done: done,
+            size: DoneCircle.listRowCircleSize,
+            borderWidth: DoneCircle.RingStyle.borderWidth,
+            ringColor: tertiary,
+            ringFillAlpha: done ? 0 : DoneCircle.RingStyle.inactiveFillAlpha,
+            tickSize: 13
+          )
+        }
+        for priority in Priority.allCases {
+          _ = DoneCircleRaster.image(
+            done: false,
+            size: DoneCircle.listRowCircleSize,
+            borderWidth: DoneCircle.RingStyle.borderWidth,
+            ringColor: UIColor(priority.color),
+            ringFillAlpha: DoneCircle.RingStyle.inactiveFillAlpha,
+            tickSize: 13
+          )
+        }
       }
-    } // AJUSTADO_ICONCACHE_WARMUP
+    }
     .onOpenURL { AppNavigationRouter.shared.handle(url: $0) }
   }
 }

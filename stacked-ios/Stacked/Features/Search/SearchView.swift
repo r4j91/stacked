@@ -117,7 +117,7 @@ struct SearchView: View {
       },
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: { store.complete($0) },
@@ -150,7 +150,7 @@ struct SearchView: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       allLabels: labelCatalog,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: { store.complete(task) },

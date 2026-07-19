@@ -239,7 +239,7 @@ struct SavedFilterResultsScreen: View {
       sections: filterUIKitSections,
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: {
@@ -361,7 +361,7 @@ struct SavedFilterResultsScreen: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {
         ensureStoreLinked()

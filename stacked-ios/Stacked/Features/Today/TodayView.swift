@@ -76,7 +76,7 @@ struct TodayView: View {
       sections: todayUIKitSections,
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: colors.background,
       leadingChrome: {
@@ -238,7 +238,7 @@ struct TodayView: View {
                 TaskRow(
                   task: task,
                   style: displayMode.taskRowStyle,
-                  flatSubtaskPanel: displayMode.flatSubtaskPanel,
+                  flatSubtaskQueue: displayMode.flatSubtaskQueue,
                   deferHeavyWork: !allowRowHeavyWork
                 ) { }
                   .opacity(0.7)
@@ -306,7 +306,7 @@ struct TodayView: View {
       TaskRow(
         task: task,
         style: displayMode.taskRowStyle,
-        flatSubtaskPanel: displayMode.flatSubtaskPanel,
+        flatSubtaskQueue: displayMode.flatSubtaskQueue,
         deferHeavyWork: !allowRowHeavyWork,
         onToggle: {
         store.completeToday(task)

@@ -39,7 +39,7 @@ struct UpcomingView: View {
           sections: upcomingUIKitSections,
           showProject: true,
           style: displayMode.taskRowStyle,
-          flatSubtaskQueue: displayMode.flatSubtaskPanel,
+          flatSubtaskQueue: displayMode.flatSubtaskQueue,
           rowInsets: rowInsets,
           background: c.background,
           leadingChrome: {
@@ -301,7 +301,7 @@ struct UpcomingView: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: {
       store.complete(task)

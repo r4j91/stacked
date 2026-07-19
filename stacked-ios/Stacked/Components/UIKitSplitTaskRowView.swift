@@ -213,7 +213,7 @@ final class UIKitSplitTaskRowView: UIView {
       TaskRow(
         task: task,
         style: config.style,
-        flatSubtaskPanel: config.flatSubtaskQueue,
+        flatSubtaskQueue: config.flatSubtaskQueue,
         showProject: config.showProject,
         allLabels: [],
         deferHeavyWork: deferHeavy,
@@ -251,7 +251,7 @@ final class UIKitSplitTaskRowView: UIView {
       TaskRow(
         task: task,
         style: config.style,
-        flatSubtaskPanel: config.flatSubtaskQueue,
+        flatSubtaskQueue: config.flatSubtaskQueue,
         showProject: config.showProject,
         allLabels: [],
         deferHeavyWork: deferHeavy,

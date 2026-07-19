@@ -356,6 +356,8 @@ struct ProjectDetailView: View {
                       selected: displayModeEnum == .list),
       PopoverMenuItem(id: "mode_list_premium", icon: Hugeicons.listView, label: "Lista premium",
                       selected: displayModeEnum == .listPremium),
+      PopoverMenuItem(id: "mode_list_comfort", icon: Hugeicons.listView, label: "Lista+",
+                      selected: displayModeEnum == .listComfort),
       PopoverMenuItem(id: "reorder_tasks", icon: Hugeicons.arrowUp01, label: "Ordenar tarefas"),
       PopoverMenuItem(id: "add_task", icon: Hugeicons.add01, label: "Nova tarefa"),
       PopoverMenuItem(id: "add_section", icon: Hugeicons.add01, label: "Nova seção"),
@@ -372,6 +374,7 @@ struct ProjectDetailView: View {
     case "mode_cards_light": displayMode = ProjectDisplayMode.cardsLight.rawValue
     case "mode_list": displayMode = ProjectDisplayMode.list.rawValue
     case "mode_list_premium": displayMode = ProjectDisplayMode.listPremium.rawValue
+    case "mode_list_comfort": displayMode = ProjectDisplayMode.listComfort.rawValue
     case "add_task": showQuickAdd = true
     case "add_section": showNewSection = true
     case "project_options": showProjectOptions = true
@@ -404,7 +407,7 @@ struct ProjectDetailView: View {
       sections: projectUIKitSections,
       showProject: false,
       style: mode.taskRowStyle,
-      flatSubtaskQueue: mode.flatSubtaskPanel,
+      flatSubtaskQueue: mode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: c.background,
       onToggleSection: handleUIKitSectionToggle,
@@ -759,7 +762,7 @@ struct ProjectDetailView: View {
       TaskRow(
         task: task,
         style: mode.taskRowStyle,
-        flatSubtaskPanel: mode.flatSubtaskPanel,
+        flatSubtaskQueue: mode.flatSubtaskQueue,
         showProject: false,
         deferHeavyWork: deferHeavyRowWork,
         rowInteractionsEnabled: !taskReorderMode,
@@ -793,7 +796,7 @@ struct ProjectDetailView: View {
     TaskRow(
       task: task,
       style: mode.taskRowStyle,
-      flatSubtaskPanel: mode.flatSubtaskPanel,
+      flatSubtaskQueue: mode.flatSubtaskQueue,
       showProject: false,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {

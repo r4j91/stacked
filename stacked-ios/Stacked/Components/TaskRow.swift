@@ -11,7 +11,7 @@ struct TaskRow: View {
 
   let task: Task
   var style: TaskRowStyle = .card
-  var flatSubtaskPanel: Bool = false
+  var flatSubtaskQueue: Bool = false
   var showProject: Bool = true
   var allLabels: [TaskLabel] = []
   var deferHeavyWork: Bool = false
@@ -53,7 +53,7 @@ struct TaskRow: View {
   init(
     task: Task,
     style: TaskRowStyle = .card,
-    flatSubtaskPanel: Bool = false,
+    flatSubtaskQueue: Bool = false,
     showProject: Bool = true,
     allLabels: [TaskLabel] = [],
     deferHeavyWork: Bool = false,
@@ -73,7 +73,7 @@ struct TaskRow: View {
   ) {
     self.task = task
     self.style = style
-    self.flatSubtaskPanel = flatSubtaskPanel
+    self.flatSubtaskQueue = flatSubtaskQueue
     self.showProject = showProject
     self.allLabels = allLabels
     self.deferHeavyWork = deferHeavyWork
@@ -196,8 +196,8 @@ struct TaskRow: View {
     switch style {
     case .card: cardBody(light: false)
     case .cardLight: cardBody(light: true)
-    case .list: listBody(premium: false)
-    case .listPremium: listBody(premium: true)
+    case .list, .listPremium, .listComfort:
+      listBody(style: style)
     }
   }
 
@@ -246,10 +246,16 @@ struct TaskRow: View {
     .modifier(rowScrollLifecycle)
   }
 
-  private func listBody(premium: Bool) -> some View {
+  private func listBody(style: TaskRowStyle) -> some View {
     let headerHeight = exactHeaderHeight
-    let expandTrailing: CGFloat = premium ? 10 : 12
-    let expandTop: CGFloat = premium ? 6 : 8
+    let comfort = style == .listComfort
+    let premiumLike = style == .listPremium || comfort
+    let expandTrailing: CGFloat = comfort ? 12 : (premiumLike ? 10 : 12)
+    let expandTop: CGFloat = comfort ? 8 : (premiumLike ? 6 : 8)
+    let showHairline = style.showsListHairline && bodyMode != .panelOnly
+    let showParentDivider =
+      style.showsListParentDivider
+      && (bodyMode == .full || bodyMode == .panelOnly)
 
     // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
     return VStack(spacing: 0) {
@@ -260,7 +266,7 @@ struct TaskRow: View {
       }
 
       if bodyMode != .headerOnly {
-        if !premium && bodyMode == .full {
+        if showParentDivider {
           TaskExpandDivider(indent: TaskExpandDividerStyle.listParentInset)
         }
 
@@ -268,11 +274,11 @@ struct TaskRow: View {
       }
     }
     .overlay(alignment: .bottom) {
-      if premium {
+      if showHairline {
         Rectangle()
-          .fill(theme.colors.textPrimary.opacity(0.035))
-          .frame(height: 1)
-          .padding(.leading, 38)
+          .fill(theme.colors.textPrimary.opacity(TaskExpandDividerStyle.listHairlineAlpha))
+          .frame(height: TaskExpandDividerStyle.listHairlineThickness)
+          .padding(.leading, comfort ? 46 : 38)
       }
     }
     .taskContextMenuLiftHost()
@@ -509,7 +515,7 @@ struct TaskRow: View {
         snapOpen: rowSnapRevealOpen,
         // Fill opaco no clip (Balões e Balões light) — translucido no UIView
         // compostava sobre preto e deixava vão claro na curva inferior.
-        panelFill: style.isCardFamily && !flatSubtaskPanel ? subtaskPanelFill : nil
+        panelFill: style.isCardFamily && !flatSubtaskQueue ? subtaskPanelFill : nil
       ) {
         subtaskList
       }
@@ -560,7 +566,8 @@ struct TaskRow: View {
   }
 
   private var centersTitleInRow: Bool {
-    guard !task.hasSubtasks else { return false }
+    // Bloco alto → círculo ao lado do título (top). Só título / meta leve → centra
+    // (inclui pais com contador N/M, sem forçar top só por ter subtarefas).
     if rowShowsEyebrow { return false }
     if task.hasDescription { return false }
     if task.timeDisplay != nil { return false }
@@ -622,12 +629,17 @@ struct TaskRow: View {
   private var subtaskList: some View {
     let c = theme.colors
     let subtaskLeading: CGFloat = 36
-    let betweenAlpha: CGFloat = (style.isCardFamily && !flatSubtaskPanel) ? 0.08 : TaskExpandDividerStyle.alpha
+    let listHairline = style.showsListHairline
+    let betweenAlpha: CGFloat = {
+      if listHairline { return TaskExpandDividerStyle.listHairlineAlpha }
+      if style.isCardFamily && !flatSubtaskQueue { return 0.08 }
+      return TaskExpandDividerStyle.alpha
+    }()
 
     return VStack(spacing: 0) {
       // Balões / Balões light: sem hairline pai→1ª subtarefa — virava tarja no painel.
       // Balões+ (flat) e Lista mantêm o divisor próprio.
-      if flatSubtaskPanel {
+      if flatSubtaskQueue {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
       }
 
@@ -725,7 +737,8 @@ struct TaskRow: View {
             indent: style.isCardFamily
               ? TaskExpandDividerStyle.cardSubtaskInset
               : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
-            colorAlpha: betweenAlpha
+            colorAlpha: betweenAlpha,
+            usePrimaryTint: listHairline
           )
         }
       }
@@ -753,7 +766,7 @@ struct TaskRow: View {
   /// Tinta do painel. UIKit: surfaceVariant@0.45 composto sobre o card (sem buraco na curva).
   private var subtaskPanelFill: Color {
     let c = theme.colors
-    if flatSubtaskPanel { return .clear }
+    if flatSubtaskQueue { return .clear }
     guard style.isCardFamily else { return .clear }
     if !stabilizeExpandInSelfSizingCell {
       return c.surfaceVariant.opacity(0.45)

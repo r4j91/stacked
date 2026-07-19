@@ -21,16 +21,32 @@ struct TaskRowScrollPlaceholder: View {
         priority: task.priority
       )
     )
-    RoundedRectangle(cornerRadius: style.isCardFamily ? 12 : 0)
-      .fill(style == .cardLight ? c.surface.opacity(0.72) : c.surface)
-      .frame(maxWidth: .infinity)
-      .frame(height: height)
-      .overlay(alignment: .leading) {
-        RoundedRectangle(cornerRadius: 2)
-          .fill(c.textTertiary.opacity(0.22))
-          .frame(width: 120, height: 12)
-          .padding(.leading, 46)
+
+    Group {
+      if style.isCardFamily {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(style == .cardLight ? c.surface.opacity(0.72) : c.surface)
+      } else {
+        // Lista: fundo transparente + skeleton leve (evita barras sólidas no cold start).
+        Color.clear
+          .overlay(alignment: .bottom) {
+            if style.showsListHairline {
+              Rectangle()
+                .fill(c.textPrimary.opacity(0.04))
+                .frame(height: 1)
+                .padding(.leading, style == .listComfort ? 46 : 38)
+            }
+          }
       }
-      .accessibilityHidden(true)
+    }
+    .frame(maxWidth: .infinity)
+    .frame(height: height)
+    .overlay(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 2)
+        .fill(c.textTertiary.opacity(style.isCardFamily ? 0.22 : 0.16))
+        .frame(width: 120, height: 12)
+        .padding(.leading, 46)
+    }
+    .accessibilityHidden(true)
   }
 }

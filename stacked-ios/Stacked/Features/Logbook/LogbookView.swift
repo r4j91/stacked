@@ -85,7 +85,7 @@ struct LogbookView: View {
       },
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: { uncomplete($0) },
@@ -135,7 +135,7 @@ struct LogbookView: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: { uncomplete(task) },
       onTap: { detailRoute = TaskDetailRoute(task: task) },

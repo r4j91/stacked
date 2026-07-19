@@ -69,7 +69,7 @@ struct InboxView: View {
       sections: inboxUIKitSections,
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: cardInsets,
       background: colors.background,
       leadingChrome: {
@@ -192,7 +192,7 @@ struct InboxView: View {
                 TaskRow(
                   task: task,
                   style: displayMode.taskRowStyle,
-                  flatSubtaskPanel: displayMode.flatSubtaskPanel,
+                  flatSubtaskQueue: displayMode.flatSubtaskQueue,
                   deferHeavyWork: !allowRowHeavyWork
                 ) { }
                   .opacity(0.7)
@@ -216,7 +216,7 @@ struct InboxView: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       deferHeavyWork: !allowRowHeavyWork,
       onToggle: {
       store.completeInbox(task)

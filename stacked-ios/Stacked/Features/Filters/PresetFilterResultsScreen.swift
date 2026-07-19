@@ -160,7 +160,7 @@ struct PresetFilterResultsScreen: View {
       ],
       showProject: true,
       style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
       background: colors.background,
       onToggle: { store.complete($0) },
@@ -233,7 +233,7 @@ struct PresetFilterResultsScreen: View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
-      flatSubtaskPanel: displayMode.flatSubtaskPanel,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
       deferHeavyWork: deferHeavyRowWork,
       onToggle: {
         store.complete(task)
