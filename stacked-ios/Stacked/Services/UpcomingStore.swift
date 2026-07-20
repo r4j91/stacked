@@ -228,6 +228,8 @@ final class UpcomingStore {
     let snapshot = tasks[i]
     let taskId = task.id
 
+    // Mark antes do rebuild — remount UIKit chega com done=true e ainda anima o fill.
+    TaskCompleteAnimationBridge.mark(taskId)
     tasks[i].done = true
     // Rebuild já no dwell — a UI lê groupedSchedule (cópias).
     // Sem isso o DoneCircle nunca vê done=true e a animação some.

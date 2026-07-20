@@ -118,6 +118,8 @@ final class SearchStore {
     let snapshot = allTasks[i]
     let taskId = task.id
 
+    // Mark antes do rebuild — remount com done=true ainda anima o fill.
+    TaskCompleteAnimationBridge.mark(taskId)
     allTasks[i].done = true
     HapticService.taskCompleted()
     rebuildSearchIndex()

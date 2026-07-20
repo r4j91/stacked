@@ -427,13 +427,25 @@ extension View {
   }
 
   func readAnchor(_ anchor: Binding<CGRect>) -> some View {
-    background(
+    modifier(ReadPopoverAnchorModifier(anchor: anchor))
+  }
+}
+
+/// Lê o frame no espaço do `popoverHostScope` (local) ou `.global` fora de sheet.
+private struct ReadPopoverAnchorModifier: ViewModifier {
+  @Binding var anchor: CGRect
+  @Environment(\.popoverAnchorSpaceName) private var spaceName
+
+  func body(content: Content) -> some View {
+    content.background(
       GeometryReader { geo in
-        Color.clear
-          .preference(key: AnchorKey.self, value: geo.frame(in: .global))
+        let frame =
+          spaceName.map { geo.frame(in: .named($0)) }
+          ?? geo.frame(in: .global)
+        Color.clear.preference(key: AnchorKey.self, value: frame)
       }
     )
-    .onPreferenceChange(AnchorKey.self) { anchor.wrappedValue = $0 }
+    .onPreferenceChange(AnchorKey.self) { anchor = $0 }
   }
 }
 

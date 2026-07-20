@@ -24,9 +24,6 @@ struct SubtaskDetailView: View {
   @State private var showDatePicker = false
   @State private var resolvedSubtaskId: String?
 
-  @State private var priorityAnchor: CGRect = .zero
-  @State private var dateAnchor: CGRect = .zero
-  @State private var labelsAnchor: CGRect = .zero
   @State private var showNotesPanel = false
   @State private var notesAnchor: CGRect = .zero
 
@@ -200,9 +197,8 @@ struct SubtaskDetailView: View {
         title: "Prioridade",
         value: priorityLabel,
         active: priority != nil,
-        valueColor: priority?.color,
-        anchor: $priorityAnchor
-      ) { showPriorityMenu() }
+        valueColor: priority?.color
+      ) { showPriorityMenu(anchor: $0) }
 
       Divider().overlay(c.textTertiary.opacity(0.12))
 
@@ -211,9 +207,8 @@ struct SubtaskDetailView: View {
         title: "Data",
         value: dueDateLabel,
         active: dueDate != nil,
-        valueColor: dueDate.map { TaskMapper.dateColor(for: $0, done: subtask.done) },
-        anchor: $dateAnchor
-      ) { showDatePicker = true }
+        valueColor: dueDate.map { TaskMapper.dateColor(for: $0, done: subtask.done) }
+      ) { _ in showDatePicker = true }
 
       Divider().overlay(c.textTertiary.opacity(0.12))
 
@@ -222,9 +217,8 @@ struct SubtaskDetailView: View {
         title: "Etiquetas",
         value: labelsSummary,
         active: !selectedLabelIds.isEmpty,
-        valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color,
-        anchor: $labelsAnchor
-      ) { showLabelsMenu() }
+        valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color
+      ) { showLabelsMenu(anchor: $0) }
     }
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -271,12 +265,11 @@ struct SubtaskDetailView: View {
     value: String,
     active: Bool,
     valueColor: Color? = nil,
-    anchor: Binding<CGRect>,
-    action: @escaping () -> Void
+    action: @escaping (CGRect) -> Void
   ) -> some View {
     let c = theme.colors
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
-    return Button(action: action) {
+    return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
         StackedIcons.image(icon)
           .font(.system(size: 16))
@@ -296,13 +289,12 @@ struct SubtaskDetailView: View {
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
+      .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
-    .readAnchor(anchor)
   }
 
-  private func showPriorityMenu() {
-    presentAnchoredPopover(anchorRect: priorityAnchor, items: [
+  private func showPriorityMenu(anchor: CGRect) {
+    presentAnchoredPopover(anchorRect: anchor, items: [
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
                       selected: priority == nil, iconColor: Color(hex: 0x6B6E76)),
       PopoverMenuItem(id: "high", icon: Hugeicons.flag01, label: "Prioridade 1",
@@ -324,7 +316,7 @@ struct SubtaskDetailView: View {
     }
   }
 
-  private func showLabelsMenu() {
+  private func showLabelsMenu(anchor: CGRect) {
     _Concurrency.Task {
       await reloadLabels()
       let items = labels.map { label in
@@ -336,7 +328,7 @@ struct SubtaskDetailView: View {
           iconColor: label.color
         )
       }
-      presentAnchoredPopover(anchorRect: labelsAnchor, items: items, allowsToggle: true) { result in
+      presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
         guard let result else { return }
         if selectedLabelIds.contains(result) {
           selectedLabelIds.remove(result)

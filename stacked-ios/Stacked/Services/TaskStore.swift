@@ -236,6 +236,8 @@ final class TaskStore {
     let snapshot = todayPending[i]
     let taskId = task.id
 
+    // Mark antes do rebuild — remount UIKit chega com done=true e ainda anima o fill.
+    TaskCompleteAnimationBridge.mark(taskId)
     todayPending[i].done = true
     // Rebuild já no dwell — a UI lê todayTimeline/todayOverdueItems (cópias).
     // Sem isso o DoneCircle nunca vê done=true e a animação some.

@@ -24,16 +24,6 @@ struct TaskDetailView: View {
 
   @AppStorage(ProductivityPreferences.anchoredDetailNotesKey) private var anchoredDetailNotes = false
 
-  @State private var projectAnchor: CGRect = .zero
-  @State private var dateAnchor: CGRect = .zero
-  @State private var priorityAnchor: CGRect = .zero
-  @State private var labelsAnchor: CGRect = .zero
-  @State private var recurrenceAnchor: CGRect = .zero
-  @State private var datePillAnchor: CGRect = .zero
-  @State private var priorityPillAnchor: CGRect = .zero
-  @State private var labelsPillAnchor: CGRect = .zero
-  @State private var recurrencePillAnchor: CGRect = .zero
-  @State private var installmentPillAnchor: CGRect = .zero
   @State private var installmentRoute: InstallmentGeneratorRoute?
   @State private var showWhatsAppPreview = false
 
@@ -214,40 +204,35 @@ struct TaskDetailView: View {
 
     return VStack(spacing: 0) {
       metaRow(icon: .folder, title: "Projeto", value: vm.projectName, active: vm.projectId != nil,
-              valueColor: vm.allProjects.first(where: { $0.id == vm.projectId })?.color,
-              anchor: $projectAnchor) {
-        showProjectMenu(anchor: projectAnchor)
+              valueColor: vm.allProjects.first(where: { $0.id == vm.projectId })?.color) { rect in
+        showProjectMenu(anchor: rect)
       }
 
       if vm.dueDate != nil {
         divider
         metaRow(icon: .calendar, title: "Data", value: vm.dueDateLabel, active: true,
-                valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0, done: vm.done) },
-                anchor: $dateAnchor) {
+                valueColor: vm.dueDate.map { TaskMapper.dateColor(for: $0, done: vm.done) }) { _ in
           showDatePicker = true
         }
       }
       if vm.priority != nil {
         divider
         metaRow(icon: .flag, title: "Prioridade", value: vm.priority!.label, active: true,
-                valueColor: vm.priority?.color,
-                anchor: $priorityAnchor) {
-          showPriorityMenu(anchor: priorityAnchor)
+                valueColor: vm.priority?.color) { rect in
+          showPriorityMenu(anchor: rect)
         }
       }
       if !vm.selectedLabels.isEmpty {
         divider
         metaRow(icon: .tag, title: "Etiquetas", value: labelsSummary, active: true,
-                valueColor: vm.selectedLabels.first?.color,
-                anchor: $labelsAnchor) {
-          showLabelsMenu(anchor: labelsAnchor)
+                valueColor: vm.selectedLabels.first?.color) { rect in
+          showLabelsMenu(anchor: rect)
         }
       }
       if vm.recurrence != nil {
         divider
-        metaRow(icon: .repeatIcon, title: "Recorrência", value: vm.recurrenceLabel, active: true,
-                anchor: $recurrenceAnchor) {
-          showRecurrenceMenu(anchor: recurrenceAnchor)
+        metaRow(icon: .repeatIcon, title: "Recorrência", value: vm.recurrenceLabel, active: true) { rect in
+          showRecurrenceMenu(anchor: rect)
         }
       }
 
@@ -259,18 +244,18 @@ struct TaskDetailView: View {
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
           if vm.dueDate == nil {
-            fieldPill("Data", icon: .calendar, anchor: $datePillAnchor) { showDatePicker = true }
+            fieldPill("Data", icon: .calendar) { _ in showDatePicker = true }
           }
           if vm.priority == nil {
-            fieldPill("Prioridade", icon: .flag, anchor: $priorityPillAnchor) { showPriorityMenu(anchor: priorityPillAnchor) }
+            fieldPill("Prioridade", icon: .flag) { showPriorityMenu(anchor: $0) }
           }
           if vm.selectedLabels.isEmpty {
-            fieldPill("Etiquetas", icon: .tag, anchor: $labelsPillAnchor) { showLabelsMenu(anchor: labelsPillAnchor) }
+            fieldPill("Etiquetas", icon: .tag) { showLabelsMenu(anchor: $0) }
           }
           if vm.recurrence == nil {
-            fieldPill("Recorrência", icon: .repeatIcon, anchor: $recurrencePillAnchor) { showRecurrenceMenu(anchor: recurrencePillAnchor) }
+            fieldPill("Recorrência", icon: .repeatIcon) { showRecurrenceMenu(anchor: $0) }
           }
-          fieldPill("Parcelas", icon: .money, anchor: $installmentPillAnchor) {
+          fieldPill("Parcelas", icon: .money) { _ in
             installmentRoute = InstallmentGeneratorRoute(taskId: vm.taskId, taskTitle: vm.title)
           }
         }
@@ -635,12 +620,11 @@ struct TaskDetailView: View {
     value: String,
     active: Bool,
     valueColor: Color? = nil,
-    anchor: Binding<CGRect>,
-    action: @escaping () -> Void
+    action: @escaping (CGRect) -> Void
   ) -> some View {
     let c = theme.colors
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
-    return Button(action: action) {
+    return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
         StackedIcons.image(icon)
           .font(AppTypography.body)
@@ -658,14 +642,13 @@ struct TaskDetailView: View {
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
+      .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
-    .readAnchor(anchor)
   }
 
-  private func fieldPill(_ title: String, icon: StackedIconKey, anchor: Binding<CGRect>, action: @escaping () -> Void) -> some View {
+  private func fieldPill(_ title: String, icon: StackedIconKey, action: @escaping (CGRect) -> Void) -> some View {
     let c = theme.colors
-    return Button(action: action) {
+    return AnchoredTapButton(action: action) {
       HStack(spacing: 6) {
         StackedIcons.image(icon)
           .font(AppTypography.metaSmall)
@@ -678,8 +661,6 @@ struct TaskDetailView: View {
       .background(c.surfaceVariant)
       .clipShape(Capsule())
     }
-    .buttonStyle(.plain)
-    .readAnchor(anchor)
   }
 
   private var whatsAppToolbarButton: some View {

@@ -49,6 +49,8 @@ struct TaskRow: View {
   @State private var subtaskSortHoldId: String?
   @State private var subtaskReorderTask: _Concurrency.Task<Void, Never>?
   @State private var labelCatalog: [TaskLabel] = []
+  /// Fill do DoneCircle no tap — não espera reconfigure UIKit do store (Hoje/listas).
+  @State private var optimisticDone: Bool? = nil
 
   init(
     task: Task,
@@ -122,6 +124,9 @@ struct TaskRow: View {
 
 
   private var usesSplitStore: Bool { splitStore != nil }
+
+  /// Concluída na UI — otimista no tap, depois alinha com `task.done`.
+  private var displayDone: Bool { optimisticDone ?? task.done }
 
   private var rowExpanded: Bool {
     usesSplitStore ? splitStoreObject.expanded : expanded
@@ -261,7 +266,7 @@ struct TaskRow: View {
     return VStack(spacing: 0) {
       if bodyMode != .panelOnly {
         rowHeader(expandTrailing: expandTrailing, expandTop: expandTop)
-          .opacity(task.done ? 0.45 : 1)
+          .opacity(displayDone ? 0.45 : 1)
           .frame(height: headerHeight)
       }
 
@@ -291,6 +296,7 @@ struct TaskRow: View {
   private var rowScrollLifecycle: TaskRowScrollLifecycle {
     TaskRowScrollLifecycle(
       taskId: task.id,
+      taskDone: task.done,
       subtaskCount: task.subtasks.count,
       subtasksRevision: taskSubtasksRevision,
       deferHeavyWork: deferHeavyWork,
@@ -299,6 +305,7 @@ struct TaskRow: View {
       onAppearRow: handleRowAppear,
       onSubtasksChanged: handleSubtasksChanged,
       onTaskIdentityChanged: handleTaskIdentityChanged,
+      onTaskDoneChanged: syncOptimisticDoneWithTask,
       onHeavyWorkAllowed: handleHeavyWorkAllowed,
       onLoadLabels: {
         rowLabelCatalog = await LabelCatalogCache.labels()
@@ -415,7 +422,7 @@ struct TaskRow: View {
   private var completeCircleButton: some View {
     let label = PriorityDot(
       priority: task.priority,
-      done: task.done,
+      done: displayDone,
       scrollStable: stabilizeExpandInSelfSizingCell,
       rowIdentity: task.id
     )
@@ -423,19 +430,30 @@ struct TaskRow: View {
     .contentShape(Rectangle())
 
     if stabilizeExpandInSelfSizingCell {
-      Button(action: onToggle) { label }
+      Button(action: handleCompleteTap) { label }
         .buttonStyle(.borderless)
         .disabled(!rowInteractionsEnabled)
         .zIndex(1)
-        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
-        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
+        .accessibilityLabel(displayDone ? "Reabrir tarefa" : "Concluir tarefa")
+        .accessibilityHint("Toque duas vezes para \(displayDone ? "reabrir" : "concluir")")
     } else {
-      Button(action: onToggle) { label }
+      Button(action: handleCompleteTap) { label }
         .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
         .disabled(!rowInteractionsEnabled)
-        .accessibilityLabel(task.done ? "Reabrir tarefa" : "Concluir tarefa")
-        .accessibilityHint("Toque duas vezes para \(task.done ? "reabrir" : "concluir")")
+        .accessibilityLabel(displayDone ? "Reabrir tarefa" : "Concluir tarefa")
+        .accessibilityHint("Toque duas vezes para \(displayDone ? "reabrir" : "concluir")")
     }
+  }
+
+  private func handleCompleteTap() {
+    if !displayDone {
+      // Marca antes do store — remount UIKit ainda consegue retomar o fill.
+      TaskCompleteAnimationBridge.mark(task.id)
+      optimisticDone = true
+    } else {
+      optimisticDone = false
+    }
+    onToggle()
   }
 
   @ViewBuilder
@@ -537,7 +555,7 @@ struct TaskRow: View {
           priority: task.priority,
           dueDateLabel: task.dueDateChipLabel,
           dueDateColor: task.dueDateChipColor,
-          dateDone: task.done,
+          dateDone: displayDone,
           subtasksDone: displayedSubtasksDone,
           subtasksTotal: displayedSubtasksTotal,
           subtasksCounterLabel: displayedSubtasksCounterLabel,
@@ -555,8 +573,8 @@ struct TaskRow: View {
     return HStack(alignment: .firstTextBaseline, spacing: 6) {
       Text(task.title)
         .font(AppTypography.taskTitle)
-        .foregroundStyle(task.done ? c.textTertiary : c.textPrimary)
-        .strikethrough(task.done, color: c.textTertiary)
+        .foregroundStyle(displayDone ? c.textTertiary : c.textPrimary)
+        .strikethrough(displayDone, color: c.textTertiary)
         // PERF_FASEB2_ETAPA3: lineLimit(2) → 1 para altura determinística na List.
         .lineLimit(1)
         .truncationMode(.tail)
@@ -913,6 +931,7 @@ struct TaskRow: View {
   }
 
   private func handleTaskIdentityChanged() {
+    optimisticDone = nil
     rowDisplaySubtasks = []
     rowSubtasksDone = []
     setRowExpanded(false)
@@ -920,6 +939,13 @@ struct TaskRow: View {
     setRowSnapRevealOpen(false)
     if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
+    }
+  }
+
+  private func syncOptimisticDoneWithTask() {
+    guard let optimisticDone else { return }
+    if optimisticDone == task.done {
+      self.optimisticDone = nil
     }
   }
 
@@ -1197,7 +1223,7 @@ struct TaskRow: View {
 
   private var taskAccessibilityLabel: String {
     var parts = [task.title]
-    if task.done { parts.append("concluída") }
+    if displayDone { parts.append("concluída") }
     if showProject, !task.project.isEmpty {
       parts.append("projeto \(task.project)")
     }
@@ -1316,6 +1342,7 @@ struct DisclosureChevron: View {
 /// PERF_FASEC1 — lifecycle da row fora do body card/list (sem sync idle no scroll).
 private struct TaskRowScrollLifecycle: ViewModifier {
   let taskId: String
+  let taskDone: Bool
   let subtaskCount: Int
   /// Hash de done/título — count sozinho não detecta conclusão.
   let subtasksRevision: Int
@@ -1325,6 +1352,7 @@ private struct TaskRowScrollLifecycle: ViewModifier {
   let onAppearRow: () -> Void
   let onSubtasksChanged: () -> Void
   let onTaskIdentityChanged: () -> Void
+  let onTaskDoneChanged: () -> Void
   let onHeavyWorkAllowed: () -> Void
   let onLoadLabels: () async -> Void
 
@@ -1334,6 +1362,7 @@ private struct TaskRowScrollLifecycle: ViewModifier {
       .onChange(of: subtaskCount) { _, _ in onSubtasksChanged() }
       .onChange(of: subtasksRevision) { _, _ in onSubtasksChanged() }
       .onChange(of: taskId) { _, _ in onTaskIdentityChanged() }
+      .onChange(of: taskDone) { _, _ in onTaskDoneChanged() }
       .onChange(of: deferHeavyWork) { _, deferred in
         if !deferred { onHeavyWorkAllowed() }
       }
