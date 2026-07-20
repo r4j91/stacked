@@ -357,21 +357,22 @@ struct TaskRow: View {
 
   private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
     let showsWhatsApp = showsWhatsAppCopyButton
-    // Empilhados na rail: só uma coluna (~40pt), não 80pt lado a lado.
-    let expandReserve: CGFloat = (task.hasSubtasks || showsWhatsApp) ? 40 : 0
-    let centerTitle = centersTitleInRow
     let trailingBottom: CGFloat = 6
     let headerH = exactHeaderHeight
+    // Sempre mid do título (paridade Hoje/Em breve) — meta/4/5 não descem o círculo.
+    let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: rowShowsEyebrow)
 
-    // Chevron/WhatsApp em overlay no header de altura FIXA — no grow da cell UIKit,
-    // `maxHeight: .infinity` + Spacer fazia o chevron descer ao centro do card e voltar.
-    return ZStack(alignment: centerTitle ? .leading : .topLeading) {
-      taskContentTapArea(expandReserve: expandReserve)
+    return ZStack(alignment: .topLeading) {
+      HStack(alignment: .top, spacing: 0) {
+        Color.clear
+          .frame(width: TaskRowCircleAlign.hitSize)
+          .allowsHitTesting(false)
 
-      HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
-        completeCircleButton
-
-        Spacer(minLength: 0)
+        taskTitleTapTarget
+          .padding(.top, TaskRowCircleAlign.contentTop)
+          .padding(.bottom, TaskRowCircleAlign.contentBottom)
+          .padding(.trailing, (task.hasSubtasks || showsWhatsApp) ? 4 : 14)
+          .frame(maxWidth: .infinity, alignment: .leading)
 
         if task.hasSubtasks || showsWhatsApp {
           Color.clear
@@ -380,7 +381,11 @@ struct TaskRow: View {
             .allowsHitTesting(false)
         }
       }
+
+      completeCircleButton
+        .padding(.top, circleTop)
     }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
     .frame(height: headerH, alignment: .topLeading)
     .overlay(alignment: .topTrailing) {
       if task.hasSubtasks {
@@ -414,7 +419,7 @@ struct TaskRow: View {
       scrollStable: stabilizeExpandInSelfSizingCell,
       rowIdentity: task.id
     )
-    .padding(12)
+    .frame(width: TaskRowCircleAlign.hitSize, height: TaskRowCircleAlign.hitSize)
     .contentShape(Rectangle())
 
     if stabilizeExpandInSelfSizingCell {
@@ -461,27 +466,6 @@ struct TaskRow: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Copiar mensagem para WhatsApp")
-  }
-
-  @ViewBuilder
-  private func taskContentTapArea(expandReserve: CGFloat) -> some View {
-    let centerTitle = centersTitleInRow
-    // Gesture só no texto — a coluna do círculo fica livre para o Button (UIKit hit-test).
-    HStack(alignment: centerTitle ? .center : .top, spacing: 0) {
-      Color.clear
-        .frame(width: 46)
-        .allowsHitTesting(false)
-      taskTitleTapTarget
-        .padding(.vertical, centerTitle ? 4 : 10)
-        .padding(.trailing, (task.hasSubtasks || showsWhatsAppCopyButton) ? 4 : 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-      if task.hasSubtasks || showsWhatsAppCopyButton {
-        Color.clear
-          .frame(width: expandReserve)
-          .allowsHitTesting(false)
-      }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   @ViewBuilder
@@ -565,19 +549,6 @@ struct TaskRow: View {
     }
   }
 
-  private var centersTitleInRow: Bool {
-    // Bloco alto → círculo ao lado do título (top). Só título / meta leve → centra
-    // (inclui pais com contador N/M, sem forçar top só por ter subtarefas).
-    if rowShowsEyebrow { return false }
-    if task.hasDescription { return false }
-    if task.timeDisplay != nil { return false }
-    if !task.labels.isEmpty { return false }
-    if task.dueDate != nil { return false }
-    if task.commentCount > 0 { return false }
-    if showProject, !task.project.isEmpty, task.project != "Sem projeto" { return false }
-    return true
-  }
-
   private var titleRow: some View {
     let c = theme.colors
     let showTrailingTime = taskRowLayout == .default
@@ -653,21 +624,24 @@ struct TaskRow: View {
           priority: sub.priority
         )
         let showsMetaLine = subtaskShowsMetaLine(sub, labels: labels)
+        let hasDescription = sub.description?.isEmpty == false
         // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
         let hasExtra =
-          (sub.description?.isEmpty == false)
+          hasDescription
           || showsMetaLine
           || showsEyebrow
           || !sub.labelIds.isEmpty
-        HStack(alignment: hasExtra ? .top : .center, spacing: 0) {
+        let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: showsEyebrow)
+        HStack(alignment: .top, spacing: 0) {
           Button { toggleSubtask(at: index, sub: sub) } label: {
             subtaskDot(sub: sub, done: done)
-              .frame(width: 44, height: hasExtra ? 48 : 44)
+              .frame(width: TaskRowCircleAlign.hitSize, height: TaskRowCircleAlign.hitSize)
               .contentShape(Rectangle())
           }
           // Host aninhado no UIKit: PressableStyle + scale atrapalhava o hit-test.
           .buttonStyle(.borderless)
           .disabled(!rowInteractionsEnabled)
+          .padding(.top, circleTop)
 
           // SUBTASK_CTXMENU_FIX: PressableStyle + Button + .contextMenu só “selecionava”
           // e não abria o menu (pior em listas de projeto). Long-press = popover Excluir.
@@ -724,7 +698,8 @@ struct TaskRow: View {
                 )
               }
             }
-            .padding(.vertical, hasExtra ? 9 : 12)
+            .padding(.top, TaskRowCircleAlign.contentTop)
+            .padding(.bottom, hasExtra ? TaskRowCircleAlign.contentBottom : TaskRowCircleAlign.contentTop)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
           }
@@ -1459,5 +1434,20 @@ struct PriorityDot: View {
       rowIdentity: rowIdentity
     )
     .accessibilityHidden(true)
+  }
+}
+
+/// Posição do círculo de concluir — sempre no mid do título (nunca no centro do bloco).
+/// Eyebrow acima empurra título e círculo juntos; meta/descrição abaixo não movem o círculo.
+enum TaskRowCircleAlign {
+  static let contentTop: CGFloat = 12
+  static let contentBottom: CGFloat = 10
+  static let titleLine: CGFloat = 20
+  static let hitSize: CGFloat = 44
+
+  static func circleTopInset(hasEyebrow: Bool) -> CGFloat {
+    let eyebrow = hasEyebrow ? AppLayout.taskRowEyebrowBlock : 0
+    let titleCenterY = contentTop + eyebrow + titleLine / 2
+    return titleCenterY - hitSize / 2
   }
 }

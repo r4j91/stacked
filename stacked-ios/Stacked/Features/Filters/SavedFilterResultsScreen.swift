@@ -342,6 +342,7 @@ struct SavedFilterResultsScreen: View {
         subtask: sub,
         parent: parent,
         labelCatalog: store.pickerLabels,
+        style: displayMode.taskRowStyle,
         onToggle: {
           usesStore = true
           store.adoptSavedFilterSession(filter, pending: pendingResults, completed: completedResults)

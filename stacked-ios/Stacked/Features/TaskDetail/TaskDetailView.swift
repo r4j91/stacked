@@ -350,8 +350,9 @@ struct TaskDetailView: View {
       return sub.dueDate != nil || !labels.isEmpty
     }()
     let hasMeta = hasDescription || showsMetaLine || showsEyebrow
+    let alignTop = hasMeta
 
-    return HStack(alignment: hasMeta ? .top : .center, spacing: 8) {
+    return HStack(alignment: alignTop ? .top : .center, spacing: 8) {
       Button {
         if !sub.done {
           HapticService.taskCompleted()
@@ -362,7 +363,7 @@ struct TaskDetailView: View {
       } label: {
         PriorityDot(priority: sub.priority, done: sub.done)
         .frame(width: 32, height: 32)
-        .padding(.top, hasMeta ? 2 : 0)
+        .padding(.top, alignTop ? 2 : 0)
       }
       .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 

@@ -564,6 +564,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
             subtask: entry.subtask,
             parent: entry.parent,
             labelCatalog: config.labelCatalog,
+            style: config.style,
+            stabilizeInUIKitCell: true,
             onToggle: { config.onScheduledSubtaskToggle?(entry) },
             onTap: { config.onScheduledSubtaskTap?(entry) }
           )
@@ -598,6 +600,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
             subtask: sub,
             parent: parent,
             labelCatalog: config.labelCatalog,
+            style: config.style,
+            stabilizeInUIKitCell: true,
             onToggle: { config.onFilterSubtaskToggle?(sub, parent, index) },
             onTap: { config.onFilterSubtaskTap?(sub, parent) }
           )

@@ -216,6 +216,7 @@ struct PresetFilterResultsScreen: View {
         subtask: sub,
         parent: parent,
         labelCatalog: store.pickerLabels,
+        style: displayMode.taskRowStyle,
         onToggle: {
           store.completeSubtask(parent: parent, sub: sub, at: index)
         },

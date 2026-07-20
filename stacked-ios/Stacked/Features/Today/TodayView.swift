@@ -277,6 +277,7 @@ struct TodayView: View {
         subtask: entry.subtask,
         parent: entry.parent,
         labelCatalog: entry.parent.labels,
+        style: displayMode.taskRowStyle,
         onToggle: { store.completeScheduledSubtask(entry) },
         onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id) }
       )

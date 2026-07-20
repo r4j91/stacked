@@ -1,22 +1,34 @@
-# PRODUCT.md
+# Product
 
 ## Register
 product
 
 ## Purpose
-Stacked is a personal task manager (Todoist/Things–style) for mobile and web. Users capture, organize, and complete tasks across Inbox, Today, Upcoming, projects, and filters.
+Stacked is a personal task manager (Todoist / Things 3 class) for capturing, organizing, and completing daily work across iPhone and web. The primary job on any screen is to scan tasks quickly, act (complete, defer, edit), and move on.
 
 ## Users
-People managing day-to-day work and personal tasks on iPhone and desktop browser, often switching between quick capture and planned daily review.
+People who live in a dense daily task list: inbox triage, today focus, upcoming schedule, and project deep-work. Context is often one-handed mobile, short sessions, and high information density.
 
 ## Personality
-Calm, precise, dense-friendly. Dark tooling with a cool accent (`#5FD3DC`). Familiar productivity UI — trust over novelty.
+Quiet, controlled, precise. Dark-mode-first “Quiet Control Room”: organized layers of tone, one accent used sparingly, no gamification.
+
+## References
+- Things 3: density, calm list chrome, hairline separators
+- Todoist: capture speed and clear task actions
+- Stacked DESIGN.md north star: Quiet Control Room
 
 ## Anti-references
-Generic SaaS cream dashboards; purple gradients; decorative glass everywhere; hero-metric marketing chrome inside the app shell.
+- Loud multi-accent Todoist-style color sprawl
+- Notion-like block overload and slow navigation
+- Gamification (confetti, streaks, reward sounds)
+- Generic purple-on-white SaaS marketing aesthetics
 
 ## Principles
-1. Optimistic updates; server confirms in background.
-2. Compact task rows (~52–56px); meta is scannable, not loud.
-3. One visual vocabulary for chips/meta across iOS and web.
-4. Project is context; tags/dates are attributes — hierarchy should read that way.
+1. Consistency is an affordance: the same row vocabulary on Hoje, Em breve, Inbox, and projects.
+2. Display mode (Balões / Lista / Lista+) must apply to every row type, including filter/agenda subtasks.
+3. Density with scannability: compact rows (~52–56px base), clear title hierarchy, restrained accent.
+4. Depth via tone layers (background → surface → surfaceVariant), not decorative shadow.
+5. Motion only for state (expand, complete, menu), never page-load choreography.
+
+## Accessibility
+Support Dynamic Type where practical, VoiceOver labels on task actions, and `Reduce Motion` for expand/complete animations. Maintain body text contrast ≥4.5:1 on dark surfaces.
