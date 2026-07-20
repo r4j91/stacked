@@ -107,16 +107,6 @@ final class UpcomingStore {
     rebuildScheduleDerived()
   }
 
-  var agendaPeriodLabel: String {
-    let taskDates = tasks.compactMap(\.dueDate)
-    let subtaskDates = scheduledSubtasks.compactMap { $0.subtask.dueDate }
-    let dated = (taskDates + subtaskDates).sorted()
-    guard let first = dated.first, let last = dated.last else { return "Agenda" }
-    let firstLabel = TaskMapper.dayLabel(for: first)
-    let lastLabel = TaskMapper.dayLabel(for: last)
-    return firstLabel == lastLabel ? firstLabel : "\(firstLabel) – \(lastLabel)"
-  }
-
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     SubtaskListPatch.apply(snapshot, to: &tasks)
     if snapshot.done || snapshot.dueDate == nil {

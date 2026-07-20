@@ -109,22 +109,10 @@ struct UpcomingView: View {
   }
 
   private var upcomingListChrome: some View {
-    let c = theme.colors
-    return VStack(alignment: .leading, spacing: AppSpacing.sm) {
+    VStack(alignment: .leading, spacing: AppSpacing.sm) {
       ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
       modeToggle
         .padding(.horizontal, AppSpacing.lg)
-      if store.mode == .agenda {
-        HStack(spacing: 6) {
-          Image(systemName: "list.bullet")
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(c.accent)
-          Text(store.agendaPeriodLabel)
-            .font(AppTypography.completedSectionHeader)
-            .foregroundStyle(c.accent)
-        }
-        .padding(.horizontal, AppSpacing.xl)
-      }
     }
   }
 
@@ -144,22 +132,6 @@ struct UpcomingView: View {
           .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
-      }
-
-      if store.mode == .agenda {
-        Section {
-          HStack(spacing: 6) {
-            Image(systemName: "list.bullet")
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.accent)
-            Text(store.agendaPeriodLabel)
-              .font(AppTypography.completedSectionHeader)
-              .foregroundStyle(c.accent)
-          }
-          .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.xl, bottom: AppSpacing.sm, trailing: AppSpacing.xl))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-        }
       }
 
       if store.isLoading {

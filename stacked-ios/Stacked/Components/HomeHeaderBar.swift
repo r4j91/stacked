@@ -63,6 +63,7 @@ private struct HomeHeaderLeading: View {
         )
         .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
       }
+      .modifier(HomeHeaderQuietBorder())
     }
     .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
     .accessibilityLabel("Relatório de produtividade")
@@ -89,6 +90,26 @@ private struct HomeHeaderTrailing: View {
         }
       }
       .padding(.horizontal, 2)
+    }
+    .modifier(HomeHeaderQuietBorder())
+  }
+}
+
+/// Contorno igual ao trilho do dock — só com Efeito quieto (glass estático translúcido).
+private struct HomeHeaderQuietBorder: ViewModifier {
+  @Environment(ThemeManager.self) private var theme
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+
+  func body(content: Content) -> some View {
+    let c = theme.colors
+    content.overlay {
+      if alwaysStaticGlass {
+        Capsule()
+          .strokeBorder(
+            c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
+            lineWidth: LiquidGlass.navSelectionStrokeWidth
+          )
+      }
     }
   }
 }
