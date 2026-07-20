@@ -66,7 +66,8 @@ struct UpcomingView: View {
           onScheduledSubtaskTap: { entry in
             subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
           },
-          onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) }
+          onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) },
+          pinPlainSectionHeaders: true
         )
         .stackedScrollEdgeChrome()
       } else {
@@ -171,7 +172,8 @@ struct UpcomingView: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedListTailInset()
+    // Soft topo só no path SwiftUI (Home) — no UIKit o soft hitcha; sticky usa fill sólido.
+    .stackedDashboardListChrome()
   }
 
   private var modeToggle: some View {

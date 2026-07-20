@@ -26,7 +26,6 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
-  @State private var installmentRoute: InstallmentGeneratorRoute?
 
   private let iconCircleSize: CGFloat = 44
   private let metadataIconSize: CGFloat = 23
@@ -70,14 +69,6 @@ struct QuickAddTaskView: View {
         dueDate = date
         dueTime = time
       }
-      .installmentGeneratorSheet(route: $installmentRoute) {
-        onSaved(QuickAddSaveSummary(
-          projectId: selectedProjectId,
-          dueDateISO: currentDueDateISO(),
-          extraTabs: [.upcoming]
-        ))
-        onDismiss()
-      }
   }
 
   // SUBSTITUIDO_FASE1B: overlay custom com scrim + LiquidGlass.sheetPanel + keyboard manual
@@ -97,12 +88,6 @@ struct QuickAddTaskView: View {
     let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
     return VStack(spacing: 0) {
-      Capsule()
-        .fill(c.textTertiary.opacity(0.35))
-        .frame(width: 36, height: 4)
-        .padding(.top, 6)
-        .padding(.bottom, 18)
-
       TextField("Nome da tarefa", text: $title)
         .font(.title3.weight(.semibold))
         .foregroundStyle(c.textPrimary)
@@ -110,8 +95,8 @@ struct QuickAddTaskView: View {
         .focused($titleFocused)
         .submitLabel(.done)
         .padding(.horizontal, 16)
-        .padding(.top, 0)
-        .padding(.bottom, 6)
+        .padding(.top, 14)
+        .padding(.bottom, 12)
 
       if showDescriptionField {
         TextField("Adicionar notas...", text: $descriptionText, axis: .vertical)
@@ -150,16 +135,6 @@ struct QuickAddTaskView: View {
           active: priority != nil,
           activeColor: priorityColor
         ) { showPriorityMenu(anchor: $0) }
-
-        metadataIconButton(
-          icon: .money,
-          active: false,
-          activeColor: c.accent
-        ) { _ in
-          _Concurrency.Task { await openInstallmentGenerator() }
-        }
-        .opacity(hasTitle && !saving ? 1 : 0.45)
-        .allowsHitTesting(hasTitle && !saving)
 
         Spacer(minLength: 4)
 
@@ -555,61 +530,6 @@ struct QuickAddTaskView: View {
     onDismiss()
 
     TaskOptimisticSync.enqueueCreate(id: clientId, input: input, projectName: projectName)
-  }
-
-  private func currentDueDateISO() -> String? {
-    guard let dueDate else { return nil }
-    return TaskMapper.dateString(dueDate)
-  }
-
-  /// Salva tarefa sem fechar o Quick Add — usado pelo gerador de parcelas.
-  private func persistTask() async throws -> String? {
-    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return nil }
-
-    var dueISO: String?
-    var hora: String?
-    if let dueDate {
-      dueISO = TaskMapper.dateString(dueDate)
-      if let dueTime {
-        let cal = Calendar.current
-        let h = cal.component(.hour, from: dueTime)
-        let m = cal.component(.minute, from: dueTime)
-        hora = String(format: "%02d:%02d", h, m)
-      }
-    }
-
-    let newId = try await TaskRepository.shared.createTask(.init(
-      title: trimmed,
-      description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-      priority: priority,
-      projectId: selectedProjectId,
-      sectionId: selectedSectionId,
-      dueDateISO: dueISO,
-      time: hora,
-      labelIds: Array(selectedLabelIds)
-    ))
-    await TaskCalendarSync.syncTaskId(newId)
-    return newId
-  }
-
-  private func openInstallmentGenerator() async {
-    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty, !saving else { return }
-    saving = true
-    error = nil
-    do {
-      guard let taskId = try await persistTask() else {
-        saving = false
-        return
-      }
-      HapticService.taskCreated()
-      saving = false
-      installmentRoute = InstallmentGeneratorRoute(taskId: taskId, taskTitle: trimmed)
-    } catch {
-      self.error = error.localizedDescription
-      saving = false
-    }
   }
 }
 

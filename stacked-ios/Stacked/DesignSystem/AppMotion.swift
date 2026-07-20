@@ -77,6 +77,9 @@ enum AppMotion {
     .snappy(duration: 0.22, extraBounce: 0)
   }
 
+  /// Ilha — espera o colapso (snappy 0.22) antes de montar/trocar o conteúdo da aba.
+  static let islandTabContentSettle: Duration = .milliseconds(240)
+
   static func islandNavMorph(reduceMotion: Bool) -> Animation? {
     reduceMotion ? nil : islandNavSpring
   }

@@ -9,9 +9,14 @@ struct RootView: View {
   @State private var showQuickAdd = false
   @State private var showNewProject = false
   @State private var router = AppNavigationRouter.shared
-  @State private var visitedTabs: Set<NavTab> = [.home] // AJUSTADO_VISITED_TABS
+  /// Abas já no render tree (opacity 0 quando inativas).
+  @State private var mountedTabs: Set<NavTab> = [.home]
+  /// Aba visível — pode atrasar vs `chrome.selectedTab` no colapso da ilha.
+  @State private var displayedTab: NavTab = .home
   @State private var didBootstrap = false
   @State private var syncFeedback = SyncFeedback.shared
+  @State private var tabContentSwitchTask: _Concurrency.Task<Void, Never>?
+  @State private var tabWarmMountTask: _Concurrency.Task<Void, Never>?
 
   var body: some View {
     @Bindable var chrome = chrome
@@ -22,7 +27,7 @@ struct RootView: View {
       onSearch: { showSearch = true },
       onNewProject: { openNewProject() }
     ) {
-      RootTabContent(visitedTabs: visitedTabs)
+      RootTabContent(mountedTabs: mountedTabs, displayedTab: displayedTab)
     }
     .overlay(alignment: .bottom) {
       // NET_FASEC_ETAPA2/4 — toast de sync (acima do dock).
@@ -33,7 +38,7 @@ struct RootView: View {
       }
     }
     .onChange(of: currentTab) { _, tab in
-      visitedTabs.insert(tab) // AJUSTADO_VISITED_TABS
+      scheduleDisplayedTab(tab)
       reloadData(for: tab)
     }
     .onChange(of: router.pendingTab) { _, tab in
@@ -45,6 +50,11 @@ struct RootView: View {
     .task {
       await bootstrap(tab: currentTab)
       didBootstrap = true
+      scheduleWarmTabMounts(excluding: currentTab)
+    }
+    .onDisappear {
+      tabContentSwitchTask?.cancel()
+      tabWarmMountTask?.cancel()
     }
     .onChange(of: scenePhase) { _, phase in
       guard didBootstrap, phase == .active else { return }
@@ -88,6 +98,48 @@ struct RootView: View {
     chrome.closeFabMenu()
     PopoverPresenter.shared.dismiss()
     showQuickAdd = true
+  }
+
+  /// Troca o conteúdo visível. No colapso da ilha, espera o snappy terminar
+  /// para não competir com a animação da pill (navbar continua imediata).
+  private func scheduleDisplayedTab(_ tab: NavTab) {
+    tabContentSwitchTask?.cancel()
+
+    let deferForIslandCollapse =
+      !reduceMotion
+      && chrome.lastSelectCollapsedIsland
+      && chrome.navBarStyle == .island
+
+    guard deferForIslandCollapse else {
+      mountedTabs.insert(tab)
+      displayedTab = tab
+      return
+    }
+
+    tabContentSwitchTask = _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: AppMotion.islandTabContentSettle)
+      guard !_Concurrency.Task.isCancelled else { return }
+      guard chrome.selectedTab == tab else { return }
+      mountedTabs.insert(tab)
+      displayedTab = tab
+    }
+  }
+
+  /// Pré-monta abas inativas no idle — 1ª visita deixa de custar no meio do gesto da ilha.
+  private func scheduleWarmTabMounts(excluding priority: NavTab) {
+    tabWarmMountTask?.cancel()
+    tabWarmMountTask = _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: .milliseconds(700))
+      guard !_Concurrency.Task.isCancelled else { return }
+
+      for tab in NavTab.allCases where tab != priority {
+        guard !_Concurrency.Task.isCancelled else { return }
+        if !mountedTabs.contains(tab) {
+          mountedTabs.insert(tab)
+        }
+        try? await _Concurrency.Task.sleep(for: .milliseconds(140))
+      }
+    }
   }
 
   /// Cold start: aba visível primeiro; demais abas em prefetch escalonado.
@@ -161,7 +213,8 @@ struct RootView: View {
 struct RootTabContent: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(ThemeManager.self) private var theme
-  let visitedTabs: Set<NavTab> // AJUSTADO_VISITED_TABS
+  let mountedTabs: Set<NavTab>
+  let displayedTab: NavTab
 
   var body: some View {
     ZStack {
@@ -186,12 +239,11 @@ struct RootTabContent: View {
     _ tab: NavTab,
     @ViewBuilder content: () -> Content
   ) -> AnyView {
-    let isActive = chrome.selectedTab == tab
-    let hasBeenVisited = visitedTabs.contains(tab)
+    let isActive = displayedTab == tab
+    let isMounted = mountedTabs.contains(tab)
 
-    // Aba nunca visitada e inativa: não entra no render tree
-    // AJUSTADO_VISITED_TABS
-    guard isActive || hasBeenVisited else { return AnyView(EmptyView()) }
+    // Aba nunca montada e inativa: não entra no render tree
+    guard isActive || isMounted else { return AnyView(EmptyView()) }
 
     return AnyView(
       content()

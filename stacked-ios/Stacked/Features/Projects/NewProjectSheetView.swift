@@ -25,12 +25,6 @@ struct NewProjectSheetView: View {
     let c = theme.colors
 
     VStack(spacing: 0) {
-      Capsule()
-        .fill(c.textTertiary.opacity(0.35))
-        .frame(width: 36, height: 4)
-        .padding(.top, 6)
-        .padding(.bottom, 12)
-
       header
 
       Divider().overlay(c.textTertiary.opacity(0.12))
@@ -99,6 +93,7 @@ struct NewProjectSheetView: View {
       Color.clear.frame(width: 72, height: 1)
     }
     .padding(.horizontal, 14)
+    .padding(.top, 12)
     .padding(.bottom, 8)
   }
 

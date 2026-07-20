@@ -95,6 +95,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil
   /// Catálogo de etiquetas para `FilterSubtaskRow` (filtros); vazio = usa `parent.labels`.
   var labelCatalog: [TaskLabel] = []
+  /// Headers `.plain` como supplementary sticky (Em breve / dias).
+  var pinPlainSectionHeaders: Bool = false
 
   private var taskRowLayout: TaskRowLayout {
     TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
@@ -187,7 +189,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onCalendarEventTap: ((CalendarEvent) -> Void)? = nil,
     onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)? = nil,
     onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil,
-    labelCatalog: [TaskLabel] = []
+    labelCatalog: [TaskLabel] = [],
+    pinPlainSectionHeaders: Bool = false
   ) {
     self.sections = sections
     self.showProject = showProject
@@ -216,6 +219,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     self.onFilterSubtaskToggle = onFilterSubtaskToggle
     self.onFilterSubtaskTap = onFilterSubtaskTap
     self.labelCatalog = labelCatalog
+    self.pinPlainSectionHeaders = pinPlainSectionHeaders
   }
 
   func makeUIViewController(context: Context) -> UIKitHostedTaskListController {
@@ -264,7 +268,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onCalendarEventTap: onCalendarEventTap,
       onFilterSubtaskToggle: onFilterSubtaskToggle,
       onFilterSubtaskTap: onFilterSubtaskTap,
-      labelCatalog: labelCatalog
+      labelCatalog: labelCatalog,
+      pinPlainSectionHeaders: pinPlainSectionHeaders
     )
   }
 }
@@ -331,6 +336,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)?
     var onFilterSubtaskTap: ((Subtask, Task) -> Void)?
     var labelCatalog: [TaskLabel]
+    var pinPlainSectionHeaders: Bool = false
   }
 
   private enum SectionID: Hashable {
@@ -384,13 +390,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     super.viewDidLoad()
     view.backgroundColor = .clear
 
-    var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
-    listConfig.backgroundColor = .clear
-    listConfig.showsSeparators = false
-    listConfig.headerMode = .none
-    let layout = UICollectionViewCompositionalLayout.list(using: listConfig)
-
-    collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+    collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: makeCollectionLayout())
     collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     collectionView.backgroundColor = .clear
     collectionView.alwaysBounceVertical = true
@@ -463,6 +463,16 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         .margins(.all, 0)
         .minSize(height: 1)
       }
+    }
+
+    let pinnedPlainHeaderRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(
+      elementKind: UICollectionView.elementKindSectionHeader
+    ) { [weak self] cell, _, indexPath in
+      guard let self else {
+        UIView.performWithoutAnimation { cell.contentConfiguration = nil }
+        return
+      }
+      self.configurePinnedPlainHeader(cell, at: indexPath)
     }
 
     let taskRegistration = UICollectionView.CellRegistration<UIKitSizedTaskCell, String> {
@@ -688,6 +698,88 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         )
       }
     }
+
+    dataSource.supplementaryViewProvider = { collectionView, elementKind, indexPath in
+      guard elementKind == UICollectionView.elementKindSectionHeader else { return nil }
+      return collectionView.dequeueConfiguredReusableSupplementary(
+        using: pinnedPlainHeaderRegistration,
+        for: indexPath
+      )
+    }
+  }
+
+  private func makeCollectionLayout() -> UICollectionViewCompositionalLayout {
+    UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+      var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
+      listConfig.backgroundColor = .clear
+      listConfig.showsSeparators = false
+      // Sempre `.none` — o sticky plain é boundary item nosso (evita header duplo do list).
+      listConfig.headerMode = .none
+
+      let section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
+      if self?.shouldPinHeader(at: sectionIndex) == true {
+        let headerSize = NSCollectionLayoutSize(
+          widthDimension: .fractionalWidth(1),
+          heightDimension: .estimated(40)
+        )
+        let header = NSCollectionLayoutBoundarySupplementaryItem(
+          layoutSize: headerSize,
+          elementKind: UICollectionView.elementKindSectionHeader,
+          alignment: .top
+        )
+        header.pinToVisibleBounds = true
+        section.boundarySupplementaryItems = [header]
+      }
+      return section
+    }
+  }
+
+  private func shouldPinHeader(at sectionIndex: Int) -> Bool {
+    guard config?.pinPlainSectionHeaders == true, dataSource != nil else { return false }
+    let ids = dataSource.snapshot().sectionIdentifiers
+    guard sectionIndex >= 0, sectionIndex < ids.count else { return false }
+    guard case .block(let id) = ids[sectionIndex],
+          case .plain = sectionById[id]?.header
+    else { return false }
+    return true
+  }
+
+  private func configurePinnedPlainHeader(_ cell: UICollectionViewCell, at indexPath: IndexPath) {
+    guard config?.pinPlainSectionHeaders == true,
+          dataSource != nil,
+          indexPath.section < dataSource.snapshot().sectionIdentifiers.count,
+          case .block(let id) = dataSource.snapshot().sectionIdentifiers[indexPath.section],
+          let section = sectionById[id],
+          case .plain(let text) = section.header
+    else {
+      UIView.performWithoutAnimation { cell.contentConfiguration = nil }
+      return
+    }
+
+    let fill = config?.background ?? .clear
+    UIView.performWithoutAnimation {
+      var clearBg = UIBackgroundConfiguration.clear()
+      clearBg.backgroundColor = .clear
+      cell.backgroundConfiguration = clearBg
+      cell.backgroundColor = .clear
+      cell.contentView.backgroundColor = .clear
+      cell.contentConfiguration = UIHostingConfiguration {
+        ZStack(alignment: .leading) {
+          // Fill opaco — evita bleed das rows sob o sticky sem blur (soft edge hitcha no UIKit).
+          Color(uiColor: fill)
+          ListSectionHeader(text: text)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+            .padding(.leading, 4)
+            .padding(.trailing, 16)
+        }
+        .environment(ThemeManager.shared)
+        .environment(MobileChromeController.shared)
+      }
+      .margins(.all, 0)
+      .minSize(height: 1)
+    }
   }
 
   /// Soft top = blur variável (stutter). Hard bottom = tarja opaca (print do projeto).
@@ -821,7 +913,13 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       let sid = SectionID.block(section.id)
       snapshot.appendSections([sid])
       var items: [ItemID] = []
-      if section.header != nil {
+      let pinPlain =
+        configuration.pinPlainSectionHeaders
+        && {
+          if case .plain = section.header { return true }
+          return false
+        }()
+      if section.header != nil, !pinPlain {
         items.append(.header(section.id))
       }
       let showTasks: Bool
@@ -839,6 +937,10 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       snapshot.appendItems(items, toSection: sid)
     }
     dataSource.apply(snapshot, animatingDifferences: false)
+    if configuration.pinPlainSectionHeaders {
+      // Reconsulta shouldPinHeader com o snapshot novo (1º layout ainda sem sections).
+      collectionView.collectionViewLayout.invalidateLayout()
+    }
 
     // Diffable: se os ItemIDs forem iguais (ex.: Balões↔Balões+), apply não
     // reconfigura — força refresh das task cells para o novo layout.
@@ -986,6 +1088,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private static func fingerprint(_ configuration: Configuration) -> Int {
     var hasher = Hasher()
     hasher.combine(configuration.leadingChrome != nil)
+    hasher.combine(configuration.pinPlainSectionHeaders)
     hasher.combine(configuration.showProject)
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)

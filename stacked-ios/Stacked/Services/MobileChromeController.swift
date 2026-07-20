@@ -15,6 +15,8 @@ final class MobileChromeController {
   var islandNavExpanded = false
   /// Lista principal em scroll — dock pode congelar o glass ao vivo.
   var isContentScrolling = false
+  /// Último `selectTab` também colapsou a ilha — RootView adia o swap de conteúdo.
+  private(set) var lastSelectCollapsedIsland = false
 
   private var scrollIdleTask: _Concurrency.Task<Void, Never>?
 
@@ -126,11 +128,14 @@ final class MobileChromeController {
 
     if navBarStyle == .island {
       if islandNavExpanded {
+        // Colapso + troca de aba no mesmo gesto — conteúdo espera o settle no RootView.
+        lastSelectCollapsedIsland = changing
         AppMotion.animate(AppMotion.islandTabSelectSpring, reduceMotion: reduceMotion) {
           selectedTab = tab
           islandNavExpanded = false
         }
       } else if changing {
+        lastSelectCollapsedIsland = false
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -140,6 +145,7 @@ final class MobileChromeController {
       return
     }
 
+    lastSelectCollapsedIsland = false
     AppMotion.animate(AppMotion.navMorphSpring, reduceMotion: reduceMotion) {
       selectedTab = tab
       self.collapseIslandNavIfNeeded()
