@@ -29,7 +29,7 @@ enum AppLayout {
 
   /// UIKIT_SCROLL_POLISH: arredonda ao grid de pixels do display.
   static func pixelSnap(_ value: CGFloat, scale: CGFloat? = nil) -> CGFloat {
-    let s = scale ?? UIScreen.main.scale
+    let s = scale ?? DisplayScreen.scale
     guard s > 0 else { return value }
     return ceil(value * s) / s
   }

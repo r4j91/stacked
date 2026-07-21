@@ -22,7 +22,7 @@ final class HomeWeatherService: NSObject {
   private static let cacheInterval: TimeInterval = 30 * 60
   private static let persistedLocationMaxAge: TimeInterval = 7 * 24 * 60 * 60
   private static let recentManagerLocationMaxAge: TimeInterval = 20 * 60
-  private static let locationFixTimeout: TimeInterval = 8
+  nonisolated private static let locationFixTimeout: TimeInterval = 8
 
   private override init() {
     super.init()

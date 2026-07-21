@@ -10,7 +10,7 @@ final class NotificationService {
 
   private static let dailySummaryId = "daily-summary"
   private static let logger = Logger(subsystem: "com.stacked.app", category: "Notifications")
-  private static let previewCacheTTL: TimeInterval = 60
+  nonisolated private static let previewCacheTTL: TimeInterval = 60
   /// iOS permite no máximo 64 notificações locais pendentes por app.
   private static let maxItemNotifications = 60
 

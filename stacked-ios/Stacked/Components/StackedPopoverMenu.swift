@@ -19,7 +19,7 @@ struct StackedPopoverOverlay: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
-  var hostBounds: CGRect = UIScreen.main.bounds
+  var hostBounds: CGRect = DisplayScreen.bounds
   /// Offset da âncora no espaço do host expandido (popover escopado em sheet).
   var anchorYOffset: CGFloat = 0
   /// Host de sheet: força abertura acima da âncora (teclado ocupa tudo abaixo).
@@ -72,7 +72,7 @@ struct StackedPopoverOverlay: View {
   }
 
   private var layoutSize: CGSize {
-    hostBounds.width > 1 ? hostBounds.size : UIScreen.main.bounds.size
+    hostBounds.width > 1 ? hostBounds.size : DisplayScreen.bounds.size
   }
 
   /// Quick Add: âncora e host no mesmo espaço local do sheet — não aplicar clamp de teclado em coords de tela.

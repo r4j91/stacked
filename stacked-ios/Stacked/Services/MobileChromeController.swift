@@ -86,7 +86,8 @@ final class MobileChromeController {
     return .live
   }
 
-  func expandIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+  func expandIslandNav(reduceMotion: Bool? = nil) {
+    let reduceMotion = reduceMotion ?? UIAccessibility.isReduceMotionEnabled
     guard navBarStyle == .island else { return }
     guard !islandNavLockedByFabMenu else { return }
     fabOpen = false
@@ -95,7 +96,8 @@ final class MobileChromeController {
     }
   }
 
-  func collapseIslandNav(reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+  func collapseIslandNav(reduceMotion: Bool? = nil) {
+    let reduceMotion = reduceMotion ?? UIAccessibility.isReduceMotionEnabled
     guard islandNavExpanded else { return }
     guard !islandNavLockedByFabMenu else { return }
     AppMotion.animate(AppMotion.islandNavSpring, reduceMotion: reduceMotion) {
@@ -117,7 +119,8 @@ final class MobileChromeController {
     pressedTab = tab
   }
 
-  func selectTab(_ tab: NavTab, reduceMotion: Bool = UIAccessibility.isReduceMotionEnabled) {
+  func selectTab(_ tab: NavTab, reduceMotion: Bool? = nil) {
+    let reduceMotion = reduceMotion ?? UIAccessibility.isReduceMotionEnabled
     pressedTab = nil
     let changing = tab != selectedTab
     if changing {

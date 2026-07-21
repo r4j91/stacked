@@ -70,13 +70,13 @@ final class PopoverPresenter {
 
   private static func fallbackAnchor(near rect: CGRect) -> CGRect {
     if rect.isValidAnchor { return rect }
-    let screen = UIScreen.main.bounds
+    let screen = DisplayScreen.bounds
     return CGRect(x: screen.width - 56, y: max(100, rect.minY), width: 44, height: 44)
   }
 }
 
 struct PopoverOverlayHost: View {
-  var presenter: PopoverPresenter = .shared
+  var presenter: PopoverPresenter
   var hostBounds: CGRect = .zero
   /// Deslocamento Y da âncora (sheet) para o espaço expandido do overlay local.
   var anchorYOffset: CGFloat = 0
@@ -89,18 +89,19 @@ struct PopoverOverlayHost: View {
   @State private var keyboardHeight: CGFloat = 0
 
   init(
-    presenter: PopoverPresenter = .shared,
+    presenter: PopoverPresenter? = nil,
     hostBounds: CGRect = .zero,
     anchorYOffset: CGFloat = 0,
     forcePreferAbove: Bool = false,
     opaquePopoverSurface: Bool = false
   ) {
-    self.presenter = presenter
+    let resolved = presenter ?? .shared
+    self.presenter = resolved
     self.hostBounds = hostBounds
     self.anchorYOffset = anchorYOffset
     self.forcePreferAbove = forcePreferAbove
     self.opaquePopoverSurface = opaquePopoverSurface
-    _boundPresenter = Bindable(presenter)
+    _boundPresenter = Bindable(resolved)
   }
 
   var body: some View {

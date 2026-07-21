@@ -1,6 +1,35 @@
 import SwiftUI
 import UIKit
 
+/// Métricas de tela sem `UIScreen.main` (deprecado no iOS 26).
+enum DisplayScreen {
+  static var scale: CGFloat {
+    if let screen = primaryScreen { return screen.scale }
+    let traitScale = UITraitCollection.current.displayScale
+    return traitScale > 0 ? traitScale : 3
+  }
+
+  static var bounds: CGRect {
+    if let screen = primaryScreen { return screen.bounds }
+    return CGRect(x: 0, y: 0, width: 390, height: 844)
+  }
+
+  static var maximumFramesPerSecond: Int {
+    if let screen = primaryScreen { return screen.maximumFramesPerSecond }
+    return 60
+  }
+
+  private static var primaryScreen: UIScreen? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    if let key = scenes.first(where: { scene in
+      scene.windows.contains(where: \.isKeyWindow)
+    }) {
+      return key.screen
+    }
+    return scenes.first?.screen
+  }
+}
+
 @MainActor
 enum ScreenMetrics {
   static var keyWindow: UIWindow? {
@@ -11,7 +40,7 @@ enum ScreenMetrics {
   }
 
   static var bounds: CGRect {
-    keyWindow?.bounds ?? UIScreen.main.bounds
+    keyWindow?.bounds ?? DisplayScreen.bounds
   }
 }
 

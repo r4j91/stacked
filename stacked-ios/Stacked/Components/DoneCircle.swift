@@ -260,7 +260,7 @@ enum DoneCircleRaster {
 
     let format = UIGraphicsImageRendererFormat.default()
     format.opaque = false
-    format.scale = UIScreen.main.scale
+    format.scale = DisplayScreen.scale
     let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format)
     let image = renderer.image { ctx in
       let cg = ctx.cgContext

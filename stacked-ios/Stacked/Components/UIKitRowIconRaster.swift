@@ -8,7 +8,7 @@ enum UIKitRowIconRaster {
   private static let cache = NSCache<NSString, UIImage>()
 
   static func image(key: StackedIconKey, size: CGFloat, color: UIColor) -> UIImage {
-    let scale = UIScreen.main.scale
+    let scale = DisplayScreen.scale
     let snapped = AppLayout.pixelSnap(size, scale: scale)
     let pixel = Int((snapped * scale).rounded())
     let colorKey = color.cgColor.components?.map { String(format: "%.3f", $0) }.joined(separator: ",") ?? "x"

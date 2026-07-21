@@ -68,7 +68,7 @@ final class UIKitSplitTaskRowView: UIView {
 
   override var intrinsicContentSize: CGSize {
     let headerH = headerHeightConstraint?.constant ?? 0
-    let width = bounds.width > 1 ? bounds.width : UIScreen.main.bounds.width
+    let width = bounds.width > 1 ? bounds.width : DisplayScreen.bounds.width
     let contentWidth = max(width - rowInsets.left - rowInsets.right, 1)
     let panelH: CGFloat
     if let panelHost {

@@ -123,7 +123,7 @@ enum ScrollHitchProbe {
     link = nil
     windowStarted = nil
     lastTimestamp = nil
-    let fps = max(UIScreen.main.maximumFramesPerSecond, 60)
+    let fps = max(DisplayScreen.maximumFramesPerSecond, 60)
     let budget = 1000.0 / Double(fps)
     let sample = Sample(
       scenario: scenarioLabel,

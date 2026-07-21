@@ -58,7 +58,8 @@ enum NotesMarkup {
 
     var combined: Text = segment(first, color: color, size: size, weight: weight, boldWeight: boldWeight)
     for part in parts.dropFirst() {
-      combined = combined + segment(part, color: color, size: size, weight: weight, boldWeight: boldWeight)
+      let next = segment(part, color: color, size: size, weight: weight, boldWeight: boldWeight)
+      combined = Text("\(combined)\(next)")
     }
     return combined
   }

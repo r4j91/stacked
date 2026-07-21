@@ -369,7 +369,8 @@ final class EventKitCalendarService {
     if #available(iOS 17.0, *) {
       return status == .fullAccess
     }
-    return status == .authorized
+    // Pre-iOS 17 `.authorized` (raw 3) — evita warning de depreciação no SDK novo.
+    return status.rawValue == 3
   }
 
   private func canWriteEvents(_ status: EKAuthorizationStatus? = nil) -> Bool {
@@ -377,14 +378,14 @@ final class EventKitCalendarService {
     if #available(iOS 17.0, *) {
       return status == .fullAccess || status == .writeOnly
     }
-    return status == .authorized
+    return status.rawValue == 3
   }
 
   private func hasRemindersAccess(_ status: EKAuthorizationStatus) -> Bool {
     if #available(iOS 17.0, *) {
       return status == .fullAccess
     }
-    return status == .authorized
+    return status.rawValue == 3
   }
 
   private func canWriteReminders(_ status: EKAuthorizationStatus? = nil) -> Bool {

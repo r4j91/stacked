@@ -7,7 +7,7 @@ struct KeyboardHeightObserver: ViewModifier {
     content
       .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
         guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let screenH = UIScreen.main.bounds.height
+        let screenH = DisplayScreen.bounds.height
         height = max(0, screenH - frame.origin.y)
       }
   }
