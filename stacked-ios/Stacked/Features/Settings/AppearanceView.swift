@@ -14,6 +14,8 @@ struct AppearanceView: View {
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
+  @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
+  @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
@@ -120,7 +122,7 @@ struct AppearanceView: View {
           id: .taskRowLayout,
           title: "Layout dos cards",
           summary: taskRowLayoutSummary,
-          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida plana; etiquetas seguem o estilo escolhido em Etiquetas nos cards. O trilho aparece só em Hoje e Em breve."
+          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida. Hora à direita e Lista densa são layouts do mockup. O trilho aparece só em Hoje e Em breve."
         ) {
           ForEach(Array(TaskRowLayout.allCases.enumerated()), id: \.element) { index, layout in
             taskRowLayoutRow(layout)
@@ -130,6 +132,17 @@ struct AppearanceView: View {
           }
           SettingsCardDivider(leadingPadding: 90)
           timelineRailRow()
+        }
+
+        appearancePanel(
+          id: .subtasks,
+          title: "Subtarefas nos cards",
+          summary: subtasksAppearanceSummary,
+          footer: "Anel troca o chevron pelo progresso 0/N. Galho desenha um trilho na lista expandida. A animação de abrir/fechar continua a mesma."
+        ) {
+          subtaskProgressRingRow()
+          SettingsCardDivider(leadingPadding: 56)
+          subtaskBranchRow()
         }
 
         appearancePanel(
@@ -360,14 +373,24 @@ struct AppearanceView: View {
     hasher.combine(dueDateChipStyleRaw)
     hasher.combine(taskRowLayoutRaw)
     hasher.combine(timelineRailEnabled)
+    hasher.combine(subtaskProgressRing)
+    hasher.combine(subtaskBranch)
     return hasher.finalize()
   }
 
   private var taskRowLayoutSummary: String {
-    if timelineRailEnabled {
-      return "\(taskRowLayout.displayName) · Trilho"
+    var parts = [taskRowLayout.displayName]
+    if timelineRailEnabled { parts.append("Trilho") }
+    return parts.joined(separator: " · ")
+  }
+
+  private var subtasksAppearanceSummary: String {
+    switch (subtaskProgressRing, subtaskBranch) {
+    case (true, true): "Anel · Galho"
+    case (true, false): "Anel de progresso"
+    case (false, true): "Galho"
+    case (false, false): "Padrão"
     }
-    return taskRowLayout.displayName
   }
 
   private func toggleAppearanceSection(_ id: AppearanceSectionID) {
@@ -749,6 +772,54 @@ struct AppearanceView: View {
     }
   }
 
+  private func subtaskProgressRingRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Anel de progresso")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Troca o chevron por um anel com o progresso das subtarefas.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $subtaskProgressRing, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: subtaskProgressRing) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func subtaskBranchRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Galho")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Trilho vertical na lista expandida de subtarefas.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $subtaskBranch, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: subtaskBranch) { _, _ in
+      HapticService.selection()
+    }
+  }
+
   private func dueDateChipStyleRow(_ style: DueDateChipStyle) -> some View {
     let c = theme.colors
     let isSelected = dueDateChipStyle == style
@@ -1013,6 +1084,7 @@ private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
   case taskRowLayout
+  case subtasks
   case labelChips
   case dueDateChips
   case homeHero
@@ -1024,6 +1096,7 @@ private enum AppearanceSectionID: String, Hashable {
     case .theme: .paintbrush
     case .navBar: .grid
     case .taskRowLayout: .list
+    case .subtasks: .logbook
     case .labelChips: .tag
     case .dueDateChips: .calendar
     case .homeHero: .sun

@@ -67,6 +67,8 @@ struct UIKitTaskSection: Equatable {
 struct UIKitHostedTaskList: UIViewControllerRepresentable {
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
   @AppStorage(TimelineRailStorage.key) private var timelineRailPreference = TimelineRailStorage.defaultEnabled
+  @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
+  @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
 
   var sections: [UIKitTaskSection]
   var showProject: Bool = true
@@ -260,6 +262,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       background: UIColor(background),
       taskRowLayout: taskRowLayout,
       timelineRailEnabled: timelineRailEnabled,
+      subtaskProgressRing: subtaskProgressRing,
+      subtaskBranch: subtaskBranch,
       leadingChrome: leadingChrome,
       onToggleSection: onToggleSection,
       onRenameSection: onRenameSection,
@@ -328,6 +332,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var background: UIColor
     var taskRowLayout: TaskRowLayout
     var timelineRailEnabled: Bool
+    var subtaskProgressRing: Bool
+    var subtaskBranch: Bool
     var leadingChrome: (() -> AnyView)?
     var onToggleSection: ((String) -> Void)?
     var onRenameSection: ((ProjectSection) -> Void)?
@@ -1125,6 +1131,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     case .default: 0
     case .f2: 1
     case .x2: 2
+    case .trailingTime: 3
+    case .dense: 4
     }
   }
 
@@ -1152,6 +1160,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(styleCode(configuration.style))
     hasher.combine(layoutCode(configuration.taskRowLayout))
     hasher.combine(configuration.timelineRailEnabled)
+    hasher.combine(configuration.subtaskProgressRing)
+    hasher.combine(configuration.subtaskBranch)
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
@@ -1167,6 +1177,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.showProject)
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.timelineRailEnabled)
+    hasher.combine(configuration.subtaskProgressRing)
+    hasher.combine(configuration.subtaskBranch)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
     hasher.combine(configuration.rowInsets.right)

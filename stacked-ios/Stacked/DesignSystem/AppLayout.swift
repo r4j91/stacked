@@ -136,6 +136,22 @@ enum AppLayout {
       if task.commentCount > 0 { return true }
       return false
     }
+    if layout.usesTrailingTimeColumn {
+      // Projeto/hora vão na coluna trailing — meta só data/tags/contador/comentários.
+      return !task.labels.isEmpty
+        || task.dueDate != nil
+        || task.subtasksTotalCount > 0
+        || task.commentCount > 0
+    }
+    if layout.isDense {
+      let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
+      return showsProject
+        || !task.labels.isEmpty
+        || task.dueDate != nil
+        || task.timeDisplay != nil
+        || task.subtasksTotalCount > 0
+        || task.commentCount > 0
+    }
     let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
     return showsProject
       || !task.labels.isEmpty

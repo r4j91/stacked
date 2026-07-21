@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — mockup: cards + subtarefas</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface2: #2C2D33;
+      --text: #F2F3F5;
+      --text2: #9296A0;
+      --text3: #6B6E76;
+      --accent: #5FD3DC;
+      --hoje: #2EC4B6;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-p: #B18CF5;
+      --tag-g: #8FD46B;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      --r: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.35;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 96px; }
+    h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lede { color: var(--text2); font-size: 14px; max-width: 64ch; margin: 0 0 10px; }
+    .note {
+      font-size: 13px; color: var(--text3); margin: 0 0 32px;
+      padding: 10px 12px; background: var(--surface); border-radius: 10px;
+      border-left: 3px solid var(--accent); max-width: 70ch;
+    }
+    h2 {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text3); margin: 40px 0 8px;
+    }
+    .sec-lede { color: var(--text2); font-size: 13.5px; margin: 0 0 16px; max-width: 62ch; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .option {
+      background: var(--surface);
+      border: 1px solid #2f3036;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .option-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 8px; margin-bottom: 4px;
+    }
+    .option-head h3 { font-size: 15px; font-weight: 700; margin: 0; }
+    .badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      padding: 3px 7px; border-radius: 6px; white-space: nowrap;
+    }
+    .badge.now { color: var(--text3); background: #32333a; }
+    .hint { font-size: 12.5px; color: var(--text2); margin: 0 0 12px; }
+
+    .phone {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid #2a2b31;
+    }
+
+    /* primitives */
+    .circle {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--p1);
+      background: color-mix(in srgb, var(--p1) 8%, transparent);
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .circle.p2 { border-color: var(--p2); background: color-mix(in srgb, var(--p2) 8%, transparent); }
+    .circle.p3 { border-color: var(--p3); background: color-mix(in srgb, var(--p3) 8%, transparent); }
+    .circle.n { border-color: var(--text3); background: transparent; }
+    .circle.sm { width: 18px; height: 18px; border-width: 1.5px; margin-top: 2px; }
+    .circle.done {
+      border-color: var(--tag-g);
+      background: color-mix(in srgb, var(--tag-g) 22%, transparent);
+    }
+
+    .title { font-size: 15.5px; font-weight: 600; margin: 0; color: var(--text); }
+    .title.sm { font-size: 14.5px; }
+    .preview { font-size: 12.5px; color: var(--text2); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .eyebrow { font-size: 11px; font-weight: 600; color: var(--text3); margin: 0 0 2px; letter-spacing: 0.02em; }
+    .eyebrow .p { color: var(--p3); }
+    .eyebrow .p.p1 { color: var(--p1); }
+    .eyebrow .p.p2 { color: var(--p2); }
+
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin-top: 6px; font-size: 12px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px; border-radius: 7px;
+      background: color-mix(in srgb, var(--hoje) 16%, transparent);
+      color: var(--hoje); font-weight: 600; font-size: 11.5px;
+    }
+    .chip.muted { background: #32333a; color: var(--text2); font-weight: 500; }
+    .chip.tag { background: color-mix(in srgb, var(--tag-p) 16%, transparent); color: var(--tag-p); }
+    .chip.tag.g { background: color-mix(in srgb, var(--tag-g) 16%, transparent); color: var(--tag-g); }
+    .chip.p2 { background: color-mix(in srgb, var(--p2) 16%, transparent); color: var(--p2); }
+    .ico { opacity: 0.85; font-size: 11px; }
+
+    .row {
+      background: var(--surface2);
+      border-radius: var(--r);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px 10px;
+      align-items: start;
+    }
+    .row + .row { margin-top: 8px; }
+    .row .body { grid-column: 2; min-width: 0; }
+    .row .trail { grid-column: 3; align-self: center; color: var(--text3); font-size: 12px; text-align: right; }
+    .chev { color: var(--text3); font-size: 11px; padding: 4px; }
+
+    footer {
+      margin-top: 48px; padding-top: 16px; border-top: 1px solid #2a2b31;
+      font-size: 12px; color: var(--text3);
+    }
+    code { font-size: 11.5px; color: var(--text2); }
+
+    /* —— Model-specific —— */
+
+    /* A atual */
+    .m-atual .row { grid-template-columns: 28px 1fr auto; }
+
+    /* B title + trailing time */
+    .m-trail .time-big {
+      font-size: 13px; font-weight: 700; color: var(--text2);
+      font-variant-numeric: tabular-nums;
+    }
+    .m-trail .proj { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+    /* C split rails */
+    .m-split .meta { justify-content: space-between; flex-wrap: nowrap; }
+    .m-split .meta-l, .m-split .meta-r { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* D left accent bar */
+    .m-bar .row {
+      grid-template-columns: 4px 28px 1fr auto;
+      padding-left: 0;
+      overflow: hidden;
+    }
+    .m-bar .accent {
+      width: 4px; align-self: stretch; background: var(--tag-p);
+      border-radius: 4px 0 0 4px; grid-row: 1 / -1;
+    }
+
+    /* E icon strip */
+    .m-icons .icons {
+      display: flex; gap: 10px; margin-top: 7px; color: var(--text2); font-size: 12px;
+    }
+    .m-icons .icons span { display: inline-flex; align-items: center; gap: 3px; }
+
+    /* F dense list */
+    .m-dense .row {
+      background: transparent;
+      border-radius: 0;
+      padding: 10px 4px;
+      border-bottom: 1px solid #2a2b31;
+    }
+    .m-dense .row:last-child { border-bottom: 0; }
+
+    /* G two-line agenda */
+    .m-agenda .eyebrow { color: var(--text2); }
+    .m-agenda .eyebrow strong { color: var(--hoje); font-weight: 700; }
+
+    /* —— Subtasks —— */
+    .sub-block { margin-top: 8px; }
+    .sub-row {
+      display: grid; grid-template-columns: 22px 1fr; gap: 8px;
+      padding: 7px 0 7px 6px; align-items: start;
+    }
+    .sub-row .t { font-size: 14px; font-weight: 600; }
+    .sub-row .meta { margin-top: 3px; }
+    .count {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; color: var(--text2); font-weight: 600;
+    }
+
+    /* progress ring */
+    .ring {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: conic-gradient(var(--accent) 0 90deg, #3a3b44 90deg);
+      display: grid; place-items: center;
+    }
+    .ring i {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--surface2);
+      font-style: normal; font-size: 8px; font-weight: 700; color: var(--text2);
+      display: grid; place-items: center;
+    }
+
+    /* peek */
+    .peek {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid #32333a;
+    }
+    .peek-line {
+      font-size: 12.5px; color: var(--text2); padding: 3px 0 3px 30px;
+      position: relative;
+    }
+    .peek-line::before {
+      content: ""; position: absolute; left: 10px; top: 9px;
+      width: 6px; height: 6px; border-radius: 50%; background: #4a4b54;
+    }
+    .peek-more { font-size: 11.5px; color: var(--text3); padding: 4px 0 0 30px; }
+
+    /* chips strip */
+    .sub-chips {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
+    }
+    .sub-chip {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      background: #32333a; color: var(--text2); max-width: 120px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sub-chip.open { outline: 1px solid color-mix(in srgb, var(--p3) 45%, transparent); color: var(--text); }
+    .sub-chip.done { text-decoration: line-through; opacity: 0.55; }
+
+    /* progress bar */
+    .pbar-wrap { margin-top: 8px; }
+    .pbar-label {
+      display: flex; justify-content: space-between; font-size: 11.5px;
+      color: var(--text3); margin-bottom: 4px;
+    }
+    .pbar {
+      height: 4px; border-radius: 2px; background: #32333a; overflow: hidden;
+    }
+    .pbar > i {
+      display: block; height: 100%; width: 25%;
+      background: var(--accent); border-radius: 2px; font-style: normal;
+    }
+
+    /* branch rail */
+    .branch {
+      margin-top: 4px; margin-left: 10px; padding-left: 16px;
+      border-left: 2px solid #3a3b44;
+    }
+    .branch .sub-row { padding-left: 0; }
+
+    /* next up */
+    .next-up {
+      margin-top: 8px; display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #1e1f24; border-radius: 10px;
+      border: 1px dashed #3a3b44;
+    }
+    .next-up .label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent); text-transform: uppercase; }
+    .next-up .t { font-size: 13px; font-weight: 600; }
+
+    /* flat siblings note */
+    .flat-note {
+      font-size: 12px; color: var(--text3); padding: 8px; background: #1e1f24;
+      border-radius: 8px; margin-top: 8px;
+    }
+
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    @media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cards de tarefa + subtarefas</h1>
+    <p class="lede">
+      Sugestões visuais — só mockup. Nenhuma destas opções está no app ainda.
+      Use para escolher o que vale virar layout em Aparência (como Eyebrow / Híbrida).
+    </p>
+    <p class="note">
+      Contexto atual: Balões / Lista / Eyebrow já existem. Em agenda (Hoje / Em breve),
+      subtarefas com data própria podem aparecer como linhas soltas; o expand inline (0/4 ▾)
+      é o modelo “menu de subtarefas” do card pai.
+    </p>
+
+    <!-- ========== CARDS ========== -->
+    <h2>1 · Modelos de card (título + metadados)</h2>
+    <p class="sec-lede">Mesma tarefa de exemplo em cada layout — prioridade, data, hora, projeto, etiqueta, preview.</p>
+
+    <div class="grid">
+
+      <article class="option m-atual">
+        <div class="option-head">
+          <h3>A · Atual (Balões)</h3>
+          <span class="badge now">Hoje no app</span>
+        </div>
+        <p class="hint">Título → preview → meta em chips. Familiar; meta compete um pouco com o título.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle"></div>
+            <div class="body">
+              <p class="title">Saldos — Terça-Feira</p>
+              <p class="preview">SALDOS DO DIA…</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+                <span class="chip muted">22:30</span>
+                <span class="chip tag g">Em Andamento</span>
+                <span class="chip muted">Snoop</span>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-agenda">
+        <div class="option-head">
+          <h3>B · Eyebrow / agenda</h3>
+          <span class="badge now">Já existe</span>
+        </div>
+        <p class="hint">Projeto + P acima do título. Meta de data/hora fundida numa linha “de agenda”.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle p2"></div>
+            <div class="body">
+              <p class="eyebrow">Snoop · <span class="p p2">P2</span></p>
+              <p class="title">Saldos — Terça-Feira</p>
+              <p class="preview">SALDOS DO DIA…</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje · 22:30</span>
+                <span class="chip tag g">Em Andamento</span>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-trail">
+        <div class="option-head">
+          <h3>C · Hora à direita</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Hora vira âncora visual (estilo calendário). Título fica limpo; chips só para data/tags.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle"></div>
+            <div class="body">
+              <p class="title">Saldos — Terça-Feira</p>
+              <p class="preview">SALDOS DO DIA…</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+                <span class="chip tag g">Em Andamento</span>
+              </div>
+            </div>
+            <div class="trail">
+              <div class="time-big">22:30</div>
+              <div class="proj">Snoop</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-split">
+        <div class="option-head">
+          <h3>D · Meta em duas margens</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Esquerda = quando. Direita = contexto (projeto/tag). Escaneia rápido “o quê / quando / onde”.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle p3"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta">
+                <div class="meta-l">
+                  <span class="chip"><span class="ico">▣</span> Hoje</span>
+                </div>
+                <div class="meta-r">
+                  <span class="chip muted">Inbox</span>
+                  <span class="chip tag">Estudo</span>
+                </div>
+              </div>
+            </div>
+            <div class="trail"><span class="count">0/4 ▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-bar">
+        <div class="option-head">
+          <h3>E · Barra de projeto</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Cor do projeto na borda esquerda. Bom em listas longas misturando vários projetos.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="accent"></div>
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">Saldos — Terça-Feira</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+                <span class="chip muted">22:30</span>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-icons">
+        <div class="option-head">
+          <h3>F · Faixa de ícones</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Menos “chip soup”. Ícones + texto curto; prioridade só no anel do círculo.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle"></div>
+            <div class="body">
+              <p class="title">Saldos — Terça-Feira</p>
+              <p class="preview">SALDOS DO DIA…</p>
+              <div class="icons">
+                <span>▣ Hoje</span>
+                <span>◷ 22:30</span>
+                <span>🏷 Em Andamento</span>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option m-dense">
+        <div class="option-head">
+          <h3>G · Lista densa</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Sem card fill — Things/Reminders. Mais tarefas por tela; meta numa linha só.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle p2"></div>
+            <div class="body">
+              <p class="title sm">Saldos — Terça-Feira</p>
+              <div class="meta" style="margin-top:2px">
+                <span style="color:var(--hoje);font-size:11.5px;font-weight:600">Hoje 22:30</span>
+                <span style="color:var(--text3);font-size:11.5px">· Snoop</span>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title sm">CSS</p>
+              <div class="meta" style="margin-top:2px">
+                <span style="color:var(--hoje);font-size:11.5px;font-weight:600">Hoje</span>
+                <span style="color:var(--text3);font-size:11.5px">· 0/4</span>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>H · Título + uma linha só</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Regra dura: no máximo 1 linha de meta. Preview some se houver data — menos ruído.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle"></div>
+            <div class="body">
+              <p class="title">Saldos — Terça-Feira</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje 22:30</span>
+                <span class="chip muted">Snoop</span>
+                <span class="chip tag g">+1</span>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- ========== SUBTASKS ========== -->
+    <h2>2 · Como mostrar subtarefas</h2>
+    <p class="sec-lede">
+      Pai de exemplo: <strong style="color:var(--text)">CSS</strong> com 4 subtarefas (1 com P3).
+      Hoje o app usa expand inline com chevron. Abaixo: alternativas e híbridos.
+    </p>
+
+    <div class="grid">
+
+      <article class="option">
+        <div class="option-head">
+          <h3>1 · Expand inline (atual)</h3>
+          <span class="badge now">Hoje no app</span>
+        </div>
+        <p class="hint">Chevron + contador. Lista completa sob o card. Bom para editar; ocupa altura.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+                <span class="count">📄 0/4</span>
+              </div>
+              <div class="sub-block">
+                <div class="sub-row">
+                  <div class="circle sm p3"></div>
+                  <div>
+                    <div class="eyebrow"><span class="p">P3</span></div>
+                    <div class="t">Aprender Html</div>
+                  </div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle sm n"></div>
+                  <div class="t">H1</div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle sm n"></div>
+                  <div class="t">HR</div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle sm n"></div>
+                  <div class="t">Bar</div>
+                </div>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▴</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>2 · Anel de progresso</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Troca “0/4” por anel. Expand continua igual — só o gatilho fica mais “status”.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+              </div>
+            </div>
+            <div class="trail">
+              <div class="ring"><i>1</i></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>3 · Peek (2 linhas + mais)</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Sempre mostra as próximas 2 abertas. “+2 mais” abre o resto. Menos clique no dia a dia.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta"><span class="chip"><span class="ico">▣</span> Hoje</span></div>
+              <div class="peek">
+                <div class="peek-line">Aprender Html · P3</div>
+                <div class="peek-line">H1</div>
+                <div class="peek-more">+2 mais ▾</div>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>4 · Chips das subtarefas</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Visão compacta tipo checklist horizontal. Toque no chip = detalhe; boa para poucas subtarefas.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta"><span class="chip"><span class="ico">▣</span> Hoje</span></div>
+              <div class="sub-chips">
+                <span class="sub-chip open">Aprender Html</span>
+                <span class="sub-chip">H1</span>
+                <span class="sub-chip">HR</span>
+                <span class="sub-chip">Bar</span>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>5 · Barra + próxima</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Progresso linear + destaque da próxima aberta. Foco em “o que fazer agora”, não na lista toda.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="pbar-wrap">
+                <div class="pbar-label"><span>Subtarefas</span><span>1/4</span></div>
+                <div class="pbar"><i></i></div>
+              </div>
+              <div class="next-up">
+                <div>
+                  <div class="label">Próxima</div>
+                  <div class="t">Aprender Html</div>
+                </div>
+              </div>
+            </div>
+            <div class="trail"><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>6 · Galho (branch)</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Trilho curto só nas subtarefas. Parece árvore; combina bem com Linha do tempo ligada.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta"><span class="chip"><span class="ico">▣</span> Hoje</span> <span class="count">0/4 ▾</span></div>
+              <div class="branch">
+                <div class="sub-row">
+                  <div class="circle sm p3"></div>
+                  <div class="t">Aprender Html</div>
+                </div>
+                <div class="sub-row">
+                  <div class="circle sm n"></div>
+                  <div class="t">H1</div>
+                </div>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>7 · Só no detalhe</h3>
+          <span class="badge">Novo</span>
+        </div>
+        <p class="hint">Na lista: só contador. Expand some — subtarefas só no sheet. Lista mais estável (menos jump de altura).</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta">
+                <span class="chip"><span class="ico">▣</span> Hoje</span>
+                <span class="count">4 subtarefas →</span>
+              </div>
+            </div>
+            <div class="trail"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="option">
+        <div class="option-head">
+          <h3>8 · Planas na agenda</h3>
+          <span class="badge now">Parcial</span>
+        </div>
+        <p class="hint">Subtarefa com data vira linha própria na agenda (pai sem expand). Já acontece em partes de Hoje/Em breve.</p>
+        <div class="phone">
+          <div class="row">
+            <div class="circle n"></div>
+            <div class="body">
+              <p class="title">CSS</p>
+              <div class="meta"><span class="chip"><span class="ico">▣</span> Hoje</span></div>
+            </div>
+            <div class="trail"></div>
+          </div>
+          <div class="flat-note">
+            Em modo “plano”, “Aprender Html” apareceria como card irmão com eyebrow do pai — não dentro do CSS.
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <h2>3 · Combos que eu recomendaria testar</h2>
+    <p class="sec-lede">Não precisa escolher tudo — 2–3 caminhos cobrem bem.</p>
+    <div class="compare">
+      <div class="option">
+        <h3 style="margin:0 0 8px;font-size:15px">Caminho leve</h3>
+        <p class="hint" style="margin:0">
+          Card <strong style="color:var(--text)">C (hora à direita)</strong> ou <strong style="color:var(--text)">H (uma linha de meta)</strong>
+          + subtarefas <strong style="color:var(--text)">3 (peek)</strong>.
+          Pouca mudança visual, menos scroll.
+        </p>
+      </div>
+      <div class="option">
+        <h3 style="margin:0 0 8px;font-size:15px">Caminho agenda</h3>
+        <p class="hint" style="margin:0">
+          Manter <strong style="color:var(--text)">B (eyebrow)</strong> + subtarefas <strong style="color:var(--text)">5 (barra + próxima)</strong>
+          em Hoje/Em breve; expand completo só no detalhe ou no long-press.
+        </p>
+      </div>
+      <div class="option">
+        <h3 style="margin:0 0 8px;font-size:15px">Caminho densidade</h3>
+        <p class="hint" style="margin:0">
+          Card <strong style="color:var(--text)">G (lista densa)</strong> + subtarefas <strong style="color:var(--text)">2 (anel)</strong>
+          ou <strong style="color:var(--text)">7 (só detalhe)</strong>. Máximo de itens na tela.
+        </p>
+      </div>
+      <div class="option">
+        <h3 style="margin:0 0 8px;font-size:15px">Caminho árvore</h3>
+        <p class="hint" style="margin:0">
+          Card atual + subtarefas <strong style="color:var(--text)">6 (galho)</strong>,
+          opcionalmente com trilho de linha do tempo ligado.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      Mockup só visual · <code>docs/mockups/task-card-and-subtask-layouts.html</code>
+      · Abra no browser · Nada foi implementado no app além do título Inbox.
+    </footer>
+  </div>
+</body>
+</html>

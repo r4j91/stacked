@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Layout da linha de tarefa (Aparência) — F2 / X2 dos mocks web.
+/// Layout da linha de tarefa (Aparência) — F2 / X2 / C / G dos mocks.
 enum TaskRowLayout: String, CaseIterable, Identifiable {
   /// Layout atual: título + meta em linha.
   case `default`
@@ -8,6 +8,10 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
   case f2
   /// X2 — projeto no eyebrow; prioridade + agenda fundida plana na meta.
   case x2
+  /// C — hora (+ projeto) à direita; meta só com data/tags.
+  case trailingTime
+  /// G — lista densa: título menor + meta em texto corrido.
+  case dense
 
   var id: String { rawValue }
 
@@ -16,6 +20,8 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
     case .default: "Atual"
     case .f2: "Eyebrow"
     case .x2: "Híbrida"
+    case .trailingTime: "Hora à direita"
+    case .dense: "Lista densa"
     }
   }
 
@@ -24,11 +30,22 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
     case .default: "Título + meta em linha (projeto, hora, data, etiquetas)"
     case .f2: "Projeto · prioridade acima; agenda fundida plana na meta"
     case .x2: "Projeto acima; prioridade + agenda fundida plana na meta"
+    case .trailingTime: "Hora e projeto à direita; chips só para data e etiquetas"
+    case .dense: "Mais compacto: meta em uma linha de texto, sem chips"
     }
   }
 
   var usesEyebrow: Bool {
     self == .f2 || self == .x2
+  }
+
+  /// Hora/projeto na coluna trailing (layout C).
+  var usesTrailingTimeColumn: Bool {
+    self == .trailingTime
+  }
+
+  var isDense: Bool {
+    self == .dense
   }
 }
 

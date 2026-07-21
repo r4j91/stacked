@@ -8,6 +8,8 @@ struct TaskRow: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.openTaskContextMenu) private var openTaskContextMenu
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+  @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
+  @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -368,6 +370,12 @@ struct TaskRow: View {
     let headerH = exactHeaderHeight
     // Sempre mid do título (paridade Hoje/Em breve) — meta/4/5 não descem o círculo.
     let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: rowShowsEyebrow)
+    // Expand (topo) reserva faixa. WhatsApp (baixo) só empurra título nos outros layouts —
+    // em Hora à direita a hora fica no canto; o botão não compete na mesma linha.
+    let reservesExpandHit = task.hasSubtasks
+    let reservesWhatsAppHit = showsWhatsApp && !taskRowLayout.usesTrailingTimeColumn
+    let reservesTrailingHit = reservesExpandHit || reservesWhatsAppHit
+    let trailingTimeEdgePad: CGFloat = reservesExpandHit ? 6 : 12
 
     return ZStack(alignment: .topLeading) {
       HStack(alignment: .top, spacing: 0) {
@@ -378,10 +386,20 @@ struct TaskRow: View {
         taskTitleTapTarget
           .padding(.top, TaskRowCircleAlign.contentTop)
           .padding(.bottom, TaskRowCircleAlign.contentBottom)
-          .padding(.trailing, (task.hasSubtasks || showsWhatsApp) ? 4 : 14)
+          .padding(
+            .trailing,
+            (reservesTrailingHit || taskRowLayout.usesTrailingTimeColumn) ? 4 : 14
+          )
           .frame(maxWidth: .infinity, alignment: .leading)
 
-        if task.hasSubtasks || showsWhatsApp {
+        if taskRowLayout.usesTrailingTimeColumn {
+          trailingTimeProjectColumn
+            .padding(.top, TaskRowCircleAlign.contentTop)
+            .padding(.trailing, trailingTimeEdgePad)
+            .layoutPriority(2)
+        }
+
+        if reservesTrailingHit {
           Color.clear
             .frame(width: 44)
             .padding(.trailing, expandTrailing)
@@ -411,6 +429,37 @@ struct TaskRow: View {
     }
     // Âncora só no header — lift visual fica no container (card/lista).
     .taskContextMenuAnchorHost()
+  }
+
+  @ViewBuilder
+  private var trailingTimeProjectColumn: some View {
+    let c = theme.colors
+    let project = showProject ? task.project : nil
+    let showsProject =
+      !(project ?? "").isEmpty
+      && project != "Sem projeto"
+    let hasTime = !(task.timeDisplay ?? "").isEmpty
+
+    if hasTime || showsProject {
+      VStack(alignment: .trailing, spacing: 2) {
+        if let time = task.timeDisplay, !time.isEmpty {
+          Text(time)
+            .font(AppTypography.timeTrailing)
+            .foregroundStyle(AppColors.dateUpcoming)
+            .monospacedDigit()
+            .lineLimit(1)
+        }
+        if showsProject, let project {
+          Text(project)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(c.textTertiary)
+            .lineLimit(1)
+            .frame(maxWidth: 72, alignment: .trailing)
+        }
+      }
+      .fixedSize(horizontal: true, vertical: false)
+      .accessibilityElement(children: .combine)
+    }
   }
 
   private var showsWhatsAppCopyButton: Bool {
@@ -561,7 +610,8 @@ struct TaskRow: View {
           subtasksCounterLabel: displayedSubtasksCounterLabel,
           commentCount: task.commentCount,
           projectName: showProject ? task.project : nil,
-          timeDisplay: task.timeDisplay
+          timeDisplay: task.timeDisplay,
+          hideSubtasksCounter: subtaskProgressRing && task.hasSubtasks
         )
       }
     }
@@ -569,10 +619,14 @@ struct TaskRow: View {
 
   private var titleRow: some View {
     let c = theme.colors
+    // Hora no título só no layout Atual — C usa coluna trailing; dense funde na meta.
     let showTrailingTime = taskRowLayout == .default
+    let titleFont: Font = taskRowLayout.isDense
+      ? .system(size: 15, weight: .semibold)
+      : AppTypography.taskTitle
     return HStack(alignment: .firstTextBaseline, spacing: 6) {
       Text(task.title)
-        .font(AppTypography.taskTitle)
+        .font(titleFont)
         .foregroundStyle(displayDone ? c.textTertiary : c.textPrimary)
         .strikethrough(displayDone, color: c.textTertiary)
         // PERF_FASEB2_ETAPA3: lineLimit(2) → 1 para altura determinística na List.
@@ -600,13 +654,24 @@ struct TaskRow: View {
       HapticService.selection()
       toggleSubtaskExpansion()
     } label: {
-      SubtaskExpandChevron(
-        expanded: rowExpanded,
-        stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell,
-        taskId: task.id
-      )
-        .frame(width: 44, height: 44)
-        .contentShape(Rectangle())
+      Group {
+        if subtaskProgressRing {
+          SubtaskProgressRing(
+            done: displayedSubtasksDone,
+            total: max(displayedSubtasksTotal, 1)
+          )
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
+        } else {
+          SubtaskExpandChevron(
+            expanded: rowExpanded,
+            stabilizeInSelfSizingCell: stabilizeExpandInSelfSizingCell,
+            taskId: task.id
+          )
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
+        }
+      }
     }
     .buttonStyle(.plain)
     // ui-ux-pro-max: não herdar animação de layout do `expanded` (CLS no open).
@@ -617,7 +682,7 @@ struct TaskRow: View {
 
   private var subtaskList: some View {
     let c = theme.colors
-    let subtaskLeading: CGFloat = 36
+    let subtaskLeading: CGFloat = subtaskBranch ? 40 : 36
     let listHairline = style.showsListHairline
     let betweenAlpha: CGFloat = {
       if listHairline { return TaskExpandDividerStyle.listHairlineAlpha }
@@ -632,111 +697,135 @@ struct TaskRow: View {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
       }
 
-      ForEach(Array(rowDisplaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
-        let done = index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done
-        let labels = resolvedLabels(for: sub)
-        let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
-          layout: taskRowLayout,
-          projectName: nil,
-          showProject: false,
-          priority: sub.priority
-        )
-        let showsMetaLine = subtaskShowsMetaLine(sub, labels: labels)
-        let hasDescription = sub.description?.isEmpty == false
-        // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
-        let hasExtra =
-          hasDescription
-          || showsMetaLine
-          || showsEyebrow
-          || !sub.labelIds.isEmpty
-        let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: showsEyebrow)
-        HStack(alignment: .top, spacing: 0) {
-          Button { toggleSubtask(at: index, sub: sub) } label: {
-            subtaskDot(sub: sub, done: done)
-              .frame(width: TaskRowCircleAlign.hitSize, height: TaskRowCircleAlign.hitSize)
-              .contentShape(Rectangle())
-          }
-          // Host aninhado no UIKit: PressableStyle + scale atrapalhava o hit-test.
-          .buttonStyle(.borderless)
-          .disabled(!rowInteractionsEnabled)
-          .padding(.top, circleTop)
+      ZStack(alignment: .topLeading) {
+        if subtaskBranch {
+          // Galho visual — não altera SubtaskExpandReveal / animação de altura.
+          RoundedRectangle(cornerRadius: 1, style: .continuous)
+            .fill(c.textTertiary.opacity(0.32))
+            .frame(width: 2)
+            .frame(maxHeight: .infinity)
+            .padding(.leading, 17)
+            .padding(.top, 2)
+            .padding(.bottom, 6)
+            .allowsHitTesting(false)
+        }
 
-          // SUBTASK_CTXMENU_FIX: PressableStyle + Button + .contextMenu só “selecionava”
-          // e não abria o menu (pior em listas de projeto). Long-press = popover Excluir.
-          SubtaskTitlePressArea(
-            onTap: { onSubtaskTap?(sub) },
-            onDelete: { deleteInlineSubtask(sub) }
-          ) {
-            VStack(alignment: .leading, spacing: 0) {
-              if showsEyebrow {
-                TaskRowEyebrow(
-                  projectName: nil,
-                  priority: sub.priority,
-                  layout: taskRowLayout
-                )
+        VStack(spacing: 0) {
+          ForEach(Array(rowDisplaySubtasks.enumerated()), id: \.element.idOrFallback) { index, sub in
+            let done = index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done
+            let labels = resolvedLabels(for: sub)
+            let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
+              layout: taskRowLayout,
+              projectName: nil,
+              showProject: false,
+              priority: sub.priority
+            )
+            let showsMetaLine = subtaskShowsMetaLine(sub, labels: labels)
+            let hasDescription = sub.description?.isEmpty == false
+            // labelIds (não resolved): reserva meta antes do catalog — evita flip center→top no scroll.
+            let hasExtra =
+              hasDescription
+              || showsMetaLine
+              || showsEyebrow
+              || !sub.labelIds.isEmpty
+            let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: showsEyebrow)
+            HStack(alignment: .top, spacing: 0) {
+              Button { toggleSubtask(at: index, sub: sub) } label: {
+                subtaskDot(sub: sub, done: done)
+                  .frame(width: TaskRowCircleAlign.hitSize, height: TaskRowCircleAlign.hitSize)
+                  .contentShape(Rectangle())
               }
-              HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(sub.title)
-                  .font(AppTypography.subtaskRowTitle)
-                  .foregroundStyle(done ? c.textTertiary : c.textPrimary)
-                  .strikethrough(done)
-                  // UIKit expand: 1 linha — títulos longos ("…Cartões / Parcela") com
-                  // lineLimit(2) inchavam o sizeThatFits e abriam vão sob o pai (CC ok).
-                  .lineLimit(stabilizeExpandInSelfSizingCell ? 1 : 2)
-                  .layoutPriority(1)
-                Spacer(minLength: 4)
-                if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
-                  HStack(spacing: 2) {
-                    rowClockIcon(color: c.textTertiary)
-                    Text(timeDisplay)
-                      .font(AppTypography.timeChip)
-                      .foregroundStyle(c.textTertiary)
+              // Host aninhado no UIKit: PressableStyle + scale atrapalhava o hit-test.
+              .buttonStyle(.borderless)
+              .disabled(!rowInteractionsEnabled)
+              .padding(.top, circleTop)
+
+              // SUBTASK_CTXMENU_FIX: PressableStyle + Button + .contextMenu só “selecionava”
+              // e não abria o menu (pior em listas de projeto). Long-press = popover Excluir.
+              SubtaskTitlePressArea(
+                onTap: { onSubtaskTap?(sub) },
+                onDelete: { deleteInlineSubtask(sub) }
+              ) {
+                VStack(alignment: .leading, spacing: 0) {
+                  if showsEyebrow {
+                    TaskRowEyebrow(
+                      projectName: nil,
+                      priority: sub.priority,
+                      layout: taskRowLayout
+                    )
                   }
-                  .fixedSize()
+                  HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(sub.title)
+                      .font(taskRowLayout.isDense ? .system(size: 14.5, weight: .semibold) : AppTypography.subtaskRowTitle)
+                      .foregroundStyle(done ? c.textTertiary : c.textPrimary)
+                      .strikethrough(done)
+                      // UIKit expand: 1 linha — títulos longos ("…Cartões / Parcela") com
+                      // lineLimit(2) inchavam o sizeThatFits e abriam vão sob o pai (CC ok).
+                      .lineLimit(stabilizeExpandInSelfSizingCell ? 1 : 2)
+                      .layoutPriority(1)
+                    Spacer(minLength: 4)
+                    if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
+                      HStack(spacing: 2) {
+                        rowClockIcon(color: c.textTertiary)
+                        Text(timeDisplay)
+                          .font(AppTypography.timeChip)
+                          .foregroundStyle(c.textTertiary)
+                      }
+                      .fixedSize()
+                    } else if taskRowLayout.usesTrailingTimeColumn, let timeDisplay = sub.timeDisplay, !timeDisplay.isEmpty {
+                      Text(timeDisplay)
+                        .font(AppTypography.timeTrailing)
+                        .foregroundStyle(AppColors.dateUpcoming)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
+                  }
+                  if let desc = sub.description, !desc.isEmpty {
+                    NotesMarkupText(
+                      source: desc,
+                      color: c.textSecondary.opacity(done ? 0.55 : 0.85),
+                      size: 14,
+                      weight: .regular,
+                      boldWeight: .semibold,
+                      lineLimit: 2
+                    )
+                    .padding(.top, 2)
+                  }
+                  if showsMetaLine {
+                    TaskMetaLine(
+                      labels: labels,
+                      dueDate: sub.dueDate,
+                      priority: sub.priority,
+                      dueDateLabel: sub.dueDateChipLabel,
+                      dueDateColor: sub.dueDateChipColor,
+                      dateDone: done,
+                      timeDisplay: sub.timeDisplay
+                    )
+                  }
                 }
-              }
-              if let desc = sub.description, !desc.isEmpty {
-                NotesMarkupText(
-                  source: desc,
-                  color: c.textSecondary.opacity(done ? 0.55 : 0.85),
-                  size: 14,
-                  weight: .regular,
-                  boldWeight: .semibold,
-                  lineLimit: 2
-                )
-                .padding(.top, 2)
-              }
-              if showsMetaLine {
-                TaskMetaLine(
-                  labels: labels,
-                  dueDate: sub.dueDate,
-                  priority: sub.priority,
-                  dueDateLabel: sub.dueDateChipLabel,
-                  dueDateColor: sub.dueDateChipColor,
-                  dateDone: done,
-                  timeDisplay: sub.timeDisplay
-                )
+                .padding(.top, TaskRowCircleAlign.contentTop)
+                .padding(.bottom, hasExtra ? TaskRowCircleAlign.contentBottom : TaskRowCircleAlign.contentTop)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
               }
             }
-            .padding(.top, TaskRowCircleAlign.contentTop)
-            .padding(.bottom, hasExtra ? TaskRowCircleAlign.contentBottom : TaskRowCircleAlign.contentTop)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(.leading, subtaskLeading)
+            .padding(.trailing, 12)
+
+            if index < rowDisplaySubtasks.count - 1 {
+              TaskExpandDivider(
+                indent: style.isCardFamily
+                  ? TaskExpandDividerStyle.cardSubtaskInset
+                  : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
+                colorAlpha: betweenAlpha,
+                usePrimaryTint: listHairline
+              )
+            }
           }
         }
-        .padding(.leading, subtaskLeading)
-        .padding(.trailing, 12)
-
-        if index < rowDisplaySubtasks.count - 1 {
-          TaskExpandDivider(
-            indent: style.isCardFamily
-              ? TaskExpandDividerStyle.cardSubtaskInset
-              : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
-            colorAlpha: betweenAlpha,
-            usePrimaryTint: listHairline
-          )
-        }
       }
+
       // Folga inferior — o panelFill do clip já pinta até a curva do card.
       Color.clear.frame(height: 4)
     }
@@ -851,6 +940,12 @@ struct TaskRow: View {
       if !labels.isEmpty { return true }
       return false
     }
+    if taskRowLayout.usesTrailingTimeColumn {
+      return sub.dueDate != nil || !labels.isEmpty
+    }
+    if taskRowLayout.isDense {
+      return sub.dueDate != nil || sub.timeDisplay != nil || !labels.isEmpty
+    }
     return sub.dueDate != nil || !labels.isEmpty
   }
 
@@ -895,6 +990,8 @@ struct TaskRow: View {
       hasher.combine(sub.description)
       hasher.combine(sub.labelIds)
     }
+    hasher.combine(subtaskBranch)
+    hasher.combine(subtaskProgressRing)
     return hasher.finalize()
   }
 

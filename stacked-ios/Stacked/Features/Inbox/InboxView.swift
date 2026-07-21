@@ -75,7 +75,7 @@ struct InboxView: View {
       leadingChrome: {
         AnyView(
           TaskListScreenHeader(
-            title: "Caixa de entrada",
+            title: "Inbox",
             subtitle: subtitle,
             showCompletedKey: ShowCompletedPreferences.inboxKey,
             showCompletedDefault: false
@@ -130,7 +130,7 @@ struct InboxView: View {
     List {
       Section {
         TaskListScreenHeader(
-          title: "Caixa de entrada",
+          title: "Inbox",
           subtitle: subtitle,
           showCompletedKey: ShowCompletedPreferences.inboxKey,
           showCompletedDefault: false

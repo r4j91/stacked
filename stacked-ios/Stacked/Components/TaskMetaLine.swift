@@ -24,6 +24,8 @@ struct TaskMetaLine: View {
   /// Em breve / agrupado por dia — omitir data (hora ainda pode aparecer).
   var hideDate: Bool = false
   var maxLabels: Int = 2
+  /// Anel de progresso ativo — omite o contador 0/N da meta (evita duplicar).
+  var hideSubtasksCounter: Bool = false
 
   private var labelChipStyle: LabelChipStyle {
     LabelChipStyleStorage.style(from: labelChipStyleRaw)
@@ -60,19 +62,31 @@ struct TaskMetaLine: View {
     case .f2:
       return !labels.isEmpty
         || fusedScheduleLabel != nil
-        || subtasksTotal > 0
+        || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     case .x2:
       return priority != nil
         || !labels.isEmpty
         || fusedScheduleLabel != nil
-        || subtasksTotal > 0
+        || (!hideSubtasksCounter && subtasksTotal > 0)
+        || commentCount > 0
+    case .trailingTime:
+      return !labels.isEmpty
+        || dueDate != nil
+        || (!hideSubtasksCounter && subtasksTotal > 0)
+        || commentCount > 0
+    case .dense:
+      return showsProject
+        || !labels.isEmpty
+        || dueDate != nil
+        || timeDisplay != nil
+        || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     case .default:
       return showsProject
         || !labels.isEmpty
         || dueDate != nil
-        || subtasksTotal > 0
+        || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     }
   }
@@ -86,6 +100,7 @@ struct TaskMetaLine: View {
   }
 
   private var resolvedSubtasksLabel: String? {
+    if hideSubtasksCounter { return nil }
     if let subtasksCounterLabel, !subtasksCounterLabel.isEmpty { return subtasksCounterLabel }
     guard subtasksTotal > 0 else { return nil }
     return "\(subtasksDone)/\(subtasksTotal)"
@@ -94,78 +109,168 @@ struct TaskMetaLine: View {
   var body: some View {
     if hasMeta {
       let c = theme.colors
-      HStack(spacing: 6) {
-        if layout == .default {
-          if showsProject, let projectName {
-            ProjectChip(name: projectName)
-              .layoutPriority(-1)
-          }
-
-          if dueDate != nil {
-            dueDateChip
-          }
-
-          if let counter = resolvedSubtasksLabel {
-            metaCounter(icon: .logbook, value: counter)
-          }
-
-          if commentCount > 0 {
-            metaCounter(icon: .comment, value: "\(commentCount)")
-          }
-
-          // Prioridade no layout atual fica no anel do checkbox (não na meta).
-
-          ForEach(visibleLabels) { label in
-            TagChip(label: label.name, color: label.color, style: labelChipStyle)
-              .layoutPriority(-1)
-          }
-
-          if overflowLabelCount > 0 {
-            TagChip(
-              label: "+\(overflowLabelCount)",
-              color: c.textTertiary,
-              showIcon: false,
-              style: labelChipStyle
-            )
-          }
+      Group {
+        if layout.isDense {
+          denseMetaLine(colors: c)
         } else {
-          if layout == .x2, let priority {
-            PriorityFlagChip(priority: priority)
-          }
-
-          if let fused = fusedScheduleLabel {
-            FusedScheduleFlat(
-              label: fused,
-              color: dueDateColor ?? c.textSecondary
-            )
-          }
-
-          ForEach(visibleLabels) { label in
-            TagChip(label: label.name, color: label.color, style: labelChipStyle)
-              .layoutPriority(-1)
-          }
-
-          if overflowLabelCount > 0 {
-            TagChip(
-              label: "+\(overflowLabelCount)",
-              color: c.textTertiary,
-              showIcon: false,
-              style: labelChipStyle
-            )
-          }
-
-          if let counter = resolvedSubtasksLabel {
-            metaCounter(icon: .logbook, value: counter)
-          }
-
-          if commentCount > 0 {
-            metaCounter(icon: .comment, value: "\(commentCount)")
-          }
+          chipMetaLine(colors: c)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .clipped()
-      .padding(.top, 4)
+      .padding(.top, layout.isDense ? 2 : 4)
+    }
+  }
+
+  @ViewBuilder
+  private func denseMetaLine(colors: AppThemeColors) -> some View {
+    let parts = denseMetaParts
+    if !parts.isEmpty {
+      Text(parts.joined(separator: " · "))
+        .font(.system(size: 11.5, weight: .medium))
+        .foregroundStyle(colors.textSecondary)
+        .lineLimit(1)
+        .truncationMode(.tail)
+    }
+  }
+
+  private var denseMetaParts: [String] {
+    var parts: [String] = []
+    if !hideDate, let dueDateLabel, !dueDateLabel.isEmpty {
+      if let timeDisplay, !timeDisplay.isEmpty {
+        parts.append("\(dueDateLabel) \(timeDisplay)")
+      } else {
+        parts.append(dueDateLabel)
+      }
+    } else if let timeDisplay, !timeDisplay.isEmpty {
+      parts.append(timeDisplay)
+    }
+    if showsProject, let projectName {
+      parts.append(projectName)
+    }
+    for label in visibleLabels {
+      parts.append(label.name)
+    }
+    if overflowLabelCount > 0 {
+      parts.append("+\(overflowLabelCount)")
+    }
+    if let counter = resolvedSubtasksLabel {
+      parts.append(counter)
+    }
+    if commentCount > 0 {
+      parts.append("\(commentCount)")
+    }
+    return parts
+  }
+
+  @ViewBuilder
+  private func chipMetaLine(colors: AppThemeColors) -> some View {
+    HStack(spacing: 6) {
+      if layout == .default {
+        if showsProject, let projectName {
+          ProjectChip(name: projectName)
+            .layoutPriority(-1)
+        }
+
+        if dueDate != nil {
+          dueDateChip
+        }
+
+        if let counter = resolvedSubtasksLabel {
+          metaCounter(icon: .logbook, value: counter)
+        }
+
+        if commentCount > 0 {
+          metaCounter(icon: .comment, value: "\(commentCount)")
+        }
+
+        ForEach(visibleLabels) { label in
+          TagChip(label: label.name, color: label.color, style: labelChipStyle)
+            .layoutPriority(-1)
+        }
+
+        if overflowLabelCount > 0 {
+          TagChip(
+            label: "+\(overflowLabelCount)",
+            color: colors.textTertiary,
+            showIcon: false,
+            style: labelChipStyle
+          )
+        }
+      } else if layout == .trailingTime {
+        if dueDate != nil {
+          // Só a data — hora vai na coluna trailing.
+          dueDateChipOnlyDate
+        }
+
+        if let counter = resolvedSubtasksLabel {
+          metaCounter(icon: .logbook, value: counter)
+        }
+
+        if commentCount > 0 {
+          metaCounter(icon: .comment, value: "\(commentCount)")
+        }
+
+        ForEach(visibleLabels) { label in
+          TagChip(label: label.name, color: label.color, style: labelChipStyle)
+            .layoutPriority(-1)
+        }
+
+        if overflowLabelCount > 0 {
+          TagChip(
+            label: "+\(overflowLabelCount)",
+            color: colors.textTertiary,
+            showIcon: false,
+            style: labelChipStyle
+          )
+        }
+      } else {
+        if layout == .x2, let priority {
+          PriorityFlagChip(priority: priority)
+        }
+
+        if let fused = fusedScheduleLabel {
+          FusedScheduleFlat(
+            label: fused,
+            color: dueDateColor ?? colors.textSecondary
+          )
+        }
+
+        ForEach(visibleLabels) { label in
+          TagChip(label: label.name, color: label.color, style: labelChipStyle)
+            .layoutPriority(-1)
+        }
+
+        if overflowLabelCount > 0 {
+          TagChip(
+            label: "+\(overflowLabelCount)",
+            color: colors.textTertiary,
+            showIcon: false,
+            style: labelChipStyle
+          )
+        }
+
+        if let counter = resolvedSubtasksLabel {
+          metaCounter(icon: .logbook, value: counter)
+        }
+
+        if commentCount > 0 {
+          metaCounter(icon: .comment, value: "\(commentCount)")
+        }
+      }
+    }
+  }
+
+  /// Chip de data sem fundir hora (layout C).
+  @ViewBuilder
+  private var dueDateChipOnlyDate: some View {
+    if let label = dueDateLabel, let color = dueDateColor {
+      DueDateChip(
+        label: label,
+        color: color,
+        day: dueDate.map { Calendar.current.component(.day, from: $0) },
+        style: dueDateChipStyle
+      )
     }
   }
 
@@ -406,6 +511,21 @@ struct TaskRowLayoutPreview: View {
               .frame(width: 10, height: 6)
             Capsule().fill(colors.accent.opacity(0.7)).frame(width: 22, height: 2)
           }
+        case .trailingTime:
+          HStack(alignment: .top, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
+              Capsule().fill(colors.textPrimary.opacity(0.7)).frame(width: 36, height: 3)
+              Capsule().fill(colors.accent.opacity(0.55)).frame(width: 18, height: 2)
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 2) {
+              Capsule().fill(colors.textSecondary.opacity(0.75)).frame(width: 16, height: 3)
+              Capsule().fill(colors.textTertiary.opacity(0.55)).frame(width: 12, height: 2)
+            }
+          }
+        case .dense:
+          Capsule().fill(colors.textPrimary.opacity(0.65)).frame(width: 48, height: 2.5)
+          Capsule().fill(colors.textTertiary.opacity(0.55)).frame(width: 40, height: 2)
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

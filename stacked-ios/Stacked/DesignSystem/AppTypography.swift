@@ -50,6 +50,8 @@ enum AppTypography {
   static let subtaskRowTitle: Font = .system(size: 15.5, weight: .semibold)
   static let subtaskPreview: Font = .system(size: 14)
   static let timeChip: Font = .system(size: 11)
+  /// Hora à direita (layout C) — âncora visual maior que o timeChip da meta.
+  static let timeTrailing: Font = .system(size: 13, weight: .bold)
   static let navRowTitle: Font = .system(size: 16, weight: .medium)
   static let navRowCount: Font = .system(size: 16, weight: .medium)
   static let statBadge: Font = .system(size: 12, weight: .bold)

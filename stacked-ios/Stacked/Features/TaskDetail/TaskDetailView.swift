@@ -332,6 +332,12 @@ struct TaskDetailView: View {
         if !labels.isEmpty { return true }
         return false
       }
+      if layout.usesTrailingTimeColumn {
+        return sub.dueDate != nil || !labels.isEmpty
+      }
+      if layout.isDense {
+        return sub.dueDate != nil || sub.timeDisplay != nil || !labels.isEmpty
+      }
       return sub.dueDate != nil || !labels.isEmpty
     }()
     let hasMeta = hasDescription || showsMetaLine || showsEyebrow
@@ -369,11 +375,29 @@ struct TaskDetailView: View {
               layout: layout
             )
           }
-          Text(sub.title)
-            .font(AppTypography.taskTitle)
-            .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
-            .strikethrough(sub.done)
-            .frame(maxWidth: .infinity, alignment: .leading)
+          HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(sub.title)
+              .font(AppTypography.taskTitle)
+              .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
+              .strikethrough(sub.done)
+              .lineLimit(2)
+              .layoutPriority(1)
+            Spacer(minLength: 4)
+            if layout == .default, let timeDisplay = sub.timeDisplay, !timeDisplay.isEmpty {
+              Text(timeDisplay)
+                .font(AppTypography.timeChip)
+                .foregroundStyle(c.textTertiary)
+                .fixedSize()
+            } else if layout.usesTrailingTimeColumn, let timeDisplay = sub.timeDisplay, !timeDisplay.isEmpty {
+              Text(timeDisplay)
+                .font(AppTypography.timeTrailing)
+                .foregroundStyle(AppColors.dateUpcoming)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
 
           if hasDescription, let desc = sub.description {
             NotesMarkupText(
