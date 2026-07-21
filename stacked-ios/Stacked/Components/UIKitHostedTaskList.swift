@@ -1067,7 +1067,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
-      hasher.combine(sub.labelIds.count)
+      hasher.combine(sub.labelIds)
     }
     return hasher.finalize()
   }
@@ -1278,7 +1278,20 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     }
 
     if expanded {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+      // Descarta cache velho — senão lockedHeight alto reaparece no 1º frame (buraco).
+      expandedRowHeightCache.removeValue(forKey: taskId)
+      // Listas grandes (parcelas): 0.3s ainda mede alto/vazio — trava buraco preto.
+      // Remede em dois passes antes de lockar o cache.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+        guard let self, self.expansionGeneration[taskId] == gen else { return }
+        if let cell = self.cellForTask(taskId) as? UIKitSizedTaskCell {
+          cell.lockedHeight = nil
+          cell.splitRowView?.invalidatePanelHostIntrinsicSize()
+        }
+        self.collectionView.performBatchUpdates(nil)
+        self.collectionView.layoutIfNeeded()
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak self] in
         guard let self, self.expansionGeneration[taskId] == gen else { return }
         self.cacheVisibleExpandedHeights()
         if let h = self.expandedRowHeightCache[taskId],

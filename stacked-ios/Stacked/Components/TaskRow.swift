@@ -925,7 +925,8 @@ struct TaskRow: View {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
-      hasher.combine(sub.labelIds.count)
+      // Ids (não só count) — trocar etiqueta de mesmo N muda chip/wrap.
+      hasher.combine(sub.labelIds)
     }
     return hasher.finalize()
   }
@@ -1119,15 +1120,18 @@ struct TaskRow: View {
     guard index < rowSubtasksDone.count else { return }
     guard sub.id != nil || sub.taskId != nil else { return }
     let newDone = !rowSubtasksDone[index]
+    let holdKey = subtaskHoldKey(sub)
     if newDone {
       HapticService.taskCompleted()
       // UIKit reconfigure remonta o círculo — marca para o fill sobreviver.
       TaskCompleteAnimationBridge.mark(sub.idOrFallback)
+      // Hold ANTES do patch — senão apply/sort do store joga a row ao fim sem animar.
+      rowSubtaskSortHoldId = holdKey
     } else {
       HapticService.light()
+      rowSubtaskSortHoldId = nil
     }
 
-    let holdKey = subtaskHoldKey(sub)
     var updated = rowDisplaySubtasks
     updated[index] = subtaskWithDone(sub, done: newDone)
     rowDisplaySubtasks = updated
@@ -1149,6 +1153,7 @@ struct TaskRow: View {
         )
       } catch {
         // Reverte store + UI se o backend falhar.
+        rowSubtaskSortHoldId = nil
         onSubtaskChanged?(subtaskSnapshot(sub, done: !newDone))
         guard !_Concurrency.Task.isCancelled else { return }
         if let idx = rowDisplaySubtasks.firstIndex(where: { subtaskHoldKey($0) == holdKey }) {
@@ -1161,7 +1166,6 @@ struct TaskRow: View {
       guard !_Concurrency.Task.isCancelled else { return }
 
       if newDone {
-        rowSubtaskSortHoldId = holdKey
         if !reduceMotion {
           try? await _Concurrency.Task.sleep(for: AppMotion.subtaskCompleteReorderDelay)
         }
@@ -1174,7 +1178,6 @@ struct TaskRow: View {
           rowSubtasksDone = rowDisplaySubtasks.map(\.done)
         }
       } else {
-        rowSubtaskSortHoldId = nil
         AppMotion.animate(AppMotion.smooth, reduceMotion: reduceMotion) {
           rowDisplaySubtasks = TaskMapper.sortSubtasksForDisplay(rowDisplaySubtasks)
           rowSubtasksDone = rowDisplaySubtasks.map(\.done)

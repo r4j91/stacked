@@ -66,6 +66,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
       expanded: expanded,
       animated: !reduceMotion,
       layoutPass: layoutPass,
+      contentRevision: contentRevision,
       stabilizeSelfSizingParent: stabilizeSelfSizingParent,
       snapOpen: snapOpen
     )
@@ -112,6 +113,7 @@ final class SubtaskExpandContainerView: UIView {
   private var lastExpanded: Bool?
   private var lastAppliedWidth: CGFloat = 0
   private var lastLayoutPass: Int = -1
+  private var lastContentRevision: Int = .min
   private var isAnimating = false
   /// Remasure async precisa saber se o open usa pin (stabilize).
   private var stabilizeSelfSizingParent = false
@@ -202,6 +204,7 @@ final class SubtaskExpandContainerView: UIView {
     expanded: Bool,
     animated: Bool,
     layoutPass: Int = 0,
+    contentRevision: Int = 0,
     stabilizeSelfSizingParent: Bool = false,
     snapOpen: Bool = false
   ) {
@@ -224,15 +227,22 @@ final class SubtaskExpandContainerView: UIView {
     if layoutPassChanged {
       lastLayoutPass = layoutPass
     }
-
-    // Snap de remount: não zerar fullHeight (já sabemos a altura).
-    if stateChanged && expanded && !snapOpen {
-      fullHeight = 0
-      hostView?.transform = .identity
+    let contentChanged = contentRevision != lastContentRevision
+    if contentChanged {
+      lastContentRevision = contentRevision
     }
 
-    // Só content change com painel já aberto (etiqueta etc.).
-    // Não roda no open/close — senão mexe na animação de expandir.
+    // Snap de remount: não zerar fullHeight (já sabemos a altura).
+    // Conteúdo novo no reuse/snap (outra task ou lista) — altura velha = buraco preto.
+    if stateChanged && expanded {
+      if !snapOpen || contentChanged || fullHeight <= 0 {
+        fullHeight = 0
+        hostView?.transform = .identity
+      }
+    }
+
+    // Só layoutPass com painel já aberto (etiqueta etc.).
+    // contentRevision (done/título) NÃO remede aqui — zerar altura no toggle matava o painel.
     if layoutPassChanged, expanded, !stateChanged, !isAnimating, fitWidth > 1 {
       if let cell = enclosingCell() as? UIKitSizedTaskCell {
         cell.lockedHeight = nil
@@ -244,7 +254,8 @@ final class SubtaskExpandContainerView: UIView {
     }
 
     if !isAnimating {
-      let needsMeasure = widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
+      let needsMeasure =
+        widthChanged || fullHeight <= 0 || (stateChanged && expanded) || layoutPassChanged
       if needsMeasure, expanded || fullHeight <= 0 {
         let measured = measureHeight(hosting: hosting, width: fitWidth)
         if measured > 0 { fullHeight = measured }

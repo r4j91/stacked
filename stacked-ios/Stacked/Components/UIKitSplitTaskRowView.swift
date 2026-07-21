@@ -174,17 +174,25 @@ final class UIKitSplitTaskRowView: UIView {
     } else if store.subtaskRevealActive || store.expanded {
       let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
       if store.displaySubtasks != sorted {
-        let needsRemeasure =
-          Self.expandLayoutSignature(store.displaySubtasks)
-          != Self.expandLayoutSignature(sorted)
-        store.displaySubtasks = sorted
-        store.subtasksDone = sorted.map(\.done)
-        if needsRemeasure {
-          store.subtaskRevealLayoutPass &+= 1
-          if let cell = enclosingCell() as? UIKitSizedTaskCell {
-            cell.lockedHeight = nil
+        // Durante dwell de concluir: atualiza campos in-place — não reshuffle (mata animação).
+        if store.subtaskSortHoldId != nil {
+          store.displaySubtasks = store.displaySubtasks.map { local in
+            sorted.first(where: { Self.subtaskHoldKey($0) == Self.subtaskHoldKey(local) }) ?? local
           }
-          invalidatePanelHostIntrinsicSize()
+          store.subtasksDone = store.displaySubtasks.map(\.done)
+        } else {
+          let needsRemeasure =
+            Self.expandLayoutSignature(store.displaySubtasks)
+            != Self.expandLayoutSignature(sorted)
+          store.displaySubtasks = sorted
+          store.subtasksDone = sorted.map(\.done)
+          if needsRemeasure {
+            store.subtaskRevealLayoutPass &+= 1
+            if let cell = enclosingCell() as? UIKitSizedTaskCell {
+              cell.lockedHeight = nil
+            }
+            invalidatePanelHostIntrinsicSize()
+          }
         }
       }
     }
@@ -439,6 +447,11 @@ final class UIKitSplitTaskRowView: UIView {
     }
   }
 
+  private static func subtaskHoldKey(_ sub: Subtask) -> String {
+    if let id = sub.id, !id.isEmpty { return id }
+    return "\(sub.taskId ?? ""):\(sub.order)"
+  }
+
   private static func expandLayoutSignature(_ subs: [Subtask]) -> Int {
     var hasher = Hasher()
     hasher.combine(subs.count)
@@ -446,7 +459,7 @@ final class UIKitSplitTaskRowView: UIView {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
-      hasher.combine(sub.labelIds.count)
+      hasher.combine(sub.labelIds)
     }
     return hasher.finalize()
   }
