@@ -95,7 +95,12 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     }
 
     func updateContent(_ content: AnyView, hosting: UIHostingController<AnyView>) {
-      hosting.rootView = content
+      // topLeading: listas longas com título largo (ex.: "…Cartões / Parcela") —
+      // sizeThatFits pode medir alto e o hosting centralizava = vão sob o pai.
+      // Sem fixedSize (quebrava a animação de abertura).
+      hosting.rootView = AnyView(
+        content.frame(maxWidth: .infinity, alignment: .topLeading)
+      )
     }
   }
 }

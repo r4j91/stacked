@@ -680,7 +680,9 @@ struct TaskRow: View {
                   .font(AppTypography.subtaskRowTitle)
                   .foregroundStyle(done ? c.textTertiary : c.textPrimary)
                   .strikethrough(done)
-                  .lineLimit(2)
+                  // UIKit expand: 1 linha — títulos longos ("…Cartões / Parcela") com
+                  // lineLimit(2) inchavam o sizeThatFits e abriam vão sob o pai (CC ok).
+                  .lineLimit(stabilizeExpandInSelfSizingCell ? 1 : 2)
                   .layoutPriority(1)
                 Spacer(minLength: 4)
                 if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
