@@ -66,6 +66,7 @@ struct UIKitTaskSection: Equatable {
 /// UICollectionView + `UIHostingConfiguration` — baseline fluido (919c1ec) + seções/modos.
 struct UIKitHostedTaskList: UIViewControllerRepresentable {
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+  @AppStorage(TimelineRailStorage.key) private var timelineRailPreference = TimelineRailStorage.defaultEnabled
 
   var sections: [UIKitTaskSection]
   var showProject: Bool = true
@@ -74,6 +75,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var rowInsets: EdgeInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16)
   var background: Color
   var leadingChrome: (() -> AnyView)? = nil
+  /// Preferência Aparência + esta flag (só Hoje / Em breve).
+  var supportsTimelineRail: Bool = false
   var onToggleSection: ((String) -> Void)? = nil
   var onRenameSection: ((ProjectSection) -> Void)? = nil
   var onDeleteSection: ((ProjectSection) -> Void)? = nil
@@ -102,6 +105,10 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
   }
 
+  private var timelineRailEnabled: Bool {
+    supportsTimelineRail && timelineRailPreference
+  }
+
   init(
     tasks: [Task],
     showProject: Bool = true,
@@ -110,6 +117,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     rowInsets: EdgeInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16),
     background: Color,
     leadingChrome: (() -> AnyView)? = nil,
+    supportsTimelineRail: Bool = false,
     onToggleSection: ((String) -> Void)? = nil,
     onRenameSection: ((ProjectSection) -> Void)? = nil,
     onDeleteSection: ((ProjectSection) -> Void)? = nil,
@@ -139,6 +147,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       rowInsets: rowInsets,
       background: background,
       leadingChrome: leadingChrome,
+      supportsTimelineRail: supportsTimelineRail,
       onToggleSection: onToggleSection,
       onRenameSection: onRenameSection,
       onDeleteSection: onDeleteSection,
@@ -170,6 +179,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     rowInsets: EdgeInsets = EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16),
     background: Color,
     leadingChrome: (() -> AnyView)? = nil,
+    supportsTimelineRail: Bool = false,
     onToggleSection: ((String) -> Void)? = nil,
     onRenameSection: ((ProjectSection) -> Void)? = nil,
     onDeleteSection: ((ProjectSection) -> Void)? = nil,
@@ -199,6 +209,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     self.rowInsets = rowInsets
     self.background = background
     self.leadingChrome = leadingChrome
+    self.supportsTimelineRail = supportsTimelineRail
     self.onToggleSection = onToggleSection
     self.onRenameSection = onRenameSection
     self.onDeleteSection = onDeleteSection
@@ -248,6 +259,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       rowInsets: snappedInsets,
       background: UIColor(background),
       taskRowLayout: taskRowLayout,
+      timelineRailEnabled: timelineRailEnabled,
       leadingChrome: leadingChrome,
       onToggleSection: onToggleSection,
       onRenameSection: onRenameSection,
@@ -315,6 +327,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var rowInsets: UIEdgeInsets
     var background: UIColor
     var taskRowLayout: TaskRowLayout
+    var timelineRailEnabled: Bool
     var leadingChrome: (() -> AnyView)?
     var onToggleSection: ((String) -> Void)?
     var onRenameSection: ((ProjectSection) -> Void)?
@@ -385,6 +398,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   /// PERF_SCROLL_345 (item 3): reconfigure de conteúdo chegado no meio do fling —
   /// aplica uma vez só no settle em vez de custar frames durante o gesto.
   private var pendingContentRefresh = false
+  /// Continuidade do trilho por ItemID (só com timelineRailEnabled).
+  private var timelineRailEdges: [ItemID: (up: Bool, down: Bool)] = [:]
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -528,6 +543,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           ])
           cell.splitRowView = split
         }
+        let styleCode = Self.rowPresentationCode(style: config.style, layout: config.taskRowLayout)
+        let rail = self.timelineRailEdges[.task(id: taskId, style: styleCode)] ?? (false, false)
         split.apply(.init(
           task: task,
           style: config.style,
@@ -551,7 +568,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           onComplete: { config.onComplete(task) },
           onDuplicate: { config.onDuplicate(task) },
           onDelete: { config.onDelete(task) },
-          onRefresh: config.onRefresh
+          onRefresh: config.onRefresh,
+          timelineRailEnabled: config.timelineRailEnabled,
+          timelineConnectsUp: rail.up,
+          timelineConnectsDown: rail.down,
+          timelineNodeColor: UIColor(TimelineRailNodeColor.forTask(task))
         ))
       }
     }
@@ -563,6 +584,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         return
       }
       let insets = config.rowInsets
+      let rail = self.timelineRailEdges[.scheduleSubtask(id: entryId)] ?? (false, false)
+      let leading = Self.timelineAdjustedLeading(insets.left, enabled: config.timelineRailEnabled)
       UIView.performWithoutAnimation {
         var clearBg = UIBackgroundConfiguration.clear()
         clearBg.backgroundColor = .clear
@@ -580,8 +603,14 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
             onTap: { config.onScheduledSubtaskTap?(entry) }
           )
           .padding(.top, insets.top)
-          .padding(.leading, insets.left)
           .padding(.bottom, insets.bottom)
+          .timelineRail(
+            enabled: config.timelineRailEnabled,
+            nodeColor: TimelineRailNodeColor.forSubtask(entry.subtask),
+            connectsUp: rail.up,
+            connectsDown: rail.down
+          )
+          .padding(.leading, leading)
           .padding(.trailing, insets.right)
           .environment(ThemeManager.shared)
           .environment(MobileChromeController.shared)
@@ -634,6 +663,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         return
       }
       let insets = config.rowInsets
+      let rail = self.timelineRailEdges[.calendarEvent(id: eventId)] ?? (false, false)
+      let leading = Self.timelineAdjustedLeading(insets.left, enabled: config.timelineRailEnabled)
       UIView.performWithoutAnimation {
         var clearBg = UIBackgroundConfiguration.clear()
         clearBg.backgroundColor = .clear
@@ -645,8 +676,14 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
             config.onCalendarEventTap?(event)
           }
           .padding(.top, insets.top)
-          .padding(.leading, insets.left)
           .padding(.bottom, insets.bottom)
+          .timelineRail(
+            enabled: config.timelineRailEnabled,
+            nodeColor: AppColors.priorityLow,
+            connectsUp: rail.up,
+            connectsDown: rail.down
+          )
+          .padding(.leading, leading)
           .padding(.trailing, insets.right)
           .environment(ThemeManager.shared)
           .environment(MobileChromeController.shared)
@@ -857,6 +894,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     dimmedTaskIds = dimmed
     mutedTaskIds = muted
     headerFlags.publish(from: configuration.sections)
+    rebuildTimelineRailEdges(from: configuration)
 
     view.backgroundColor = configuration.background
     collectionView.backgroundColor = configuration.background
@@ -959,13 +997,48 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private func reconfigureAllTaskItems() {
     guard dataSource != nil else { return }
     var snap = dataSource.snapshot()
-    let tasks = snap.itemIdentifiers.filter {
-      if case .task = $0 { return true }
-      return false
+    let rows = snap.itemIdentifiers.filter {
+      switch $0 {
+      case .task, .scheduleSubtask, .calendarEvent:
+        return true
+      default:
+        return false
+      }
     }
-    guard !tasks.isEmpty else { return }
-    snap.reconfigureItems(tasks)
+    guard !rows.isEmpty else { return }
+    snap.reconfigureItems(rows)
     dataSource.apply(snap, animatingDifferences: false)
+  }
+
+  private func rebuildTimelineRailEdges(from configuration: Configuration) {
+    timelineRailEdges = [:]
+    guard configuration.timelineRailEnabled else { return }
+    let styleCode = Self.rowPresentationCode(
+      style: configuration.style,
+      layout: configuration.taskRowLayout
+    )
+    for section in configuration.sections {
+      let showTasks: Bool
+      switch section.header {
+      case .collapsible(_, _, let expanded):
+        showTasks = expanded
+      case .completedToggle(_, let expanded):
+        showTasks = expanded
+      case .plain, .none:
+        showTasks = true
+      }
+      guard showTasks else { continue }
+      let ids = Self.rowItemIDs(for: section, styleCode: styleCode)
+      for (index, id) in ids.enumerated() {
+        timelineRailEdges[id] = (index > 0, index < ids.count - 1)
+      }
+    }
+  }
+
+  private static func timelineAdjustedLeading(_ leading: CGFloat, enabled: Bool) -> CGFloat {
+    guard enabled else { return leading }
+    // Trilho (16) + spacing (8) = 24 — mantém o card alinhado ao layout sem trilho.
+    return max(4, leading - 24)
   }
 
   /// Após patch otimista de subtarefa: `taskById` já está novo; cell precisa do Task fresco.
@@ -1067,6 +1140,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.priority != nil)
       hasher.combine(sub.labelIds)
     }
     return hasher.finalize()
@@ -1077,6 +1151,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var hasher = Hasher()
     hasher.combine(styleCode(configuration.style))
     hasher.combine(layoutCode(configuration.taskRowLayout))
+    hasher.combine(configuration.timelineRailEnabled)
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
@@ -1091,6 +1166,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.pinPlainSectionHeaders)
     hasher.combine(configuration.showProject)
     hasher.combine(configuration.flatSubtaskQueue)
+    hasher.combine(configuration.timelineRailEnabled)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
     hasher.combine(configuration.rowInsets.right)

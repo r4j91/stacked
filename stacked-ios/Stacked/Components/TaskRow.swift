@@ -877,7 +877,7 @@ struct TaskRow: View {
     return "\(displayedSubtasksDone)/\(displayedSubtasksTotal)"
   }
 
-  /// Só muda quando subtarefas / done / labels mudam — evita reassign do UIHostingController no scroll.
+  /// Só muda quando subtarefas / done / meta mudam — evita reassign do UIHostingController no scroll.
   private var subtaskRevealContentRevision: Int {
     var hasher = Hasher()
     hasher.combine(rowDisplaySubtasks.count)
@@ -889,6 +889,7 @@ struct TaskRow: View {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.title)
       hasher.combine(index < rowSubtasksDone.count ? rowSubtasksDone[index] : sub.done)
+      hasher.combine(sub.priority)
       hasher.combine(sub.dueDateChipLabel)
       hasher.combine(sub.timeDisplay)
       hasher.combine(sub.description)
@@ -927,6 +928,7 @@ struct TaskRow: View {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.priority != nil)
       // Ids (não só count) — trocar etiqueta de mesmo N muda chip/wrap.
       hasher.combine(sub.labelIds)
     }

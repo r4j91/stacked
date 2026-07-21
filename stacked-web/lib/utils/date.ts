@@ -159,6 +159,6 @@ export function dueDateChipColor(
 ): string {
   if (!due || done) return "var(--color-text-tertiary)";
   if (isOverdueDate(due, done, now)) return "var(--color-overdue)";
-  if (isDueToday(due, now)) return "var(--color-done)";
+  if (isDueToday(due, now)) return "var(--color-due-today)";
   return "var(--color-date-upcoming)";
 }

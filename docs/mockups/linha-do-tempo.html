@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — mockup: Linha do tempo</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface2: #2C2D33;
+      --text: #F2F3F5;
+      --text2: #9296A0;
+      --text3: #6B6E76;
+      --hoje: #2EC4B6;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.4;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 20px 72px; }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .lede { color: var(--text2); font-size: 14px; max-width: 58ch; margin: 0 0 32px; }
+    h2 {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text3); margin: 36px 0 12px;
+    }
+    p.explain { color: var(--text2); font-size: 14px; margin: 0 0 16px; max-width: 60ch; }
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid #32333a;
+    }
+    .panel-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 12px;
+    }
+
+    /* —— Actual (balões) —— */
+    .balloons .card {
+      background: var(--surface2);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px 10px;
+      margin-bottom: 8px;
+    }
+
+    /* —— Timeline —— */
+    .timeline {
+      position: relative;
+      padding-left: 22px;
+    }
+    /* the vertical rail */
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 18px;
+      bottom: 18px;
+      width: 2px;
+      background: #3a3b44;
+      border-radius: 1px;
+    }
+    .timeline .card {
+      position: relative;
+      background: var(--surface2);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px 10px;
+      margin-bottom: 12px;
+    }
+    .timeline .card:last-child { margin-bottom: 0; }
+
+    /* the node on the rail */
+    .timeline .node {
+      position: absolute;
+      left: -19px;
+      top: 17px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      background: var(--hoje);
+      z-index: 1;
+    }
+    .timeline .node.overdue { background: var(--p1); }
+    .timeline .node.later { background: var(--text3); }
+    .timeline .node.now {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--hoje) 35%, transparent);
+    }
+
+    .circle {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--p1);
+      background: color-mix(in srgb, var(--p1) 8%, transparent);
+      margin-top: 1px;
+    }
+    .circle.p2 { border-color: var(--p2); background: color-mix(in srgb, var(--p2) 8%, transparent); }
+    .circle.p3 { border-color: var(--p3); background: color-mix(in srgb, var(--p3) 8%, transparent); }
+    .circle.n { border-color: var(--text3); background: transparent; }
+
+    .title { font-size: 15.5px; font-weight: 600; margin: 0; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin-top: 6px; font-size: 12.5px; color: var(--text2);
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px 2px 5px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      color: var(--hoje);
+      background: color-mix(in srgb, var(--hoje) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--hoje) 35%, transparent);
+    }
+    .chip.overdue {
+      color: var(--p1);
+      background: color-mix(in srgb, var(--p1) 14%, transparent);
+      border-color: color-mix(in srgb, var(--p1) 35%, transparent);
+    }
+    .chip.later {
+      color: var(--text3);
+      background: color-mix(in srgb, var(--text3) 12%, transparent);
+      border-color: color-mix(in srgb, var(--text3) 30%, transparent);
+    }
+    .proj { color: var(--text3); font-size: 12px; }
+
+    /* Callouts */
+    .callouts {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .callout {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid #32333a;
+    }
+    .callout .icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface2);
+      display: grid; place-items: center;
+      font-size: 18px; font-weight: 700; color: var(--hoje);
+    }
+    .callout strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .callout span { font-size: 13px; color: var(--text2); }
+
+    /* Annotated zoom */
+    .zoom {
+      margin-top: 16px;
+      background: #15161a;
+      border-radius: 16px;
+      padding: 20px 16px 24px;
+      border: 1px dashed #3a3b44;
+      position: relative;
+    }
+    .zoom-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 16px;
+    }
+    .zoom-timeline {
+      position: relative;
+      padding-left: 48px;
+      max-width: 420px;
+    }
+    .zoom-timeline::before {
+      content: "";
+      position: absolute;
+      left: 19px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      background: #45464f;
+      border-radius: 2px;
+    }
+    .zoom-card {
+      position: relative;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 14px 14px 14px 12px;
+      margin-bottom: 18px;
+      border: 1px solid #3a3b44;
+    }
+    .zoom-node {
+      position: absolute;
+      left: -37px;
+      top: 18px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--hoje);
+      border: 3px solid var(--bg);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--hoje) 30%, transparent);
+    }
+    .anno {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--hoje);
+      white-space: nowrap;
+    }
+    .anno-rail {
+      left: -4px;
+      top: 50%;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      color: var(--text3);
+    }
+    .anno-node {
+      left: -110px;
+      top: 16px;
+    }
+    .anno-card {
+      right: -8px;
+      top: -10px;
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid color-mix(in srgb, var(--hoje) 40%, transparent);
+    }
+
+    .day-header {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin: 4px 0 10px 0;
+      padding-left: 0;
+    }
+    .timeline .day-header {
+      margin-left: -22px;
+      padding-left: 0;
+    }
+
+    footer {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Linha do tempo — o que é?</h1>
+    <p class="lede">
+      Não muda o conteúdo da tarefa. Só adiciona um <strong style="color:var(--text)">trilho vertical</strong>
+      à esquerda e um <strong style="color:var(--text)">ponto (nó)</strong> em cada row, para ler a lista
+      como sequência no tempo — típico de Hoje / Em breve.
+    </p>
+
+    <h2>Lado a lado</h2>
+    <p class="explain">Esquerda = Balões de hoje. Direita = mesma lista no modo Linha do tempo.</p>
+
+    <div class="cols">
+      <div class="panel">
+        <div class="panel-label">Atual · Balões</div>
+        <div class="balloons">
+          <div class="card">
+            <div class="circle"></div>
+            <div>
+              <p class="title">Pagar boleto atraso</p>
+              <div class="meta"><span class="chip overdue">Atrasada</span><span class="proj">Financeiro</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="circle p2"></div>
+            <div>
+              <p class="title">Revisar fatura do cartão</p>
+              <div class="meta"><span class="chip">Hoje</span><span class="proj">Financeiro</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="circle p3"></div>
+            <div>
+              <p class="title">Enviar proposta</p>
+              <div class="meta"><span class="chip">Hoje · 14:30</span><span class="proj">Trabalho</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="circle n"></div>
+            <div>
+              <p class="title">Dentista</p>
+              <div class="meta"><span class="chip later">Amanhã</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">Proposta · Linha do tempo</div>
+        <div class="timeline">
+          <div class="card">
+            <span class="node overdue"></span>
+            <div class="circle"></div>
+            <div>
+              <p class="title">Pagar boleto atraso</p>
+              <div class="meta"><span class="chip overdue">Atrasada</span><span class="proj">Financeiro</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <span class="node now"></span>
+            <div class="circle p2"></div>
+            <div>
+              <p class="title">Revisar fatura do cartão</p>
+              <div class="meta"><span class="chip">Hoje</span><span class="proj">Financeiro</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <span class="node now"></span>
+            <div class="circle p3"></div>
+            <div>
+              <p class="title">Enviar proposta</p>
+              <div class="meta"><span class="chip">Hoje · 14:30</span><span class="proj">Trabalho</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <span class="node later"></span>
+            <div class="circle n"></div>
+            <div>
+              <p class="title">Dentista</p>
+              <div class="meta"><span class="chip later">Amanhã</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Zoom anotado</h2>
+    <div class="zoom">
+      <div class="zoom-title">Peças do layout</div>
+      <div class="zoom-timeline">
+        <span class="anno anno-rail">trilho</span>
+        <div class="zoom-card">
+          <span class="anno anno-node">← nó</span>
+          <span class="anno anno-card">card da tarefa →</span>
+          <span class="zoom-node"></span>
+          <p class="title">Revisar fatura do cartão</p>
+          <div class="meta"><span class="chip">Hoje</span></div>
+        </div>
+        <div class="zoom-card" style="opacity:0.55">
+          <span class="zoom-node" style="box-shadow:none"></span>
+          <p class="title">Próxima tarefa…</p>
+        </div>
+      </div>
+    </div>
+
+    <h2>Em três frases</h2>
+    <div class="callouts">
+      <div class="callout">
+        <div class="icon">1</div>
+        <div>
+          <strong>Trilho</strong>
+          <span>Linha cinza contínua à esquerda, ligando uma tarefa à seguinte — como uma agenda.</span>
+        </div>
+      </div>
+      <div class="callout">
+        <div class="icon">2</div>
+        <div>
+          <strong>Nó</strong>
+          <span>Bolinha na altura de cada card. Cor segue o prazo: vermelho atraso, teal hoje, cinza futuro.</span>
+        </div>
+      </div>
+      <div class="callout">
+        <div class="icon">3</div>
+        <div>
+          <strong>Card igual</strong>
+          <span>Círculo de concluir, título e meta continuam iguais aos Balões — só ganham esse “eixo” na esquerda.</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>Onde faria sentido</h2>
+    <p class="explain">
+      Mais útil em <strong style="color:var(--text)">Hoje</strong> e <strong style="color:var(--text)">Em breve</strong>
+      (lista ordenada por horário/dia). Em Inbox ou projeto sem ordem temporal, o trilho quase não conta história —
+      aí Balões / Lista continuam melhores.
+    </p>
+
+    <footer>
+      Mockup só visual · <code>docs/mockups/linha-do-tempo.html</code> · HOJE já aplicado no app: teal <code>#2EC4B6</code>
+    </footer>
+  </div>
+</body>
+</html>

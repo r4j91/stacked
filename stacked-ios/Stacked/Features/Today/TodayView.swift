@@ -6,6 +6,7 @@ struct TodayView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   /// PERF_FASEB3_3A — T2 desligado do path ativo (sempre false via ScrollPerfDebugStorage).
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
@@ -91,6 +92,7 @@ struct TodayView: View {
           .padding(.bottom, 8)
         )
       },
+      supportsTimelineRail: true,
       onToggleSection: { id in
         if id == "completed" {
           AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
@@ -198,9 +200,7 @@ struct TodayView: View {
       } else {
         if !store.todayOverdueItems.isEmpty {
           Section {
-            ForEach(store.todayOverdueItems) { item in
-              scheduleRow(item)
-            }
+            scheduleSectionRows(store.todayOverdueItems)
           } header: {
             ListSectionHeader(text: "ATRASADAS")
           }
@@ -208,9 +208,7 @@ struct TodayView: View {
 
         if !timeline.isEmpty {
           Section {
-            ForEach(timeline) { item in
-              scheduleRow(item)
-            }
+            scheduleSectionRows(timeline)
           } header: {
             if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
           }
@@ -234,7 +232,7 @@ struct TodayView: View {
             .listRowBackground(Color.clear)
 
             if completedExpanded {
-              ForEach(store.todayCompleted) { task in
+              ForEach(Array(store.todayCompleted.enumerated()), id: \.element.id) { index, task in
                 TaskRow(
                   task: task,
                   style: displayMode.taskRowStyle,
@@ -242,7 +240,13 @@ struct TodayView: View {
                   deferHeavyWork: !allowRowHeavyWork
                 ) { }
                   .opacity(0.7)
-                  .listRowInsets(rowInsets)
+                  .timelineRail(
+                    enabled: timelineRailEnabled,
+                    nodeColor: TimelineRailNodeColor.forTask(task),
+                    connectsUp: index > 0,
+                    connectsDown: index < store.todayCompleted.count - 1
+                  )
+                  .listRowInsets(railListInsets)
                   .listRowSeparator(.hidden)
                   .listRowBackground(Color.clear)
               }
@@ -261,6 +265,14 @@ struct TodayView: View {
     displayMode.taskListRowInsets
   }
 
+  private var railListInsets: EdgeInsets {
+    var insets = rowInsets
+    if timelineRailEnabled {
+      insets.leading = max(4, insets.leading - 24)
+    }
+    return insets
+  }
+
   private func openPendingTaskIfNeeded() {
     guard let id = router.consumeTaskId() else { return }
     guard TaskIdentity.isValidUUID(id) else { return }
@@ -268,10 +280,25 @@ struct TodayView: View {
   }
 
   @ViewBuilder
-  private func scheduleRow(_ item: ScheduleItem) -> some View {
+  private func scheduleSectionRows(_ items: [ScheduleItem]) -> some View {
+    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+      scheduleRow(
+        item,
+        connectsUp: index > 0,
+        connectsDown: index < items.count - 1
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func scheduleRow(
+    _ item: ScheduleItem,
+    connectsUp: Bool = false,
+    connectsDown: Bool = false
+  ) -> some View {
     switch item {
     case .task(let task):
-      taskRow(task)
+      taskRow(task, connectsUp: connectsUp, connectsDown: connectsDown)
     case .subtask(let entry):
       FilterSubtaskRow(
         subtask: entry.subtask,
@@ -281,26 +308,48 @@ struct TodayView: View {
         onToggle: { store.completeScheduledSubtask(entry) },
         onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id) }
       )
-      .listRowInsets(rowInsets)
+      .timelineRail(
+        enabled: timelineRailEnabled,
+        nodeColor: TimelineRailNodeColor.forSubtask(entry.subtask),
+        connectsUp: connectsUp,
+        connectsDown: connectsDown
+      )
+      .listRowInsets(railListInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     case .calendarEvent(let event):
       CalendarEventRow(event: event) {
         EventKitCalendarService.shared.openInCalendar(event)
       }
-      .listRowInsets(rowInsets)
+      .timelineRail(
+        enabled: timelineRailEnabled,
+        nodeColor: AppColors.priorityLow,
+        connectsUp: connectsUp,
+        connectsDown: connectsDown
+      )
+      .listRowInsets(railListInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }
   }
 
   @ViewBuilder
-  private func taskRow(_ task: Task) -> some View {
+  private func taskRow(
+    _ task: Task,
+    connectsUp: Bool = false,
+    connectsDown: Bool = false
+  ) -> some View {
     // PERF_FASEB3_ETAPA2 T2
     if t2RowsPlaceholder {
       TaskRowScrollPlaceholder(task: task, showProject: true, style: displayMode.taskRowStyle)
         .id(task.id)
-        .listRowInsets(rowInsets)
+        .timelineRail(
+          enabled: timelineRailEnabled,
+          nodeColor: TimelineRailNodeColor.forTask(task),
+          connectsUp: connectsUp,
+          connectsDown: connectsDown
+        )
+        .listRowInsets(railListInsets)
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
     } else {
@@ -323,7 +372,13 @@ struct TodayView: View {
       .id(task.id)
       .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
       .taskCompleteRemovalTransition()
-      .listRowInsets(rowInsets)
+      .timelineRail(
+        enabled: timelineRailEnabled,
+        nodeColor: TimelineRailNodeColor.forTask(task),
+        connectsUp: connectsUp,
+        connectsDown: connectsDown
+      )
+      .listRowInsets(railListInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
       .taskContextMenu(

@@ -13,6 +13,7 @@ struct AppearanceView: View {
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+  @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
@@ -118,8 +119,8 @@ struct AppearanceView: View {
         appearancePanel(
           id: .taskRowLayout,
           title: "Layout dos cards",
-          summary: taskRowLayout.displayName,
-          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida plana; etiquetas seguem o estilo escolhido em Etiquetas nos cards."
+          summary: taskRowLayoutSummary,
+          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida plana; etiquetas seguem o estilo escolhido em Etiquetas nos cards. O trilho aparece só em Hoje e Em breve."
         ) {
           ForEach(Array(TaskRowLayout.allCases.enumerated()), id: \.element) { index, layout in
             taskRowLayoutRow(layout)
@@ -127,6 +128,8 @@ struct AppearanceView: View {
               SettingsCardDivider(leadingPadding: 90)
             }
           }
+          SettingsCardDivider(leadingPadding: 90)
+          timelineRailRow()
         }
 
         appearancePanel(
@@ -356,7 +359,15 @@ struct AppearanceView: View {
     hasher.combine(labelChipStyleRaw)
     hasher.combine(dueDateChipStyleRaw)
     hasher.combine(taskRowLayoutRaw)
+    hasher.combine(timelineRailEnabled)
     return hasher.finalize()
+  }
+
+  private var taskRowLayoutSummary: String {
+    if timelineRailEnabled {
+      return "\(taskRowLayout.displayName) · Trilho"
+    }
+    return taskRowLayout.displayName
   }
 
   private func toggleAppearanceSection(_ id: AppearanceSectionID) {
@@ -712,6 +723,30 @@ struct AppearanceView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  private func timelineRailRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Linha do tempo")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Trilho vertical à esquerda em Hoje e Em breve.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $timelineRailEnabled, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: timelineRailEnabled) { _, _ in
+      HapticService.selection()
+    }
   }
 
   private func dueDateChipStyleRow(_ style: DueDateChipStyle) -> some View {

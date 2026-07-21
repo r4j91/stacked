@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — mockup: HOJE + layouts de card</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface2: #2C2D33;
+      --text: #F2F3F5;
+      --text2: #9296A0;
+      --text3: #6B6E76;
+      --accent: #5FD3DC;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-purple: #B18CF5;
+      --tag-green: #8FD46B;
+      --hoje-current: #7ECC49;
+      --radius-card: 14px;
+      --radius-chip: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.35;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 20px 80px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .lede {
+      color: var(--text2);
+      font-size: 14px;
+      max-width: 62ch;
+      margin: 0 0 28px;
+    }
+
+    section { margin-bottom: 48px; }
+    h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin: 0 0 14px;
+    }
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+    .hint {
+      font-size: 12.5px;
+      color: var(--text2);
+      margin: 0 0 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .option {
+      background: var(--surface);
+      border: 1px solid transparent;
+      border-radius: 16px;
+      padding: 14px;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .option:hover { border-color: #3a3b42; }
+    .option.selected {
+      border-color: var(--accent);
+      background: #26282e;
+    }
+    .option-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .hex {
+      font-size: 11px;
+      color: var(--text3);
+      font-variant-numeric: tabular-nums;
+    }
+    .pick-note {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 10px;
+    }
+
+    /* —— Task card primitives —— */
+    .phone {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid #2a2b31;
+    }
+
+    .row-card {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      padding: 12px 12px 11px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px 10px;
+      align-items: start;
+    }
+    .row-card + .row-card { margin-top: 8px; }
+
+    .circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--p1);
+      background: color-mix(in srgb, var(--p1) 8%, transparent);
+      margin-top: 2px;
+    }
+    .circle.p2 { border-color: var(--p2); background: color-mix(in srgb, var(--p2) 8%, transparent); }
+    .circle.p3 { border-color: var(--p3); background: color-mix(in srgb, var(--p3) 8%, transparent); }
+    .circle.neutral { border-color: var(--text3); background: color-mix(in srgb, var(--text3) 8%, transparent); }
+
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 12.5px;
+      color: var(--text2);
+    }
+
+    .chip-hoje {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px 2px 5px;
+      border-radius: var(--radius-chip);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      border: 1px solid color-mix(in srgb, var(--hoje) 35%, transparent);
+      background: color-mix(in srgb, var(--hoje) 14%, transparent);
+      color: var(--hoje);
+    }
+    .chip-hoje .cal {
+      width: 11px;
+      height: 11px;
+      opacity: 0.9;
+    }
+    .chip-hoje.flat {
+      background: transparent;
+      border: none;
+      padding-left: 0;
+    }
+    .chip-hoje.outline {
+      background: transparent;
+      border-color: color-mix(in srgb, var(--hoje) 55%, transparent);
+    }
+    .chip-hoje.plain {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border: 1px solid color-mix(in srgb, var(--tc) 40%, transparent);
+      background: color-mix(in srgb, var(--tc) 12%, transparent);
+      color: var(--tc);
+    }
+    .proj { color: var(--text3); font-size: 12px; }
+    .subcount { color: var(--text3); font-size: 12px; }
+
+    .live-preview {
+      position: sticky;
+      top: 12px;
+      background: var(--surface2);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 28px;
+      border: 1px solid #34353c;
+    }
+    .live-preview .label {
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Layout variants */
+    .layout-rail .row-card {
+      grid-template-columns: 3px 28px 1fr;
+      gap: 8px 10px;
+      padding-left: 0;
+      overflow: hidden;
+    }
+    .layout-rail .rail {
+      grid-row: 1 / span 2;
+      align-self: stretch;
+      background: var(--p1);
+      border-radius: 14px 0 0 14px;
+    }
+    .layout-rail .circle { grid-column: 2; }
+    .layout-rail .body { grid-column: 3; }
+
+    .layout-dense .row-card {
+      padding: 8px 10px;
+      border-radius: 10px;
+    }
+    .layout-dense .title { font-size: 14.5px; }
+    .layout-dense .meta { margin-top: 3px; gap: 5px; }
+
+    .layout-sheet .row-card {
+      background: transparent;
+      border-radius: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+      padding: 12px 4px;
+    }
+
+    .layout-magazine .title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+    .layout-magazine .meta { margin-top: 8px; }
+    .layout-magazine .row-card { padding: 14px 14px 13px; }
+
+    .layout-trail .meta-trail {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .layout-trail .meta-left {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .layout-timeline {
+      position: relative;
+      padding-left: 18px;
+    }
+    .layout-timeline::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: #35363d;
+      border-radius: 1px;
+    }
+    .layout-timeline .row-card {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .layout-timeline .node {
+      position: absolute;
+      left: -17px;
+      top: 16px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--hoje);
+      border: 2px solid var(--bg);
+      box-sizing: border-box;
+    }
+
+    .layout-pillstrip .pills {
+      display: flex;
+      gap: 6px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .layout-pillstrip .pill {
+      flex-shrink: 0;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid #383941;
+    }
+    .layout-pillstrip .pill.hoje {
+      color: var(--hoje);
+      border-color: color-mix(in srgb, var(--hoje) 40%, transparent);
+      background: color-mix(in srgb, var(--hoje) 12%, transparent);
+    }
+
+    .layout-inset .row-card {
+      background: var(--surface2);
+      box-shadow: inset 0 0 0 1px #34353c;
+    }
+
+    .compare-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 700px) {
+      .compare-2 { grid-template-columns: 1fr; }
+    }
+
+    .badge-atual {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text3);
+      border: 1px solid #3a3b42;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .badge-novo {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    footer.note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Mockup — cor do HOJE + layouts de card</h1>
+    <p class="lede">
+      Comparação visual antes de implementar. Clique numa cor para ver o preview ao vivo.
+      Layouts novos são propostas para o menu Aparência (além de Balões / Lista atuais).
+    </p>
+
+    <div class="live-preview" id="live">
+      <div class="label">Preview ao vivo · chip Suave</div>
+      <div class="phone" style="--hoje: var(--hoje-current)">
+        <div class="row-card">
+          <div class="circle"></div>
+          <div>
+            <p class="title">Revisar fatura do cartão</p>
+            <div class="meta">
+              <span class="chip-hoje" id="liveChip">
+                <svg class="cal" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                  <path d="M1.5 5h9M4 1.5v2M8 1.5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                Hoje
+              </span>
+              <span class="tag" style="--tc: var(--tag-purple)">Ideia</span>
+              <span class="proj">Financeiro</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pick-note" id="liveNote">Atual: verde lima <code>#7ECC49</code> — o que você não está gostando.</p>
+    </div>
+
+    <!-- COLORS -->
+    <section>
+      <h2>1 · Cores para “Hoje”</h2>
+      <p class="hint">Todas pensadas para o fundo escuro do Stacked, sem competir com atrasado (#DC4C3E) nem com o accent (#5FD3DC) de navegação — a menos que seja a proposta “Accent”.</p>
+      <div class="grid" id="colorGrid"></div>
+    </section>
+
+    <!-- CHIP STYLES with selected color -->
+    <section>
+      <h2>2 · Mesma cor, estilos de chip</h2>
+      <p class="hint">Você já tem Suave / Plano / Texto / Dia / Traço. Aqui com a cor selecionada acima.</p>
+      <div class="phone" id="chipStylesPhone" style="--hoje: var(--hoje-current)">
+        <div class="compare-2" id="chipStyles"></div>
+      </div>
+    </section>
+
+    <!-- CARD LAYOUTS -->
+    <section>
+      <h2>3 · Layouts de card (novas opções)</h2>
+      <p class="hint">Hoje no app: Balões, Balões+, Balões light, Lista, Lista premium, Lista+. Abaixo: ideias novas para Aparência.</p>
+      <div class="grid" id="layoutGrid"></div>
+    </section>
+
+    <p class="footer note">Arquivo local · <code>docs/mockups/hoje-chip-and-card-layouts.html</code> · nada disso está ligado ao app ainda.</p>
+  </div>
+
+  <script>
+    const colors = [
+      {
+        id: "current",
+        name: "Atual (lima)",
+        hex: "#7ECC49",
+        why: "Verde “sucesso” forte — lê como concluído, não como prazo de hoje.",
+        badge: "atual",
+      },
+      {
+        id: "accent",
+        name: "Accent ciano",
+        hex: "#5FD3DC",
+        why: "Mesma família do accent do app. Hoje = destaque do produto, sem parecer “ok/done”.",
+        badge: "novo",
+      },
+      {
+        id: "sky",
+        name: "Azul calmo",
+        hex: "#4D9FEC",
+        why: "Já é P3 no sistema. Hoje fica “informativo”, atrasado continua vermelho.",
+        badge: "novo",
+      },
+      {
+        id: "teal",
+        name: "Teal suave",
+        hex: "#2EC4B6",
+        why: "Entre ciano e verde — ainda fresco, menos “grama/sucesso” que o lima.",
+        badge: "novo",
+      },
+      {
+        id: "amber",
+        name: "Âmbar quente",
+        hex: "#F5A623",
+        why: "Urgência leve do dia (já é P2). Cuidado: pode parecer prioridade média.",
+        badge: "novo",
+      },
+      {
+        id: "orchid",
+        name: "Lilás",
+        hex: "#B18CF5",
+        why: "Já é tag roxa. Hoje fica distinto e soft; bom se quiser menos “semáforo”.",
+        badge: "novo",
+      },
+      {
+        id: "mint-quiet",
+        name: "Menta quieta",
+        hex: "#8FBF9A",
+        why: "Verde dessaturado — mantém “hoje = vivo”, sem o punch do lima atual.",
+        badge: "novo",
+      },
+      {
+        id: "pearl",
+        name: "Pérola",
+        hex: "#C8CCD4",
+        why: "Quase neutro; o chip some no ruído visual. Hoje vira tipografia, não alarme.",
+        badge: "novo",
+      },
+    ];
+
+    const layouts = [
+      {
+        id: "balloons",
+        name: "Balões (atual)",
+        badge: "atual",
+        desc: "Surface arredondada, círculo + título + meta. Baseline do app.",
+        className: "",
+      },
+      {
+        id: "rail",
+        name: "Trilho de prioridade",
+        badge: "novo",
+        desc: "Faixa vertical na cor da prioridade na borda esquerda — scan rápido de P1/P2/P3.",
+        className: "layout-rail",
+      },
+      {
+        id: "dense",
+        name: "Denso",
+        badge: "novo",
+        desc: "Mais compacto que Lista+ (~44–48px). Bom para Inbox cheia / Financeiro com 70+ parcelas.",
+        className: "layout-dense",
+      },
+      {
+        id: "sheet",
+        name: "Folha",
+        badge: "novo",
+        desc: "Sem fill de card — só hairline. Mais Things 3 / papel, menos “bolha”.",
+        className: "layout-sheet",
+      },
+      {
+        id: "magazine",
+        name: "Editorial",
+        badge: "novo",
+        desc: "Título maior e meta mais espaçada. Menos densidade, mais leitura.",
+        className: "layout-magazine",
+      },
+      {
+        id: "trail",
+        name: "Meta à direita",
+        badge: "novo",
+        desc: "HOJE / data sempre à direita; etiquetas e projeto à esquerda da meta.",
+        className: "layout-trail",
+      },
+      {
+        id: "timeline",
+        name: "Linha do tempo",
+        badge: "novo",
+        desc: "Nó + trilho vertical entre rows. Natural em Em breve / Hoje.",
+        className: "layout-timeline",
+      },
+      {
+        id: "pillstrip",
+        name: "Faixa de pills",
+        badge: "novo",
+        desc: "Meta vira pills horizontais (data, projeto, etiquetas) — visual de filtro.",
+        className: "layout-pillstrip",
+      },
+      {
+        id: "inset",
+        name: "Inset",
+        badge: "novo",
+        desc: "Surface mais escura + borda interna. Card “entalhado” no fundo.",
+        className: "layout-inset",
+      },
+    ];
+
+    let selected = "current";
+
+    function calSvg() {
+      return `<svg class="cal" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M1.5 5h9M4 1.5v2M8 1.5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function chip(label = "Hoje", variant = "") {
+      return `<span class="chip-hoje ${variant}">${variant === "plain" ? "" : calSvg()}${label}</span>`;
+    }
+
+    function setColor(id) {
+      selected = id;
+      const c = colors.find((x) => x.id === id);
+      document.documentElement.style.setProperty("--hoje-pick", c.hex);
+      document.querySelectorAll("[data-hoje-scope]").forEach((el) => {
+        el.style.setProperty("--hoje", c.hex);
+      });
+      document.getElementById("live").querySelector(".phone").style.setProperty("--hoje", c.hex);
+      document.getElementById("chipStylesPhone").style.setProperty("--hoje", c.hex);
+      document.getElementById("liveNote").innerHTML =
+        `<strong>${c.name}</strong> · <code>${c.hex}</code> — ${c.why}`;
+      document.querySelectorAll(".option[data-color]").forEach((btn) => {
+        btn.classList.toggle("selected", btn.dataset.color === id);
+      });
+      // refresh layout previews that use --hoje
+      document.querySelectorAll(".layout-card .phone").forEach((el) => {
+        el.style.setProperty("--hoje", c.hex);
+      });
+    }
+
+    function renderColors() {
+      const grid = document.getElementById("colorGrid");
+      grid.innerHTML = colors
+        .map((c) => {
+          const badge =
+            c.badge === "atual"
+              ? `<span class="badge-atual">atual</span>`
+              : `<span class="badge-novo">proposta</span>`;
+          return `
+          <button type="button" class="option ${c.id === selected ? "selected" : ""}" data-color="${c.id}">
+            <div class="option-head">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="swatch" style="background:${c.hex}"></span>
+                <h3>${c.name}</h3>
+              </div>
+              ${badge}
+            </div>
+            <div class="phone" style="--hoje:${c.hex}">
+              <div class="row-card">
+                <div class="circle p2"></div>
+                <div>
+                  <p class="title">Enviar proposta</p>
+                  <div class="meta">
+                    ${chip()}
+                    <span class="tag" style="--tc: var(--tag-green)">Em andamento</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="pick-note">${c.why}</p>
+            <div class="hex" style="margin-top:6px">${c.hex}</div>
+          </button>`;
+        })
+        .join("");
+
+      grid.querySelectorAll("[data-color]").forEach((btn) => {
+        btn.addEventListener("click", () => setColor(btn.dataset.color));
+      });
+    }
+
+    function renderChipStyles() {
+      const variants = [
+        { key: "", label: "Suave" },
+        { key: "flat", label: "Plano" },
+        { key: "plain", label: "Texto" },
+        { key: "outline", label: "Traço" },
+      ];
+      document.getElementById("chipStyles").innerHTML = variants
+        .map(
+          (v) => `
+        <div>
+          <div class="hex" style="margin-bottom:6px">${v.label}</div>
+          <div class="row-card">
+            <div class="circle p3"></div>
+            <div>
+              <p class="title">Ligar para o cliente</p>
+              <div class="meta">${chip("Hoje", v.key)}<span class="proj">Trabalho</span></div>
+            </div>
+          </div>
+        </div>`
+        )
+        .join("");
+    }
+
+    function sampleRows(mode) {
+      const tasks = [
+        { title: "Revisar fatura do cartão", p: "", extra: "tag-purple", tag: "Ideia", proj: "Financeiro" },
+        { title: "Santander - CC / Parcela 5", p: "p2", extra: "tag-green", tag: "Pendente", proj: null },
+      ];
+
+      if (mode === "rail") {
+        return tasks
+          .map(
+            (t, i) => `
+          <div class="row-card">
+            <div class="rail" style="background:${i === 0 ? "var(--p1)" : "var(--p2)"}"></div>
+            <div class="circle ${t.p}"></div>
+            <div class="body">
+              <p class="title">${t.title}</p>
+              <div class="meta">${chip()}<span class="tag" style="--tc: var(--${t.extra})">${t.tag}</span></div>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+
+      if (mode === "trail") {
+        return tasks
+          .map(
+            (t) => `
+          <div class="row-card">
+            <div class="circle ${t.p}"></div>
+            <div>
+              <p class="title">${t.title}</p>
+              <div class="meta-trail">
+                <div class="meta-left">
+                  <span class="tag" style="--tc: var(--${t.extra})">${t.tag}</span>
+                  ${t.proj ? `<span class="proj">${t.proj}</span>` : ""}
+                </div>
+                ${chip()}
+              </div>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+
+      if (mode === "timeline") {
+        return tasks
+          .map(
+            (t) => `
+          <div class="row-card">
+            <span class="node"></span>
+            <div class="circle ${t.p}"></div>
+            <div>
+              <p class="title">${t.title}</p>
+              <div class="meta">${chip()}<span class="tag" style="--tc: var(--${t.extra})">${t.tag}</span></div>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+
+      if (mode === "pillstrip") {
+        return tasks
+          .map(
+            (t) => `
+          <div class="row-card">
+            <div class="circle ${t.p}"></div>
+            <div>
+              <p class="title">${t.title}</p>
+              <div class="pills">
+                <span class="pill hoje">Hoje</span>
+                <span class="pill">${t.tag}</span>
+                ${t.proj ? `<span class="pill">${t.proj}</span>` : `<span class="pill">2/5</span>`}
+              </div>
+            </div>
+          </div>`
+          )
+          .join("");
+      }
+
+      // default / dense / sheet / magazine / inset / balloons
+      return tasks
+        .map(
+          (t) => `
+        <div class="row-card">
+          <div class="circle ${t.p}"></div>
+          <div>
+            <p class="title">${t.title}</p>
+            <div class="meta">
+              ${chip()}
+              <span class="tag" style="--tc: var(--${t.extra})">${t.tag}</span>
+              ${t.proj ? `<span class="proj">${t.proj}</span>` : `<span class="subcount">2/5</span>`}
+            </div>
+          </div>
+        </div>`
+        )
+        .join("");
+    }
+
+    function renderLayouts() {
+      const grid = document.getElementById("layoutGrid");
+      const hex = colors.find((c) => c.id === selected).hex;
+      grid.innerHTML = layouts
+        .map((l) => {
+          const badge =
+            l.badge === "atual"
+              ? `<span class="badge-atual">atual</span>`
+              : `<span class="badge-novo">proposta</span>`;
+          return `
+          <div class="option layout-card" style="cursor:default">
+            <div class="option-head">
+              <h3>${l.name}</h3>
+              ${badge}
+            </div>
+            <p class="hint" style="margin-top:-4px">${l.desc}</p>
+            <div class="phone ${l.className}" style="--hoje:${hex}">
+              ${sampleRows(l.id)}
+            </div>
+          </div>`;
+        })
+        .join("");
+    }
+
+    renderColors();
+    renderChipStyles();
+    renderLayouts();
+    setColor("current");
+  </script>
+</body>
+</html>

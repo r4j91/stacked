@@ -9,6 +9,7 @@ export const theme = {
   accent: "#E8E8EC",
   accentText: "#0A0A0A",
   done: "#7ECC49",
+  dueToday: "#2EC4B6",
   overdue: "#EF5A5F",
   p1: "#EF5A5F",
   p2: "#F5A623",

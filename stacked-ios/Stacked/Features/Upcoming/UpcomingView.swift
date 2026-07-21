@@ -5,6 +5,7 @@ struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = UpcomingStore.shared
   @State private var allowRowHeavyWork = false
@@ -45,6 +46,7 @@ struct UpcomingView: View {
           leadingChrome: {
             AnyView(upcomingListChrome)
           },
+          supportsTimelineRail: true,
           onToggle: { store.complete($0) },
           onTap: { detailRoute = TaskDetailRoute(task: $0) },
           onSubtaskTap: { task, sub in
@@ -161,8 +163,12 @@ struct UpcomingView: View {
       } else {
         ForEach(store.groupedSchedule, id: \.day) { group in
           Section {
-            ForEach(group.items) { item in
-              scheduleRow(item)
+            ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+              scheduleRow(
+                item,
+                connectsUp: index > 0,
+                connectsDown: index < group.items.count - 1
+              )
             }
           } header: {
             ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
@@ -244,11 +250,23 @@ struct UpcomingView: View {
     displayMode.taskListRowInsets
   }
 
+  private var railListInsets: EdgeInsets {
+    var insets = rowInsets
+    if timelineRailEnabled {
+      insets.leading = max(4, insets.leading - 24)
+    }
+    return insets
+  }
+
   @ViewBuilder
-  private func scheduleRow(_ item: ScheduleItem) -> some View {
+  private func scheduleRow(
+    _ item: ScheduleItem,
+    connectsUp: Bool = false,
+    connectsDown: Bool = false
+  ) -> some View {
     switch item {
     case .task(let task):
-      taskRow(task)
+      taskRow(task, connectsUp: connectsUp, connectsDown: connectsDown)
     case .subtask(let entry):
       FilterSubtaskRow(
         subtask: entry.subtask,
@@ -258,21 +276,37 @@ struct UpcomingView: View {
         onToggle: { store.completeScheduledSubtask(entry) },
         onTap: { subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id) }
       )
-      .listRowInsets(rowInsets)
+      .timelineRail(
+        enabled: timelineRailEnabled,
+        nodeColor: TimelineRailNodeColor.forSubtask(entry.subtask),
+        connectsUp: connectsUp,
+        connectsDown: connectsDown
+      )
+      .listRowInsets(railListInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     case .calendarEvent(let event):
       CalendarEventRow(event: event) {
         EventKitCalendarService.shared.openInCalendar(event)
       }
-      .listRowInsets(rowInsets)
+      .timelineRail(
+        enabled: timelineRailEnabled,
+        nodeColor: AppColors.priorityLow,
+        connectsUp: connectsUp,
+        connectsDown: connectsDown
+      )
+      .listRowInsets(railListInsets)
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }
   }
 
   @ViewBuilder
-  private func taskRow(_ task: Task) -> some View {
+  private func taskRow(
+    _ task: Task,
+    connectsUp: Bool = false,
+    connectsDown: Bool = false
+  ) -> some View {
     TaskRow(
       task: task,
       style: displayMode.taskRowStyle,
@@ -292,7 +326,13 @@ struct UpcomingView: View {
     .id(task.id)
     .taskDetailZoomSource(id: task.id, namespace: taskDetailZoom, active: detailRoute?.taskId == task.id)
     .taskCompleteRemovalTransition()
-    .listRowInsets(rowInsets)
+    .timelineRail(
+      enabled: timelineRailEnabled,
+      nodeColor: TimelineRailNodeColor.forTask(task),
+      connectsUp: connectsUp,
+      connectsDown: connectsDown
+    )
+    .listRowInsets(railListInsets)
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
     .taskContextMenu(

@@ -12,7 +12,7 @@ enum AppColors {
   static let overdue = priorityHigh
   static let onColoredFill = Color.white
 
-  static let dateDueToday = Color(hex: 0x7ECC49)
+  static let dateDueToday = Color(hex: 0x2EC4B6)
   static let dateOverdue = Color(hex: 0xDC4C3E)
   /// Data futura — cinza cool (não compete com o accent).
   static let dateUpcoming = Color(hex: 0x8A9099)

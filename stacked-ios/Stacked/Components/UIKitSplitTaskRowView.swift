@@ -40,10 +40,13 @@ final class UIKitSplitTaskRowView: UIView {
   private let store = TaskRowSplitSession()
   /// UIKIT_SCROLL_POLISH: card fill/radius recuado pelos rowInsets — gap entre cards.
   private let chromeBackdrop = UIView()
+  private let timelineRailView = TimelineRailUIView()
   private var chromeTopConstraint: NSLayoutConstraint?
   private var chromeLeadingConstraint: NSLayoutConstraint?
   private var chromeBottomConstraint: NSLayoutConstraint?
   private var chromeTrailingConstraint: NSLayoutConstraint?
+  private var railLeadingConstraint: NSLayoutConstraint?
+  private var railWidthConstraint: NSLayoutConstraint?
   private var headerHost: UIHostingController<AnyView>?
   private var panelHost: UIHostingController<AnyView>?
   private var headerHeightConstraint: NSLayoutConstraint?
@@ -52,6 +55,9 @@ final class UIKitSplitTaskRowView: UIView {
   private var lastPanelHeight: CGFloat = -1
   private var rowInsets: UIEdgeInsets = .zero
   private var style: TaskRowStyle = .card
+  private var timelineRailEnabled = false
+  private let railGutterWidth: CGFloat = 16
+  private let railContentSpacing: CGFloat = 8
   /// UIKIT_SCROLL_POLISH: lift do card inteiro (antes era só SwiftUI no header).
   private var liftPhase: TaskContextLiftPhase = .normal
 
@@ -69,7 +75,8 @@ final class UIKitSplitTaskRowView: UIView {
   override var intrinsicContentSize: CGSize {
     let headerH = headerHeightConstraint?.constant ?? 0
     let width = bounds.width > 1 ? bounds.width : DisplayScreen.bounds.width
-    let contentWidth = max(width - rowInsets.left - rowInsets.right, 1)
+    let railExtra = timelineRailEnabled ? (railGutterWidth + railContentSpacing) : 0
+    let contentWidth = max(width - rowInsets.left - rowInsets.right - railExtra, 1)
     let panelH: CGFloat
     if let panelHost {
       panelH = ceil(panelHost.sizeThatFits(in: CGSize(
@@ -153,6 +160,10 @@ final class UIKitSplitTaskRowView: UIView {
     var onDuplicate: () -> Void
     var onDelete: () -> Void
     var onRefresh: () -> Void
+    var timelineRailEnabled: Bool = false
+    var timelineConnectsUp: Bool = false
+    var timelineConnectsDown: Bool = false
+    var timelineNodeColor: UIColor = .clear
   }
 
   func apply(_ config: Config) {
@@ -199,9 +210,11 @@ final class UIKitSplitTaskRowView: UIView {
 
     style = config.style
     rowInsets = config.rowInsets
+    timelineRailEnabled = config.timelineRailEnabled
     // UIKIT_SCROLL_POLISH: estrutura (hosts/backdrop/constraints) ANTES dos
     // valores — senão o 1º apply deixa insets em 0 (gap inconsistente no reuse).
     ensureHosts()
+    applyTimelineRail(config)
     updateChromeBackdropInsets(config.rowInsets)
     applyChrome()
     // Sync resistance com estado atual (recycle / restore aberto).
@@ -290,6 +303,7 @@ final class UIKitSplitTaskRowView: UIView {
   }
 
   private func ensureHosts() {
+    ensureTimelineRail()
     ensureChromeBackdrop()
     let contentRoot = chromeBackdrop
 
@@ -335,6 +349,23 @@ final class UIKitSplitTaskRowView: UIView {
     attachHostsIfNeeded()
   }
 
+  private func ensureTimelineRail() {
+    guard timelineRailView.superview == nil else { return }
+    timelineRailView.translatesAutoresizingMaskIntoConstraints = false
+    timelineRailView.isHidden = true
+    insertSubview(timelineRailView, at: 0)
+    let leading = timelineRailView.leadingAnchor.constraint(equalTo: leadingAnchor)
+    let width = timelineRailView.widthAnchor.constraint(equalToConstant: 0)
+    railLeadingConstraint = leading
+    railWidthConstraint = width
+    NSLayoutConstraint.activate([
+      timelineRailView.topAnchor.constraint(equalTo: topAnchor),
+      leading,
+      timelineRailView.bottomAnchor.constraint(equalTo: bottomAnchor),
+      width,
+    ])
+  }
+
   private func ensureChromeBackdrop() {
     guard chromeBackdrop.superview == nil else { return }
     chromeBackdrop.translatesAutoresizingMaskIntoConstraints = false
@@ -351,9 +382,25 @@ final class UIKitSplitTaskRowView: UIView {
     NSLayoutConstraint.activate([top, leading, bottom, trailing])
   }
 
+  private func applyTimelineRail(_ config: Config) {
+    let enabled = config.timelineRailEnabled
+    timelineRailView.isHidden = !enabled
+    railWidthConstraint?.constant = enabled ? railGutterWidth : 0
+    railLeadingConstraint?.constant = config.rowInsets.left
+    guard enabled else { return }
+    timelineRailView.nodeColor = config.timelineNodeColor
+    timelineRailView.connectsUp = config.timelineConnectsUp
+    timelineRailView.connectsDown = config.timelineConnectsDown
+    timelineRailView.nodeTop = config.rowInsets.top + 14
+    timelineRailView.lineColor = UIColor(ThemeManager.shared.colors.textTertiary)
+      .withAlphaComponent(0.32)
+    timelineRailView.setNeedsDisplay()
+  }
+
   private func updateChromeBackdropInsets(_ insets: UIEdgeInsets) {
+    let railExtra = timelineRailEnabled ? (railGutterWidth + railContentSpacing) : 0
     chromeTopConstraint?.constant = insets.top
-    chromeLeadingConstraint?.constant = insets.left
+    chromeLeadingConstraint?.constant = insets.left + railExtra
     chromeBottomConstraint?.constant = -insets.bottom
     chromeTrailingConstraint?.constant = -insets.right
   }
@@ -459,6 +506,7 @@ final class UIKitSplitTaskRowView: UIView {
       hasher.combine(sub.idOrFallback)
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
+      hasher.combine(sub.priority != nil)
       hasher.combine(sub.labelIds)
     }
     return hasher.finalize()
