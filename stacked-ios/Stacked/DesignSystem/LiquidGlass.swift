@@ -180,6 +180,7 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
 }
 
 private struct PopoverCardSurface<Content: View>: View {
+  @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
@@ -206,21 +207,34 @@ private struct PopoverCardSurface<Content: View>: View {
   }
 
   private var useStaticFrozen: Bool {
-    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
-  private var suppressShadow: Bool { useSolid || useStaticFrozen }
+  /// Efeito quieto: card de menu/notas opaco (paridade Quick Add) — dock continua
+  /// com glass congelado translúcido via `GlassSurface`.
+  private var useOpaqueQuietPopover: Bool {
+    alwaysStaticGlass
+  }
+
+  private var suppressShadow: Bool { useSolid || useStaticFrozen || useOpaqueQuietPopover }
 
   var body: some View {
-    GlassSurface(
-      navBarColor: navBarColor,
-      shape: RoundedRectangle(cornerRadius: cornerRadius),
-      content: { content }
-    )
+    let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    Group {
+      if useSolid || useOpaqueQuietPopover {
+        content
+          .background(shape.fill(theme.colors.surface))
+          .clipShape(shape)
+      } else {
+        GlassSurface(
+          navBarColor: navBarColor,
+          shape: shape,
+          content: { content }
+        )
+      }
+    }
     .overlay {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
+      shape.strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
     }
     .shadow(
       color: .black.opacity(suppressShadow ? 0 : PopoverStyle.cardShadowOpacity),

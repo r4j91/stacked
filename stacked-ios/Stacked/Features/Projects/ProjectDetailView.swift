@@ -124,10 +124,21 @@ struct ProjectDetailView: View {
       store.refreshRelativeDateChips()
     }
     .background(c.background.ignoresSafeArea(.all))
-    .stackedDrillDownNavChrome(title: projectName, background: c.background)
+    // Título vazio no chrome — centralizado no .principal entre voltar e trailing.
+    .stackedDrillDownNavChrome(title: "", background: c.background)
     .stackedDrillDownGlassBackButton()
     .toolbar {
       DrillDownBackToolbarItem()
+
+      ToolbarItem(id: "stacked-project-title", placement: .principal) {
+        Text(projectName)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
+          .minimumScaleFactor(0.85)
+          .accessibilityAddTraits(.isHeader)
+      }
+      .sharedBackgroundVisibility(.hidden)
 
       ToolbarItem(id: "stacked-project-toolbar", placement: .topBarTrailing) {
         HStack(spacing: 6) {

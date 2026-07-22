@@ -17,6 +17,7 @@ struct PopoverMenuItem: Identifiable {
 struct StackedPopoverOverlay: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
   var hostBounds: CGRect = DisplayScreen.bounds
@@ -37,6 +38,12 @@ struct StackedPopoverOverlay: View {
   @State private var toggleSelections: Set<String> = []
   @State private var isPresented = false
   @State private var isDismissing = false
+
+  /// Quick Add já força opaco; no Efeito quieto os menus de contexto também
+  /// precisam — o glass congelado @0.88 deixa ler o texto da lista atrás.
+  private var useOpaqueMenuSurface: Bool {
+    opaqueSurface || alwaysStaticGlass
+  }
 
   var body: some View {
     ZStack {
@@ -159,7 +166,7 @@ struct StackedPopoverOverlay: View {
   private var menuCardChrome: some View {
     let c = theme.colors
     let shape = RoundedRectangle(cornerRadius: PopoverStyle.radius, style: .continuous)
-    if opaqueSurface {
+    if useOpaqueMenuSurface {
       shape
         .fill(c.surface)
         .overlay {
