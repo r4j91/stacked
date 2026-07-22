@@ -21,7 +21,7 @@ enum ProjectDisplayMode: String, CaseIterable {
     switch self {
     case .cards: "Balões"
     case .cardsRefined: "Balões+"
-    case .cardsLight: "Balões light"
+    case .cardsLight: "Halo"
     case .list: "Lista"
     case .listPremium: "Lista premium"
     case .listComfort: "Lista+"

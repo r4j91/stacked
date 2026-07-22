@@ -350,7 +350,7 @@ struct ProjectDetailView: View {
                       selected: displayModeEnum == .cards),
       PopoverMenuItem(id: "mode_cards_refined", icon: Hugeicons.grid, label: "Balões+",
                       selected: displayModeEnum == .cardsRefined),
-      PopoverMenuItem(id: "mode_cards_light", icon: Hugeicons.grid, label: "Balões light",
+      PopoverMenuItem(id: "mode_cards_light", icon: Hugeicons.grid, label: "Halo",
                       selected: displayModeEnum == .cardsLight),
       PopoverMenuItem(id: "mode_list", icon: Hugeicons.listView, label: "Lista",
                       selected: displayModeEnum == .list),

@@ -481,7 +481,8 @@ final class UIKitSplitTaskRowView: UIView {
       chromeBackdrop.layer.cornerCurve = .continuous
       if style == .cardLight {
         chromeBackdrop.layer.borderWidth = 1
-        chromeBackdrop.layer.borderColor = UIColor(colors.textPrimary).withAlphaComponent(0.055).cgColor
+        chromeBackdrop.layer.borderColor = UIColor(colors.textPrimary)
+          .withAlphaComponent(TaskExpandDividerStyle.cardLightStrokeAlpha).cgColor
       } else {
         chromeBackdrop.layer.borderWidth = 0
         chromeBackdrop.layer.borderColor = nil

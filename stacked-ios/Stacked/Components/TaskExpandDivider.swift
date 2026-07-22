@@ -7,6 +7,8 @@ enum TaskExpandDividerStyle {
   /// Peso do hairline Lista+ / Lista premium (pai e entre subtarefas).
   static let listHairlineAlpha: CGFloat = 0.045
   static let listHairlineThickness: CGFloat = 1
+  /// Mesma tinta do contorno em Halo (`textPrimary` @ 0.055, 1pt).
+  static let cardLightStrokeAlpha: CGFloat = 0.055
 
   static let cardParentInset: CGFloat = 48
   static let cardSubtaskInset: CGFloat = 60

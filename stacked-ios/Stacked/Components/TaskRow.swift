@@ -213,7 +213,7 @@ struct TaskRow: View {
     let headerHeight = exactHeaderHeight
     let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
     // Clip estável sempre — ligar/desligar clip no expand destruía a árvore e
-    // o chevron de subtarefas no Balões light precisava de vários toques.
+    // o chevron de subtarefas no Halo precisava de vários toques.
 
     // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
     let core = VStack(spacing: 0) {
@@ -237,7 +237,10 @@ struct TaskRow: View {
               shape
                 .fill(cardSurfaceFill(light: true))
                 .overlay {
-                  shape.strokeBorder(c.textPrimary.opacity(0.055), lineWidth: 1)
+                  shape.strokeBorder(
+                    c.textPrimary.opacity(TaskExpandDividerStyle.cardLightStrokeAlpha),
+                    lineWidth: 1
+                  )
                 }
             } else {
               shape.fill(cardSurfaceFill(light: false))
@@ -564,7 +567,7 @@ struct TaskRow: View {
         contentRevision: subtaskRevealContentRevision,
         stabilizeSelfSizingParent: stabilizeExpandInSelfSizingCell,
         snapOpen: rowSnapRevealOpen,
-        // Fill opaco no clip (Balões e Balões light) — translucido no UIView
+        // Fill opaco no clip (Balões e Halo) — translucido no UIView
         // compostava sobre preto e deixava vão claro na curva inferior.
         panelFill: style.isCardFamily && !flatSubtaskQueue ? subtaskPanelFill : nil
       ) {
@@ -684,14 +687,18 @@ struct TaskRow: View {
     let c = theme.colors
     let subtaskLeading: CGFloat = subtaskBranch ? 40 : 36
     let listHairline = style.showsListHairline
+    let matchCardLightStroke = style == .cardLight
     let betweenAlpha: CGFloat = {
       if listHairline { return TaskExpandDividerStyle.listHairlineAlpha }
+      // Halo: mesma tinta/peso do contorno do card.
+      if matchCardLightStroke { return TaskExpandDividerStyle.cardLightStrokeAlpha }
       if style.isCardFamily && !flatSubtaskQueue { return 0.08 }
       return TaskExpandDividerStyle.alpha
     }()
+    let betweenPrimaryTint = listHairline || matchCardLightStroke
 
     return VStack(spacing: 0) {
-      // Balões / Balões light: sem hairline pai→1ª subtarefa — virava tarja no painel.
+      // Balões / Halo: sem hairline pai→1ª subtarefa — virava tarja no painel.
       // Balões+ (flat) e Lista mantêm o divisor próprio.
       if flatSubtaskQueue {
         TaskExpandDivider(indent: TaskExpandDividerStyle.cardSubtaskInset)
@@ -819,7 +826,7 @@ struct TaskRow: View {
                   ? TaskExpandDividerStyle.cardSubtaskInset
                   : TaskExpandDividerStyle.listSubtaskInset(rowLeading: subtaskLeading),
                 colorAlpha: betweenAlpha,
-                usePrimaryTint: listHairline
+                usePrimaryTint: betweenPrimaryTint
               )
             }
           }
@@ -847,18 +854,23 @@ struct TaskRow: View {
     subtaskPanelFill
   }
 
-  /// Tinta do painel. UIKit: surfaceVariant@0.45 composto sobre o card (sem buraco na curva).
+  /// Tinta do painel. UIKit: surfaceVariant composto sobre o card (sem buraco na curva).
   private var subtaskPanelFill: Color {
     let c = theme.colors
     if flatSubtaskQueue { return .clear }
     guard style.isCardFamily else { return .clear }
+    // Halo: painel mais escuro (menos lift claro no celular).
+    if style == .cardLight {
+      if !stabilizeExpandInSelfSizingCell {
+        return c.background.opacity(0.38)
+      }
+      let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+      return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
+    }
     if !stabilizeExpandInSelfSizingCell {
       return c.surfaceVariant.opacity(0.45)
     }
-    let cardBase = style == .cardLight
-      ? Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
-      : c.surface
-    return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.45)
+    return Self.opaqueBlend(src: c.surfaceVariant, dst: c.surface, alpha: 0.45)
   }
 
   /// src over dst com alpha de src (sem blend transparente em runtime).
