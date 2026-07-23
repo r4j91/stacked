@@ -42,7 +42,7 @@ struct InboxView: View {
     .stackedTabletCentered()
     .background(c.background)
     .stackedListRowWorkGate($allowRowHeavyWork)
-    .fullScreenCover(item: $detailRoute, onDismiss: {
+    .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
       _Concurrency.Task {
         await TaskDetailDismissRefresh.afterDismiss(tab: .inbox) {
           await store.loadInbox()
@@ -50,10 +50,8 @@ struct InboxView: View {
         }
       }
     }) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId, seed: route.seed)
+      TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
-      }
     }
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in

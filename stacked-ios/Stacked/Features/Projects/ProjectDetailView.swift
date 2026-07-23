@@ -283,13 +283,11 @@ struct ProjectDetailView: View {
     } message: { section in
       Text("As tarefas de \"\(section.name)\" ficarão sem seção.")
     }
-    .fullScreenCover(item: $detailRoute, onDismiss: {
+    .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
       _Concurrency.Task { await store.load() }
     }) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId, seed: route.seed)
+      TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
-      }
     }
   }
 

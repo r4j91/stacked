@@ -16,6 +16,16 @@ enum TaskDetailZoom {
   }
 }
 
+/// Aparência — detalhe da tarefa como sheet (de baixo), em vez de zoom em tela cheia.
+enum TaskDetailSheetPresentationStorage {
+  static let key = "appearance.taskDetailAsSheet"
+  static let defaultEnabled = false
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
+  }
+}
+
 /// Fundo opaco + zoom só com reduce motion desligado — evita piscada preta na transição.
 private struct TaskDetailCover<Content: View>: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -89,6 +99,47 @@ private struct StickyTaskDetailZoomSourceModifier: ViewModifier {
   }
 }
 
+/// Zoom em tela cheia (padrão) ou sheet de baixo — paridade com SubtaskDetail.
+private struct TaskDetailPresentationModifier<Detail: View>: ViewModifier {
+  @Environment(ThemeManager.self) private var theme
+  @AppStorage(TaskDetailSheetPresentationStorage.key)
+  private var presentAsSheet = TaskDetailSheetPresentationStorage.defaultEnabled
+
+  @Binding var item: TaskDetailRoute?
+  let namespace: Namespace.ID
+  let onDismiss: (() -> Void)?
+  let detail: (TaskDetailRoute) -> Detail
+
+  private var sheetItem: Binding<TaskDetailRoute?> {
+    Binding(
+      get: { presentAsSheet ? item : nil },
+      set: { item = $0 }
+    )
+  }
+
+  private var coverItem: Binding<TaskDetailRoute?> {
+    Binding(
+      get: { presentAsSheet ? nil : item },
+      set: { item = $0 }
+    )
+  }
+
+  func body(content: Content) -> some View {
+    content
+      .sheet(item: sheetItem, onDismiss: onDismiss) { route in
+        detail(route)
+          .presentationBackground(theme.colors.background)
+          .presentationDragIndicator(.visible)
+          .presentationDetents([.large])
+      }
+      .fullScreenCover(item: coverItem, onDismiss: onDismiss) { route in
+        TaskDetailZoom.cover(route: route, namespace: namespace) {
+          detail(route)
+        }
+      }
+  }
+}
+
 extension View {
   /// Source do zoom na TaskRow.
   ///
@@ -96,6 +147,23 @@ extension View {
   /// Após abrir, o source fica até a cell sair da tela — evita ghost no fechar.
   func taskDetailZoomSource(id: String, namespace: Namespace.ID, active: Bool = true) -> some View {
     modifier(StickyTaskDetailZoomSourceModifier(id: id, namespace: namespace, active: active))
+  }
+
+  /// Apresenta `TaskDetailView` em zoom (padrão) ou sheet, conforme Aparência.
+  func taskDetailCover(
+    item: Binding<TaskDetailRoute?>,
+    namespace: Namespace.ID,
+    onDismiss: (() -> Void)? = nil,
+    @ViewBuilder content: @escaping (TaskDetailRoute) -> some View
+  ) -> some View {
+    modifier(
+      TaskDetailPresentationModifier(
+        item: item,
+        namespace: namespace,
+        onDismiss: onDismiss,
+        detail: content
+      )
+    )
   }
 }
 

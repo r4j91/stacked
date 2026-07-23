@@ -81,7 +81,7 @@ struct SearchView: View {
         labelCatalog = await labelsReq
         searchFocused = true
       }
-      .fullScreenCover(item: $detailRoute, onDismiss: {
+      .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
         let taskId = dismissedTaskId
         dismissedTaskId = nil
         _Concurrency.Task {
@@ -90,11 +90,9 @@ struct SearchView: View {
           }
         }
       }) { route in
-        TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-          TaskDetailView(taskId: route.taskId, seed: route.seed)
-            .environment(ThemeManager.shared)
-            .onAppear { dismissedTaskId = route.taskId }
-        }
+        TaskDetailView(taskId: route.taskId, seed: route.seed)
+          .environment(ThemeManager.shared)
+          .onAppear { dismissedTaskId = route.taskId }
       }
       .sheet(item: $subtaskDetailRoute) { route in
         SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in

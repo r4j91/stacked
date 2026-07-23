@@ -66,7 +66,7 @@ struct FiltersView: View {
     }
     .tint(theme.colors.textSecondary)
     .background(theme.colors.background.ignoresSafeArea(.all))
-    .fullScreenCover(item: $detailRoute, onDismiss: {
+    .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
       _Concurrency.Task {
         await store.loadDashboard()
         if case .presetFilter(let kind) = store.mode {
@@ -76,10 +76,8 @@ struct FiltersView: View {
         }
       }
     }) { route in
-      TaskDetailZoom.cover(route: route, namespace: taskDetailZoom) {
-        TaskDetailView(taskId: route.taskId, seed: route.seed)
+      TaskDetailView(taskId: route.taskId, seed: route.seed)
         .environment(ThemeManager.shared)
-      }
     }
     .sheet(item: $subtaskDetailRoute) { route in
       SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in

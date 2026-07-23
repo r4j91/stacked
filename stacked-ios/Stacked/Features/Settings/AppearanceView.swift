@@ -18,6 +18,8 @@ struct AppearanceView: View {
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+  @AppStorage(TaskDetailSheetPresentationStorage.key)
+  private var taskDetailAsSheet = TaskDetailSheetPresentationStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
   @State private var showMoreThemes = false
   @State private var showMoreHeroes = false
@@ -219,7 +221,7 @@ struct AppearanceView: View {
         appearancePanel(
           id: .advanced,
           title: "Opções avançadas",
-          summary: chromeGlassMode.displayName,
+          summary: advancedSummary,
           footer: chromeGlassMode.subtitle
         ) {
           appearanceGroupHeader("Efeito da barra")
@@ -229,6 +231,10 @@ struct AppearanceView: View {
               SettingsCardDivider(leadingPadding: 56)
             }
           }
+
+          SettingsCardDivider(leadingPadding: 56)
+          appearanceGroupHeader("Detalhe da tarefa")
+          taskDetailAsSheetRow()
 
           if !hiddenStyles.isEmpty {
             SettingsCardDivider(leadingPadding: 16)
@@ -363,6 +369,7 @@ struct AppearanceView: View {
     hasher.combine(subtaskProgressRing)
     hasher.combine(subtaskBranch)
     hasher.combine(chromeGlassModeRaw)
+    hasher.combine(taskDetailAsSheet)
     return hasher.finalize()
   }
 
@@ -378,6 +385,12 @@ struct AppearanceView: View {
     if subtaskBranch { parts.append("Galho") }
     parts.append(labelChipStyle.displayName)
     parts.append(dueDateChipStyle.displayName)
+    return parts.joined(separator: " · ")
+  }
+
+  private var advancedSummary: String {
+    var parts = [chromeGlassMode.displayName]
+    if taskDetailAsSheet { parts.append("Folha") }
     return parts.joined(separator: " · ")
   }
 
@@ -490,6 +503,29 @@ struct AppearanceView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  private func taskDetailAsSheetRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Abrir como folha")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Sobe de baixo, como o detalhe de subtarefa. Desligado mantém o zoom.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $taskDetailAsSheet, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: taskDetailAsSheet) { _, _ in
+      HapticService.selection()
+    }
   }
 
   private func themeRow(_ themeId: AppThemeId) -> some View {
