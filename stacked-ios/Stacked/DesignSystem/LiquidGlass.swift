@@ -19,6 +19,17 @@ enum LiquidGlass {
   static let navSelectionStrokeWidth: CGFloat = 0.75
   /// Fill estático no freeze — parece glass pausado, sem amostrar a lista.
   static let frozenTrackOpacity: CGFloat = 0.88
+  /// Tint sobre Material no modo Glass fosco (legado FASE1).
+  static let frostedTintOpacity: CGFloat = 0.52
+
+  /// Blur clássico + tint — visual glass sem `.glassEffect` / morph.
+  @ViewBuilder
+  static func frostedFill<S: Shape>(shape: S, tint: Color) -> some View {
+    ZStack {
+      shape.fill(.ultraThinMaterial)
+      shape.fill(tint.opacity(frostedTintOpacity))
+    }
+  }
 
   @ViewBuilder
   static func navBarPill<Content: View>(
@@ -126,6 +137,7 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
 
   let navBarColor: Color
   let shape: S
@@ -148,6 +160,10 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
     )
   }
 
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+  }
+
   private var useStaticFrozen: Bool {
     // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
@@ -157,6 +173,10 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
     if useSolid {
       content
         .background(shape.fill(navBarColor))
+        .clipShape(shape)
+    } else if useStaticFrosted {
+      content
+        .background { LiquidGlass.frostedFill(shape: shape, tint: navBarColor) }
         .clipShape(shape)
     } else if useStaticFrozen {
       // Mesmo look do dock congelado: translúcido, sem glassEffect.
@@ -184,6 +204,7 @@ private struct PopoverCardSurface<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
 
   let navBarColor: Color
   let cornerRadius: CGFloat
@@ -210,13 +231,19 @@ private struct PopoverCardSurface<Content: View>: View {
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
   }
 
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+  }
+
   /// Efeito quieto: card de menu/notas opaco (paridade Quick Add) — dock continua
-  /// com glass congelado translúcido via `GlassSurface`.
+  /// com glass congelado translúcido via `GlassSurface`. Glass fosco usa Material.
   private var useOpaqueQuietPopover: Bool {
     alwaysStaticGlass
   }
 
-  private var suppressShadow: Bool { useSolid || useStaticFrozen || useOpaqueQuietPopover }
+  private var suppressShadow: Bool {
+    useSolid || useStaticFrozen || useStaticFrosted || useOpaqueQuietPopover
+  }
 
   var body: some View {
     let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -249,6 +276,7 @@ private struct FabGlassSurface<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
 
   let tintColor: Color
   let solidFallback: Color
@@ -280,6 +308,10 @@ private struct FabGlassSurface<Content: View>: View {
       reduceTransparency: reduceTransparency,
       disableAllGlass: disableAllGlass
     )
+  }
+
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
   }
 
   private var useStaticFrozen: Bool {
@@ -316,11 +348,22 @@ private struct FabGlassSurface<Content: View>: View {
     return AnyShapeStyle(tintColor.opacity(LiquidGlass.frozenTrackOpacity))
   }
 
+  private var frostedTint: Color {
+    if let gradientStart { return gradientStart }
+    return tintColor
+  }
+
   var body: some View {
     if useSolid {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Circle().fill(fabFill))
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
+    } else if useStaticFrosted {
+      content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { LiquidGlass.frostedFill(shape: Circle(), tint: frostedTint) }
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else if useStaticFrozen {
@@ -352,6 +395,7 @@ private struct ToolbarGlassPill<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
 
   let navBarColor: Color
   let content: Content
@@ -368,6 +412,10 @@ private struct ToolbarGlassPill<Content: View>: View {
     )
   }
 
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+  }
+
   private var useStaticFrozen: Bool {
     // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
     GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
@@ -380,6 +428,8 @@ private struct ToolbarGlassPill<Content: View>: View {
 
     if useSolid {
       padded.background(Capsule().fill(navBarColor))
+    } else if useStaticFrosted {
+      padded.background { LiquidGlass.frostedFill(shape: Capsule(), tint: navBarColor) }
     } else if useStaticFrozen {
       padded.background(Capsule().fill(navBarColor.opacity(LiquidGlass.frozenTrackOpacity)))
     } else {

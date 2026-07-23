@@ -13,6 +13,7 @@ struct DockNavTrackShell<S: InsettableShape>: View {
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(DockGlassFreezeLegacyStorage.key) private var useLegacySwitch = false
 
@@ -22,12 +23,17 @@ struct DockNavTrackShell<S: InsettableShape>: View {
       freezeWhileScrolling: freezeDockGlassWhileScrolling,
       alwaysFrozen: alwaysFrozenDockGlass,
       disableAllGlass: disableAllGlass,
-      alwaysStaticGlass: alwaysStaticGlass
+      alwaysStaticGlass: alwaysStaticGlass,
+      staticFrostedGlass: staticFrostedGlass
     )
   }
 
   private var useFrozenOnly: Bool {
-    alwaysFrozenDockGlass || alwaysStaticGlass
+    alwaysFrozenDockGlass || alwaysStaticGlass || staticFrostedGlass
+  }
+
+  private var useFrostedFill: Bool {
+    staticFrostedGlass
   }
 
   var body: some View {
@@ -37,7 +43,7 @@ struct DockNavTrackShell<S: InsettableShape>: View {
     case .live, .frozen:
       // Preferência "sempre estático": só o fill — sem montar glassEffect.
       if useFrozenOnly {
-        frozenFillLayer
+        staticFillLayer
       } else if useLegacyPath {
         legacySwitchBody
       } else {
@@ -57,7 +63,7 @@ struct DockNavTrackShell<S: InsettableShape>: View {
     case .live:
       liveGlassLayer
     case .frozen:
-      frozenFillLayer
+      staticFillLayer
     case .solid:
       shape.fill(colors.navBar)
     }
@@ -84,6 +90,25 @@ struct DockNavTrackShell<S: InsettableShape>: View {
         in: shape
       )
       .clipShape(shape)
+      .overlay {
+        shape.strokeBorder(
+          colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
+          lineWidth: LiquidGlass.navSelectionStrokeWidth
+        )
+      }
+  }
+
+  @ViewBuilder
+  private var staticFillLayer: some View {
+    if useFrostedFill {
+      frostedFillLayer
+    } else {
+      frozenFillLayer
+    }
+  }
+
+  private var frostedFillLayer: some View {
+    LiquidGlass.frostedFill(shape: shape, tint: colors.navBar)
       .overlay {
         shape.strokeBorder(
           colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),

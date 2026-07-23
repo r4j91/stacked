@@ -40,6 +40,16 @@ enum AlwaysStaticGlassStorage {
   }
 }
 
+/// Aparência — Material + tint em todo o chrome: visual glass sem Liquid Glass / morph ao vivo.
+enum StaticFrostedGlassStorage {
+  static let key = "staticFrostedGlass"
+
+  /// Desligado por padrão. Ligado = blur clássico (sem `.glassEffect`).
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+  }
+}
+
 enum GlassChromePreference {
   /// Sólido quando a11y pede ou o usuário desativou o glass.
   static func prefersSolid(reduceTransparency: Bool, disableAllGlass: Bool? = nil) -> Bool {
@@ -51,13 +61,33 @@ enum GlassChromePreference {
     alwaysStaticGlass ?? AlwaysStaticGlassStorage.isEnabled
   }
 
+  /// Material + tint (sem glassEffect / morph) — chrome inteiro.
+  static func prefersStaticFrosted(staticFrostedGlass: Bool? = nil) -> Bool {
+    staticFrostedGlass ?? StaticFrostedGlassStorage.isEnabled
+  }
+
+  /// Qualquer modo que não monta Liquid Glass ao vivo.
+  static func prefersNoLiveGlass(
+    alwaysStaticGlass: Bool? = nil,
+    staticFrostedGlass: Bool? = nil
+  ) -> Bool {
+    prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+      || prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+  }
+
   /// Pausar morph/amostragem no scroll — mesmo fill do dock congelado (chrome inteiro).
   static func prefersScrollFrozen(
     freezeWhileScrolling: Bool? = nil,
     isContentScrolling: Bool,
-    alwaysStaticGlass: Bool? = nil
+    alwaysStaticGlass: Bool? = nil,
+    staticFrostedGlass: Bool? = nil
   ) -> Bool {
-    if prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass) { return true }
+    if prefersNoLiveGlass(
+      alwaysStaticGlass: alwaysStaticGlass,
+      staticFrostedGlass: staticFrostedGlass
+    ) {
+      return true
+    }
     let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
     return freeze && isContentScrolling
   }

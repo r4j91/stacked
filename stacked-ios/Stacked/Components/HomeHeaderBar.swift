@@ -95,15 +95,16 @@ private struct HomeHeaderTrailing: View {
   }
 }
 
-/// Contorno igual ao trilho do dock — só com Efeito quieto (glass estático translúcido).
+/// Contorno igual ao trilho do dock — só com Efeito quieto / Glass fosco (sem Liquid Glass).
 private struct HomeHeaderQuietBorder: ViewModifier {
   @Environment(ThemeManager.self) private var theme
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
 
   func body(content: Content) -> some View {
     let c = theme.colors
     content.overlay {
-      if alwaysStaticGlass {
+      if alwaysStaticGlass || staticFrostedGlass {
         Capsule()
           .strokeBorder(
             c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),

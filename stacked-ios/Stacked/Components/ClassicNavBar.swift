@@ -8,6 +8,7 @@ struct ClassicNavBar: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 
@@ -29,7 +30,7 @@ struct ClassicNavBar: View {
   /// Lente: só modos realmente estáticos. Pausar no scroll fica no trilho (DockNavTrackShell)
   /// — trocar lente↔sólido no gesto republicava a navbar e hitchava.
   private var useStaticIndicator: Bool {
-    useSolidChrome || alwaysStaticGlass || alwaysFrozenDockGlass
+    useSolidChrome || alwaysStaticGlass || staticFrostedGlass || alwaysFrozenDockGlass
   }
 
   var body: some View {

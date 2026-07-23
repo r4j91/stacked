@@ -1510,6 +1510,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
   private func reportScrolling(_ scrolling: Bool) {
     guard !AlwaysStaticGlassStorage.isEnabled,
+          !StaticFrostedGlassStorage.isEnabled,
           !AlwaysFrozenDockGlassStorage.isEnabled,
           !DisableAllGlassStorage.isEnabled,
           FreezeDockGlassWhileScrollingStorage.isEnabled

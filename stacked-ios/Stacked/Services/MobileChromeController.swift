@@ -65,7 +65,8 @@ final class MobileChromeController {
     freezeWhileScrolling: Bool? = nil,
     alwaysFrozen: Bool? = nil,
     disableAllGlass: Bool? = nil,
-    alwaysStaticGlass: Bool? = nil
+    alwaysStaticGlass: Bool? = nil,
+    staticFrostedGlass: Bool? = nil
   ) -> DockGlassMode {
     if GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
@@ -77,7 +78,10 @@ final class MobileChromeController {
     if ScrollPerfDebugStorage.t1ChromeStatic { return .live }
     let always =
       (alwaysFrozen ?? AlwaysFrozenDockGlassStorage.isEnabled)
-      || GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+      || GlassChromePreference.prefersNoLiveGlass(
+        alwaysStaticGlass: alwaysStaticGlass,
+        staticFrostedGlass: staticFrostedGlass
+      )
     if always { return .frozen }
     let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
     if freeze, isContentScrolling {

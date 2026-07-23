@@ -7,6 +7,7 @@ struct ListScrollDockGlassReporter: ViewModifier {
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
 
   /// Se o modo do dock não muda com o scroll, não vale mutar `isContentScrolling`
@@ -19,7 +20,7 @@ struct ListScrollDockGlassReporter: ViewModifier {
     ) {
       return false
     }
-    if alwaysFrozenDockGlass || alwaysStaticGlass { return false }
+    if alwaysFrozenDockGlass || alwaysStaticGlass || staticFrostedGlass { return false }
     return freezeDockGlassWhileScrolling
   }
 

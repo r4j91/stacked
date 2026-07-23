@@ -20,6 +20,7 @@ struct AppearanceView: View {
   @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
@@ -236,6 +237,8 @@ struct AppearanceView: View {
           appearanceGroupHeader("Barra e listas · \(scrollFluiditySummary)")
           alwaysStaticGlassRow()
           SettingsCardDivider(leadingPadding: 56)
+          staticFrostedGlassRow()
+          SettingsCardDivider(leadingPadding: 56)
           disableAllGlassRow()
           SettingsCardDivider(leadingPadding: 56)
           freezeDockGlassRow()
@@ -437,6 +440,7 @@ struct AppearanceView: View {
     if useUIKitTaskList { return "Listas mais fluidas" }
     if disableAllGlass { return "Sem translucidez" }
     if alwaysStaticGlass { return "Efeito quieto" }
+    if staticFrostedGlass { return "Glass fosco" }
     if alwaysFrozenDockGlass { return "Barra sem efeito" }
     return freezeDockGlassWhileScrolling ? "Efeito pausado ao rolar" : "Efeito ao vivo"
   }
@@ -446,15 +450,18 @@ struct AppearanceView: View {
       return "Listas de tarefas rolam com menos trancos. Desligue para voltar ao modo anterior."
     }
     if disableAllGlass {
-      return "Barra e botões ficam opacos. Para translucidez sem animação, use Efeito quieto."
+      return "Barra e botões ficam opacos. Para translucidez sem morph, use Glass fosco ou Efeito quieto."
     }
     if alwaysStaticGlass {
       return "Fundo translúcido sem animação do efeito."
     }
+    if staticFrostedGlass {
+      return "Vidro translúcido com blur clássico, sem morph ao vivo."
+    }
     if alwaysFrozenDockGlass {
       return "Só a barra fica sem efeito; o restante continua ao vivo."
     }
-    return "Pausar ao rolar congela a barra. Efeito quieto deixa tudo estável. Sem translucidez remove o efeito."
+    return "Pausar ao rolar congela a barra. Glass fosco deixa tudo estável com visual de vidro. Efeito quieto é mais chapado. Sem translucidez remove o efeito."
   }
 
   // MARK: - Rows
@@ -518,7 +525,40 @@ struct AppearanceView: View {
     .opacity(dimmed ? 0.55 : 1)
     .onChange(of: alwaysStaticGlass) { _, isOn in
       HapticService.selection()
-      if isOn { disableAllGlass = false }
+      if isOn {
+        disableAllGlass = false
+        staticFrostedGlass = false
+      }
+    }
+  }
+
+  private func staticFrostedGlassRow() -> some View {
+    let c = theme.colors
+    let dimmed = disableAllGlass
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Glass fosco")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
+        Text("Vidro translúcido sem morph ao vivo.")
+          .font(AppTypography.taskPreview)
+          .foregroundStyle(c.textSecondary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $staticFrostedGlass, tint: c.actionAccent)
+        .disabled(dimmed)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .opacity(dimmed ? 0.55 : 1)
+    .onChange(of: staticFrostedGlass) { _, isOn in
+      HapticService.selection()
+      if isOn {
+        disableAllGlass = false
+        alwaysStaticGlass = false
+      }
     }
   }
 
@@ -542,13 +582,16 @@ struct AppearanceView: View {
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: disableAllGlass) { _, isOn in
       HapticService.selection()
-      if isOn { alwaysStaticGlass = false }
+      if isOn {
+        alwaysStaticGlass = false
+        staticFrostedGlass = false
+      }
     }
   }
 
   private func freezeDockGlassRow() -> some View {
     let c = theme.colors
-    let dimmed = disableAllGlass || alwaysStaticGlass || alwaysFrozenDockGlass
+    let dimmed = disableAllGlass || alwaysStaticGlass || staticFrostedGlass || alwaysFrozenDockGlass
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
@@ -574,7 +617,7 @@ struct AppearanceView: View {
 
   private func alwaysFrozenDockGlassRow() -> some View {
     let c = theme.colors
-    let dimmed = disableAllGlass || alwaysStaticGlass
+    let dimmed = disableAllGlass || alwaysStaticGlass || staticFrostedGlass
 
     return HStack(spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
