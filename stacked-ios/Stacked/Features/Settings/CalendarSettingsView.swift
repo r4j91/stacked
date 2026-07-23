@@ -25,8 +25,8 @@ struct CalendarSettingsView: View {
             Section {
               SettingsCardSurface {
                 VStack(alignment: .leading, spacing: 8) {
-                  Text("Ative o acesso ao Calendário para ver compromissos em Hoje e Em breve.")
-                    .font(AppTypography.taskPreview)
+                  Text("Permita o Calendário para ver compromissos em Hoje e Em breve.")
+                    .font(AppTypography.meta)
                     .foregroundStyle(c.textSecondary)
                   Button("Permitir acesso ao Calendário") {
                     _Concurrency.Task { await requestAccess() }
@@ -53,7 +53,7 @@ struct CalendarSettingsView: View {
                   isOn: $importEnabled,
                   icon: "calendar.badge.clock",
                   title: "Mostrar compromissos",
-                  subtitle: "Exibe eventos do Calendário em Hoje e Em breve"
+                  subtitle: "Eventos em Hoje e Em breve"
                 )
 
                 if calendarService.authorizationGranted && importEnabled {
@@ -64,7 +64,7 @@ struct CalendarSettingsView: View {
                     title: "Exportar tarefas",
                     subtitle: calendarService.isExportSyncing
                       ? "Atualizando eventos no Calendário…"
-                      : "Envia tarefas e subtarefas com data para o calendário \"Stacked\""
+                      : "Tarefas com data no calendário Stacked"
                   )
                   .disabled(calendarService.isExportSyncing)
                   .opacity(calendarService.isExportSyncing ? 0.6 : 1)
@@ -106,8 +106,8 @@ struct CalendarSettingsView: View {
               SettingsCardSurface {
                 VStack(spacing: 0) {
                   if calendarService.importableCalendars.isEmpty {
-                    Text("Nenhum calendário encontrado nesta conta.")
-                      .font(AppTypography.taskPreview)
+                    Text("Nenhum calendário nesta conta.")
+                      .font(AppTypography.meta)
                       .foregroundStyle(c.textTertiary)
                       .padding(.horizontal, SettingsChrome.rowPaddingH)
                       .padding(.vertical, SettingsChrome.rowPaddingV)
@@ -125,7 +125,7 @@ struct CalendarSettingsView: View {
             }
 
             Section {
-              Text("Não marque \"Stacked\" aqui — é só para exportar tarefas do app. Para ver no app Calendário do iPhone, abra Calendário → Calendários e ative \"Stacked\".")
+              Text("Não marque Stacked aqui (só exportação). No app Calendário, ative o calendário Stacked para ver as tarefas.")
                 .font(AppTypography.metaSmall)
                 .foregroundStyle(c.textTertiary)
                 .multilineTextAlignment(.leading)
@@ -161,7 +161,7 @@ struct CalendarSettingsView: View {
     if calendarService.isExportSyncing {
       return "Atualizando eventos no Calendário…"
     }
-    return "Bloco de 30 min no Calendário — título legível, sem faixa de 1 hora"
+    return "Bloco de 30 min no Calendário"
   }
 
   private var importableCalendarsForUI: [EKCalendar] {

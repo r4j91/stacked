@@ -95,16 +95,16 @@ private struct HomeHeaderTrailing: View {
   }
 }
 
-/// Contorno igual ao trilho do dock — só com Efeito quieto / Glass fosco (sem Liquid Glass).
+/// Contorno igual ao trilho do dock — Quieto / Fosco (sem Liquid Glass ao vivo).
 private struct HomeHeaderQuietBorder: ViewModifier {
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
 
   func body(content: Content) -> some View {
     let c = theme.colors
+    let mode = ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
     content.overlay {
-      if alwaysStaticGlass || staticFrostedGlass {
+      if mode == .quiet || mode == .frosted {
         Capsule()
           .strokeBorder(
             c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),

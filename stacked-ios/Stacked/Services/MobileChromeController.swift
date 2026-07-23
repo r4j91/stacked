@@ -59,35 +59,25 @@ final class MobileChromeController {
     )
   }
 
-  /// Glass ao vivo vs congelado vs sólido (reduce transparency / kill switch).
+  /// Glass ao vivo / quieto / fosco / sólido (sem freeze no scroll).
   func dockGlassMode(
     reduceTransparency: Bool,
-    freezeWhileScrolling: Bool? = nil,
-    alwaysFrozen: Bool? = nil,
-    disableAllGlass: Bool? = nil,
-    alwaysStaticGlass: Bool? = nil,
-    staticFrostedGlass: Bool? = nil
+    mode: ChromeGlassMode? = nil
   ) -> DockGlassMode {
+    let chrome = mode ?? ChromeGlassModeStorage.current
     if GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chrome
     ) {
       return .solid
     }
-    // PERF_FASEB3_ETAPA2 T1 — sem reação ao scroll (permanece live).
+    // PERF_FASEB3_ETAPA2 T1 — força live.
     if ScrollPerfDebugStorage.t1ChromeStatic { return .live }
-    let always =
-      (alwaysFrozen ?? AlwaysFrozenDockGlassStorage.isEnabled)
-      || GlassChromePreference.prefersNoLiveGlass(
-        alwaysStaticGlass: alwaysStaticGlass,
-        staticFrostedGlass: staticFrostedGlass
-      )
-    if always { return .frozen }
-    let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
-    if freeze, isContentScrolling {
-      return .frozen
+    switch chrome {
+    case .live: return .live
+    case .quiet, .frosted: return .frozen
+    case .solid: return .solid
     }
-    return .live
   }
 
   func expandIslandNav(reduceMotion: Bool? = nil) {

@@ -60,29 +60,21 @@ struct SettingsView: View {
 
         Section {
           NavigationLink {
-            ProductivitySettingsView().environment(theme)
+            EditingSettingsView().environment(theme)
           } label: {
-            settingsRow(icon: .productivity, label: "Captura rápida", subtitle: "Descrição ao criar tarefas")
+            settingsRow(icon: .edit, label: "Edição", subtitle: "Criar e detalhe")
           }
           .settingsNavigationLinkStyle()
-          .settingsGroupedNavigationRow(position: .first, showDivider: true)
-
-          NavigationLink {
-            DetailNotesSettingsView().environment(theme)
-          } label: {
-            settingsRow(icon: .edit, label: "Detalhe da tarefa", subtitle: "Notas no menu ou sob o título")
-          }
-          .settingsNavigationLinkStyle()
-          .settingsGroupedNavigationRow(position: .last)
+          .settingsGroupedNavigationRow(position: .only)
         } header: {
-          SettingsSectionHeader(text: "Produtividade")
+          SettingsSectionHeader(text: "Edição")
         }
 
         Section {
           NavigationLink {
             LabelsManagementView().environment(theme)
           } label: {
-            settingsRow(icon: .tag, label: "Etiquetas", subtitle: "Criar e editar")
+            settingsRow(icon: .tag, label: "Etiquetas", subtitle: "Gerenciar")
           }
           .settingsNavigationLinkStyle()
           .settingsGroupedNavigationRow(position: .first, showDivider: true)

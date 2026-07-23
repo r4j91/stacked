@@ -18,7 +18,7 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .default: "Atual"
-    case .f2: "Eyebrow"
+    case .f2: "Faixa superior"
     case .x2: "Híbrida"
     case .trailingTime: "Hora à direita"
     case .dense: "Lista densa"
@@ -27,11 +27,11 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
-    case .default: "Título + meta em linha (projeto, hora, data, etiquetas)"
-    case .f2: "Projeto · prioridade acima; agenda fundida plana na meta"
-    case .x2: "Projeto acima; prioridade + agenda fundida plana na meta"
-    case .trailingTime: "Hora e projeto à direita; chips só para data e etiquetas"
-    case .dense: "Mais compacto: meta em uma linha de texto, sem chips"
+    case .default: "Título + meta em linha"
+    case .f2: "Projeto · prioridade acima; agenda na meta"
+    case .x2: "Projeto acima; prioridade + agenda na meta"
+    case .trailingTime: "Hora e projeto à direita"
+    case .dense: "Meta em texto corrido, sem chips"
     }
   }
 
@@ -52,10 +52,10 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
 enum TaskRowLayoutStorage {
   static let key = "taskRowLayout"
 
-  static var defaultRawValue: String { TaskRowLayout.f2.rawValue }
+  static var defaultRawValue: String { TaskRowLayout.trailingTime.rawValue }
 
   static func layout(from rawValue: String) -> TaskRowLayout {
-    TaskRowLayout(rawValue: rawValue) ?? .f2
+    TaskRowLayout(rawValue: rawValue) ?? .trailingTime
   }
 
   static var current: TaskRowLayout {

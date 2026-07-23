@@ -52,7 +52,7 @@ struct NotificationsSettingsView: View {
                     ),
                     icon: "sun.max",
                     title: "Resumo diário",
-                    subtitle: "Resumo das tarefas do dia às 8h da manhã"
+                    subtitle: "Tarefas do dia às 8h"
                   )
                 }
               }
@@ -62,8 +62,8 @@ struct NotificationsSettingsView: View {
 
           if enabled {
             Section {
-              Text("Você recebe um alerta na hora definida na tarefa. Tarefas só com data, sem hora, não disparam notificação.")
-                .font(AppTypography.taskPreview)
+              Text("Alerta na hora da tarefa. Sem hora, sem notificação.")
+                .font(AppTypography.metaSmall)
                 .foregroundStyle(c.textTertiary)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)

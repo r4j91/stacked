@@ -40,7 +40,7 @@ enum ScrollHitchProbe {
   private(set) static var samples: [Sample] = []
 
   static var scenarioLabel: String {
-    let t0 = FreezeDockGlassWhileScrollingStorage.isEnabled ? "T0ON" : "T0OFF"
+    let t0 = ChromeGlassModeStorage.current == .live ? "T0LIVE" : "T0STATIC"
     let t1 = ScrollPerfDebugStorage.t1ChromeStatic ? "+T1" : ""
     let t2 = ScrollPerfDebugStorage.t2RowsPlaceholder ? "+T2" : ""
     let t3 = ScrollPerfDebugStorage.t3ChromeHidden ? "+T3" : ""

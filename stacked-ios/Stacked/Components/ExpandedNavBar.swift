@@ -6,10 +6,7 @@ struct ExpandedNavBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
-  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
   @Binding var selectedTab: NavTab
 
   @Namespace private var capsuleNamespace
@@ -17,16 +14,20 @@ struct ExpandedNavBar: View {
   private let tabs = NavTab.allCases
   private let pillShape = RoundedRectangle(cornerRadius: 32)
 
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
+
   private var useSolidChrome: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chromeMode
     )
   }
 
-  /// Pausar no scroll não troca a cápsula — só o trilho congela (evita hitch no gesto).
+  /// Cápsula estática quando o chrome não está em Ao vivo.
   private var useStaticIndicator: Bool {
-    useSolidChrome || alwaysStaticGlass || staticFrostedGlass || alwaysFrozenDockGlass
+    GlassChromePreference.prefersNoLiveGlass(mode: chromeMode)
   }
 
   var body: some View {

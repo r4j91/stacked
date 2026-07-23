@@ -1,85 +1,40 @@
 import SwiftUI
 
-/// Trilho do dock: glass ao vivo, congelado no scroll, ou sólido (reduce transparency).
+/// Trilho do dock: glass ao vivo, quieto, fosco ou sólido.
 ///
-/// Resolve `mode` aqui (não na NavBar pai) — no 1º frame do scroll só este shell
-/// reage a `isContentScrolling`, sem re-renderizar ícones/itens da navbar.
+/// Resolve o modo aqui (não na NavBar pai) — troca de preferência só re-renderiza o shell.
 struct DockNavTrackShell<S: InsettableShape>: View {
   let shape: S
   let colors: AppThemeColors
 
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = false
-  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(DockGlassFreezeLegacyStorage.key) private var useLegacySwitch = false
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
 
   private var mode: DockGlassMode {
     chrome.dockGlassMode(
       reduceTransparency: reduceTransparency,
-      freezeWhileScrolling: freezeDockGlassWhileScrolling,
-      alwaysFrozen: alwaysFrozenDockGlass,
-      disableAllGlass: disableAllGlass,
-      alwaysStaticGlass: alwaysStaticGlass,
-      staticFrostedGlass: staticFrostedGlass
+      mode: chromeMode
     )
-  }
-
-  private var useFrozenOnly: Bool {
-    alwaysFrozenDockGlass || alwaysStaticGlass || staticFrostedGlass
-  }
-
-  private var useFrostedFill: Bool {
-    staticFrostedGlass
   }
 
   var body: some View {
     switch mode {
     case .solid:
       shape.fill(colors.navBar)
-    case .live, .frozen:
-      // Preferência "sempre estático": só o fill — sem montar glassEffect.
-      if useFrozenOnly {
-        staticFillLayer
-      } else if useLegacyPath {
-        legacySwitchBody
-      } else {
-        opacityFlipBody
-      }
-    }
-  }
-
-  /// Path legado NetLog — força switch completo (mesmo teardown do path ativo).
-  private var useLegacyPath: Bool {
-    useLegacySwitch || !DockGlassFreezePhase.opacityFlipEnabled
-  }
-
-  @ViewBuilder
-  private var legacySwitchBody: some View {
-    switch mode {
     case .live:
       liveGlassLayer
     case .frozen:
-      staticFillLayer
-    case .solid:
-      shape.fill(colors.navBar)
-    }
-  }
-
-  /// Fill congelado sempre barato; live só monta em `.live` (teardown no freeze —
-  /// evita glassEffect amostrando a lista em opacity 0).
-  private var opacityFlipBody: some View {
-    ZStack {
-      frozenFillLayer
-        .opacity(mode == .frozen ? 1 : 0)
-      if mode == .live {
-        liveGlassLayer
+      if chromeMode == .frosted {
+        frostedFillLayer
+      } else {
+        frozenFillLayer
       }
     }
-    .transaction { $0.disablesAnimations = true }
   }
 
   private var liveGlassLayer: some View {
@@ -96,15 +51,6 @@ struct DockNavTrackShell<S: InsettableShape>: View {
           lineWidth: LiquidGlass.navSelectionStrokeWidth
         )
       }
-  }
-
-  @ViewBuilder
-  private var staticFillLayer: some View {
-    if useFrostedFill {
-      frostedFillLayer
-    } else {
-      frozenFillLayer
-    }
   }
 
   private var frostedFillLayer: some View {

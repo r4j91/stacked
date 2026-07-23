@@ -17,12 +17,7 @@ struct AppearanceView: View {
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = false
-  @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
   @State private var stylePendingHide: HomeHeroStyle?
   @State private var showMoreThemes = false
   @State private var showMoreHeroes = false
@@ -54,6 +49,10 @@ struct AppearanceView: View {
 
   private var taskRowLayout: TaskRowLayout {
     TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
+
+  private var chromeGlassMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
   }
 
   var body: some View {
@@ -121,9 +120,9 @@ struct AppearanceView: View {
 
         appearancePanel(
           id: .taskRowLayout,
-          title: "Layout dos cards",
+          title: "Layout das tarefas",
           summary: taskRowLayoutSummary,
-          footer: "Atual mantém o visual de hoje. Eyebrow e Híbrida usam agenda fundida. Hora à direita e Lista densa são layouts do mockup. O trilho aparece só em Hoje e Em breve."
+          footer: "Faixa superior e Híbrida fundem a agenda. Trilho só em Hoje e Em breve."
         ) {
           ForEach(Array(TaskRowLayout.allCases.enumerated()), id: \.element) { index, layout in
             taskRowLayoutRow(layout)
@@ -136,49 +135,10 @@ struct AppearanceView: View {
         }
 
         appearancePanel(
-          id: .subtasks,
-          title: "Subtarefas nos cards",
-          summary: subtasksAppearanceSummary,
-          footer: "Anel troca o chevron pelo progresso 0/N. Galho desenha um trilho na lista expandida. A animação de abrir/fechar continua a mesma."
-        ) {
-          subtaskProgressRingRow()
-          SettingsCardDivider(leadingPadding: 56)
-          subtaskBranchRow()
-        }
-
-        appearancePanel(
-          id: .labelChips,
-          title: "Etiquetas nos cards",
-          summary: labelChipStyle.displayName,
-          footer: "Só as etiquetas de tarefa e subtarefa. Prioridade continua no estilo suave."
-        ) {
-          ForEach(Array(LabelChipStyle.allCases.enumerated()), id: \.element) { index, style in
-            labelChipStyleRow(style)
-            if index < LabelChipStyle.allCases.count - 1 {
-              SettingsCardDivider(leadingPadding: 90)
-            }
-          }
-        }
-
-        appearancePanel(
-          id: .dueDateChips,
-          title: "Data nos cards",
-          summary: dueDateChipStyle.displayName,
-          footer: "Vencimento em tarefa e subtarefa. O ícone de calendário não usa mais o dia fixo do glyph."
-        ) {
-          ForEach(Array(DueDateChipStyle.allCases.enumerated()), id: \.element) { index, style in
-            dueDateChipStyleRow(style)
-            if index < DueDateChipStyle.allCases.count - 1 {
-              SettingsCardDivider(leadingPadding: 90)
-            }
-          }
-        }
-
-        appearancePanel(
           id: .homeHero,
-          title: "Hero da Home",
+          title: "Topo da Home",
           summary: homeHeroStyle.displayName,
-          footer: "Recomendados: Trilho, Masthead, Horizonte e Clássico. Use ⋯ para ocultar. Clima e Jornada ficam em Mais."
+          footer: "Trilho, Manchete, Horizonte e Clássico. Use ⋯ para ocultar. Clima e Jornada em Mais estilos."
         ) {
           appearanceGroupHeader("Recomendados")
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
@@ -205,8 +165,8 @@ struct AppearanceView: View {
           }
           moreOptionsButton(
             expanded: showMoreHeroes,
-            collapsedTitle: "Mostrar estilos de Clima e Jornada",
-            expandedTitle: "Mostrar apenas recomendados"
+            collapsedTitle: "Mais estilos (Clima e Jornada)",
+            expandedTitle: "Só recomendados"
           ) {
             showMoreHeroes.toggle()
           }
@@ -217,7 +177,7 @@ struct AppearanceView: View {
             id: .appIcon,
             title: "Ícone do app",
             summary: iconManager.currentId.displayName,
-            footer: "O iPhone pede confirmação antes de trocar o ícone."
+            footer: "O iPhone pede confirmação antes de trocar."
           ) {
             ForEach(Array(icons.enumerated()), id: \.element) { index, iconId in
               iconRow(iconId)
@@ -229,23 +189,46 @@ struct AppearanceView: View {
         }
 
         appearancePanel(
+          id: .cardCustomize,
+          title: "Personalizar cards",
+          summary: cardCustomizeSummary,
+          footer: "Anel e galho nas subtarefas. Prioridade continua suave."
+        ) {
+          appearanceGroupHeader("Subtarefas")
+          subtaskProgressRingRow()
+          SettingsCardDivider(leadingPadding: 56)
+          subtaskBranchRow()
+
+          appearanceGroupHeader("Etiquetas")
+          ForEach(Array(LabelChipStyle.allCases.enumerated()), id: \.element) { index, style in
+            labelChipStyleRow(style)
+            if index < LabelChipStyle.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 90)
+            }
+          }
+
+          appearanceGroupHeader("Data")
+          ForEach(Array(DueDateChipStyle.allCases.enumerated()), id: \.element) { index, style in
+            dueDateChipStyleRow(style)
+            if index < DueDateChipStyle.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 90)
+            }
+          }
+        }
+
+        appearancePanel(
           id: .advanced,
           title: "Opções avançadas",
-          summary: "Efeitos, desempenho e itens ocultos",
-          footer: scrollFluidityFooter
+          summary: chromeGlassMode.displayName,
+          footer: chromeGlassMode.subtitle
         ) {
-          appearanceGroupHeader("Barra e listas · \(scrollFluiditySummary)")
-          alwaysStaticGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          staticFrostedGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          disableAllGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          freezeDockGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          alwaysFrozenDockGlassRow()
-          SettingsCardDivider(leadingPadding: 56)
-          uikitTaskListRow()
+          appearanceGroupHeader("Efeito da barra")
+          ForEach(Array(ChromeGlassMode.allCases.enumerated()), id: \.element) { index, mode in
+            chromeGlassModeRow(mode)
+            if index < ChromeGlassMode.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 56)
+            }
+          }
 
           if !hiddenStyles.isEmpty {
             SettingsCardDivider(leadingPadding: 16)
@@ -258,6 +241,7 @@ struct AppearanceView: View {
             }
           }
         }
+
       }
       .padding(.horizontal, SettingsChrome.horizontalPadding)
       .padding(.top, 8)
@@ -350,7 +334,7 @@ struct AppearanceView: View {
 
               if let footer {
                 Text(footer)
-                  .font(AppTypography.taskPreview)
+                  .font(AppTypography.metaSmall)
                   .foregroundStyle(c.textTertiary)
                   .frame(maxWidth: .infinity, alignment: .leading)
                   .padding(.horizontal, SettingsChrome.rowPaddingH)
@@ -378,6 +362,7 @@ struct AppearanceView: View {
     hasher.combine(timelineRailEnabled)
     hasher.combine(subtaskProgressRing)
     hasher.combine(subtaskBranch)
+    hasher.combine(chromeGlassModeRaw)
     return hasher.finalize()
   }
 
@@ -387,14 +372,15 @@ struct AppearanceView: View {
     return parts.joined(separator: " · ")
   }
 
-  private var subtasksAppearanceSummary: String {
-    switch (subtaskProgressRing, subtaskBranch) {
-    case (true, true): "Anel · Galho"
-    case (true, false): "Anel de progresso"
-    case (false, true): "Galho"
-    case (false, false): "Padrão"
-    }
+  private var cardCustomizeSummary: String {
+    var parts: [String] = []
+    if subtaskProgressRing { parts.append("Anel") }
+    if subtaskBranch { parts.append("Galho") }
+    parts.append(labelChipStyle.displayName)
+    parts.append(dueDateChipStyle.displayName)
+    return parts.joined(separator: " · ")
   }
+
 
   private func toggleAppearanceSection(_ id: AppearanceSectionID) {
     HapticService.selection()
@@ -436,34 +422,6 @@ struct AppearanceView: View {
     }
   }
 
-  private var scrollFluiditySummary: String {
-    if useUIKitTaskList { return "Listas mais fluidas" }
-    if disableAllGlass { return "Sem translucidez" }
-    if alwaysStaticGlass { return "Efeito quieto" }
-    if staticFrostedGlass { return "Glass fosco" }
-    if alwaysFrozenDockGlass { return "Barra sem efeito" }
-    return freezeDockGlassWhileScrolling ? "Efeito pausado ao rolar" : "Efeito ao vivo"
-  }
-
-  private var scrollFluidityFooter: String {
-    if useUIKitTaskList {
-      return "Listas de tarefas rolam com menos trancos. Desligue para voltar ao modo anterior."
-    }
-    if disableAllGlass {
-      return "Barra e botões ficam opacos. Para translucidez sem morph, use Glass fosco ou Efeito quieto."
-    }
-    if alwaysStaticGlass {
-      return "Fundo translúcido sem animação do efeito."
-    }
-    if staticFrostedGlass {
-      return "Vidro translúcido com blur clássico, sem morph ao vivo."
-    }
-    if alwaysFrozenDockGlass {
-      return "Só a barra fica sem efeito; o restante continua ao vivo."
-    }
-    return "Pausar ao rolar congela a barra. Glass fosco deixa tudo estável com visual de vidro. Efeito quieto é mais chapado. Sem translucidez remove o efeito."
-  }
-
   // MARK: - Rows
 
   private func appearanceGroupHeader(_ title: String) -> some View {
@@ -488,7 +446,7 @@ struct AppearanceView: View {
     } label: {
       HStack(spacing: 8) {
         Text(expanded ? expandedTitle : collapsedTitle)
-          .font(AppTypography.taskPreview.weight(.semibold))
+          .font(AppTypography.meta.weight(.semibold))
         Spacer(minLength: 8)
         Image(systemName: expanded ? "chevron.up" : "chevron.down")
           .font(.system(size: 11, weight: .semibold))
@@ -502,166 +460,36 @@ struct AppearanceView: View {
     .accessibilityValue(expanded ? "Expandido" : "Recolhido")
   }
 
-  private func alwaysStaticGlassRow() -> some View {
+  private func chromeGlassModeRow(_ mode: ChromeGlassMode) -> some View {
     let c = theme.colors
-    let dimmed = disableAllGlass
+    let isSelected = chromeGlassMode == mode
 
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Efeito quieto")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Fundo translúcido, sem animação.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $alwaysStaticGlass, tint: c.actionAccent)
-        .disabled(dimmed)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .opacity(dimmed ? 0.55 : 1)
-    .onChange(of: alwaysStaticGlass) { _, isOn in
+    return Button {
+      guard !isSelected else { return }
       HapticService.selection()
-      if isOn {
-        disableAllGlass = false
-        staticFrostedGlass = false
+      chromeGlassModeRaw = mode.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text(mode.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(mode.subtitle)
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
       }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
     }
-  }
-
-  private func staticFrostedGlassRow() -> some View {
-    let c = theme.colors
-    let dimmed = disableAllGlass
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Glass fosco")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Vidro translúcido sem morph ao vivo.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $staticFrostedGlass, tint: c.actionAccent)
-        .disabled(dimmed)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .opacity(dimmed ? 0.55 : 1)
-    .onChange(of: staticFrostedGlass) { _, isOn in
-      HapticService.selection()
-      if isOn {
-        disableAllGlass = false
-        alwaysStaticGlass = false
-      }
-    }
-  }
-
-  private func disableAllGlassRow() -> some View {
-    let c = theme.colors
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Sem translucidez")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(c.textPrimary)
-        Text("Fundo opaco, sem mostrar o que passa atrás.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $disableAllGlass, tint: c.actionAccent)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .onChange(of: disableAllGlass) { _, isOn in
-      HapticService.selection()
-      if isOn {
-        alwaysStaticGlass = false
-        staticFrostedGlass = false
-      }
-    }
-  }
-
-  private func freezeDockGlassRow() -> some View {
-    let c = theme.colors
-    let dimmed = disableAllGlass || alwaysStaticGlass || staticFrostedGlass || alwaysFrozenDockGlass
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Pausar efeito ao rolar")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Congela o efeito da barra enquanto a lista rola.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $freezeDockGlassWhileScrolling, tint: c.actionAccent)
-        .disabled(dimmed)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .opacity(dimmed ? 0.55 : 1)
-    .onChange(of: freezeDockGlassWhileScrolling) { _, _ in
-      HapticService.selection()
-    }
-  }
-
-  private func alwaysFrozenDockGlassRow() -> some View {
-    let c = theme.colors
-    let dimmed = disableAllGlass || alwaysStaticGlass || staticFrostedGlass
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Barra sem efeito")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-        Text("Só a barra fica sem efeito; ainda dá para ver atrás.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $alwaysFrozenDockGlass, tint: c.actionAccent)
-        .disabled(dimmed)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .opacity(dimmed ? 0.55 : 1)
-    .onChange(of: alwaysFrozenDockGlass) { _, _ in
-      HapticService.selection()
-    }
-  }
-
-  private func uikitTaskListRow() -> some View {
-    let c = theme.colors
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Listas mais fluidas")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(c.textPrimary)
-        Text("Rolagem das listas mais suave. Desligue para o modo anterior.")
-          .font(AppTypography.taskPreview)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $useUIKitTaskList, tint: c.actionAccent)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .onChange(of: useUIKitTaskList) { _, _ in
-      HapticService.selection()
-    }
+    .buttonStyle(.plain)
   }
 
   private func themeRow(_ themeId: AppThemeId) -> some View {
@@ -678,7 +506,7 @@ struct AppearanceView: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(themeId.subtitle)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
         }
         Spacer()
@@ -739,7 +567,7 @@ struct AppearanceView: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(style.subtitle)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
             .lineLimit(2)
         }
@@ -773,7 +601,7 @@ struct AppearanceView: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(layout.subtitle)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
             .lineLimit(2)
         }
@@ -800,7 +628,7 @@ struct AppearanceView: View {
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
         Text("Trilho vertical à esquerda em Hoje e Em breve.")
-          .font(AppTypography.taskPreview)
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
       }
@@ -823,8 +651,8 @@ struct AppearanceView: View {
         Text("Anel de progresso")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Troca o chevron por um anel com o progresso das subtarefas.")
-          .font(AppTypography.taskPreview)
+        Text("Mostra o progresso das subtarefas no lugar da seta.")
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
       }
@@ -848,7 +676,7 @@ struct AppearanceView: View {
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
         Text("Trilho vertical na lista expandida de subtarefas.")
-          .font(AppTypography.taskPreview)
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
       }
@@ -879,7 +707,7 @@ struct AppearanceView: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(style.subtitle)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
             .lineLimit(2)
         }
@@ -907,7 +735,7 @@ struct AppearanceView: View {
           .font(AppTypography.settingsTitle)
           .foregroundStyle(isIslandNavStyle ? c.textPrimary : c.textTertiary)
         Text("O + fica dentro da barra, em vez de flutuar acima.")
-          .font(AppTypography.taskPreview)
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
       }
       Spacer(minLength: 8)
@@ -946,7 +774,7 @@ struct AppearanceView: View {
               .lineLimit(1)
               .minimumScaleFactor(0.88)
             Text(style.subtitle)
-              .font(AppTypography.taskPreview)
+              .font(AppTypography.meta)
               .foregroundStyle(c.textSecondary)
               .lineLimit(2)
           }
@@ -1009,7 +837,7 @@ struct AppearanceView: View {
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
         Text(style.subtitle)
-          .font(AppTypography.taskPreview)
+          .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
       }
@@ -1033,7 +861,7 @@ struct AppearanceView: View {
           .foregroundStyle(c.textPrimary)
         Spacer()
         Text("Restaurar")
-          .font(AppTypography.taskPreview)
+          .font(AppTypography.meta)
           .foregroundStyle(c.accent)
       }
       .frame(minHeight: 44)
@@ -1076,7 +904,7 @@ struct AppearanceView: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(iconId.subtitle)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
         }
         Spacer()
@@ -1127,11 +955,9 @@ private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
   case taskRowLayout
-  case subtasks
-  case labelChips
-  case dueDateChips
   case homeHero
   case appIcon
+  case cardCustomize
   case advanced
 
   var icon: StackedIconKey {
@@ -1139,11 +965,9 @@ private enum AppearanceSectionID: String, Hashable {
     case .theme: .paintbrush
     case .navBar: .grid
     case .taskRowLayout: .list
-    case .subtasks: .logbook
-    case .labelChips: .tag
-    case .dueDateChips: .calendar
     case .homeHero: .sun
     case .appIcon: .checkCircle
+    case .cardCustomize: .tag
     case .advanced: .productivity
     }
   }
@@ -1179,7 +1003,7 @@ private struct AppearanceSectionHeader: View {
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
           Text(summary)
-            .font(AppTypography.taskPreview)
+            .font(AppTypography.meta)
             .foregroundStyle(c.textSecondary)
             .lineLimit(1)
             .opacity(expanded ? 0.62 : 1)

@@ -135,9 +135,11 @@ enum LiquidGlass {
 
 private struct GlassSurface<S: InsettableShape, Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
 
   let navBarColor: Color
   let shape: S
@@ -156,17 +158,16 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
   private var useSolid: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chromeMode
     )
   }
 
   private var useStaticFrosted: Bool {
-    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
   private var useStaticFrozen: Bool {
-    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
-    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+    GlassChromePreference.prefersQuiet(mode: chromeMode)
   }
 
   var body: some View {
@@ -202,9 +203,11 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
 private struct PopoverCardSurface<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
 
   let navBarColor: Color
   let cornerRadius: CGFloat
@@ -223,22 +226,21 @@ private struct PopoverCardSurface<Content: View>: View {
   private var useSolid: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chromeMode
     )
   }
 
   private var useStaticFrozen: Bool {
-    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+    GlassChromePreference.prefersQuiet(mode: chromeMode)
   }
 
   private var useStaticFrosted: Bool {
-    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
-  /// Efeito quieto: card de menu/notas opaco (paridade Quick Add) — dock continua
-  /// com glass congelado translúcido via `GlassSurface`. Glass fosco usa Material.
+  /// Quieto: card de menu/notas opaco (paridade Quick Add). Fosco usa Material.
   private var useOpaqueQuietPopover: Bool {
-    alwaysStaticGlass
+    chromeMode == .quiet
   }
 
   private var suppressShadow: Bool {
@@ -274,9 +276,11 @@ private struct PopoverCardSurface<Content: View>: View {
 private struct FabGlassSurface<Content: View>: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
 
   let tintColor: Color
   let solidFallback: Color
@@ -306,17 +310,16 @@ private struct FabGlassSurface<Content: View>: View {
   private var useSolid: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chromeMode
     )
   }
 
   private var useStaticFrosted: Bool {
-    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
   private var useStaticFrozen: Bool {
-    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
-    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+    GlassChromePreference.prefersQuiet(mode: chromeMode)
   }
 
   private var fabFill: AnyShapeStyle {
@@ -393,9 +396,11 @@ private struct FabGlassSurface<Content: View>: View {
 
 private struct ToolbarGlassPill<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
-  @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
 
   let navBarColor: Color
   let content: Content
@@ -408,17 +413,16 @@ private struct ToolbarGlassPill<Content: View>: View {
   private var useSolid: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: chromeMode
     )
   }
 
   private var useStaticFrosted: Bool {
-    GlassChromePreference.prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
   private var useStaticFrozen: Bool {
-    // Freeze-on-scroll só no dock — trocar FAB/headers no 1º frame do gesto causava hitch.
-    GlassChromePreference.prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
+    GlassChromePreference.prefersQuiet(mode: chromeMode)
   }
 
   var body: some View {

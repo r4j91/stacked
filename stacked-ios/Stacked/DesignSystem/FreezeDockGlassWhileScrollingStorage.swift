@@ -1,94 +1,104 @@
 import Foundation
 
-/// Aparência — congela o Liquid Glass do dock durante o scroll (sem amostrar a lista ao vivo).
-enum FreezeDockGlassWhileScrollingStorage {
-  static let key = "freezeDockGlassWhileScrolling"
+/// Modo único do chrome translúcido (dock, FAB, headers, pills).
+/// Substitui os toggles quieto / fosco / opaco e remove pausar-ao-rolar / barra-sem-efeito.
+enum ChromeGlassMode: String, CaseIterable, Identifiable {
+  case live
+  case quiet
+  case frosted
+  case solid
 
-  /// Desligado por padrão (Glass fosco / chrome estático recomendado).
-  static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+  var id: String { rawValue }
+
+  var displayName: String {
+    switch self {
+    case .live: "Ao vivo"
+    case .quiet: "Quieto"
+    case .frosted: "Fosco"
+    case .solid: "Opaco"
+    }
+  }
+
+  var subtitle: String {
+    switch self {
+    case .live: "Animação na barra"
+    case .quiet: "Translúcido, sem animação"
+    case .frosted: "Vidro com desfoque"
+    case .solid: "Sem ver o que passa atrás"
+    }
   }
 }
 
-/// Aparência — dock sempre no fill estático (sem Liquid Glass ao vivo), para comparar visual.
-enum AlwaysFrozenDockGlassStorage {
-  static let key = "alwaysFrozenDockGlass"
+enum ChromeGlassModeStorage {
+  static let key = "chromeGlassMode"
+  static let defaultMode: ChromeGlassMode = .frosted
+  static var defaultRawValue: String { defaultMode.rawValue }
 
-  /// Desligado por padrão: glass ao vivo (com pausa no scroll, se configurado).
-  static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+  /// Migra toggles antigos uma vez; depois só `chromeGlassMode`.
+  static func migrateIfNeeded() {
+    let ud = UserDefaults.standard
+    guard ud.object(forKey: key) == nil else { return }
+
+    let mode: ChromeGlassMode
+    if ud.bool(forKey: DisableAllGlassStorage.legacyKey) {
+      mode = .solid
+    } else if ud.bool(forKey: AlwaysStaticGlassStorage.legacyKey) {
+      mode = .quiet
+    } else if let frosted = ud.object(forKey: StaticFrostedGlassStorage.legacyKey) as? Bool {
+      mode = frosted ? .frosted : .live
+    } else {
+      mode = defaultMode
+    }
+    ud.set(mode.rawValue, forKey: key)
+  }
+
+  static var current: ChromeGlassMode {
+    migrateIfNeeded()
+    let raw = UserDefaults.standard.string(forKey: key) ?? defaultRawValue
+    return ChromeGlassMode(rawValue: raw) ?? defaultMode
+  }
+
+  static func mode(from rawValue: String) -> ChromeGlassMode {
+    ChromeGlassMode(rawValue: rawValue) ?? defaultMode
   }
 }
 
-/// Aparência — desliga Liquid Glass em todo o app (dock, toolbar, FAB, headers, popovers).
+/// Legado — só para migração / leitores que ainda leem a chave antiga.
 enum DisableAllGlassStorage {
-  static let key = "disableAllGlass"
-
-  /// Desligado por padrão. Ligado = fill sólido (mesmo path do reduce transparency).
-  static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
-  }
+  static let legacyKey = "disableAllGlass"
+  static let key = legacyKey
 }
 
-/// Aparência — glass “pausado” em todo o app: vê atrás, sem Liquid Glass ao vivo / morph.
 enum AlwaysStaticGlassStorage {
-  static let key = "alwaysStaticGlass"
-
-  /// Desligado por padrão. Ligado = fill estático translúcido (igual freeze do dock).
-  static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
-  }
+  static let legacyKey = "alwaysStaticGlass"
+  static let key = legacyKey
 }
 
-/// Aparência — Material + tint em todo o chrome: visual glass sem Liquid Glass / morph ao vivo.
 enum StaticFrostedGlassStorage {
-  static let key = "staticFrostedGlass"
-
-  /// Ligado por padrão: blur clássico sem morph (perfil atual do app).
-  static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? true
-  }
+  static let legacyKey = "staticFrostedGlass"
+  static let key = legacyKey
 }
 
 enum GlassChromePreference {
-  /// Sólido quando a11y pede ou o usuário desativou o glass.
-  static func prefersSolid(reduceTransparency: Bool, disableAllGlass: Bool? = nil) -> Bool {
-    reduceTransparency || (disableAllGlass ?? DisableAllGlassStorage.isEnabled)
+  static func mode(rawValue: String? = nil) -> ChromeGlassMode {
+    if let rawValue { return ChromeGlassModeStorage.mode(from: rawValue) }
+    return ChromeGlassModeStorage.current
   }
 
-  /// Fill estático translúcido (sem glassEffect) — dock + botões/headers.
-  static func prefersStaticFrozen(alwaysStaticGlass: Bool? = nil) -> Bool {
-    alwaysStaticGlass ?? AlwaysStaticGlassStorage.isEnabled
+  static func prefersSolid(reduceTransparency: Bool, mode: ChromeGlassMode? = nil) -> Bool {
+    reduceTransparency || (mode ?? ChromeGlassModeStorage.current) == .solid
   }
 
-  /// Material + tint (sem glassEffect / morph) — chrome inteiro.
-  static func prefersStaticFrosted(staticFrostedGlass: Bool? = nil) -> Bool {
-    staticFrostedGlass ?? StaticFrostedGlassStorage.isEnabled
+  static func prefersQuiet(mode: ChromeGlassMode? = nil) -> Bool {
+    (mode ?? ChromeGlassModeStorage.current) == .quiet
   }
 
-  /// Qualquer modo que não monta Liquid Glass ao vivo.
-  static func prefersNoLiveGlass(
-    alwaysStaticGlass: Bool? = nil,
-    staticFrostedGlass: Bool? = nil
-  ) -> Bool {
-    prefersStaticFrozen(alwaysStaticGlass: alwaysStaticGlass)
-      || prefersStaticFrosted(staticFrostedGlass: staticFrostedGlass)
+  static func prefersFrosted(mode: ChromeGlassMode? = nil) -> Bool {
+    (mode ?? ChromeGlassModeStorage.current) == .frosted
   }
 
-  /// Pausar morph/amostragem no scroll — mesmo fill do dock congelado (chrome inteiro).
-  static func prefersScrollFrozen(
-    freezeWhileScrolling: Bool? = nil,
-    isContentScrolling: Bool,
-    alwaysStaticGlass: Bool? = nil,
-    staticFrostedGlass: Bool? = nil
-  ) -> Bool {
-    if prefersNoLiveGlass(
-      alwaysStaticGlass: alwaysStaticGlass,
-      staticFrostedGlass: staticFrostedGlass
-    ) {
-      return true
-    }
-    let freeze = freezeWhileScrolling ?? FreezeDockGlassWhileScrollingStorage.isEnabled
-    return freeze && isContentScrolling
+  static func prefersNoLiveGlass(mode: ChromeGlassMode? = nil) -> Bool {
+    let m = mode ?? ChromeGlassModeStorage.current
+    return m != .live
   }
 }

@@ -6,7 +6,7 @@ struct BottomNavPill: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
   @Binding var selectedTab: NavTab
 
   @Namespace private var blobNamespace
@@ -19,7 +19,7 @@ struct BottomNavPill: View {
   private var useSolidChrome: Bool {
     GlassChromePreference.prefersSolid(
       reduceTransparency: reduceTransparency,
-      disableAllGlass: disableAllGlass
+      mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
     )
   }
 

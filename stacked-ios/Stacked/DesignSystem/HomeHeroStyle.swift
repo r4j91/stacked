@@ -61,7 +61,7 @@ enum HomeHeroStyle: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .classic: "Clássico"
-    case .masthead: "Masthead"
+    case .masthead: "Manchete"
     case .horizonTone: "Horizonte tonal"
     case .dayRuler: "Régua do dia"
     case .dayRail: "Trilho do dia"

@@ -1509,13 +1509,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   }
 
   private func reportScrolling(_ scrolling: Bool) {
-    guard !AlwaysStaticGlassStorage.isEnabled,
-          !StaticFrostedGlassStorage.isEnabled,
-          !AlwaysFrozenDockGlassStorage.isEnabled,
-          !DisableAllGlassStorage.isEnabled,
-          FreezeDockGlassWhileScrollingStorage.isEnabled
-    else { return }
-    MobileChromeController.shared.setContentScrolling(scrolling)
+    // Freeze-on-scroll removido — chrome não reage mais à fase de scroll.
   }
 }
 
