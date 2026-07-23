@@ -84,39 +84,9 @@ targets:
             CFBundleIconFiles:
               - AppIcon
             UIPrerenderedIcon: false
-          CFBundleAlternateIcons:
-            carvao:
-              CFBundleIconFiles:
-                - AppIcon-carvao
-              UIPrerenderedIcon: false
-            grafite:
-              CFBundleIconFiles:
-                - AppIcon-grafite
-              UIPrerenderedIcon: false
-            fosco:
-              CFBundleIconFiles:
-                - AppIcon-fosco
-              UIPrerenderedIcon: false
-            titanio:
-              CFBundleIconFiles:
-                - AppIcon-titanio
-              UIPrerenderedIcon: false
-            cinza_escuro:
-              CFBundleIconFiles:
-                - AppIcon-cinza_escuro
-              UIPrerenderedIcon: false
-            cinza_medio:
-              CFBundleIconFiles:
-                - AppIcon-cinza_medio
-              UIPrerenderedIcon: false
-            azul_nevoa:
-              CFBundleIconFiles:
-                - AppIcon-azul_nevoa
-              UIPrerenderedIcon: false
-            azul_oceano:
-              CFBundleIconFiles:
-                - AppIcon-azul_oceano
-              UIPrerenderedIcon: false
+        # Alternate icons: ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS
+        # injeta CFBundleAlternateIcons["AppIcon-<id>"] + CFBundleIconName no build.
+        # Não listar CFBundleIconFiles manuais aqui — quebravam setAlternateIconName.
 
   StackedWidgetExtension:
     type: app-extension

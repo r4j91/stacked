@@ -1,57 +1,49 @@
 import SwiftUI
 import UIKit
 
-// Paridade lib/services/app_icon_service.dart — variantes em assets/stacked-icones-variantes/
+/// Variantes em `Assets.xcassets/AppIcon*.appiconset` (fonte: stacked-icons).
+///
+/// Com `INCLUDE_ALL_APPICON_ASSETS`, o build registra cada set como
+/// `CFBundleAlternateIcons["AppIcon-<id>"]` com `CFBundleIconName`.
+/// Por isso `setAlternateIconName` deve receber `AppIcon-<id>` — não só `<id>`.
 enum AppIconId: String, CaseIterable, Identifiable {
   case `default`
-  case carvao
-  case grafite
-  case fosco
-  case titanio
-  case cinzaEscuro = "cinza_escuro"
-  case cinzaMedio = "cinza_medio"
-  case azulNevoa = "azul_nevoa"
-  case azulOceano = "azul_oceano"
+  case cinzaPreto = "cinza_preto"
+  case titaniumAzul = "titanium_azul"
+  case azulAmarelo = "azul_amarelo"
+  case cinzaLaranja = "cinza_laranja"
 
   var id: String { rawValue }
 
-  /// Nome passado a `setAlternateIconName`; nil = ícone primário (AppIcon).
+  /// Nome passado a `setAlternateIconName`; nil = ícone primário (`AppIcon`).
   var alternateIconName: String? {
     switch self {
     case .default: nil
-    default: rawValue
+    default: "AppIcon-\(rawValue)"
     }
   }
 
   var displayName: String {
     switch self {
     case .default: "Padrão"
-    case .carvao: "Carvão"
-    case .grafite: "Grafite"
-    case .fosco: "Fosco"
-    case .titanio: "Titânio"
-    case .cinzaEscuro: "Cinza escuro"
-    case .cinzaMedio: "Cinza médio"
-    case .azulNevoa: "Azul névoa"
-    case .azulOceano: "Azul oceano"
+    case .cinzaPreto: "Cinza / preto"
+    case .titaniumAzul: "Titânio / azul"
+    case .azulAmarelo: "Azul / amarelo"
+    case .cinzaLaranja: "Cinza / laranja"
     }
   }
 
   var subtitle: String {
     switch self {
-    case .default: "Ícone principal"
-    case .carvao: "Preto profundo"
-    case .grafite: "Cinza frio"
-    case .fosco: "Acabamento fosco"
-    case .titanio: "Tom metálico"
-    case .cinzaEscuro: "Cinza mais escuro"
-    case .cinzaMedio: "Cinza equilibrado"
-    case .azulNevoa: "Azul suave"
-    case .azulOceano: "Azul intenso"
+    case .default: "Amazonite (atual)"
+    case .cinzaPreto: "Monocromático"
+    case .titaniumAzul: "Prata e aço"
+    case .azulAmarelo: "Navy e âmbar"
+    case .cinzaLaranja: "Carvão e terracota"
     }
   }
 
-  /// Asset catalog para preview na tela de Aparência.
+  /// Asset catalog para preview na tela de Aparência (mesmos pixels do ícone).
   var previewAssetName: String {
     switch self {
     case .default: "IconPreview-default"
@@ -60,8 +52,28 @@ enum AppIconId: String, CaseIterable, Identifiable {
   }
 
   static func from(alternateIconName name: String?) -> AppIconId {
-    guard let name, let match = AppIconId(rawValue: name) else { return .default }
-    return match
+    guard let name, !name.isEmpty else { return .default }
+    if let match = AppIconId(rawValue: name) { return match }
+    let prefix = "AppIcon-"
+    if name.hasPrefix(prefix),
+       let match = AppIconId(rawValue: String(name.dropFirst(prefix.count))) {
+      return match
+    }
+    return .default
+  }
+}
+
+enum AppIconError: LocalizedError {
+  case notSupported
+  case system(Error)
+
+  var errorDescription: String? {
+    switch self {
+    case .notSupported:
+      "Troca de ícone não está disponível neste dispositivo ou instalação."
+    case .system(let error):
+      error.localizedDescription
+    }
   }
 }
 
@@ -89,7 +101,7 @@ final class AppIconManager {
   }
 
   func setIcon(_ id: AppIconId) async throws {
-    guard isSupported else { return }
+    guard isSupported else { throw AppIconError.notSupported }
     guard id != currentId else { return }
 
     isChanging = true
@@ -98,7 +110,7 @@ final class AppIconManager {
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
       UIApplication.shared.setAlternateIconName(id.alternateIconName) { error in
         if let error {
-          continuation.resume(throwing: error)
+          continuation.resume(throwing: AppIconError.system(error))
         } else {
           continuation.resume()
         }
