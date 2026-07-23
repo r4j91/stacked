@@ -482,8 +482,8 @@ final class ThemeManager {
 
   private static let storageKey = "stacked_theme_id"
 
-  /// Primeiro launch → Slate; quem já escolheu tema mantém a preferência salva.
-  var currentId: AppThemeId = .slate {
+  /// Primeiro launch → Slate Cyan; quem já escolheu tema mantém a preferência salva.
+  var currentId: AppThemeId = .slateCyan {
     didSet { UserDefaults.standard.set(currentId.rawValue, forKey: Self.storageKey) }
   }
 

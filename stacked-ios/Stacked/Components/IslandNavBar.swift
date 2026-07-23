@@ -5,7 +5,7 @@ struct IslandNavBar: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   @Binding var selectedTab: NavTab
 
   private let tabs = NavTab.allCases

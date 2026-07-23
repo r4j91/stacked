@@ -4,9 +4,9 @@ import Foundation
 enum FreezeDockGlassWhileScrollingStorage {
   static let key = "freezeDockGlassWhileScrolling"
 
-  /// Ligado por padrão: modo fluido recomendado. Desligar compara com glass ao vivo.
+  /// Desligado por padrão (Glass fosco / chrome estático recomendado).
   static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? true
+    UserDefaults.standard.object(forKey: key) as? Bool ?? false
   }
 }
 
@@ -44,9 +44,9 @@ enum AlwaysStaticGlassStorage {
 enum StaticFrostedGlassStorage {
   static let key = "staticFrostedGlass"
 
-  /// Desligado por padrão. Ligado = blur clássico (sem `.glassEffect`).
+  /// Ligado por padrão: blur clássico sem morph (perfil atual do app).
   static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+    UserDefaults.standard.object(forKey: key) as? Bool ?? true
   }
 }
 

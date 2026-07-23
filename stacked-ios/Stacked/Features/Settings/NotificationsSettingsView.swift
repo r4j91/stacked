@@ -6,12 +6,12 @@ enum NotificationPreferences {
   static let dailySummaryKey = "notifications_daily_summary"
 
   static var enabled: Bool {
-    get { UserDefaults.standard.bool(forKey: enabledKey) }
+    get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
     set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
   }
 
   static var dailySummary: Bool {
-    get { UserDefaults.standard.bool(forKey: dailySummaryKey) }
+    get { UserDefaults.standard.object(forKey: dailySummaryKey) as? Bool ?? true }
     set { UserDefaults.standard.set(newValue, forKey: dailySummaryKey) }
   }
 }

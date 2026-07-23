@@ -15,7 +15,7 @@ enum ProjectDisplayMode: String, CaseIterable {
   /// AppStorage compartilhado (projeto + Inbox/Hoje/…).
   static let storageKey = "display_mode"
   /// Balões+ — modo mais usado; padrão novo / chave ausente.
-  static let defaultRawValue = ProjectDisplayMode.cardsRefined.rawValue
+  static let defaultRawValue = ProjectDisplayMode.listComfort.rawValue
 
   var label: String {
     switch self {

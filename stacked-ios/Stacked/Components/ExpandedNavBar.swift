@@ -8,7 +8,7 @@ struct ExpandedNavBar: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @Binding var selectedTab: NavTab
 

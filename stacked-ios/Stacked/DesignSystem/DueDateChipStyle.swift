@@ -39,10 +39,10 @@ enum DueDateChipStyle: String, CaseIterable, Identifiable {
 enum DueDateChipStyleStorage {
   static let key = "dueDateChipStyle"
 
-  static var defaultRawValue: String { DueDateChipStyle.soft.rawValue }
+  static var defaultRawValue: String { DueDateChipStyle.flat.rawValue }
 
   static func style(from rawValue: String) -> DueDateChipStyle {
-    DueDateChipStyle(rawValue: rawValue) ?? .soft
+    DueDateChipStyle(rawValue: rawValue) ?? .flat
   }
 
   static var current: DueDateChipStyle {

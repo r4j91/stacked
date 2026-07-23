@@ -6,10 +6,12 @@ import UIKit
 /// Com `INCLUDE_ALL_APPICON_ASSETS`, o build registra cada set como
 /// `CFBundleAlternateIcons["AppIcon-<id>"]` com `CFBundleIconName`.
 /// Por isso `setAlternateIconName` deve receber `AppIcon-<id>` — não só `<id>`.
+///
+/// Primário (`nil`) = titânio/azul (perfil atual). Amazonite = variante teal.
 enum AppIconId: String, CaseIterable, Identifiable {
   case `default`
+  case amazonite
   case cinzaPreto = "cinza_preto"
-  case titaniumAzul = "titanium_azul"
   case azulAmarelo = "azul_amarelo"
   case cinzaLaranja = "cinza_laranja"
 
@@ -26,8 +28,8 @@ enum AppIconId: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .default: "Padrão"
+    case .amazonite: "Amazonite"
     case .cinzaPreto: "Cinza / preto"
-    case .titaniumAzul: "Titânio / azul"
     case .azulAmarelo: "Azul / amarelo"
     case .cinzaLaranja: "Cinza / laranja"
     }
@@ -35,9 +37,9 @@ enum AppIconId: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
-    case .default: "Amazonite (atual)"
+    case .default: "Titânio / azul"
+    case .amazonite: "Teal original"
     case .cinzaPreto: "Monocromático"
-    case .titaniumAzul: "Prata e aço"
     case .azulAmarelo: "Navy e âmbar"
     case .cinzaLaranja: "Carvão e terracota"
     }
@@ -53,6 +55,10 @@ enum AppIconId: String, CaseIterable, Identifiable {
 
   static func from(alternateIconName name: String?) -> AppIconId {
     guard let name, !name.isEmpty else { return .default }
+    // Preferência antiga (antes do primário virar titânio).
+    if name == "AppIcon-titanium_azul" || name == "titanium_azul" {
+      return .default
+    }
     if let match = AppIconId(rawValue: name) { return match }
     let prefix = "AppIcon-"
     if name.hasPrefix(prefix),

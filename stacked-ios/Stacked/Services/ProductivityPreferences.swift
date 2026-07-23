@@ -7,7 +7,7 @@ enum ProductivityPreferences {
 
   static var quickAddDescriptionEnabled: Bool {
     get {
-      UserDefaults.standard.object(forKey: quickAddDescriptionKey) as? Bool ?? false
+      UserDefaults.standard.object(forKey: quickAddDescriptionKey) as? Bool ?? true
     }
     set {
       UserDefaults.standard.set(newValue, forKey: quickAddDescriptionKey)
@@ -16,7 +16,7 @@ enum ProductivityPreferences {
 
   static var anchoredDetailNotesEnabled: Bool {
     get {
-      UserDefaults.standard.object(forKey: anchoredDetailNotesKey) as? Bool ?? false
+      UserDefaults.standard.object(forKey: anchoredDetailNotesKey) as? Bool ?? true
     }
     set {
       UserDefaults.standard.set(newValue, forKey: anchoredDetailNotesKey)

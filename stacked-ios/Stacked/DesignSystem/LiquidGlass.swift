@@ -137,7 +137,7 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
 
   let navBarColor: Color
   let shape: S
@@ -204,7 +204,7 @@ private struct PopoverCardSurface<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
 
   let navBarColor: Color
   let cornerRadius: CGFloat
@@ -276,7 +276,7 @@ private struct FabGlassSurface<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
 
   let tintColor: Color
   let solidFallback: Color
@@ -395,7 +395,7 @@ private struct ToolbarGlassPill<Content: View>: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
 
   let navBarColor: Color
   let content: Content

@@ -21,9 +21,9 @@ enum NavBarStyle: String, CaseIterable, Identifiable {
 enum NavBarStyleStorage {
   static let key = "navBarStyle"
 
-  static var defaultRawValue: String { NavBarStyle.classic.rawValue }
+  static var defaultRawValue: String { NavBarStyle.island.rawValue }
 
   static func style(from rawValue: String) -> NavBarStyle {
-    NavBarStyle(rawValue: rawValue) ?? .classic
+    NavBarStyle(rawValue: rawValue) ?? .island
   }
 }

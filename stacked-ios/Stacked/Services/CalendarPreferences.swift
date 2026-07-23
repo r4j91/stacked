@@ -7,18 +7,18 @@ enum CalendarPreferences {
   static let selectedCalendarIDsKey = "calendar_import_calendar_ids"
 
   static var importEnabled: Bool {
-    get { UserDefaults.standard.bool(forKey: importEnabledKey) }
+    get { UserDefaults.standard.object(forKey: importEnabledKey) as? Bool ?? true }
     set { UserDefaults.standard.set(newValue, forKey: importEnabledKey) }
   }
 
   static var exportEnabled: Bool {
-    get { UserDefaults.standard.bool(forKey: exportEnabledKey) }
+    get { UserDefaults.standard.object(forKey: exportEnabledKey) as? Bool ?? true }
     set { UserDefaults.standard.set(newValue, forKey: exportEnabledKey) }
   }
 
   /// Evento curto no Calendário — bloco compacto, sem faixa longa de horário.
   static var exportAsAllDay: Bool {
-    get { UserDefaults.standard.bool(forKey: exportAsAllDayKey) }
+    get { UserDefaults.standard.object(forKey: exportAsAllDayKey) as? Bool ?? true }
     set { UserDefaults.standard.set(newValue, forKey: exportAsAllDayKey) }
   }
 

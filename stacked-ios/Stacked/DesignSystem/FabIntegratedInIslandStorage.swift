@@ -5,6 +5,8 @@ enum FabIntegratedInIslandStorage {
   static let key = "fabIntegratedInIsland"
 
   static var isEnabled: Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? false
+    UserDefaults.standard.object(forKey: key) as? Bool ?? true
   }
+
+  static let defaultEnabled = true
 }

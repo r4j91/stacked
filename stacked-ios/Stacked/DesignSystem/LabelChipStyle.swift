@@ -40,10 +40,10 @@ enum LabelChipStyle: String, CaseIterable, Identifiable {
 enum LabelChipStyleStorage {
   static let key = "labelChipStyle"
 
-  static var defaultRawValue: String { LabelChipStyle.soft.rawValue }
+  static var defaultRawValue: String { LabelChipStyle.flat.rawValue }
 
   static func style(from rawValue: String) -> LabelChipStyle {
-    LabelChipStyle(rawValue: rawValue) ?? .soft
+    LabelChipStyle(rawValue: rawValue) ?? .flat
   }
 
   static var current: LabelChipStyle {

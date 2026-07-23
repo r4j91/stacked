@@ -6,7 +6,7 @@ struct MobileShell<Content: View>: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
-  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   var hideBottomChrome: Bool = false
   var onNewTask: () -> Void = {}
   var onSearch: () -> Void = {}
@@ -104,7 +104,7 @@ struct MobileShell<Content: View>: View {
 private struct BottomChromeBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
-  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   /// PERF_FASEB3_ETAPA2 T3 — desligado do path ativo (3A).
   // @AppStorage(ScrollPerfDebugStorage.t3ChromeHiddenKey) private var t3ChromeHidden = false
   let safeBottom: CGFloat

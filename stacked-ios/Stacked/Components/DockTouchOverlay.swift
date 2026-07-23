@@ -5,7 +5,7 @@ import UIKit
 struct DockTouchOverlay: UIViewRepresentable {
   let safeBottom: CGFloat
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
-  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
 
   private var navBarStyle: NavBarStyle {
     NavBarStyleStorage.style(from: navBarStyleRaw)

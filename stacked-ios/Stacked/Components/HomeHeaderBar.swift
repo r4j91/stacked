@@ -99,7 +99,7 @@ private struct HomeHeaderTrailing: View {
 private struct HomeHeaderQuietBorder: ViewModifier {
   @Environment(ThemeManager.self) private var theme
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
 
   func body(content: Content) -> some View {
     let c = theme.colors

@@ -10,10 +10,10 @@ struct DockNavTrackShell<S: InsettableShape>: View {
 
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = false
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(DockGlassFreezeLegacyStorage.key) private var useLegacySwitch = false
 

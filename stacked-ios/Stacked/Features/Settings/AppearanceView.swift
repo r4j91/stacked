@@ -16,11 +16,11 @@ struct AppearanceView: View {
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
-  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = false
-  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = true
+  @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
+  @AppStorage(FreezeDockGlassWhileScrollingStorage.key) private var freezeDockGlassWhileScrolling = false
   @AppStorage(AlwaysFrozenDockGlassStorage.key) private var alwaysFrozenDockGlass = false
   @AppStorage(AlwaysStaticGlassStorage.key) private var alwaysStaticGlass = false
-  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = false
+  @AppStorage(StaticFrostedGlassStorage.key) private var staticFrostedGlass = true
   @AppStorage(DisableAllGlassStorage.key) private var disableAllGlass = false
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?

@@ -52,10 +52,10 @@ enum TaskRowLayout: String, CaseIterable, Identifiable {
 enum TaskRowLayoutStorage {
   static let key = "taskRowLayout"
 
-  static var defaultRawValue: String { TaskRowLayout.default.rawValue }
+  static var defaultRawValue: String { TaskRowLayout.f2.rawValue }
 
   static func layout(from rawValue: String) -> TaskRowLayout {
-    TaskRowLayout(rawValue: rawValue) ?? .default
+    TaskRowLayout(rawValue: rawValue) ?? .f2
   }
 
   static var current: TaskRowLayout {
