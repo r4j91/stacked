@@ -88,8 +88,7 @@ struct SavedFilterResultsScreen: View {
         filterResultsList(colors: c)
       }
     }
-    .stackedDrillDownListChrome()
-    .background(c.background)
+    .background(c.background.ignoresSafeArea(.all))
     .stackedDrillDownNavChrome(title: filter.name, background: c.background)
     .stackedDrillDownGlassBackButton()
     .toolbar {
@@ -142,6 +141,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
   }
 
   private func filterErrorList(_ err: String) -> some View {
@@ -159,6 +159,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
   }
 
   private var filterEmptyList: some View {
@@ -176,6 +177,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
   }
 
   @ViewBuilder
@@ -208,6 +210,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .stackedDrillDownListChrome()
   }
 
   private var filterUIKitSections: [UIKitTaskSection] {
@@ -294,6 +297,8 @@ struct SavedFilterResultsScreen: View {
       },
       labelCatalog: store.pickerLabels
     )
+    // Full-bleed embaixo — sem faixa do safe area / hard edge atrás do dock.
+    .ignoresSafeArea(edges: .bottom)
     .stackedScrollEdgeChrome()
   }
 
