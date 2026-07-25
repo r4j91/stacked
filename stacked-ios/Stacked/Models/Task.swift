@@ -19,6 +19,10 @@ struct Task: Identifiable, Equatable {
   /// FASE5: chip de vencimento memoizado no mapeamento.
   var dueDateChipLabel: String? = nil
   var dueDateChipColor: Color? = nil
+  /// Prazo final (Deadline) — independente de `dueDate` / data_vencimento.
+  var deadline: Date? = nil
+  var deadlineChipLabel: String? = nil
+  var deadlineChipColor: Color? = nil
   var done: Bool
   var commentCount: Int
   var recurrence: String?
@@ -47,6 +51,7 @@ struct Task: Identifiable, Equatable {
       || !labels.isEmpty
       || priority != nil
       || dueDate != nil
+      || deadline != nil
       || subtasksTotalCount > 0
       || commentCount > 0
   }

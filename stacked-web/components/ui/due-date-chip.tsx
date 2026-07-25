@@ -3,15 +3,23 @@
 import { AppIcon } from "@/components/ui/app-icon";
 import { Calendar03Icon } from "@/lib/icons/nav-icons";
 import type { DueDateChipStyle } from "@/lib/theme/due-date-chip-style";
+import type { IconSvgElement } from "@hugeicons/react";
 
 type DueDateChipProps = {
   label: string;
   color: string;
   day?: number | null;
   style?: DueDateChipStyle;
+  icon?: IconSvgElement;
 };
 
-export function DueDateChip({ label, color, day, style = "soft" }: DueDateChipProps) {
+export function DueDateChip({
+  label,
+  color,
+  day,
+  style = "soft",
+  icon = Calendar03Icon,
+}: DueDateChipProps) {
   if (style === "plain") {
     return (
       <span className="truncate text-xs font-medium" style={{ color }}>
@@ -43,7 +51,7 @@ export function DueDateChip({ label, color, day, style = "soft" }: DueDateChipPr
   if (style === "flat") {
     return (
       <span className="inline-flex max-w-full items-center gap-1 text-xs font-medium" style={{ color }}>
-        <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
+        <AppIcon icon={icon} size={14} strokeWidth={1.75} />
         <span className="truncate">{label}</span>
       </span>
     );
@@ -59,7 +67,7 @@ export function DueDateChip({ label, color, day, style = "soft" }: DueDateChipPr
           borderColor: `color-mix(in srgb, ${color} 50%, transparent)`,
         }}
       >
-        <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
+        <AppIcon icon={icon} size={14} strokeWidth={1.75} />
         <span className="truncate">{label}</span>
       </span>
     );
@@ -74,7 +82,7 @@ export function DueDateChip({ label, color, day, style = "soft" }: DueDateChipPr
         borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
       }}
     >
-      <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
+      <AppIcon icon={icon} size={14} strokeWidth={1.75} />
       <span className="truncate">{label}</span>
     </span>
   );

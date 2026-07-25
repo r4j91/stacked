@@ -17,6 +17,7 @@ struct QuickAddTaskView: View {
   @State private var priority: Priority?
   @State private var dueDate: Date?
   @State private var dueTime: Date?
+  @State private var deadline: Date?
   @State private var selectedProjectId: String?
   @State private var selectedSectionId: String?
   @State private var selectedLabelIds: Set<String> = []
@@ -26,6 +27,7 @@ struct QuickAddTaskView: View {
   @State private var saving = false
   @State private var error: String?
   @State private var showDatePicker = false
+  @State private var showDeadlinePicker = false
 
   private let iconCircleSize: CGFloat = 44
   private let metadataIconSize: CGFloat = 23
@@ -59,6 +61,10 @@ struct QuickAddTaskView: View {
         guard !isShowing else { return }
         DispatchQueue.main.async { titleFocused = true }
       }
+      .onChange(of: showDeadlinePicker) { _, isShowing in
+        guard !isShowing else { return }
+        DispatchQueue.main.async { titleFocused = true }
+      }
       .task { await loadPickers() }
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
@@ -68,6 +74,15 @@ struct QuickAddTaskView: View {
       ) { date, time in
         dueDate = date
         dueTime = time
+      }
+      .stackedTaskDatePickerSheet(
+        isPresented: $showDeadlinePicker,
+        initialDate: deadline,
+        showRecurrence: false,
+        showsTime: false,
+        title: "Prazo"
+      ) { date, _ in
+        deadline = date
       }
   }
 
@@ -128,6 +143,15 @@ struct QuickAddTaskView: View {
         ) { _ in
           titleFocused = false
           showDatePicker = true
+        }
+
+        metadataIconButton(
+          icon: .target,
+          active: deadline != nil,
+          activeColor: deadlinePillColor
+        ) { _ in
+          titleFocused = false
+          showDeadlinePicker = true
         }
 
         metadataIconButton(
@@ -200,6 +224,7 @@ struct QuickAddTaskView: View {
     switch icon {
     case .tag: "Etiquetas"
     case .calendar: "Data"
+    case .target: "Prazo"
     case .flag: "Prioridade"
     case .money: "Parcelas"
     default: "Metadado"
@@ -313,6 +338,11 @@ struct QuickAddTaskView: View {
   private var datePillColor: Color {
     guard let dueDate else { return theme.colors.textTertiary }
     return TaskMapper.dateColor(for: dueDate)
+  }
+
+  private var deadlinePillColor: Color {
+    guard let deadline else { return theme.colors.textTertiary }
+    return TaskMapper.deadlineColor(for: deadline)
   }
 
   private var labelPillName: String? {
@@ -476,6 +506,7 @@ struct QuickAddTaskView: View {
         hora = String(format: "%02d:%02d", h, m)
       }
     }
+    let deadlineISO = deadline.map { TaskMapper.dateString($0) }
 
     let input = TaskRepository.CreateTaskInput(
       title: trimmed,
@@ -485,6 +516,7 @@ struct QuickAddTaskView: View {
       sectionId: selectedSectionId,
       dueDateISO: dueISO,
       time: hora,
+      deadlineISO: deadlineISO,
       labelIds: Array(selectedLabelIds)
     )
 
@@ -507,6 +539,7 @@ struct QuickAddTaskView: View {
       labels: taskLabels,
       subtasks: [],
       dueDate: dueDate,
+      deadline: deadline,
       done: false,
       commentCount: 0,
       recurrence: nil

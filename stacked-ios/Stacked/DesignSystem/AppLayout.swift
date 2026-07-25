@@ -130,6 +130,7 @@ enum AppLayout {
     if layout.usesEyebrow {
       if layout == .x2, task.priority != nil { return true }
       if task.dueDate != nil { return true }
+      if task.deadline != nil { return true }
       if task.timeDisplay != nil { return true }
       if !task.labels.isEmpty { return true }
       if task.subtasksTotalCount > 0 { return true }
@@ -137,9 +138,10 @@ enum AppLayout {
       return false
     }
     if layout.usesTrailingTimeColumn {
-      // Projeto/hora vão na coluna trailing — meta só data/tags/contador/comentários.
+      // Projeto/hora vão na coluna trailing — meta só data/prazo/tags/contador/comentários.
       return !task.labels.isEmpty
         || task.dueDate != nil
+        || task.deadline != nil
         || task.subtasksTotalCount > 0
         || task.commentCount > 0
     }
@@ -148,6 +150,7 @@ enum AppLayout {
       return showsProject
         || !task.labels.isEmpty
         || task.dueDate != nil
+        || task.deadline != nil
         || task.timeDisplay != nil
         || task.subtasksTotalCount > 0
         || task.commentCount > 0
@@ -156,6 +159,7 @@ enum AppLayout {
     return showsProject
       || !task.labels.isEmpty
       || task.dueDate != nil
+      || task.deadline != nil
       || task.subtasksTotalCount > 0
       || task.commentCount > 0
   }

@@ -10,6 +10,7 @@ struct TaskRowDTO: Decodable {
   let ordem: Int?
   let concluida: Bool?
   let data_vencimento: String?
+  let deadline: String?
   let recorrencia: String?
   let whatsapp_rotina: Bool?
   let project_id: String?
@@ -92,6 +93,7 @@ extension TaskRowDTO {
     ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
     concluida = try c.decodeIfPresent(Bool.self, forKey: .concluida)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
+    deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
     recorrencia = try c.decodeIfPresent(String.self, forKey: .recorrencia)
     whatsapp_rotina = try c.decodeIfPresent(Bool.self, forKey: .whatsapp_rotina)
     project_id = Self.stringOrNil(c, .project_id)
@@ -104,7 +106,7 @@ extension TaskRowDTO {
 
   private enum CodingKeys: String, CodingKey {
     case id, titulo, descricao, prioridade, hora, ordem, concluida
-    case data_vencimento, recorrencia, whatsapp_rotina, project_id, section_id
+    case data_vencimento, deadline, recorrencia, whatsapp_rotina, project_id, section_id
     case projects, subtasks, task_labels, task_comments
   }
 

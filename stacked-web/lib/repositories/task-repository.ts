@@ -417,6 +417,7 @@ export class TaskRepository {
     sectionId?: string | null;
     dueDate?: string | null;
     time?: string | null;
+    deadline?: string | null;
     labelIds?: string[];
   }): Promise<string> {
     const userId = await this.requireUserId();
@@ -430,6 +431,7 @@ export class TaskRepository {
         section_id: input.sectionId ?? null,
         data_vencimento: input.dueDate ?? null,
         hora: input.time ?? null,
+        deadline: input.deadline ?? null,
         concluida: false,
         user_id: userId,
       })
@@ -481,6 +483,7 @@ export class TaskRepository {
         prioridade: toDbPriority(task.priority),
         hora: task.time ?? null,
         data_vencimento: task.dueDate ?? null,
+        deadline: task.deadline ?? null,
         project_id: task.projectId ?? null,
         section_id: task.sectionId ?? null,
         concluida: false,
@@ -514,6 +517,7 @@ export class TaskRepository {
     meta: {
       priority?: Priority | null;
       dueDate?: string | null;
+      deadline?: string | null;
       projectId?: string | null;
       sectionId?: string | null;
       order?: number;
@@ -522,6 +526,7 @@ export class TaskRepository {
     const patch: Record<string, unknown> = {};
     if ("priority" in meta) patch.prioridade = toDbPriority(meta.priority);
     if ("dueDate" in meta) patch.data_vencimento = meta.dueDate ?? null;
+    if ("deadline" in meta) patch.deadline = meta.deadline ?? null;
     if ("projectId" in meta) patch.project_id = meta.projectId ?? null;
     if ("sectionId" in meta) patch.section_id = meta.sectionId ?? null;
     if ("order" in meta && meta.order != null) patch.ordem = meta.order;

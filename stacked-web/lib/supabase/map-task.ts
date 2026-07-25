@@ -38,6 +38,7 @@ export function mapTaskRow(row: DbRow): Task {
       ? String((row.projects as DbRow).nome)
       : null;
   const due = parseDueDate(row.data_vencimento);
+  const deadline = parseDueDate(row.deadline);
 
   const subtasks = sortSubtasksForDisplay(
     ((row.subtasks as DbRow[] | null) ?? []).map(mapSubtask),
@@ -76,6 +77,7 @@ export function mapTaskRow(row: DbRow): Task {
     sectionId: row.section_id != null ? String(row.section_id) : null,
     dueDate: due ? toDateStr(due) : null,
     date: formatTaskDate(due),
+    deadline: deadline ? toDateStr(deadline) : null,
     tag: labels[0],
     priority: parsePriority(row.prioridade),
     done: Boolean(row.concluida),

@@ -10,6 +10,8 @@ struct TaskDatePickerSheet: View {
   var initialDate: Date?
   var initialTime: Date?
   var showRecurrence: Bool
+  var showsTime: Bool
+  var title: String
   var onChanged: (Date?, Date?) -> Void
   var onClose: (() -> Void)?
 
@@ -23,18 +25,22 @@ struct TaskDatePickerSheet: View {
     initialDate: Date?,
     initialTime: Date? = nil,
     showRecurrence: Bool = true,
+    showsTime: Bool = true,
+    title: String = "Data",
     onClose: (() -> Void)? = nil,
     onChanged: @escaping (Date?, Date?) -> Void
   ) {
     self.initialDate = initialDate
     self.initialTime = initialTime
     self.showRecurrence = showRecurrence
+    self.showsTime = showsTime
+    self.title = title
     self.onClose = onClose
     self.onChanged = onChanged
     _selectedDate = State(initialValue: initialDate)
     _selectedTime = State(initialValue: initialTime ?? Date())
-    _hasTime = State(initialValue: initialTime != nil)
-    _timeExpanded = State(initialValue: initialTime != nil)
+    _hasTime = State(initialValue: showsTime && initialTime != nil)
+    _timeExpanded = State(initialValue: showsTime && initialTime != nil)
     _displayedMonth = State(initialValue: initialDate ?? Date())
   }
 
@@ -55,9 +61,11 @@ struct TaskDatePickerSheet: View {
         .scrollIndicators(.hidden)
       }
       .safeAreaInset(edge: .bottom, spacing: 0) {
-        timeSection
+        if showsTime {
+          timeSection
+        }
       }
-      .navigationTitle("Data")
+      .navigationTitle(title)
       .navigationBarTitleDisplayMode(.inline)
       .toolbarBackground(c.background, for: .navigationBar)
       .toolbarBackground(.visible, for: .navigationBar)

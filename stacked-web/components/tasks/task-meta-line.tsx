@@ -9,6 +9,8 @@ import {
   formatDueDateTimeLabel,
   formatTimeDisplay,
   dueDateChipColor,
+  deadlineChipColor,
+  deadlineChipLabel,
 } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
 import { DueDateChip } from "@/components/ui/due-date-chip";
@@ -19,6 +21,7 @@ import {
   Folder01Icon,
   Calendar03Icon,
   BubbleChatIcon,
+  Target01Icon,
 } from "@/lib/icons/nav-icons";
 import { useLabelChipStyle } from "@/lib/theme/use-label-chip-style";
 import { useDueDateChipStyle } from "@/lib/theme/use-due-date-chip-style";
@@ -196,6 +199,23 @@ export function TaskMetaLine({
       );
     }
 
+    if (task.deadline) {
+      const dl = parseDueDate(task.deadline);
+      const dlLabel = deadlineChipLabel(dl);
+      if (dlLabel) {
+        items.push(
+          <DueDateChip
+            key="deadline"
+            label={dlLabel}
+            color={deadlineChipColor(dl, task.done)}
+            day={dl?.getDate() ?? null}
+            style={dueDateChipStyle}
+            icon={Target01Icon}
+          />,
+        );
+      }
+    }
+
     items.push(...LabelItems({ taskLabels, labelChipStyle, maxLabels }));
 
     if (subs.length) {
@@ -220,6 +240,23 @@ export function TaskMetaLine({
             color={dueDateChipColor(due, task.done)}
             day={due?.getDate() ?? null}
             style={dueDateChipStyle}
+          />,
+        );
+      }
+    }
+
+    if (task.deadline) {
+      const dl = parseDueDate(task.deadline);
+      const dlLabel = deadlineChipLabel(dl);
+      if (dlLabel) {
+        items.push(
+          <DueDateChip
+            key="deadline"
+            label={dlLabel}
+            color={deadlineChipColor(dl, task.done)}
+            day={dl?.getDate() ?? null}
+            style={dueDateChipStyle}
+            icon={Target01Icon}
           />,
         );
       }

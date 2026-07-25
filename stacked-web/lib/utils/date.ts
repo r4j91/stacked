@@ -162,3 +162,27 @@ export function dueDateChipColor(
   if (isDueToday(due, now)) return "var(--color-due-today)";
   return "var(--color-date-upcoming)";
 }
+
+/** Cor do chip de prazo — aço azulado; atraso usa o vermelho da data. */
+export function deadlineChipColor(
+  deadline: Date | null,
+  done: boolean,
+  now = new Date(),
+): string {
+  if (!deadline || done) return "var(--color-text-tertiary)";
+  if (isOverdueDate(deadline, done, now)) return "var(--color-overdue)";
+  return "var(--color-deadline)";
+}
+
+/** Label do prazo final — countdown nos últimos 7 dias. */
+export function deadlineChipLabel(deadline: Date | null, now = new Date()): string | null {
+  if (!deadline) return null;
+  const today = startOfDay(now);
+  const d = startOfDay(deadline);
+  if (d.getTime() < today.getTime()) return formatTaskDate(deadline);
+  if (d.getTime() === today.getTime()) return "Hoje";
+  const days = Math.round((d.getTime() - today.getTime()) / 86_400_000);
+  if (days === 1) return "Amanhã";
+  if (days <= 7) return `em ${days} dias`;
+  return formatTaskDate(deadline);
+}

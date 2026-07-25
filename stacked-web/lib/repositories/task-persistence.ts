@@ -56,6 +56,14 @@ export class TaskPersistence {
     if (error) throw error;
   }
 
+  async updateTaskDeadline(taskId: string, deadline: string | null): Promise<void> {
+    const { error } = await this.client
+      .from("tasks")
+      .update({ deadline })
+      .eq("id", taskId);
+    if (error) throw error;
+  }
+
   async updateTaskTime(taskId: string, time: string | null): Promise<void> {
     const { error } = await this.client
       .from("tasks")

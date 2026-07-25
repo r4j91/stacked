@@ -13,6 +13,9 @@ struct TaskMetaLine: View {
   /// FASE5 / PERF_FASEB2_ETAPA2: memos obrigatórios — sem formatação no body.
   var dueDateLabel: String? = nil
   var dueDateColor: Color? = nil
+  var deadline: Date? = nil
+  var deadlineLabel: String? = nil
+  var deadlineColor: Color? = nil
   var dateDone: Bool = false // reservado — cor vem do memo dueDateColor
   var subtasksDone: Int = 0
   var subtasksTotal: Int = 0
@@ -62,23 +65,27 @@ struct TaskMetaLine: View {
     case .f2:
       return !labels.isEmpty
         || fusedScheduleLabel != nil
+        || deadline != nil
         || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     case .x2:
       return priority != nil
         || !labels.isEmpty
         || fusedScheduleLabel != nil
+        || deadline != nil
         || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     case .trailingTime:
       return !labels.isEmpty
         || dueDate != nil
+        || deadline != nil
         || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     case .dense:
       return showsProject
         || !labels.isEmpty
         || dueDate != nil
+        || deadline != nil
         || timeDisplay != nil
         || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
@@ -86,6 +93,7 @@ struct TaskMetaLine: View {
       return showsProject
         || !labels.isEmpty
         || dueDate != nil
+        || deadline != nil
         || (!hideSubtasksCounter && subtasksTotal > 0)
         || commentCount > 0
     }
@@ -145,6 +153,9 @@ struct TaskMetaLine: View {
     } else if let timeDisplay, !timeDisplay.isEmpty {
       parts.append(timeDisplay)
     }
+    if let deadlineLabel, !deadlineLabel.isEmpty {
+      parts.append(deadlineLabel)
+    }
     if showsProject, let projectName {
       parts.append(projectName)
     }
@@ -176,6 +187,10 @@ struct TaskMetaLine: View {
           dueDateChip
         }
 
+        if deadline != nil {
+          deadlineChip
+        }
+
         if let counter = resolvedSubtasksLabel {
           metaCounter(icon: .logbook, value: counter)
         }
@@ -201,6 +216,10 @@ struct TaskMetaLine: View {
         if dueDate != nil {
           // Só a data — hora vai na coluna trailing.
           dueDateChipOnlyDate
+        }
+
+        if deadline != nil {
+          deadlineChip
         }
 
         if let counter = resolvedSubtasksLabel {
@@ -236,6 +255,10 @@ struct TaskMetaLine: View {
           )
         }
 
+        if deadline != nil {
+          deadlineChip
+        }
+
         ForEach(visibleLabels) { label in
           TagChip(label: label.name, color: label.color, style: labelChipStyle)
             .layoutPriority(-1)
@@ -258,6 +281,19 @@ struct TaskMetaLine: View {
           metaCounter(icon: .comment, value: "\(commentCount)")
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private var deadlineChip: some View {
+    if let label = deadlineLabel, let color = deadlineColor {
+      DueDateChip(
+        label: label,
+        color: color,
+        day: deadline.map { Calendar.current.component(.day, from: $0) },
+        style: dueDateChipStyle,
+        icon: .target
+      )
     }
   }
 
@@ -567,6 +603,7 @@ struct DueDateChip: View {
   let color: Color
   var day: Int? = nil
   var style: DueDateChipStyle = .soft
+  var icon: StackedIconKey = .calendar
 
   var body: some View {
     switch style {
@@ -637,7 +674,7 @@ struct DueDateChip: View {
   private func chipContent(textColor: Color, showIcon: Bool) -> some View {
     HStack(alignment: .center, spacing: 4) {
       if showIcon {
-        StackedIcons.icon(.calendar, size: 14, color: color)
+        StackedIcons.icon(icon, size: 14, color: color)
       }
       Text(label)
         .font(.system(size: 12, weight: .medium))

@@ -13,6 +13,7 @@ import {
   Flag01Icon,
   Folder01Icon,
   Tag01Icon,
+  Target01Icon,
 } from "@/lib/icons/nav-icons";
 import { Money01Icon } from "@hugeicons/core-free-icons";
 import {
@@ -23,7 +24,7 @@ import {
 } from "@/components/tasks/meta-picker-sheet";
 import type { Priority } from "@/lib/types/task";
 import { priorityColor, priorityLabel } from "@/lib/utils/priority";
-import { formatDayLabel, parseDueDate } from "@/lib/utils/date";
+import { formatDayLabel, parseDueDate, deadlineChipColor } from "@/lib/utils/date";
 import type { Home01Icon } from "@hugeicons/core-free-icons";
 
 type QuickAddSheetProps = {
@@ -45,9 +46,11 @@ export function QuickAddSheet({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority | null>(null);
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [deadline, setDeadline] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(initialProjectId ?? null);
   const [labelIds, setLabelIds] = useState<string[]>([]);
   const [dateOpen, setDateOpen] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -61,6 +64,7 @@ export function QuickAddSheet({
       setDescription("");
       setPriority(null);
       setDueDate(null);
+      setDeadline(null);
       setProjectId(initialProjectId ?? null);
       setLabelIds([]);
       setTimeout(() => titleRef.current?.focus(), 50);
@@ -73,6 +77,10 @@ export function QuickAddSheet({
 
   const project = projects.find((p) => p.id === projectId);
   const dueLabel = dueDate ? formatDayLabel(parseDueDate(dueDate)!) : null;
+  const deadlineLabel = deadline ? formatDayLabel(parseDueDate(deadline)!) : null;
+  const deadlineActiveColor = deadline
+    ? deadlineChipColor(parseDueDate(deadline), false)
+    : undefined;
   const selectedLabels = labels.filter((l) => labelIds.includes(l.id));
 
   async function handleSubmit(e: FormEvent) {
@@ -88,6 +96,7 @@ export function QuickAddSheet({
         projectId,
         sectionId: initialSectionId ?? null,
         dueDate,
+        deadline,
         labelIds: labelIds.length ? labelIds : undefined,
       });
       onClose();
@@ -177,6 +186,13 @@ export function QuickAddSheet({
               onClick={() => setDateOpen(true)}
             />
             <MetaChip
+              icon={Target01Icon}
+              label={deadlineLabel ?? "Prazo"}
+              active={Boolean(deadline)}
+              activeColor={deadlineActiveColor}
+              onClick={() => setDeadlineOpen(true)}
+            />
+            <MetaChip
               icon={Flag01Icon}
               label={priority ? priorityLabel(priority) : "Prioridade"}
               active={Boolean(priority)}
@@ -236,6 +252,7 @@ export function QuickAddSheet({
       </div>
 
       <DatePicker open={dateOpen} onClose={() => setDateOpen(false)} value={dueDate} onChange={setDueDate} />
+      <DatePicker open={deadlineOpen} onClose={() => setDeadlineOpen(false)} value={deadline} onChange={setDeadline} />
       <PriorityPicker open={priorityOpen} onClose={() => setPriorityOpen(false)} value={priority} onChange={setPriority} />
       <ProjectPicker
         open={projectOpen}

@@ -49,6 +49,7 @@ final class TaskDetailViewModel {
   var done = false
   var priority: Priority?
   var dueDate: Date?
+  var deadline: Date?
   var time: String?
   var projectId: String?
   var sectionId: String?
@@ -140,6 +141,7 @@ final class TaskDetailViewModel {
     done = task.done
     priority = task.priority
     dueDate = task.dueDate
+    deadline = task.deadline
     time = task.time
     projectId = task.projectId
     sectionId = task.sectionId
@@ -264,6 +266,15 @@ final class TaskDetailViewModel {
         time: savedTime
       )
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: Self.tabsAffected(dueDateISO: iso))
+    }
+  }
+
+  func setDeadline(_ date: Date?) {
+    deadline = date
+    publishCardSnapshot()
+    let iso = date.map { TaskMapper.dateString($0) }
+    enqueueSave { [self] in
+      await TaskDetailPersistence.autosaveDeadline(taskId: taskId, isoDate: iso)
     }
   }
 
@@ -515,6 +526,7 @@ final class TaskDetailViewModel {
       labels: availableLabels.filter { selectedLabelIds.contains($0.id) },
       subtasks: subtasks,
       dueDate: dueDate,
+      deadline: deadline,
       done: done,
       commentCount: comments.count,
       recurrence: recurrence,
@@ -546,6 +558,11 @@ final class TaskDetailViewModel {
       label += " · \(TaskMapper.formatTimeDisplay(time))"
     }
     return label
+  }
+
+  var deadlineLabel: String {
+    guard let deadline else { return "Sem prazo" }
+    return TaskMapper.deadlineChipLabel(for: deadline)
   }
 
   var dueTimeDate: Date? {

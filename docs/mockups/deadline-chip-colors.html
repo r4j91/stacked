@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — cores do chip Prazo (Deadline)</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface2: #2C2D33;
+      --text: #F2F3F5;
+      --text2: #9296A0;
+      --text3: #6B6E76;
+      --accent: #5FD3DC;
+      --hoje: #2EC4B6;
+      --overdue: #DC4C3E;
+      --upcoming: #8A9099;
+      --tag-g: #8FD46B;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      padding: 28px 20px 64px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 6px;
+    }
+    .lede {
+      color: var(--text2);
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 52ch;
+      margin: 0 0 28px;
+    }
+    .ref {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .ref span {
+      font-size: 12px;
+      color: var(--text2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .swatch {
+      width: 12px; height: 12px; border-radius: 3px;
+      display: inline-block;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+      max-width: 420px;
+    }
+    @media (min-width: 880px) {
+      .grid {
+        max-width: none;
+        grid-template-columns: repeat(2, minmax(0, 400px));
+      }
+    }
+    .option {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 14px 16px;
+    }
+    .option-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .option-head h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .hex {
+      font-size: 11px;
+      color: var(--text3);
+      font-variant-numeric: tabular-nums;
+    }
+    .why {
+      font-size: 12.5px;
+      color: var(--text2);
+      line-height: 1.4;
+      margin: 0 0 12px;
+    }
+    .card {
+      background: var(--surface2);
+      border-radius: 14px;
+      border: 1px solid rgba(242,243,245,0.055);
+      padding: 12px 14px 12px 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .circle {
+      width: 22px; height: 22px; margin-top: 2px;
+      border-radius: 50%;
+      border: 2px solid var(--text3);
+      flex-shrink: 0;
+    }
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 7px;
+      border-radius: 6px;
+      line-height: 1.2;
+    }
+    .chip svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .chip-soft {
+      background: color-mix(in srgb, var(--c) 12%, transparent);
+      border: 0.8px solid color-mix(in srgb, var(--c) 30%, transparent);
+      color: var(--c);
+    }
+    .states {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .states .chip { font-size: 11px; }
+    .label { font-size: 11px; color: var(--text3); width: 100%; margin-bottom: 2px; }
+    .pick {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+  <h1>Cores do Prazo (Deadline)</h1>
+  <p class="lede">
+    Data continua com a família atual (atraso / hoje teal / futuro cinza).
+    Prazo precisa de uma família própria, quieta, que não dispute com o accent cyan nem com a etiqueta verde.
+  </p>
+
+  <div class="ref">
+    <span><i class="swatch" style="background:var(--overdue)"></i> Data atrasada #DC4C3E</span>
+    <span><i class="swatch" style="background:var(--hoje)"></i> Data hoje #2EC4B6</span>
+    <span><i class="swatch" style="background:var(--upcoming)"></i> Data futura #8A9099</span>
+    <span><i class="swatch" style="background:var(--tag-g)"></i> Etiqueta #8FD46B</span>
+    <span><i class="swatch" style="background:var(--accent)"></i> Accent #5FD3DC</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- A -->
+    <article class="option">
+      <div class="option-head">
+        <h2>A · Âmbar suave</h2>
+        <span class="hex">#D4A574</span>
+      </div>
+      <p class="why">Calor de “corte” sem ser vermelho de atraso. Distingue bem da data cinza e da etiqueta verde.</p>
+      <div class="card">
+        <div class="circle"></div>
+        <div>
+          <p class="title">Implementar Anexo e Deadline</p>
+          <div class="meta">
+            <span class="chip chip-soft" style="--c:#D4A574">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+              em 6 dias
+            </span>
+            <span class="chip chip-soft" style="--c:var(--tag-g)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7h10l4 4v6a2 2 0 0 1-2 2H3z"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
+              Em Aberto
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="label">Estados do prazo</div>
+        <span class="chip chip-soft" style="--c:#C45C4A">atrasado</span>
+        <span class="chip chip-soft" style="--c:#D4A574">hoje</span>
+        <span class="chip chip-soft" style="--c:#D4A574">em 6 dias</span>
+      </div>
+      <p class="pick">Melhor equilíbrio geral no Quiet Control Room.</p>
+    </article>
+
+    <!-- B -->
+    <article class="option">
+      <div class="option-head">
+        <h2>B · Lilás névoa</h2>
+        <span class="hex">#A994E0</span>
+      </div>
+      <p class="why">Frio e calmo; longe do teal. Evita parecer prioridade ou atraso. Um pouco perto da tag roxa “Ideia”.</p>
+      <div class="card">
+        <div class="circle"></div>
+        <div>
+          <p class="title">Implementar Anexo e Deadline</p>
+          <div class="meta">
+            <span class="chip chip-soft" style="--c:#A994E0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+              em 6 dias
+            </span>
+            <span class="chip chip-soft" style="--c:var(--tag-g)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7h10l4 4v6a2 2 0 0 1-2 2H3z"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
+              Em Aberto
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="label">Estados do prazo</div>
+        <span class="chip chip-soft" style="--c:#C45C4A">atrasado</span>
+        <span class="chip chip-soft" style="--c:#A994E0">hoje</span>
+        <span class="chip chip-soft" style="--c:#A994E0">em 6 dias</span>
+      </div>
+      <p class="pick">Bom se quiser prazo “neutro-formal”.</p>
+    </article>
+
+    <!-- C -->
+    <article class="option">
+      <div class="option-head">
+        <h2>C · Aço azulado</h2>
+        <span class="hex">#7B9BB8</span>
+      </div>
+      <p class="why">Mais frio que a data futura; não compete com o accent cyan. Discreto demais em listas densas.</p>
+      <div class="card">
+        <div class="circle"></div>
+        <div>
+          <p class="title">Implementar Anexo e Deadline</p>
+          <div class="meta">
+            <span class="chip chip-soft" style="--c:#7B9BB8">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+              em 6 dias
+            </span>
+            <span class="chip chip-soft" style="--c:var(--tag-g)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7h10l4 4v6a2 2 0 0 1-2 2H3z"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
+              Em Aberto
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="label">Estados do prazo</div>
+        <span class="chip chip-soft" style="--c:#C45C4A">atrasado</span>
+        <span class="chip chip-soft" style="--c:#7B9BB8">hoje</span>
+        <span class="chip chip-soft" style="--c:#7B9BB8">em 6 dias</span>
+      </div>
+      <p class="pick">Mais “painel técnico”; menos urgência.</p>
+    </article>
+
+    <!-- D -->
+    <article class="option">
+      <div class="option-head">
+        <h2>D · Coral fosco</h2>
+        <span class="hex">#E08B7A</span>
+      </div>
+      <p class="why">Lembra prazo/urgência. Risco: em atraso pode confundir com a data vermelha se os tons ficarem próximos.</p>
+      <div class="card">
+        <div class="circle"></div>
+        <div>
+          <p class="title">Implementar Anexo e Deadline</p>
+          <div class="meta">
+            <span class="chip chip-soft" style="--c:#E08B7A">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+              em 6 dias
+            </span>
+            <span class="chip chip-soft" style="--c:var(--tag-g)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7h10l4 4v6a2 2 0 0 1-2 2H3z"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
+              Em Aberto
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="label">Estados do prazo</div>
+        <span class="chip chip-soft" style="--c:#DC4C3E">atrasado</span>
+        <span class="chip chip-soft" style="--c:#E08B7A">hoje</span>
+        <span class="chip chip-soft" style="--c:#E08B7A">em 6 dias</span>
+      </div>
+      <p class="pick">Só se quiser prazo “mais alerta”.</p>
+    </article>
+
+  </div>
+</body>
+</html>

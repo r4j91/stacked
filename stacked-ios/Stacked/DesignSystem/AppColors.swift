@@ -16,6 +16,8 @@ enum AppColors {
   static let dateOverdue = Color(hex: 0xDC4C3E)
   /// Data futura — cinza cool (não compete com o accent).
   static let dateUpcoming = Color(hex: 0x8A9099)
+  /// Prazo (Deadline) — aço azulado; distinto da data e do accent teal.
+  static let deadline = Color(hex: 0x7B9BB8)
   /// Chip de data concluída / neutro.
   static let textTertiary = Color(hex: 0x6B6E76)
 

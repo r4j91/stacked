@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useWorkbench, type SubtaskKey } from "./workbench-context";
 import type { Subtask, Task } from "@/lib/types/task";
-import { parseDueDate, isOverdueDate, formatDueDateTimeLabel } from "@/lib/utils/date";
+import {
+  parseDueDate,
+  isOverdueDate,
+  formatDueDateTimeLabel,
+  deadlineChipLabel,
+  deadlineChipColor,
+} from "@/lib/utils/date";
 import { AutosaveTextarea } from "@/components/tasks/autosave-textarea";
 import { InstallmentGeneratorSheet } from "@/components/tasks/installment-generator-sheet";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -13,6 +19,7 @@ import {
   Folder01Icon,
   Tag01Icon,
   Calendar03Icon,
+  Target01Icon,
   Add01Icon,
   Delete01Icon,
   RepeatIcon,
@@ -52,6 +59,7 @@ function MetaCard({
     labels,
     updateTaskPriority,
     updateTaskDueDate,
+    updateTaskDeadline,
     updateTaskTime,
     updateTaskProject,
     updateTaskLabels,
@@ -60,6 +68,7 @@ function MetaCard({
   } = useWorkbench();
 
   const [dateOpen, setDateOpen] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -74,6 +83,9 @@ function MetaCard({
   const project = item.project;
   const projectId = item.projectId;
   const date = formatDueDateTimeLabel(item.dueDate, item.time);
+  const deadlineDate = parseDueDate(item.deadline);
+  const deadlineLabel = deadlineChipLabel(deadlineDate);
+  const deadlineColor = deadlineChipColor(deadlineDate, item.done);
   const tag = item.tag;
   const priority = item.priority;
   const labelIds = item.labelIds ?? [];
@@ -113,6 +125,13 @@ function MetaCard({
           onClick={(e) => openPicker(e, () => setDateOpen(true))}
         />
         <MetaRow
+          icon={Target01Icon}
+          label="Prazo"
+          value={deadlineLabel || "Sem prazo"}
+          valueColor={deadlineLabel ? deadlineColor : undefined}
+          onClick={(e) => openPicker(e, () => setDeadlineOpen(true))}
+        />
+        <MetaRow
           icon={Tag01Icon}
           label="Etiquetas"
           value={labelNames || tag || "Nenhuma"}
@@ -145,6 +164,13 @@ function MetaCard({
         showTime
         onChange={(d) => void updateTaskDueDate(taskId, d)}
         onTimeChange={(t) => void updateTaskTime(taskId, t)}
+        anchorRect={pickerAnchor}
+      />
+      <DatePicker
+        open={deadlineOpen}
+        onClose={() => setDeadlineOpen(false)}
+        value={item.deadline}
+        onChange={(d) => void updateTaskDeadline(taskId, d)}
         anchorRect={pickerAnchor}
       />
       <PriorityPicker

@@ -24,7 +24,9 @@ enum TaskMapper {
 
     let commentCount = row.task_comments?.first?.count ?? 0
     let due = parseDueDate(row.data_vencimento)
+    let deadline = parseDueDate(row.deadline)
     let timeDisplay = row.hora.map { formatTimeDisplay($0) }
+    let done = row.concluida ?? false
 
     var task = Task(
       id: row.id,
@@ -40,8 +42,11 @@ enum TaskMapper {
       subtasks: subtasks,
       dueDate: due,
       dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
-      dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
-      done: row.concluida ?? false,
+      dueDateChipColor: due.map { dateColor(for: $0, done: done) },
+      deadline: deadline,
+      deadlineChipLabel: deadline.map { deadlineChipLabel(for: $0) },
+      deadlineChipColor: deadline.map { deadlineColor(for: $0, done: done) },
+      done: done,
       commentCount: commentCount,
       recurrence: row.recorrencia,
       whatsappRoutine: row.whatsapp_rotina ?? false
@@ -85,6 +90,13 @@ enum TaskMapper {
     } else {
       task.dueDateChipLabel = nil
       task.dueDateChipColor = nil
+    }
+    if let deadline = task.deadline {
+      task.deadlineChipLabel = deadlineChipLabel(for: deadline)
+      task.deadlineChipColor = deadlineColor(for: deadline, done: task.done)
+    } else {
+      task.deadlineChipLabel = nil
+      task.deadlineChipColor = nil
     }
     for i in task.subtasks.indices {
       applyDisplayMemos(to: &task.subtasks[i])
@@ -271,6 +283,17 @@ enum TaskMapper {
     return AppColors.textTertiary
   }
 
+  /// Cor do chip de prazo — família própria (aço azulado), atraso compartilha vermelho da data.
+  static func deadlineColor(for date: Date, done: Bool = false, now: Date = Date()) -> Color {
+    let today = startOfDay(now)
+    let d = startOfDay(date)
+    if !done {
+      if d < today { return AppColors.dateOverdue }
+      return AppColors.deadline
+    }
+    return AppColors.textTertiary
+  }
+
   static func formatTimeDisplay(_ time: String) -> String {
     if let normalized = normalizeHora(time) {
       return normalized
@@ -288,6 +311,20 @@ enum TaskMapper {
     let day = Calendar.current.component(.day, from: date)
     let month = Calendar.current.component(.month, from: date)
     return "\(day) \(dueDateMonthLabels[month - 1])"
+  }
+
+  /// Label do prazo final — countdown nos últimos 7 dias (paridade Todoist Deadline).
+  static func deadlineChipLabel(for date: Date, now: Date = Date()) -> String {
+    let today = startOfDay(now)
+    let d = startOfDay(date)
+    if d < today {
+      return dueDateChipLabel(for: date, now: now)
+    }
+    if d == today { return "Hoje" }
+    let days = Calendar.current.dateComponents([.day], from: today, to: d).day ?? 0
+    if days == 1 { return "Amanhã" }
+    if days <= 7 { return "em \(days) dias" }
+    return dueDateChipLabel(for: date, now: now)
   }
 
   static func groupTasksByDay(_ tasks: [Task]) -> [(day: Date, tasks: [Task])] {

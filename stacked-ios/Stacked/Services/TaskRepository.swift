@@ -595,6 +595,7 @@ final class TaskRepository {
     var sectionId: String?
     var dueDateISO: String?
     var time: String?
+    var deadlineISO: String?
     var labelIds: [String] = []
   }
 
@@ -610,6 +611,7 @@ final class TaskRepository {
         section_id: input.sectionId,
         data_vencimento: input.dueDateISO,
         hora: input.time,
+        deadline: input.deadlineISO,
         user_id: userId,
         concluida: false
       )
@@ -628,6 +630,7 @@ final class TaskRepository {
           section_id: input.sectionId,
           data_vencimento: input.dueDateISO,
           hora: input.time,
+          deadline: input.deadlineISO,
           user_id: userId,
           concluida: false
         ),
@@ -671,6 +674,7 @@ final class TaskRepository {
           section_id: input.sectionId,
           data_vencimento: input.dueDateISO,
           hora: input.time,
+          deadline: input.deadlineISO,
           user_id: userId,
           concluida: false
         )
@@ -708,6 +712,7 @@ final class TaskRepository {
 
   func duplicateTask(_ task: Task) async throws -> String {
     let iso: String? = task.dueDate.map { TaskMapper.dateString($0) }
+    let deadlineISO: String? = task.deadline.map { TaskMapper.dateString($0) }
     return try await createTask(CreateTaskInput(
       title: "\(task.title) (cópia)",
       description: task.description,
@@ -716,6 +721,7 @@ final class TaskRepository {
       sectionId: task.sectionId,
       dueDateISO: iso,
       time: task.time,
+      deadlineISO: deadlineISO,
       labelIds: task.labels.map(\.id)
     ))
   }
@@ -827,11 +833,12 @@ private struct CreateTaskInsertPayload: Encodable {
   let section_id: String?
   let data_vencimento: String?
   let hora: String?
+  let deadline: String?
   let user_id: UUID
   let concluida: Bool
 
   enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida
+    case id, titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, deadline, user_id, concluida
   }
 
   func encode(to encoder: Encoder) throws {
@@ -870,6 +877,11 @@ private struct CreateTaskInsertPayload: Encodable {
       try c.encode(hora, forKey: .hora)
     } else {
       try c.encodeNil(forKey: .hora)
+    }
+    if let deadline {
+      try c.encode(deadline, forKey: .deadline)
+    } else {
+      try c.encodeNil(forKey: .deadline)
     }
     try c.encode(user_id, forKey: .user_id)
     try c.encode(concluida, forKey: .concluida)

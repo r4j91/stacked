@@ -12,6 +12,7 @@ struct TaskDetailView: View {
   @FocusState private var newSubtaskFocused: Bool
   @FocusState private var descriptionFocused: Bool
   @State private var showDatePicker = false
+  @State private var showDeadlinePicker = false
   @State private var showDeleteConfirm = false
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var subtasksExpanded = false
@@ -102,6 +103,15 @@ struct TaskDetailView: View {
         showRecurrence: true
       ) { date, timeDate in
         vm.setDueDate(date, time: timeDate)
+      }
+      .stackedTaskDatePickerSheet(
+        isPresented: $showDeadlinePicker,
+        initialDate: vm.deadline,
+        showRecurrence: false,
+        showsTime: false,
+        title: "Prazo"
+      ) { date, _ in
+        vm.setDeadline(date)
       }
       .installmentGeneratorSheet(route: $installmentRoute) {
         _Concurrency.Task { await vm.load() }
@@ -215,6 +225,13 @@ struct TaskDetailView: View {
           showDatePicker = true
         }
       }
+      if vm.deadline != nil {
+        divider
+        metaRow(icon: .target, title: "Prazo", value: vm.deadlineLabel, active: true,
+                valueColor: vm.deadline.map { TaskMapper.deadlineColor(for: $0, done: vm.done) }) { _ in
+          showDeadlinePicker = true
+        }
+      }
       if vm.priority != nil {
         divider
         metaRow(icon: .flag, title: "Prioridade", value: vm.priority!.label, active: true,
@@ -245,6 +262,9 @@ struct TaskDetailView: View {
         HStack(spacing: 8) {
           if vm.dueDate == nil {
             fieldPill("Data", icon: .calendar) { _ in showDatePicker = true }
+          }
+          if vm.deadline == nil {
+            fieldPill("Prazo", icon: .target) { _ in showDeadlinePicker = true }
           }
           if vm.priority == nil {
             fieldPill("Prioridade", icon: .flag) { showPriorityMenu(anchor: $0) }

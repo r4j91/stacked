@@ -7,6 +7,8 @@ extension View {
     initialDate: Date?,
     initialTime: Date? = nil,
     showRecurrence: Bool = false,
+    showsTime: Bool = true,
+    title: String = "Data",
     onChanged: @escaping (Date?, Date?) -> Void
   ) -> some View {
     sheet(isPresented: isPresented) {
@@ -14,6 +16,8 @@ extension View {
         initialDate: initialDate,
         initialTime: initialTime,
         showRecurrence: showRecurrence,
+        showsTime: showsTime,
+        title: title,
         onChanged: onChanged
       )
       .environment(ThemeManager.shared)

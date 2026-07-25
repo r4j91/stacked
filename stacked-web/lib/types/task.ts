@@ -24,6 +24,8 @@ export type Task = {
   sectionId?: string | null;
   date?: string | null;
   dueDate?: string | null;
+  /** Prazo final (Deadline) — independente de dueDate. ISO date YYYY-MM-DD. */
+  deadline?: string | null;
   tag?: string;
   priority?: Priority;
   done: boolean;

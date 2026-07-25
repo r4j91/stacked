@@ -1099,6 +1099,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     // stale até trocar o modo de visualização (rebuild estrutural).
     hasher.combine(task.dueDate?.timeIntervalSince1970)
     hasher.combine(task.dueDateChipLabel)
+    hasher.combine(task.deadline?.timeIntervalSince1970)
+    hasher.combine(task.deadlineChipLabel)
     hasher.combine(TaskRowLayoutStorage.current.rawValue)
     for sub in task.subtasks {
       hasher.combine(sub.idOrFallback)

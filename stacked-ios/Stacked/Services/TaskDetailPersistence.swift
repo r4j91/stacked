@@ -87,6 +87,16 @@ enum TaskDetailPersistence {
     }
   }
 
+  static func autosaveDeadline(taskId: String, isoDate: String?) async {
+    await persist(operation: "tasks.update.deadline", taskId: taskId) {
+      if let isoDate {
+        try await client.from("tasks").update(["deadline": isoDate]).eq("id", value: taskId).execute()
+      } else {
+        try await client.from("tasks").update(["deadline": Optional<String>.none]).eq("id", value: taskId).execute()
+      }
+    }
+  }
+
   static func autosaveTime(taskId: String, time: String?) async {
     await persist(operation: "tasks.update.hora", taskId: taskId) {
       if let time, !time.isEmpty {

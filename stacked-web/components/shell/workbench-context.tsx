@@ -206,6 +206,7 @@ type WorkbenchContextValue = {
     projectId?: string | null;
     sectionId?: string | null;
     dueDate?: string | null;
+    deadline?: string | null;
     labelIds?: string[];
   }) => Promise<string | undefined>;
   deleteTask: (id: string) => Promise<void>;
@@ -220,6 +221,7 @@ type WorkbenchContextValue = {
   reorderSections: (draggedId: string, targetId: string, position?: ReorderDropPosition) => Promise<void>;
   updateTaskPriority: (id: string, priority: Priority | null) => Promise<void>;
   updateTaskDueDate: (id: string, dueDate: string | null) => Promise<void>;
+  updateTaskDeadline: (id: string, deadline: string | null) => Promise<void>;
   updateTaskTime: (id: string, time: string | null) => Promise<void>;
   updateTaskProject: (id: string, projectId: string | null) => Promise<void>;
   updateTaskProjectAndSection: (
@@ -1477,6 +1479,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       projectId?: string | null;
       sectionId?: string | null;
       dueDate?: string | null;
+      deadline?: string | null;
       labelIds?: string[];
     }) => {
       const trimmed = input.title.trim();
@@ -1491,6 +1494,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           projectId: input.projectId ?? null,
           sectionId: input.sectionId ?? null,
           dueDate: input.dueDate ?? null,
+          deadline: input.deadline ?? null,
           priority: input.priority,
           done: false,
         };
@@ -1642,6 +1646,23 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         } catch {
           await refreshTasks();
           showToast("Erro ao atualizar data");
+        }
+      }
+    },
+    [patchTaskInView, refreshTasks, showToast, usingMock],
+  );
+
+  const updateTaskDeadline = useCallback(
+    async (id: string, deadline: string | null) => {
+      patchTaskInView(id, { deadline });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new TaskPersistence(createClient()).updateTaskDeadline(id, deadline);
+          showToast("Prazo atualizado");
+          await refreshTasks();
+        } catch {
+          await refreshTasks();
+          showToast("Erro ao atualizar prazo");
         }
       }
     },
@@ -2117,6 +2138,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     duplicateTask,
     updateTaskPriority,
     updateTaskDueDate,
+    updateTaskDeadline,
     updateTaskTime,
     updateTaskProject,
     updateTaskProjectAndSection,
@@ -2241,6 +2263,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       duplicateTask,
       updateTaskPriority,
       updateTaskDueDate,
+      updateTaskDeadline,
       updateTaskTime,
       updateTaskProject,
       updateTaskProjectAndSection,
