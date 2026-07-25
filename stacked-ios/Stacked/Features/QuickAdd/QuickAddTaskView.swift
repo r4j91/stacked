@@ -1,5 +1,7 @@
 import SwiftUI
 import Hugeicons
+import PhotosUI
+import UniformTypeIdentifiers
 
 // Paridade lib/screens/quick_add_task_sheet.dart
 struct QuickAddTaskView: View {
@@ -28,6 +30,17 @@ struct QuickAddTaskView: View {
   @State private var error: String?
   @State private var showDatePicker = false
   @State private var showDeadlinePicker = false
+  @State private var pendingAttachments: [PendingAttachment] = []
+  @State private var photoItems: [PhotosPickerItem] = []
+  @State private var showPhotosPicker = false
+  @State private var showFileImporter = false
+
+  private struct PendingAttachment: Identifiable {
+    let id = UUID()
+    let data: Data
+    let fileName: String
+    let mimeType: String
+  }
 
   private let iconCircleSize: CGFloat = 44
   private let metadataIconSize: CGFloat = 23
@@ -83,6 +96,31 @@ struct QuickAddTaskView: View {
         title: "Prazo"
       ) { date, _ in
         deadline = date
+      }
+      .onChange(of: photoItems) { _, newItems in
+        guard !newItems.isEmpty else { return }
+        _Concurrency.Task {
+          await ingestPhotos(newItems)
+          photoItems = []
+        }
+      }
+      .photosPicker(
+        isPresented: $showPhotosPicker,
+        selection: $photoItems,
+        maxSelectionCount: 5,
+        matching: .images
+      )
+      .fileImporter(
+        isPresented: $showFileImporter,
+        allowedContentTypes: [.pdf, .image, .jpeg, .png, .webP, .heic],
+        allowsMultipleSelection: true
+      ) { result in
+        switch result {
+        case .success(let urls):
+          _Concurrency.Task { await ingestFiles(urls) }
+        case .failure(let err):
+          error = err.localizedDescription
+        }
       }
   }
 
@@ -152,6 +190,25 @@ struct QuickAddTaskView: View {
         ) { _ in
           titleFocused = false
           showDeadlinePicker = true
+        }
+
+        ZStack(alignment: .topTrailing) {
+          metadataIconButton(
+            icon: .attachment,
+            active: !pendingAttachments.isEmpty,
+            activeColor: theme.colors.textPrimary
+          ) { showAttachmentMenu(anchor: $0) }
+
+          if !pendingAttachments.isEmpty {
+            Text("\(pendingAttachments.count)")
+              .font(.system(size: 9, weight: .bold))
+              .foregroundStyle(theme.colors.background)
+              .padding(3)
+              .background(theme.colors.accent)
+              .clipShape(Circle())
+              .offset(x: 2, y: -2)
+              .allowsHitTesting(false)
+          }
         }
 
         metadataIconButton(
@@ -378,6 +435,17 @@ struct QuickAddTaskView: View {
     }
   }
 
+  private func showAttachmentMenu(anchor: CGRect) {
+    presentAttachmentSourceMenu(anchor: anchor) { request in
+      switch request {
+      case .photo:
+        showPhotosPicker = true
+      case .file:
+        showFileImporter = true
+      }
+    }
+  }
+
   private func showLabelsMenu(anchor: CGRect) {
     let items = labels.map { label in
       PopoverMenuItem(
@@ -562,7 +630,71 @@ struct QuickAddTaskView: View {
     )
     onDismiss()
 
+    let attachmentsToUpload = pendingAttachments
     TaskOptimisticSync.enqueueCreate(id: clientId, input: input, projectName: projectName)
+    if !attachmentsToUpload.isEmpty {
+      _Concurrency.Task {
+        await TaskOptimisticSync.waitUntilReady(taskId: clientId)
+        guard !TaskOptimisticSync.isFailed(clientId) else { return }
+        for file in attachmentsToUpload {
+          _ = try? await AttachmentRepository.shared.upload(
+            taskId: clientId,
+            data: file.data,
+            fileName: file.fileName,
+            mimeType: file.mimeType
+          )
+        }
+      }
+    }
+  }
+
+  private func ingestPhotos(_ items: [PhotosPickerItem]) async {
+    for item in items {
+      guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+      guard Int64(data.count) <= AttachmentLimits.maxBytes else {
+        error = AttachmentError.tooLarge.localizedDescription
+        continue
+      }
+      pendingAttachments.append(
+        PendingAttachment(
+          data: data,
+          fileName: "foto-\(UUID().uuidString.prefix(8)).jpg",
+          mimeType: "image/jpeg"
+        )
+      )
+    }
+  }
+
+  private func ingestFiles(_ urls: [URL]) async {
+    for url in urls {
+      let accessed = url.startAccessingSecurityScopedResource()
+      defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+      guard let data = try? Data(contentsOf: url) else { continue }
+      guard Int64(data.count) <= AttachmentLimits.maxBytes else {
+        error = AttachmentError.tooLarge.localizedDescription
+        continue
+      }
+      let ext = url.pathExtension.lowercased()
+      let mime: String
+      if ext == "pdf" {
+        mime = "application/pdf"
+      } else if ["png"].contains(ext) {
+        mime = "image/png"
+      } else if ["webp"].contains(ext) {
+        mime = "image/webp"
+      } else if ["heic", "heif"].contains(ext) {
+        mime = "image/heic"
+      } else {
+        mime = "image/jpeg"
+      }
+      guard AttachmentLimits.isAllowedMime(mime) else {
+        error = AttachmentError.unsupportedType.localizedDescription
+        continue
+      }
+      pendingAttachments.append(
+        PendingAttachment(data: data, fileName: url.lastPathComponent, mimeType: mime)
+      )
+    }
   }
 }
 

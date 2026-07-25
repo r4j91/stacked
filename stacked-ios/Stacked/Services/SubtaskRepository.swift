@@ -152,12 +152,14 @@ final class SubtaskRepository {
     priority: Priority?,
     dueDateISO: String?,
     time: String?,
+    deadlineISO: String?,
     labelIds: [String]
   ) async throws {
     let full = MetadataPayload(
       prioridade: priority?.rawValue,
       data_vencimento: dueDateISO,
       hora: time,
+      deadline: deadlineISO,
       label_ids: labelIds.isEmpty ? nil : labelIds
     )
     do {
@@ -168,6 +170,7 @@ final class SubtaskRepository {
         prioridade: priority?.rawValue,
         data_vencimento: nil,
         hora: nil,
+        deadline: nil,
         label_ids: nil
       )
       try await persistSubtask(id: id, taskId: taskId, order: order, payload: base)
@@ -179,6 +182,7 @@ final class SubtaskRepository {
     priority: Priority?,
     dueDateISO: String?,
     time: String?,
+    deadlineISO: String?,
     labelIds: [String]
   ) async throws {
     try await updateMetadata(
@@ -188,6 +192,7 @@ final class SubtaskRepository {
       priority: priority,
       dueDateISO: dueDateISO,
       time: time,
+      deadlineISO: deadlineISO,
       labelIds: labelIds
     )
   }
@@ -211,6 +216,7 @@ final class SubtaskRepository {
       || msg.contains("label_ids")
       || msg.contains("descricao")
       || msg.contains("hora")
+      || msg.contains("deadline")
   }
 
   // MARK: - Agenda (Hoje / Em breve)
@@ -222,7 +228,7 @@ final class SubtaskRepository {
     """
 
   private static let scheduleSubtaskSelect = """
-    id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids, task_id,
+    id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids, task_id,
     tasks ( \(scheduleParentSelect) )
     """
 
@@ -343,19 +349,24 @@ final class SubtaskRepository {
       let parent = TaskMapper.mapRow(parentDTO)
       let due = TaskMapper.parseDueDate(row.data_vencimento)
       guard due != nil else { return nil }
+      let deadline = TaskMapper.parseDueDate(row.deadline)
+      let done = row.concluida ?? false
       let subtask = Subtask(
         id: row.id,
         taskId: parent.id,
         title: row.titulo ?? "",
         description: row.descricao,
-        done: row.concluida ?? false,
+        done: done,
         priority: Priority.parse(row.prioridade),
         order: row.ordem ?? 0,
         valor: row.valor,
         dueDate: due,
         time: row.hora,
+        deadline: deadline,
         dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
-        dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: row.concluida ?? false) },
+        dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: done) },
+        deadlineChipLabel: deadline.map { TaskMapper.deadlineChipLabel(for: $0) },
+        deadlineChipColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: done) },
         timeDisplay: row.hora.map { TaskMapper.formatTimeDisplay($0) },
         labelIds: row.label_ids ?? []
       )
@@ -374,6 +385,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
   let valor: Double?
   let data_vencimento: String?
   let hora: String?
+  let deadline: String?
   let label_ids: [String]?
   let tasks: TaskRowDTO?
 
@@ -394,12 +406,13 @@ private struct ScheduledSubtaskRowDTO: Decodable {
     valor = try c.decodeIfPresent(Double.self, forKey: .valor)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
+    deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
     label_ids = try c.decodeIfPresent([String].self, forKey: .label_ids)
     tasks = try c.decodeIfPresent(TaskRowDTO.self, forKey: .tasks)
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, label_ids, tasks
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids, tasks
   }
 }
 
@@ -408,10 +421,11 @@ private struct MetadataPayload: Encodable {
   let prioridade: String?
   let data_vencimento: String?
   let hora: String?
+  let deadline: String?
   let label_ids: [String]?
 
   enum CodingKeys: String, CodingKey {
-    case prioridade, data_vencimento, hora, label_ids
+    case prioridade, data_vencimento, hora, deadline, label_ids
   }
 
   func encode(to encoder: Encoder) throws {
@@ -430,6 +444,11 @@ private struct MetadataPayload: Encodable {
       try container.encode(hora, forKey: .hora)
     } else {
       try container.encodeNil(forKey: .hora)
+    }
+    if let deadline {
+      try container.encode(deadline, forKey: .deadline)
+    } else {
+      try container.encodeNil(forKey: .deadline)
     }
     if let label_ids {
       try container.encode(label_ids, forKey: .label_ids)

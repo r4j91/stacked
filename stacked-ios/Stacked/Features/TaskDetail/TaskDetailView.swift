@@ -19,6 +19,8 @@ struct TaskDetailView: View {
   @State private var didInitSubtasksExpanded = false
   @State private var commentsExpanded = false
   @State private var didInitCommentsExpanded = false
+  @State private var attachmentsExpanded = false
+  @State private var attachmentPickRequest: AttachmentPickRequest?
   @State private var isClosing = false
   @State private var showNotesPanel = false
   @State private var notesAnchor: CGRect = .zero
@@ -197,6 +199,14 @@ struct TaskDetailView: View {
         metadataCard
           .padding(.horizontal, 16)
 
+        AttachmentsSection(
+          taskId: vm.taskId,
+          expanded: $attachmentsExpanded,
+          pickRequest: $attachmentPickRequest
+        )
+          .padding(.horizontal, 16)
+          .padding(.top, 16)
+
         subtasksSection
           .padding(.horizontal, 16)
           .padding(.top, 16)
@@ -275,6 +285,7 @@ struct TaskDetailView: View {
           if vm.recurrence == nil {
             fieldPill("Recorrência", icon: .repeatIcon) { showRecurrenceMenu(anchor: $0) }
           }
+          fieldPill("Anexo", icon: .attachment) { showAttachmentMenu(anchor: $0) }
           fieldPill("Parcelas", icon: .money) { _ in
             installmentRoute = InstallmentGeneratorRoute(taskId: vm.taskId, taskTitle: vm.title)
           }
@@ -670,9 +681,7 @@ struct TaskDetailView: View {
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
     return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
-        StackedIcons.image(icon)
-          .font(AppTypography.body)
-          .foregroundStyle(active ? accent : c.textTertiary)
+        StackedIcons.icon(icon, size: 16, color: active ? accent : c.textTertiary)
           .frame(width: 22)
         Text(title)
           .font(AppTypography.meta)
@@ -694,8 +703,7 @@ struct TaskDetailView: View {
     let c = theme.colors
     return AnchoredTapButton(action: action) {
       HStack(spacing: 6) {
-        StackedIcons.image(icon)
-          .font(AppTypography.metaSmall)
+        StackedIcons.icon(icon, size: 14, color: c.textSecondary)
         Text(title)
           .font(AppTypography.metadataLabel)
       }
@@ -781,6 +789,12 @@ struct TaskDetailView: View {
       case "low": vm.setPriority(.low)
       default: break
       }
+    }
+  }
+
+  private func showAttachmentMenu(anchor: CGRect) {
+    presentAttachmentSourceMenu(anchor: anchor) { request in
+      attachmentPickRequest = request
     }
   }
 

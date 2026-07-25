@@ -25,6 +25,14 @@ import {
 import type { Priority } from "@/lib/types/task";
 import { priorityColor, priorityLabel } from "@/lib/utils/priority";
 import { formatDayLabel, parseDueDate, deadlineChipColor } from "@/lib/utils/date";
+import { PendingAttachmentsChip } from "@/components/tasks/attachments-section";
+import { AttachmentRepository } from "@/lib/repositories/attachment-repository";
+import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  ATTACHMENT_MAX_BYTES,
+  isAllowedAttachmentMime,
+} from "@/lib/types/attachment";
 import type { Home01Icon } from "@hugeicons/core-free-icons";
 
 type QuickAddSheetProps = {
@@ -47,6 +55,7 @@ export function QuickAddSheet({
   const [priority, setPriority] = useState<Priority | null>(null);
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [deadline, setDeadline] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [projectId, setProjectId] = useState<string | null>(initialProjectId ?? null);
   const [labelIds, setLabelIds] = useState<string[]>([]);
   const [dateOpen, setDateOpen] = useState(false);
@@ -89,7 +98,7 @@ export function QuickAddSheet({
     if (!title || submitting) return;
     setSubmitting(true);
     try {
-      await createTask({
+      const taskId = await createTask({
         title,
         description: description.trim() || undefined,
         priority: priority ?? undefined,
@@ -99,6 +108,13 @@ export function QuickAddSheet({
         deadline,
         labelIds: labelIds.length ? labelIds : undefined,
       });
+      if (taskId && pendingFiles.length && isSupabaseConfigured()) {
+        const repo = new AttachmentRepository(createClient());
+        for (const file of pendingFiles) {
+          await repo.upload({ taskId, file });
+        }
+      }
+      setPendingFiles([]);
       onClose();
     } finally {
       setSubmitting(false);
@@ -225,6 +241,16 @@ export function QuickAddSheet({
               label="Parcelas"
               active={false}
               onClick={() => void openInstallmentGenerator()}
+            />
+            <PendingAttachmentsChip
+              files={pendingFiles}
+              onAdd={(files) => {
+                const accepted = files.filter(
+                  (f) => isAllowedAttachmentMime(f.type) && f.size <= ATTACHMENT_MAX_BYTES,
+                );
+                if (accepted.length) setPendingFiles((prev) => [...prev, ...accepted]);
+              }}
+              onRemove={(index) => setPendingFiles((prev) => prev.filter((_, i) => i !== index))}
             />
           </div>
 

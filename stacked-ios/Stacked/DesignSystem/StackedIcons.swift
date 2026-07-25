@@ -43,6 +43,7 @@ enum StackedIcons {
     case .sun: Hugeicons.sun01
     case .calendar: Hugeicons.calendar03
     case .target: Hugeicons.target01
+    case .attachment: Hugeicons.attachment01
     case .money: Hugeicons.money01
     case .arrowUp: Hugeicons.arrowUp01
     case .comment: Hugeicons.comment01
@@ -82,7 +83,7 @@ enum StackedIconKey: String {
   case check, clock, trash, copy, tag, logbook, productivity
   case chevronRight, chevronDown, exclamation, list, paintbrush, logout
   case edit, more, flag, move, arrowLeft, close, text, grid, plus
-  case checkCircle, repeatIcon, sun, calendar, target, money, arrowUp, comment
+  case checkCircle, repeatIcon, sun, calendar, target, attachment, money, arrowUp, comment
 }
 
 // Paridade lib/utils/project_icons.dart

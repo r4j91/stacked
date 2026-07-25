@@ -11,6 +11,7 @@ struct SubtaskSaveSnapshot: Sendable {
   let priority: Priority?
   let dueDate: Date?
   let time: String?
+  let deadline: Date?
   let labelIds: [String]
 }
 
@@ -27,6 +28,7 @@ enum SubtaskListPatch {
     let previous = subtasks[subIndex]
     let due = snapshot.dueDate
     let time = snapshot.time
+    let deadline = snapshot.deadline
     subtasks[subIndex] = Subtask(
       id: snapshot.resolvedId ?? previous.id,
       taskId: snapshot.parentTaskId,
@@ -38,8 +40,11 @@ enum SubtaskListPatch {
       valor: previous.valor,
       dueDate: due,
       time: time,
+      deadline: deadline,
       dueDateChipLabel: due.map { TaskMapper.dueDateChipLabel(for: $0) },
       dueDateChipColor: due.map { TaskMapper.dateColor(for: $0, done: snapshot.done) },
+      deadlineChipLabel: deadline.map { TaskMapper.deadlineChipLabel(for: $0) },
+      deadlineChipColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: snapshot.done) },
       timeDisplay: time.map { TaskMapper.formatTimeDisplay($0) },
       labelIds: snapshot.labelIds
     )

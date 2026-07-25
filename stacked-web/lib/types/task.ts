@@ -8,6 +8,8 @@ export type Subtask = {
   date?: string | null;
   dueDate?: string | null;
   time?: string | null;
+  /** Prazo final (Deadline) — independente de dueDate. ISO date YYYY-MM-DD. */
+  deadline?: string | null;
   tag?: string;
   priority?: Priority;
   project?: string | null;

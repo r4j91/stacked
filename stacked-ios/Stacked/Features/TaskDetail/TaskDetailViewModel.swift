@@ -385,8 +385,11 @@ final class TaskDetailViewModel {
       valor: subtask.valor,
       dueDate: subtask.dueDate,
       time: subtask.time,
+      deadline: subtask.deadline,
       dueDateChipLabel: subtask.dueDateChipLabel,
       dueDateChipColor: subtask.dueDate.map { TaskMapper.dateColor(for: $0, done: newDone) },
+      deadlineChipLabel: subtask.deadlineChipLabel,
+      deadlineChipColor: subtask.deadline.map { TaskMapper.deadlineColor(for: $0, done: newDone) },
       timeDisplay: subtask.timeDisplay,
       labelIds: subtask.labelIds
     )

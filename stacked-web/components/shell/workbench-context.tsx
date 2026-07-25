@@ -142,6 +142,7 @@ type WorkbenchContextValue = {
   updateSubtaskDueDate: (key: SubtaskKey, dueDate: string | null) => Promise<void>;
   updateSubtaskTime: (key: SubtaskKey, time: string | null) => Promise<void>;
   updateSubtaskLabels: (key: SubtaskKey, labelIds: string[]) => Promise<void>;
+  updateSubtaskDeadline: (key: SubtaskKey, deadline: string | null) => Promise<void>;
   toggleSidebar: () => void;
   toggleSectionCollapsed: (sectionId: string) => void;
   toggleProjectCompletedExpanded: () => void;
@@ -1390,6 +1391,24 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [patchSubtaskMeta, patchTaskInView, usingMock],
   );
 
+  const updateSubtaskDeadline = useCallback(
+    async (key: SubtaskKey, deadline: string | null) => {
+      const result = patchSubtaskMeta(key, { deadline });
+      if (!result) return;
+      const { task, index, sub, prev } = result;
+      if (!usingMock && isSupabaseConfigured() && sub.id) {
+        try {
+          await new TaskPersistence(createClient()).updateSubtaskDeadline(sub.id, deadline);
+        } catch {
+          const subtasks = [...(task.subtasks ?? [])];
+          subtasks[index] = prev;
+          patchTaskInView(task.id, { subtasks });
+        }
+      }
+    },
+    [patchSubtaskMeta, patchTaskInView, usingMock],
+  );
+
   const toggleSidebar = useCallback(() => setSidebarCollapsed((c) => !c), []);
 
   const openQuickAdd = useCallback((opts?: QuickAddOptions) => {
@@ -2079,6 +2098,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     updateSubtaskDueDate,
     updateSubtaskTime,
     updateSubtaskLabels,
+    updateSubtaskDeadline,
     toggleSidebar,
     toggleSectionCollapsed,
     toggleProjectCompletedExpanded,
@@ -2204,6 +2224,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       updateSubtaskDueDate,
       updateSubtaskTime,
       updateSubtaskLabels,
+    updateSubtaskDeadline,
       toggleSidebar,
       toggleSectionCollapsed,
       toggleProjectCompletedExpanded,

@@ -17,12 +17,16 @@ struct SubtaskDetailView: View {
   @State private var priority: Priority?
   @State private var dueDate: Date?
   @State private var dueTimeDate: Date?
+  @State private var deadline: Date?
   @State private var selectedLabelIds: Set<String> = []
   @State private var labels: [TaskLabel] = []
   @State private var saving = false
   @State private var saveError: String?
   @State private var showDatePicker = false
+  @State private var showDeadlinePicker = false
   @State private var resolvedSubtaskId: String?
+  @State private var attachmentsExpanded = false
+  @State private var attachmentPickRequest: AttachmentPickRequest?
 
   @State private var showNotesPanel = false
   @State private var notesAnchor: CGRect = .zero
@@ -54,6 +58,7 @@ struct SubtaskDetailView: View {
       guard let dueDate = subtask.dueDate, let time = subtask.time, !time.isEmpty else { return nil }
       return TaskMapper.combinedDateTime(dueDate: dueDate, time: time)
     }())
+    _deadline = State(initialValue: subtask.deadline)
     _selectedLabelIds = State(initialValue: Set(subtask.labelIds))
     _resolvedSubtaskId = State(initialValue: subtask.id)
   }
@@ -118,6 +123,16 @@ struct SubtaskDetailView: View {
 
           metadataCard
             .padding(.horizontal, 16)
+
+          if let sid = persistSubtaskId {
+            AttachmentsSection(
+              taskId: parentTaskId,
+              subtaskId: sid,
+              expanded: $attachmentsExpanded,
+              pickRequest: $attachmentPickRequest
+            )
+              .padding(.horizontal, 16)
+          }
         }
         .padding(.top, 8)
         .padding(.bottom, 24)
@@ -179,6 +194,16 @@ struct SubtaskDetailView: View {
         }
         _Concurrency.Task { await flushPending() }
       }
+      .stackedTaskDatePickerSheet(
+        isPresented: $showDeadlinePicker,
+        initialDate: deadline,
+        showRecurrence: false,
+        showsTime: false,
+        title: "Prazo"
+      ) { date, _ in
+        deadline = date
+        _Concurrency.Task { await flushPending() }
+      }
     }
     .presentationDetents([.large])
     .presentationDragIndicator(.visible)
@@ -213,12 +238,33 @@ struct SubtaskDetailView: View {
       Divider().overlay(c.textTertiary.opacity(0.12))
 
       metaRow(
+        icon: .target,
+        title: "Prazo",
+        value: deadlineLabel,
+        active: deadline != nil,
+        valueColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: done) }
+      ) { _ in showDeadlinePicker = true }
+
+      Divider().overlay(c.textTertiary.opacity(0.12))
+
+      metaRow(
         icon: .tag,
         title: "Etiquetas",
         value: labelsSummary,
         active: !selectedLabelIds.isEmpty,
         valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color
       ) { showLabelsMenu(anchor: $0) }
+
+      if persistSubtaskId != nil {
+        Divider().overlay(c.textTertiary.opacity(0.12))
+
+        metaRow(
+          icon: .attachment,
+          title: "Anexo",
+          value: "Adicionar",
+          active: false
+        ) { showAttachmentMenu(anchor: $0) }
+      }
     }
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -243,6 +289,11 @@ struct SubtaskDetailView: View {
     return label
   }
 
+  private var deadlineLabel: String {
+    guard let deadline else { return "Sem prazo" }
+    return TaskMapper.deadlineChipLabel(for: deadline)
+  }
+
   private var currentTimeString: String? {
     guard dueDate != nil, let dueTimeDate else { return nil }
     return TaskMapper.timeString(from: dueTimeDate)
@@ -259,6 +310,12 @@ struct SubtaskDetailView: View {
     labels = (try? await LabelRepository.shared.fetchLabels()) ?? []
   }
 
+  private func showAttachmentMenu(anchor: CGRect) {
+    presentAttachmentSourceMenu(anchor: anchor) { request in
+      attachmentPickRequest = request
+    }
+  }
+
   private func metaRow(
     icon: StackedIconKey,
     title: String,
@@ -271,9 +328,7 @@ struct SubtaskDetailView: View {
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
     return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
-        StackedIcons.image(icon)
-          .font(.system(size: 16))
-          .foregroundStyle(active ? accent : c.textTertiary)
+        StackedIcons.icon(icon, size: 16, color: active ? accent : c.textTertiary)
           .frame(width: 22)
         Text(title)
           .font(.system(size: 13))
@@ -283,9 +338,7 @@ struct SubtaskDetailView: View {
           .font(.system(size: 13, weight: .medium))
           .foregroundStyle(active ? accent : c.textTertiary)
           .lineLimit(1)
-        StackedIcons.image(.chevronRight)
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundStyle(c.textTertiary)
+        DisclosureChevron()
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
@@ -354,6 +407,7 @@ struct SubtaskDetailView: View {
       priority: priority,
       dueDate: dueDate,
       time: currentTimeString,
+      deadline: deadline,
       labelIds: Array(selectedLabelIds)
     )
   }
@@ -431,6 +485,7 @@ struct SubtaskDetailView: View {
     let metaChanged = priority != subtask.priority
       || dueDate != subtask.dueDate
       || currentTimeString != subtask.time
+      || deadline != subtask.deadline
       || selectedLabelIds != Set(subtask.labelIds)
 
     guard titleChanged || descChanged || metaChanged else { return }
@@ -470,6 +525,7 @@ struct SubtaskDetailView: View {
 
       if metaChanged {
         let dueISO = dueDate.map { TaskMapper.dateString($0) }
+        let deadlineISO = deadline.map { TaskMapper.dateString($0) }
         let savedTime = currentTimeString
         try await SubtaskRepository.shared.updateMetadata(
           id: activeId,
@@ -478,6 +534,7 @@ struct SubtaskDetailView: View {
           priority: priority,
           dueDateISO: dueISO,
           time: savedTime,
+          deadlineISO: deadlineISO,
           labelIds: Array(selectedLabelIds)
         )
         if let activeId {

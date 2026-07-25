@@ -43,6 +43,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CommentRepository, type Comment } from "@/lib/repositories/comment-repository";
 import { WhatsAppCopyPreviewSheet } from "@/components/tasks/whatsapp-copy-preview-sheet";
+import { AttachmentsSection } from "@/components/tasks/attachments-section";
 import {
   composeWhatsAppRoutineMessage,
 } from "@/lib/utils/whatsapp-routine-message";
@@ -216,8 +217,9 @@ function SubtaskMetaCard({
   sub: Subtask;
   parentTask: Task;
 }) {
-  const { labels, updateSubtaskPriority, updateSubtaskDueDate, updateSubtaskTime, updateSubtaskLabels } = useWorkbench();
+  const { labels, updateSubtaskPriority, updateSubtaskDueDate, updateSubtaskTime, updateSubtaskLabels, updateSubtaskDeadline } = useWorkbench();
   const [dateOpen, setDateOpen] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<AnchorRect | null>(null);
@@ -236,6 +238,9 @@ function SubtaskMetaCard({
   const labelColor = selectedLabels.length > 0 ? selectedLabels[0].color : undefined;
   const dueLabel = formatDueDateTimeLabel(sub.dueDate, sub.time);
   const overdue = isOverdueDate(parseDueDate(sub.dueDate), Boolean(sub.done));
+  const deadlineDate = parseDueDate(sub.deadline);
+  const deadlineLabel = deadlineChipLabel(deadlineDate);
+  const deadlineColor = deadlineChipColor(deadlineDate, Boolean(sub.done));
 
   return (
     <>
@@ -248,6 +253,13 @@ function SubtaskMetaCard({
           danger={overdue}
           valueColor={dueLabel && !overdue ? "var(--color-text-secondary)" : undefined}
           onClick={(e) => openPicker(e, () => setDateOpen(true))}
+        />
+        <MetaRow
+          icon={Target01Icon}
+          label="Prazo"
+          value={deadlineLabel || "Sem prazo"}
+          valueColor={deadlineLabel ? deadlineColor : undefined}
+          onClick={(e) => openPicker(e, () => setDeadlineOpen(true))}
         />
         <MetaRow
           icon={Tag01Icon}
@@ -272,6 +284,13 @@ function SubtaskMetaCard({
         showTime
         onChange={(d) => void updateSubtaskDueDate(subtaskKey, d)}
         onTimeChange={(t) => void updateSubtaskTime(subtaskKey, t)}
+        anchorRect={pickerAnchor}
+      />
+      <DatePicker
+        open={deadlineOpen}
+        onClose={() => setDeadlineOpen(false)}
+        value={sub.deadline}
+        onChange={(d) => void updateSubtaskDeadline(subtaskKey, d)}
         anchorRect={pickerAnchor}
       />
       <PriorityPicker
@@ -752,6 +771,9 @@ export function InspectorPanel() {
                 onSave={(v) => autosaveSubtaskNotes(selectedSubtaskKey, v)}
               />
               <SubtaskMetaCard subtaskKey={selectedSubtaskKey!} sub={subCtx.sub} parentTask={subCtx.task} />
+              {subCtx.sub.id ? (
+                <AttachmentsSection taskId={subCtx.task.id} subtaskId={subCtx.sub.id} />
+              ) : null}
             </>
           ) : (
             <>
@@ -782,6 +804,7 @@ export function InspectorPanel() {
               <div className="space-y-4">
                 <MetaCard item={selectedTask} taskId={selectedTask.id} />
                 <SubtasksCard task={selectedTask} />
+                <AttachmentsSection taskId={selectedTask.id} />
                 <CommentsSection taskId={selectedTask.id} />
               </div>
             </>

@@ -317,6 +317,23 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
       );
     }
 
+    if (sub.deadline) {
+      const dl = parseDueDate(sub.deadline);
+      const dlLabel = deadlineChipLabel(dl);
+      if (dlLabel) {
+        items.push(
+          <DueDateChip
+            key="deadline"
+            label={dlLabel}
+            color={deadlineChipColor(dl, sub.done)}
+            day={dl?.getDate() ?? null}
+            style={dueDateChipStyle}
+            icon={Target01Icon}
+          />,
+        );
+      }
+    }
+
     items.push(...LabelItems({ taskLabels: subLabels, labelChipStyle, maxLabels }));
   } else {
     // Paridade iOS default: data → etiquetas (hora no trailing do título)
@@ -331,6 +348,23 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
             color={dueDateChipColor(due, sub.done)}
             day={due?.getDate() ?? null}
             style={dueDateChipStyle}
+          />,
+        );
+      }
+    }
+
+    if (sub.deadline) {
+      const dl = parseDueDate(sub.deadline);
+      const dlLabel = deadlineChipLabel(dl);
+      if (dlLabel) {
+        items.push(
+          <DueDateChip
+            key="deadline"
+            label={dlLabel}
+            color={deadlineChipColor(dl, sub.done)}
+            day={dl?.getDate() ?? null}
+            style={dueDateChipStyle}
+            icon={Target01Icon}
           />,
         );
       }

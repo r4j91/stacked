@@ -127,4 +127,12 @@ export class TaskPersistence {
       .eq("id", subtaskId);
     if (error) throw error;
   }
+
+  async updateSubtaskDeadline(subtaskId: string, deadline: string | null): Promise<void> {
+    const { error } = await this.client
+      .from("subtasks")
+      .update({ deadline })
+      .eq("id", subtaskId);
+    if (error) throw error;
+  }
 }

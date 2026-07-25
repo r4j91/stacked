@@ -809,6 +809,9 @@ struct TaskRow: View {
                       priority: sub.priority,
                       dueDateLabel: sub.dueDateChipLabel,
                       dueDateColor: sub.dueDateChipColor,
+                      deadline: sub.deadline,
+                      deadlineLabel: sub.deadlineChipLabel,
+                      deadlineColor: sub.deadlineChipColor,
                       dateDone: done,
                       timeDisplay: sub.timeDisplay
                     )
@@ -951,17 +954,18 @@ struct TaskRow: View {
     if taskRowLayout.usesEyebrow {
       if taskRowLayout == .x2, sub.priority != nil { return true }
       if sub.dueDate != nil { return true }
+      if sub.deadline != nil { return true }
       if sub.timeDisplay != nil { return true }
       if !labels.isEmpty { return true }
       return false
     }
     if taskRowLayout.usesTrailingTimeColumn {
-      return sub.dueDate != nil || !labels.isEmpty
+      return sub.dueDate != nil || sub.deadline != nil || !labels.isEmpty
     }
     if taskRowLayout.isDense {
-      return sub.dueDate != nil || sub.timeDisplay != nil || !labels.isEmpty
+      return sub.dueDate != nil || sub.deadline != nil || sub.timeDisplay != nil || !labels.isEmpty
     }
-    return sub.dueDate != nil || !labels.isEmpty
+    return sub.dueDate != nil || sub.deadline != nil || !labels.isEmpty
   }
 
   private func resolvedLabels(for sub: Subtask) -> [TaskLabel] {
@@ -1225,8 +1229,11 @@ struct TaskRow: View {
       valor: sub.valor,
       dueDate: sub.dueDate,
       time: sub.time,
+      deadline: sub.deadline,
       dueDateChipLabel: sub.dueDateChipLabel,
       dueDateChipColor: sub.dueDate.map { TaskMapper.dateColor(for: $0, done: done) } ?? sub.dueDateChipColor,
+      deadlineChipLabel: sub.deadlineChipLabel,
+      deadlineChipColor: sub.deadline.map { TaskMapper.deadlineColor(for: $0, done: done) } ?? sub.deadlineChipColor,
       timeDisplay: sub.timeDisplay,
       labelIds: sub.labelIds
     )
@@ -1315,8 +1322,11 @@ struct TaskRow: View {
             valor: sub.valor,
             dueDate: sub.dueDate,
             time: sub.time,
+            deadline: sub.deadline,
             dueDateChipLabel: sub.dueDateChipLabel,
             dueDateChipColor: sub.dueDateChipColor,
+            deadlineChipLabel: sub.deadlineChipLabel,
+            deadlineChipColor: sub.deadlineChipColor,
             timeDisplay: sub.timeDisplay,
             labelIds: sub.labelIds
           ))
@@ -1336,6 +1346,7 @@ struct TaskRow: View {
       priority: sub.priority,
       dueDate: sub.dueDate,
       time: sub.time,
+      deadline: sub.deadline,
       labelIds: sub.labelIds
     )
   }

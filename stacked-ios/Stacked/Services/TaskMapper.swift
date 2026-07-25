@@ -59,19 +59,24 @@ enum TaskMapper {
   static func mapSubtask(_ row: SubtaskRowDTO, taskId: String) -> Subtask {
     let due = parseDueDate(row.data_vencimento)
     let time = row.hora
+    let deadline = parseDueDate(row.deadline)
+    let done = row.concluida ?? false
     return Subtask(
       id: row.id,
       taskId: taskId,
       title: row.titulo ?? "",
       description: row.descricao,
-      done: row.concluida ?? false,
+      done: done,
       priority: Priority.parse(row.prioridade),
       order: row.ordem ?? 0,
       valor: row.valor,
       dueDate: due,
       time: time,
+      deadline: deadline,
       dueDateChipLabel: due.map { dueDateChipLabel(for: $0) },
-      dueDateChipColor: due.map { dateColor(for: $0, done: row.concluida ?? false) },
+      dueDateChipColor: due.map { dateColor(for: $0, done: done) },
+      deadlineChipLabel: deadline.map { deadlineChipLabel(for: $0) },
+      deadlineChipColor: deadline.map { deadlineColor(for: $0, done: done) },
       timeDisplay: time.map { formatTimeDisplay($0) },
       labelIds: row.label_ids ?? []
     )
@@ -117,6 +122,13 @@ enum TaskMapper {
     } else {
       subtask.dueDateChipLabel = nil
       subtask.dueDateChipColor = nil
+    }
+    if let deadline = subtask.deadline {
+      subtask.deadlineChipLabel = deadlineChipLabel(for: deadline)
+      subtask.deadlineChipColor = deadlineColor(for: deadline, done: subtask.done)
+    } else {
+      subtask.deadlineChipLabel = nil
+      subtask.deadlineChipColor = nil
     }
   }
 

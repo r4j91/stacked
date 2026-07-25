@@ -214,6 +214,7 @@ final class UpcomingStore {
         priority: entry.subtask.priority,
         dueDate: entry.subtask.dueDate,
         time: entry.subtask.time,
+        deadline: entry.subtask.deadline,
         labelIds: entry.subtask.labelIds
       ))
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])

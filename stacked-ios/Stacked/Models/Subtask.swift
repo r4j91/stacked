@@ -13,9 +13,13 @@ struct Subtask: Identifiable, Equatable {
   let valor: Double?
   let dueDate: Date?
   let time: String?
+  /// Prazo final — independente de dueDate.
+  var deadline: Date? = nil
   /// FASE5: chip de vencimento memoizado em TaskMapper.mapSubtask.
   var dueDateChipLabel: String? = nil
   var dueDateChipColor: Color? = nil
+  var deadlineChipLabel: String? = nil
+  var deadlineChipColor: Color? = nil
   /// PERF_FASEB2_ETAPA4: hora memoizada — evita formatTimeDisplay no body.
   var timeDisplay: String? = nil
   let labelIds: [String]

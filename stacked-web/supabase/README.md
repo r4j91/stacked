@@ -8,15 +8,16 @@ Projeto: `gbpoenvogrcqhcqfjldd` · compartilhado entre **stacked-web** e **stack
 |--------|-----------|
 | `projects` | Projetos do usuário |
 | `sections` | Seções dentro de um projeto |
-| `tasks` | Tarefas (`data_vencimento` date, `hora` time, `data_conclusao` timestamptz) |
-| `subtasks` | Subtarefas (`data_vencimento` timestamptz, `hora` text) |
+| `tasks` | Tarefas (`data_vencimento` date, `hora` time, `deadline` date, `data_conclusao` timestamptz) |
+| `subtasks` | Subtarefas (`data_vencimento` timestamptz, `hora` text, `deadline` date) |
+| `task_attachments` | Metadados de anexos (imagem/PDF); arquivos no Storage |
 | `labels` | Etiquetas |
 | `task_labels` | Vínculo tarefa ↔ etiqueta |
 | `task_comments` | Comentários |
 | `saved_filters` | Filtros salvos (JSON) |
 | `google_calendar_connections` | OAuth Google (só service role) |
 
-Storage: bucket `avatars` (público leitura, upload por usuário).
+Storage: buckets `avatars` (público leitura) e `attachments` (privado, path `{user_id}/…`).
 
 ## Migrations
 
