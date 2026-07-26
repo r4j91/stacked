@@ -138,6 +138,10 @@ struct AppThemeColors: Equatable {
     let textPrimary: Color
     let textSecondary: Color
     let textTertiary: Color
+    /// Moldura textual e ícones de navegação (cabeçalho de seção, chevron, ícone inativo). Alvo ≥3:1.
+    let textQuaternary: Color
+    /// Geometria decorativa (divisores, trilhos, fills de ilustração). Não é cor de texto — nunca usar em `Text`.
+    let hairline: Color
     /// Acento de UI (tab ativa, pastas padrão, seleções, realces).
     let accent: Color
     /// Texto/ícone sobre fundo `accent` — derivado por tema, sem alterar hex da paleta.
@@ -165,6 +169,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F3F5),
         textSecondary: Color(hex: 0x9296A0),
         textTertiary: Color(hex: 0x6B6E76),
+        textQuaternary: Color(hex: 0x6B6E76),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x6B6E76),         // = textTertiary nesta etapa
         accent: Color(hex: 0x5FD3DC),
         onAccent: Color(hex: 0x1A1B1E),
         actionAccent: Color(hex: 0x5FD3DC),
@@ -183,6 +189,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0x1C2033),
         textSecondary: Color(hex: 0x52596E),
         textTertiary: Color(hex: 0x9097AB),
+        textQuaternary: Color(hex: 0x9097AB),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x9097AB),         // = textTertiary nesta etapa
         accent: Color(hex: 0x3B485B),
         onAccent: Color(hex: 0xFFFFFF),
         actionAccent: Color(hex: 0x3B485B),
@@ -201,6 +209,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE8E8F0),
         textSecondary: Color(hex: 0x7070A0),
         textTertiary: Color(hex: 0x4A4A6A),
+        textQuaternary: Color(hex: 0x4A4A6A),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x4A4A6A),         // = textTertiary nesta etapa
         accent: Color(hex: 0x6C63FF),
         onAccent: Color(hex: 0x0A0A0F),
         actionAccent: Color(hex: 0x6C63FF),
@@ -219,6 +229,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF0F0F0),
         textSecondary: Color(hex: 0x888888),
         textTertiary: Color(hex: 0x555555),
+        textQuaternary: Color(hex: 0x555555),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x555555),         // = textTertiary nesta etapa
         accent: Color(hex: 0x00D4D4),
         onAccent: Color(hex: 0x0D0D0D),
         actionAccent: Color(hex: 0x00D4D4),
@@ -238,6 +250,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF0F0F0),
         textSecondary: Color(hex: 0x8A8A8A),
         textTertiary: Color(hex: 0x5A5A5A),
+        textQuaternary: Color(hex: 0x5A5A5A),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x5A5A5A),         // = textTertiary nesta etapa
         accent: Color(hex: 0x00D4D4),
         onAccent: Color(hex: 0x1A1A1A),
         actionAccent: Color(hex: 0x00D4D4),
@@ -256,6 +270,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
         accent: Color(hex: 0xE8E8EC),
         onAccent: Color(hex: 0x16161A),
         actionAccent: Color(hex: 0xE8E8EC),
@@ -275,6 +291,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
         accent: Color(hex: 0x00D4D4),
         onAccent: Color(hex: 0x0A0A0A),
         actionAccent: Color(hex: 0x00D4D4),
@@ -294,6 +312,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
         accent: Color(hex: 0x86ABB0),
         onAccent: Color(hex: 0x0A1012),
         actionAccent: Color(hex: 0x86ABB0),
@@ -313,6 +333,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EBEF),
         textSecondary: Color(hex: 0x96A0AA),
         textTertiary: Color(hex: 0x66707A),
+        textQuaternary: Color(hex: 0x66707A),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x66707A),         // = textTertiary nesta etapa
         accent: Color(hex: 0x6BB5BA),
         onAccent: Color(hex: 0x0C1214),
         actionAccent: Color(hex: 0x6BB5BA),
@@ -332,6 +354,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EBEF),
         textSecondary: Color(hex: 0x96A0AA),
         textTertiary: Color(hex: 0x66707A),
+        textQuaternary: Color(hex: 0x66707A),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x66707A),         // = textTertiary nesta etapa
         accent: Color(hex: 0x9DC2C7),
         onAccent: Color(hex: 0x0C1416),
         actionAccent: Color(hex: 0x9DC2C7),
@@ -350,6 +374,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EAF0),
         textSecondary: Color(hex: 0x98A2B0),
         textTertiary: Color(hex: 0x616B7A),
+        textQuaternary: Color(hex: 0x616B7A),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x616B7A),         // = textTertiary nesta etapa
         accent: Color(hex: 0x8FA8C7),
         onAccent: Color(hex: 0x0E1319),
         actionAccent: Color(hex: 0x8FA8C7),
@@ -368,6 +394,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE7EAF3),
         textSecondary: Color(hex: 0x8E97B2),
         textTertiary: Color(hex: 0x5A6480),
+        textQuaternary: Color(hex: 0x5A6480),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x5A6480),         // = textTertiary nesta etapa
         accent: Color(hex: 0xA9BAD9),
         onAccent: Color(hex: 0x0A0F1D),
         actionAccent: Color(hex: 0xA9BAD9),
@@ -386,6 +414,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xECEEF1),
         textSecondary: Color(hex: 0x93999F),
         textTertiary: Color(hex: 0x5C6167),
+        textQuaternary: Color(hex: 0x5C6167),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x5C6167),         // = textTertiary nesta etapa
         accent: Color(hex: 0xC4CCD6),
         onAccent: Color(hex: 0x0B0C0E),
         actionAccent: Color(hex: 0xC4CCD6),
@@ -405,6 +435,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xEAEDEB),
         textSecondary: Color(hex: 0x9AA19D),
         textTertiary: Color(hex: 0x626864),
+        textQuaternary: Color(hex: 0x626864),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x626864),         // = textTertiary nesta etapa
         accent: Color(hex: 0xEAEDEB),
         onAccent: Color(hex: 0x121313),
         actionAccent: Color(hex: 0x7FAA92),
@@ -424,6 +456,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xECEFED),
         textSecondary: Color(hex: 0x949B97),
         textTertiary: Color(hex: 0x5B615D),
+        textQuaternary: Color(hex: 0x5B615D),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x5B615D),         // = textTertiary nesta etapa
         accent: Color(hex: 0xECEFED),
         onAccent: Color(hex: 0x0B0C0C),
         actionAccent: Color(hex: 0x5E9474),
@@ -443,6 +477,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE5EBEC),
         textSecondary: Color(hex: 0x8EA0A3),
         textTertiary: Color(hex: 0x59696C),
+        textQuaternary: Color(hex: 0x59696C),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x59696C),         // = textTertiary nesta etapa
         accent: Color(hex: 0x86ABB0),
         onAccent: Color(hex: 0x0A1012),
         actionAccent: Color(hex: 0x86ABB0),
@@ -462,6 +498,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE5EBEC),
         textSecondary: Color(hex: 0x8EA0A3),
         textTertiary: Color(hex: 0x5C6B6E),
+        textQuaternary: Color(hex: 0x5C6B6E),   // = textTertiary nesta etapa
+        hairline: Color(hex: 0x5C6B6E),         // = textTertiary nesta etapa
         accent: Color(hex: 0x86ABB0),
         onAccent: Color(hex: 0x0E1518),
         actionAccent: Color(hex: 0x86ABB0),
