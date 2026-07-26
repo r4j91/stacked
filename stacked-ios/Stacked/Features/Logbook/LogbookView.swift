@@ -182,11 +182,23 @@ struct LogbookView: View {
   }
 
   private func delete(_ task: Task) {
+    let snapshot = task
+    let index = tasks.firstIndex(where: { $0.id == task.id })
     tasks.removeAll { $0.id == task.id }
     HapticService.taskDeleted()
-    _Concurrency.Task {
-      try? await TaskRepository.shared.deleteTask(id: task.id)
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: {
+        if let index {
+          tasks.insert(snapshot, at: min(index, tasks.count))
+        } else {
+          tasks.insert(snapshot, at: 0)
+        }
+      },
+      commit: {
+        try? await TaskRepository.shared.deleteTask(id: task.id)
+      }
+    )
   }
 
   private func duplicate(_ task: Task) {

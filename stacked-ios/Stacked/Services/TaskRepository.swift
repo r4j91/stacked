@@ -190,11 +190,24 @@ final class TaskRepository {
   }
 
   func updateTaskDate(id: String, isoDate: String) async throws {
-    try await client
-      .from("tasks")
-      .update(["data_vencimento": isoDate])
-      .eq("id", value: id)
-      .execute()
+    try await updateTaskDueDate(id: id, isoDate: isoDate)
+  }
+
+  /// Atualiza ou limpa `data_vencimento` (`nil` = sem data).
+  func updateTaskDueDate(id: String, isoDate: String?) async throws {
+    if let isoDate {
+      try await client
+        .from("tasks")
+        .update(["data_vencimento": isoDate])
+        .eq("id", value: id)
+        .execute()
+    } else {
+      try await client
+        .from("tasks")
+        .update(["data_vencimento": Optional<String>.none])
+        .eq("id", value: id)
+        .execute()
+    }
     if let task = try await fetchTaskById(id) {
       await NotificationService.shared.syncTaskNotification(task: task)
     }

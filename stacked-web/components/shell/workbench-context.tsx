@@ -1137,11 +1137,36 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         );
       }
 
+      const undoRef = { occurrenceId: null as string | null };
+      const undoComplete = () => {
+        applyViewTasksUpdate(
+          (prev) => reclassifyTaskDoneInView(prev, { ...task, done: false }, false, view),
+          task.projectId,
+        );
+        void (async () => {
+          if (!usingMock && isSupabaseConfigured()) {
+            try {
+              const repo = new TaskRepository(createClient());
+              await repo.toggleTaskDone(id, false);
+              const occurrenceId = undoRef.occurrenceId;
+              if (occurrenceId) {
+                await repo.deleteTask(occurrenceId);
+                removeTaskFromView(occurrenceId);
+              }
+              await refreshGlobalCounts();
+            } catch {
+              showToast("Erro ao desfazer");
+            }
+          }
+        })();
+      };
+
       if (!usingMock && isSupabaseConfigured()) {
         try {
           const repo = new TaskRepository(createClient());
           if (newDone) {
             const newId = await repo.completeTask(task);
+            undoRef.occurrenceId = newId;
             if (newId) {
               await refreshTasks({ refreshGlobal: false });
             }
@@ -1149,7 +1174,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
             await repo.toggleTaskDone(id, false);
           }
           await refreshGlobalCounts();
-          showToast(newDone ? "Tarefa concluída" : "Tarefa reaberta");
+          if (newDone) {
+            showToast("Tarefa concluída", {
+              duration: 5000,
+              action: { label: "Desfazer", onClick: undoComplete },
+            });
+          } else {
+            showToast("Tarefa reaberta");
+          }
         } catch {
           applyViewTasksUpdate(
             (prev) => reclassifyTaskDoneInView(prev, task, task.done, view),
@@ -1157,11 +1189,23 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           );
           showToast("Erro ao atualizar tarefa");
         }
-      } else {
-        if (newDone) showToast("Tarefa concluída");
+      } else if (newDone) {
+        showToast("Tarefa concluída", {
+          duration: 5000,
+          action: { label: "Desfazer", onClick: undoComplete },
+        });
       }
     },
-    [allTasks, applyViewTasksUpdate, refreshGlobalCounts, refreshTasks, usingMock, showToast, view],
+    [
+      allTasks,
+      applyViewTasksUpdate,
+      refreshGlobalCounts,
+      refreshTasks,
+      removeTaskFromView,
+      usingMock,
+      showToast,
+      view,
+    ],
   );
 
   const toggleSubtaskDone = useCallback(
@@ -1603,18 +1647,46 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const task = allTasks.find((t) => t.id === id);
       if (!task) return;
+      const previousDue = task.dueDate ?? null;
 
       if (!usingMock && isSupabaseConfigured()) {
         try {
-          await new TaskRepository(createClient()).deferTask(id, task.dueDate);
-          showToast("Tarefa adiada");
+          const repo = new TaskRepository(createClient());
+          await repo.deferTask(id, task.dueDate);
+          showToast("Tarefa adiada", {
+            duration: 5000,
+            action: {
+              label: "Desfazer",
+              onClick: () => {
+                void (async () => {
+                  try {
+                    await new TaskRepository(createClient()).updateTaskMeta(id, {
+                      dueDate: previousDue,
+                    });
+                    await refreshTasks({ refreshGlobal: false });
+                    await refreshGlobalCounts();
+                  } catch {
+                    showToast("Erro ao desfazer adiamento");
+                  }
+                })();
+              },
+            },
+          });
           await refreshTasks({ refreshGlobal: false });
           await refreshGlobalCounts();
         } catch {
           showToast("Erro ao adiar tarefa");
         }
       } else {
-        showToast("Tarefa adiada");
+        showToast("Tarefa adiada", {
+          duration: 5000,
+          action: {
+            label: "Desfazer",
+            onClick: () => {
+              void refreshTasks({ refreshGlobal: false });
+            },
+          },
+        });
       }
     },
     [allTasks, refreshGlobalCounts, refreshTasks, showToast, usingMock],

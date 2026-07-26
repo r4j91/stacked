@@ -13,22 +13,34 @@ struct SubtaskProgressRing: View {
     return min(1, CGFloat(done) / CGFloat(total))
   }
 
+  private var isComplete: Bool {
+    total > 0 && done >= total
+  }
+
   var body: some View {
     let c = theme.colors
     ZStack {
-      Circle()
-        .stroke(c.textTertiary.opacity(0.28), lineWidth: lineWidth)
-      Circle()
-        .trim(from: 0, to: progress)
-        .stroke(
-          c.accent,
-          style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-        )
-        .rotationEffect(.degrees(-90))
-      Text("\(min(done, total))")
-        .font(.system(size: size * 0.38, weight: .bold))
-        .foregroundStyle(c.textSecondary)
-        .monospacedDigit()
+      if isComplete {
+        Circle()
+          .fill(c.accent)
+        Image(systemName: "checkmark")
+          .font(.system(size: size * 0.42, weight: .bold))
+          .foregroundStyle(c.onAccent)
+      } else {
+        Circle()
+          .stroke(c.textTertiary.opacity(0.28), lineWidth: lineWidth)
+        Circle()
+          .trim(from: 0, to: progress)
+          .stroke(
+            c.accent,
+            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+          )
+          .rotationEffect(.degrees(-90))
+        Text("\(min(done, total))")
+          .font(.system(size: size * 0.38, weight: .bold))
+          .foregroundStyle(c.textSecondary)
+          .monospacedDigit()
+      }
     }
     .frame(width: size, height: size)
     .accessibilityHidden(true)

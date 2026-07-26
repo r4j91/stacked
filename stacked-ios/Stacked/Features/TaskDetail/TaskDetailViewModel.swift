@@ -348,13 +348,21 @@ final class TaskDetailViewModel {
         )
         // PERF_FASEB2_ETAPA2: snapshot de complete também leva memos.
         TaskMapper.applyDisplayMemos(to: &snapshot)
+        let undoGate = CompleteUndoGate()
         if let newId = try? await TaskRepository.shared.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
           await TaskCalendarSync.syncTaskId(newId)
           if let nextOccurrence = try? await TaskRepository.shared.fetchTaskById(newId) {
             TaskCardMutationCenter.publish(nextOccurrence)
           }
         }
         TaskCalendarSync.remove(taskId: taskId)
+        await MainActor.run {
+          TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+            done = false
+            publishCardSnapshot()
+          }
+        }
       } else {
         try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
         TaskCalendarSync.syncAfterMutation(
@@ -470,13 +478,44 @@ final class TaskDetailViewModel {
   }
 
   func deleteTask() async throws {
-    for sub in subtasks {
-      if let subId = sub.id {
-        TaskCalendarSync.remove(subtaskId: subId)
+    var snapshot = Task(
+      id: taskId,
+      title: title,
+      description: descriptionText.isEmpty ? nil : descriptionText,
+      project: projectName,
+      projectId: projectId,
+      sectionId: sectionId,
+      priority: priority,
+      time: time,
+      labels: allLabels.filter { selectedLabelIds.contains($0.id) },
+      subtasks: subtasks,
+      dueDate: dueDate,
+      deadline: deadline,
+      done: done,
+      commentCount: comments.count,
+      recurrence: recurrence,
+      whatsappRoutine: whatsappRoutine
+    )
+    TaskMapper.applyDisplayMemos(to: &snapshot)
+
+    let id = taskId
+    let subIds = subtasks.compactMap(\.id)
+    let restores = LocalTaskListUndo.purge(id: id, snapshot: snapshot)
+
+    PendingTaskDeletion.schedule(
+      id: id,
+      restore: {
+        LocalTaskListUndo.restore(restores)
+      },
+      commit: {
+        for subId in subIds {
+          TaskCalendarSync.remove(subtaskId: subId)
+        }
+        TaskCalendarSync.remove(taskId: id)
+        try? await TaskRepository.shared.deleteTask(id: id)
+        GlobalDataRefresh.afterTaskMutation()
       }
-    }
-    TaskCalendarSync.remove(taskId: taskId)
-    try await TaskRepository.shared.deleteTask(id: taskId)
+    )
   }
 
   func setRecurrence(_ type: RecurrenceType?) {

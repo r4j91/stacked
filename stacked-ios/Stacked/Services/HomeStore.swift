@@ -452,6 +452,7 @@ final class ProjectDetailStore {
     let originalIndex = i
     let snapshot = pending[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     pending[i].done = true
     HapticService.taskCompleted()
@@ -464,11 +465,28 @@ final class ProjectDetailStore {
         updated.done = true
         pending.remove(at: idx)
         completed.insert(updated, at: 0)
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          completed.removeAll { $0.id == taskId }
+          var restored = snapshot
+          restored.done = false
+          pending.insert(restored, at: min(originalIndex, pending.count))
+        }
       },
       persist: {
+        if undoGate.cancelled { return }
         if let newId = try await TaskRepository.shared.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
+            try? await TaskRepository.shared.deleteTask(id: newId)
+            return
+          }
           await TaskCalendarSync.syncTaskId(newId)
           await self.load()
+        }
+        if undoGate.cancelled {
+          try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
+          return
         }
         GlobalDataRefresh.afterTaskMutation()
       },
@@ -482,18 +500,44 @@ final class ProjectDetailStore {
   }
 
   func delete(_ task: Task) {
+    let snapshot = task
+    let pendingIndex = pending.firstIndex(where: { $0.id == task.id })
+    let completedIndex = completed.firstIndex(where: { $0.id == task.id })
     pending.removeAll { $0.id == task.id }
     completed.removeAll { $0.id == task.id }
-    _Concurrency.Task {
-      try? await TaskRepository.shared.deleteTask(id: task.id)
-      GlobalDataRefresh.afterTaskMutation()
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let pendingIndex {
+          pending.insert(snapshot, at: min(pendingIndex, pending.count))
+        } else if let completedIndex {
+          completed.insert(snapshot, at: min(completedIndex, completed.count))
+        } else {
+          pending.insert(snapshot, at: 0)
+        }
+      },
+      commit: {
+        try? await TaskRepository.shared.deleteTask(id: task.id)
+        GlobalDataRefresh.afterTaskMutation()
+      }
+    )
   }
 
   func postpone(_ task: Task) async {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
+    let index = pending.firstIndex(where: { $0.id == task.id })
     let iso = TaskMapper.postponedDateISO(for: task)
     try? await TaskRepository.shared.updateTaskDate(id: task.id, isoDate: iso)
     pending.removeAll { $0.id == task.id }
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      if let index {
+        pending.insert(snapshot, at: min(index, pending.count))
+      } else {
+        pending.insert(snapshot, at: 0)
+      }
+      _Concurrency.Task { await self.load() }
+    }
     await load()
   }
 

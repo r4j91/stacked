@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — alternativas do contador de subtarefas</title>
+  <style>
+    :root {
+      --bg: #1A1B1E;
+      --surface: #242529;
+      --surface2: #2C2D33;
+      --text: #F2F3F5;
+      --text2: #9296A0;
+      --text3: #6B6E76;
+      --accent: #5FD3DC;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      padding: 28px 20px 72px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 6px;
+    }
+    .lede {
+      color: var(--text2);
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 58ch;
+      margin: 0 0 24px;
+    }
+    .note {
+      font-size: 12.5px;
+      color: var(--text3);
+      margin: -12px 0 28px;
+      max-width: 58ch;
+      line-height: 1.4;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      max-width: 440px;
+    }
+    @media (min-width: 920px) {
+      .grid {
+        max-width: none;
+        grid-template-columns: repeat(2, minmax(0, 420px));
+      }
+    }
+    .option {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 14px 16px;
+    }
+    .option.current {
+      border-color: rgba(95, 211, 220, 0.35);
+      box-shadow: 0 0 0 1px rgba(95, 211, 220, 0.12);
+    }
+    .label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .label strong {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .label span {
+      font-size: 11px;
+      color: var(--text3);
+      font-variant-numeric: tabular-nums;
+    }
+    .desc {
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.4;
+      margin: 10px 0 0;
+    }
+    .card {
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 12px 10px 12px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-height: 52px;
+    }
+    .done-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text3);
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .body {
+      flex: 1;
+      min-width: 0;
+      padding-top: 1px;
+    }
+    .title {
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meta {
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: var(--text2);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .meta .dot { opacity: 0.45; }
+    .rail {
+      width: 44px;
+      height: 44px;
+      margin: -6px -4px -6px 0;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      color: var(--text2);
+    }
+
+    /* —— Controles —— */
+    .ring {
+      width: 22px;
+      height: 22px;
+      position: relative;
+    }
+    .ring svg { display: block; width: 100%; height: 100%; }
+    .ring .n {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--text2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .fraction-stack .n {
+      flex-direction: column;
+      gap: 0;
+      line-height: 1;
+      font-size: 7px;
+      letter-spacing: -0.02em;
+    }
+    .fraction-stack .n b { font-size: 8.5px; color: var(--text); font-weight: 700; }
+    .fraction-stack .n i { font-style: normal; opacity: 0.7; transform: scale(0.9); }
+
+    .pie {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--accent) calc(2 / 5 * 360deg), rgba(107,110,118,0.28) 0);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+    }
+    .pie-inner {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--surface2);
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--text2);
+      display: grid;
+      place-items: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gauge {
+      width: 26px;
+      height: 16px;
+      position: relative;
+      margin-top: 4px;
+    }
+    .gauge svg { width: 26px; height: 16px; display: block; }
+    .gauge .n {
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      text-align: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--text2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .capsule {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 3px;
+      min-width: 34px;
+    }
+    .capsule .frac {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text2);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .capsule .bar {
+      height: 2.5px;
+      border-radius: 99px;
+      background: rgba(107,110,118,0.35);
+      overflow: hidden;
+    }
+    .capsule .bar i {
+      display: block;
+      height: 100%;
+      width: 40%;
+      background: var(--accent);
+      border-radius: inherit;
+    }
+
+    .dots {
+      display: grid;
+      grid-template-columns: repeat(3, 5px);
+      gap: 3px;
+      place-content: center;
+      width: 22px;
+    }
+    .dots i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(107,110,118,0.4);
+      display: block;
+    }
+    .dots i.on { background: var(--accent); }
+    .dots i:nth-child(5) { grid-column: 2; }
+
+    .badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      background: rgba(95, 211, 220, 0.12);
+      border: 1px solid rgba(95, 211, 220, 0.28);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chev-ring {
+      width: 22px;
+      height: 22px;
+      position: relative;
+    }
+    .chev-ring svg.track { position: absolute; inset: 0; }
+    .chev-ring .chev {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--text2);
+    }
+    .chev-ring .chev svg { width: 10px; height: 10px; }
+
+    .split-num {
+      display: flex;
+      align-items: baseline;
+      gap: 1px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .split-num b {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.03em;
+    }
+    .split-num s {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+    }
+
+    .ticks {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .ticks i {
+      width: 3px;
+      border-radius: 1px;
+      background: rgba(107,110,118,0.4);
+      display: block;
+    }
+    .ticks i.on { background: var(--accent); }
+    .ticks i:nth-child(1) { height: 6px; }
+    .ticks i:nth-child(2) { height: 9px; }
+    .ticks i:nth-child(3) { height: 12px; }
+    .ticks i:nth-child(4) { height: 8px; }
+    .ticks i:nth-child(5) { height: 14px; }
+
+    .complete {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      color: #1A1B1E;
+    }
+    .complete svg { width: 11px; height: 11px; }
+
+    .states {
+      display: flex;
+      gap: 14px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .states .s {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 48px;
+    }
+    .states .s em {
+      font-style: normal;
+      font-size: 10px;
+      color: var(--text3);
+    }
+    .hit {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .reco {
+      margin-top: 28px;
+      max-width: 720px;
+      padding: 16px 18px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .reco h2 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .reco ul {
+      margin: 0;
+      padding-left: 1.15em;
+      color: var(--text2);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .reco li + li { margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Contador de subtarefas — ideias</h1>
+  <p class="lede">
+    Substitui o chevron no trilho direito do card. Exemplo fixo: <strong>2 de 5</strong> concluídas.
+    Só exploração visual — nada disso está no app ainda.
+  </p>
+  <p class="note">
+    Abrir o arquivo no browser. Ao expandir, o controle continua sendo o botão (o gesto não muda).
+  </p>
+
+  <div class="grid">
+
+    <!-- 0 atual -->
+    <article class="option current">
+      <div class="label">
+        <strong>0 · Atual — anel + número</strong>
+        <span>shipped</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="ring">
+            <svg viewBox="0 0 22 22">
+              <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2.5"/>
+              <circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2.5"
+                stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="33.9"
+                transform="rotate(-90 11 11)"/>
+            </svg>
+            <div class="n">2</div>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Leve e legível. Só mostra o “feito”; o total some da meta-linha quando o anel está ativo.</p>
+      <div class="states">
+        <div class="s"><div class="hit"><div class="ring">
+          <svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2.5"/><circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="56.5" transform="rotate(-90 11 11)"/></svg>
+          <div class="n">0</div>
+        </div></div><em>0/5</em></div>
+        <div class="s"><div class="hit"><div class="ring">
+          <svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2.5"/><circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="11.3" transform="rotate(-90 11 11)"/></svg>
+          <div class="n">4</div>
+        </div></div><em>4/5</em></div>
+        <div class="s"><div class="hit"><div class="complete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div></div><em>5/5 → ✓</em></div>
+      </div>
+    </article>
+
+    <!-- 1 -->
+    <article class="option">
+      <div class="label">
+        <strong>A · Anel + fração empilhada</strong>
+        <span>2 / 5</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="ring fraction-stack">
+            <svg viewBox="0 0 22 22">
+              <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2.5"/>
+              <circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2.5"
+                stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="33.9"
+                transform="rotate(-90 11 11)"/>
+            </svg>
+            <div class="n"><b>2</b><i>5</i></div>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Mantém o anel, mas devolve o total sem ocupar a meta-linha. Tipografia fica apertada em 22px.</p>
+    </article>
+
+    <!-- 2 -->
+    <article class="option">
+      <div class="label">
+        <strong>B · Donut (fatia sólida)</strong>
+        <span>conic</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="pie"><div class="pie-inner">2</div></div>
+        </div>
+      </div>
+      <p class="desc">Progresso mais “cheio” visualmente — lê-se de longe melhor que stroke fino. Um pouco mais “widget”.</p>
+    </article>
+
+    <!-- 3 -->
+    <article class="option">
+      <div class="label">
+        <strong>C · Arco (gauge)</strong>
+        <span>semi</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="gauge">
+            <svg viewBox="0 0 26 16">
+              <path d="M3 14 A10 10 0 0 1 23 14" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M3 14 A10 10 0 0 1 23 14" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"
+                stroke-dasharray="31.4" stroke-dashoffset="18.8"/>
+            </svg>
+            <div class="n">2</div>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Menos “bolinha”; parece medidor. Bom se quiser diferenciar do DoneCircle da esquerda.</p>
+    </article>
+
+    <!-- 4 -->
+    <article class="option">
+      <div class="label">
+        <strong>D · Cápsula + barra</strong>
+        <span>2/5</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="capsule">
+            <div class="frac">2/5</div>
+            <div class="bar"><i></i></div>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Mais explícito (fração completa). Encaixa bem com chips da meta, mas compete um pouco com densificação.</p>
+    </article>
+
+    <!-- 5 -->
+    <article class="option">
+      <div class="label">
+        <strong>E · Grade de pontos</strong>
+        <span>5 dots</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="dots">
+            <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Charmoso até ~6 itens. Quebra com 8–12 subtarefas (precisa virar “+N” ou voltar a número).</p>
+    </article>
+
+    <!-- 6 -->
+    <article class="option">
+      <div class="label">
+        <strong>F · Badge quadrado</strong>
+        <span>tile</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="badge">2</div>
+        </div>
+      </div>
+      <p class="desc">Sem anel — só contagem com accent. Progresso some; fica mais “contador de e-mail”.</p>
+    </article>
+
+    <!-- 7 -->
+    <article class="option">
+      <div class="label">
+        <strong>G · Anel + chevron</strong>
+        <span>híbrido</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="chev-ring">
+            <svg class="track" viewBox="0 0 22 22">
+              <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(107,110,118,0.28)" stroke-width="2"/>
+              <circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2"
+                stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="33.9"
+                transform="rotate(-90 11 11)"/>
+            </svg>
+            <div class="chev">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Afirma “é botão de expandir” + progresso. Contagem some do centro — precisa da meta “2/5” de volta, ou só o anel.</p>
+    </article>
+
+    <!-- 8 -->
+    <article class="option">
+      <div class="label">
+        <strong>H · Tipografia split</strong>
+        <span>2⁵</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="split-num"><b>2</b><s>/5</s></div>
+        </div>
+      </div>
+      <p class="desc">Zero ornamentação. Máxima densidade. Progresso vira só mental (razão), sem arco.</p>
+    </article>
+
+    <!-- 9 -->
+    <article class="option">
+      <div class="label">
+        <strong>I · Ticks / equalizer</strong>
+        <span>bars</span>
+      </div>
+      <div class="card">
+        <div class="done-dot"></div>
+        <div class="body">
+          <div class="title">Revisar briefing do cliente</div>
+          <div class="meta"><span>Projeto</span><span class="dot">·</span><span>Hoje</span></div>
+        </div>
+        <div class="rail">
+          <div class="ticks">
+            <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+      <p class="desc">Visual distinto e “app-y”. Mesma limitação dos dots em totals altos; vira abstrato.</p>
+    </article>
+
+  </div>
+
+  <section class="reco">
+    <h2>Leitura rápida (opinião)</h2>
+    <ul>
+      <li><strong>B (donut)</strong> ou <strong>A (anel + 2/5)</strong> — melhor upgrade do atual sem mudar a metáfora.</li>
+      <li><strong>G (anel + chevron)</strong> — se a dor for “não parece expansível”.</li>
+      <li><strong>D (cápsula)</strong> — se preferir texto claro a gráfico.</li>
+      <li><strong>E / I</strong> — só se subtarefas por card forem poucas (≤6); senão degrada.</li>
+      <li>Estado <strong>100%</strong>: trocar por check preenchido (já esboçado no card 0) funciona em qualquer opção com anel/donut.</li>
+    </ul>
+  </section>
+</body>
+</html>

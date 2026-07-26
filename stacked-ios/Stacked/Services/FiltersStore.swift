@@ -602,6 +602,7 @@ final class FiltersStore {
        !snapshot.done {
       let originalIndex = i
       let taskId = task.id
+      let undoGate = CompleteUndoGate()
       filterResults.remove(at: i)
       HapticService.taskCompleted()
       TaskCompletionMotion.afterDwell(
@@ -614,10 +615,30 @@ final class FiltersStore {
           }
           syncSavedFilterCache()
           syncPresetFilterCache()
+          TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+            filterResults.insert(.task(snapshot), at: min(originalIndex, filterResults.count))
+            filterCompletedResults.removeAll {
+              if case .task(let t) = $0 { return t.id == taskId }
+              return false
+            }
+            syncSavedFilterCache()
+            syncPresetFilterCache()
+          }
         },
         persist: {
+          if undoGate.cancelled { return }
           if let newId = try await self.taskRepo.completeTask(snapshot) {
+            undoGate.occurrenceId = newId
+            if undoGate.cancelled {
+              try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
+              try? await self.taskRepo.deleteTask(id: newId)
+              return
+            }
             await TaskCalendarSync.syncTaskId(newId)
+          }
+          if undoGate.cancelled {
+            try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
+            return
           }
           GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
         },
@@ -641,6 +662,7 @@ final class FiltersStore {
     let originalIndex = i
     let snapshot = filterTasks[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     filterTasks[i].done = true
     HapticService.taskCompleted()
@@ -655,10 +677,28 @@ final class FiltersStore {
           filterCompletedTasks.insert(doneTask, at: 0)
         }
         syncPresetFilterCache()
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          var restored = snapshot
+          restored.done = false
+          filterTasks.insert(restored, at: min(originalIndex, filterTasks.count))
+          filterCompletedTasks.removeAll { $0.id == taskId }
+          syncPresetFilterCache()
+        }
       },
       persist: {
+        if undoGate.cancelled { return }
         if let newId = try await self.taskRepo.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
+            try? await self.taskRepo.deleteTask(id: newId)
+            return
+          }
           await TaskCalendarSync.syncTaskId(newId)
+        }
+        if undoGate.cancelled {
+          try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
+          return
         }
         GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
       },
@@ -696,6 +736,18 @@ final class FiltersStore {
   }
 
   func delete(_ task: Task) {
+    let snapshot = task
+    let taskIndex = filterTasks.firstIndex(where: { $0.id == task.id })
+    let completedIndex = filterCompletedTasks.firstIndex(where: { $0.id == task.id })
+    let resultIndex = filterResults.firstIndex {
+      if case .task(let t) = $0 { return t.id == task.id }
+      return false
+    }
+    let completedResultIndex = filterCompletedResults.firstIndex {
+      if case .task(let t) = $0 { return t.id == task.id }
+      return false
+    }
+
     filterTasks.removeAll { $0.id == task.id }
     filterCompletedTasks.removeAll { $0.id == task.id }
     filterResults.removeAll {
@@ -712,15 +764,49 @@ final class FiltersStore {
     }
     syncSavedFilterCache()
     syncPresetFilterCache()
-    _Concurrency.Task {
-      try? await taskRepo.deleteTask(id: task.id)
-      await loadDashboard()
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let resultIndex {
+          filterResults.insert(.task(snapshot), at: min(resultIndex, filterResults.count))
+        } else if let completedResultIndex {
+          filterCompletedResults.insert(.task(snapshot), at: min(completedResultIndex, filterCompletedResults.count))
+        } else if let taskIndex {
+          filterTasks.insert(snapshot, at: min(taskIndex, filterTasks.count))
+        } else if let completedIndex {
+          filterCompletedTasks.insert(snapshot, at: min(completedIndex, filterCompletedTasks.count))
+        } else {
+          filterTasks.insert(snapshot, at: 0)
+        }
+        syncSavedFilterCache()
+        syncPresetFilterCache()
+      },
+      commit: {
+        try? await self.taskRepo.deleteTask(id: task.id)
+        await self.loadDashboard()
+      }
+    )
   }
 
   func postpone(_ task: Task) async {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
     let iso = TaskMapper.postponedDateISO(for: task)
     try? await taskRepo.updateTaskDate(id: task.id, isoDate: iso)
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      _Concurrency.Task {
+        switch self.mode {
+        case .presetFilter(let kind):
+          await self.openFilter(kind)
+        case .savedFilter(let filter):
+          await self.openSavedFilter(filter)
+        case .dashboard:
+          break
+        }
+        await self.loadDashboard()
+      }
+    }
+    _ = snapshot
     switch mode {
     case .presetFilter(let kind):
       await openFilter(kind)

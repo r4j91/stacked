@@ -236,6 +236,7 @@ final class TaskStore {
     let originalIndex = i
     let snapshot = todayPending[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     // Mark antes do rebuild — remount UIKit chega com done=true e ainda anima o fill.
     TaskCompleteAnimationBridge.mark(taskId)
@@ -257,11 +258,30 @@ final class TaskStore {
         }
         WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
         rebuildTodayDerived()
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          todayCompleted.removeAll { $0.id == taskId }
+          var restored = snapshot
+          restored.done = false
+          todayPending.insert(restored, at: min(originalIndex, todayPending.count))
+          WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+          rebuildTodayDerived()
+        }
       },
       persist: {
+        if undoGate.cancelled { return }
         if let newId = try await self.repo.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await self.repo.toggleTaskDone(id: taskId, done: false)
+            try? await self.repo.deleteTask(id: newId)
+            return
+          }
           await TaskCalendarSync.syncTaskId(newId)
           await TabDataLoader.load(.today)
+        }
+        if undoGate.cancelled {
+          try? await self.repo.toggleTaskDone(id: taskId, done: false)
+          return
         }
         TaskCalendarSync.remove(taskId: taskId)
         GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
@@ -284,6 +304,7 @@ final class TaskStore {
     let originalIndex = i
     let snapshot = inboxPending[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     inboxPending[i].done = true
     HapticService.taskCompleted()
@@ -298,11 +319,28 @@ final class TaskStore {
         if !inboxCompleted.contains(where: { $0.id == taskId }) {
           inboxCompleted.insert(updated, at: 0)
         }
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          inboxCompleted.removeAll { $0.id == taskId }
+          var restored = snapshot
+          restored.done = false
+          inboxPending.insert(restored, at: min(originalIndex, inboxPending.count))
+        }
       },
       persist: {
+        if undoGate.cancelled { return }
         if let newId = try await self.repo.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await self.repo.toggleTaskDone(id: taskId, done: false)
+            try? await self.repo.deleteTask(id: newId)
+            return
+          }
           await TaskCalendarSync.syncTaskId(newId)
           await TabDataLoader.load(.inbox)
+        }
+        if undoGate.cancelled {
+          try? await self.repo.toggleTaskDone(id: taskId, done: false)
+          return
         }
         TaskCalendarSync.remove(taskId: taskId)
         GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
@@ -317,42 +355,95 @@ final class TaskStore {
   }
 
   func deleteToday(_ task: Task) {
-    let wasPending = todayPending.contains { $0.id == task.id }
+    let snapshot = task
+    let pendingIndex = todayPending.firstIndex(where: { $0.id == task.id })
+    let completedIndex = todayCompleted.firstIndex(where: { $0.id == task.id })
     todayPending.removeAll { $0.id == task.id }
     todayCompleted.removeAll { $0.id == task.id }
     rebuildTodayDerived()
     HapticService.taskDeleted()
     WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
-    _Concurrency.Task {
-      try? await repo.deleteTask(id: task.id)
-      TaskCalendarSync.remove(taskId: task.id)
-      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
-    }
-    _ = wasPending
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let pendingIndex {
+          todayPending.insert(snapshot, at: min(pendingIndex, todayPending.count))
+        } else if let completedIndex {
+          todayCompleted.insert(snapshot, at: min(completedIndex, todayCompleted.count))
+        } else {
+          todayPending.insert(snapshot, at: 0)
+        }
+        WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+        rebuildTodayDerived()
+      },
+      commit: {
+        try? await self.repo.deleteTask(id: task.id)
+        TaskCalendarSync.remove(taskId: task.id)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
+      }
+    )
   }
 
   func deleteInbox(_ task: Task) {
+    let snapshot = task
+    let pendingIndex = inboxPending.firstIndex(where: { $0.id == task.id })
+    let completedIndex = inboxCompleted.firstIndex(where: { $0.id == task.id })
     inboxPending.removeAll { $0.id == task.id }
     inboxCompleted.removeAll { $0.id == task.id }
-    _Concurrency.Task {
-      try? await repo.deleteTask(id: task.id)
-      TaskCalendarSync.remove(taskId: task.id)
-      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let pendingIndex {
+          inboxPending.insert(snapshot, at: min(pendingIndex, inboxPending.count))
+        } else if let completedIndex {
+          inboxCompleted.insert(snapshot, at: min(completedIndex, inboxCompleted.count))
+        } else {
+          inboxPending.insert(snapshot, at: 0)
+        }
+      },
+      commit: {
+        try? await self.repo.deleteTask(id: task.id)
+        TaskCalendarSync.remove(taskId: task.id)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.inbox])
+      }
+    )
   }
 
   func postponeToday(_ task: Task) async throws {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
+    let index = todayPending.firstIndex(where: { $0.id == task.id })
     let iso = TaskMapper.postponedDateISO(for: task)
     try await repo.updateTaskDate(id: task.id, isoDate: iso)
     todayPending.removeAll { $0.id == task.id }
     rebuildTodayDerived()
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      if let index {
+        todayPending.insert(snapshot, at: min(index, todayPending.count))
+      } else {
+        todayPending.insert(snapshot, at: 0)
+      }
+      rebuildTodayDerived()
+      _Concurrency.Task { await self.loadToday() }
+    }
     await loadToday()
   }
 
   func postponeInbox(_ task: Task) async throws {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
+    let index = inboxPending.firstIndex(where: { $0.id == task.id })
     let iso = TaskMapper.tomorrowISO()
     try await repo.updateTaskDate(id: task.id, isoDate: iso)
     inboxPending.removeAll { $0.id == task.id }
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      if let index {
+        inboxPending.insert(snapshot, at: min(index, inboxPending.count))
+      } else {
+        inboxPending.insert(snapshot, at: 0)
+      }
+      _Concurrency.Task { await self.loadInbox() }
+    }
     await loadInbox()
   }
 
@@ -372,6 +463,39 @@ final class TaskStore {
       }
       await loadInbox()
     }
+  }
+
+  /// Remove das listas locais sem toast/commit — usado pelo delete do detalhe.
+  func purgeLocally(id: String, snapshot: Task) -> LocalTaskListUndo.RestoreToken? {
+    let todayPendingIndex = todayPending.firstIndex(where: { $0.id == id })
+    let todayCompletedIndex = todayCompleted.firstIndex(where: { $0.id == id })
+    let inboxPendingIndex = inboxPending.firstIndex(where: { $0.id == id })
+    let inboxCompletedIndex = inboxCompleted.firstIndex(where: { $0.id == id })
+    guard todayPendingIndex != nil || todayCompletedIndex != nil
+      || inboxPendingIndex != nil || inboxCompletedIndex != nil
+    else { return nil }
+
+    todayPending.removeAll { $0.id == id }
+    todayCompleted.removeAll { $0.id == id }
+    inboxPending.removeAll { $0.id == id }
+    inboxCompleted.removeAll { $0.id == id }
+    rebuildTodayDerived()
+    WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+
+    return LocalTaskListUndo.RestoreToken(restore: { [self] in
+      if let todayPendingIndex {
+        todayPending.insert(snapshot, at: min(todayPendingIndex, todayPending.count))
+      } else if let todayCompletedIndex {
+        todayCompleted.insert(snapshot, at: min(todayCompletedIndex, todayCompleted.count))
+      }
+      if let inboxPendingIndex {
+        inboxPending.insert(snapshot, at: min(inboxPendingIndex, inboxPending.count))
+      } else if let inboxCompletedIndex {
+        inboxCompleted.insert(snapshot, at: min(inboxCompletedIndex, inboxCompleted.count))
+      }
+      rebuildTodayDerived()
+      WidgetSnapshotSync.updateFromToday(pending: todayPending, completed: todayCompleted)
+    })
   }
 
   // NET_FASEC_ETAPA2 — inserção local imediata (sem badge visual).

@@ -93,7 +93,7 @@ function ToastCard({
             toast.action?.onClick()
             onDismiss(toast.id)
           }}
-          className="shrink-0 font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
+          className="shrink-0 font-semibold text-[var(--color-accent)] hover:opacity-90"
         >
           {toast.action.label}
         </button>

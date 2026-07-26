@@ -117,6 +117,7 @@ final class SearchStore {
     let originalIndex = i
     let snapshot = allTasks[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     // Mark antes do rebuild — remount com done=true ainda anima o fill.
     TaskCompleteAnimationBridge.mark(taskId)
@@ -131,9 +132,25 @@ final class SearchStore {
         allTasks.removeAll { $0.id == taskId }
         rebuildSearchIndex()
         regroupResults()
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          var restored = snapshot
+          restored.done = false
+          allTasks.insert(restored, at: min(originalIndex, allTasks.count))
+          rebuildSearchIndex()
+          regroupResults()
+        }
       },
       persist: {
-        _ = try await TaskRepository.shared.completeTask(snapshot)
+        if undoGate.cancelled { return }
+        if let newId = try await TaskRepository.shared.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
+            try? await TaskRepository.shared.deleteTask(id: newId)
+          }
+        } else if undoGate.cancelled {
+          try? await TaskRepository.shared.toggleTaskDone(id: taskId, done: false)
+        }
       },
       rollback: { [self] in
         var restored = snapshot
@@ -146,13 +163,27 @@ final class SearchStore {
   }
 
   func delete(_ task: Task) {
+    let snapshot = task
+    let index = allTasks.firstIndex(where: { $0.id == task.id })
     allTasks.removeAll { $0.id == task.id }
     rebuildSearchIndex()
     regroupResults()
     HapticService.taskDeleted()
-    _Concurrency.Task {
-      try? await TaskRepository.shared.deleteTask(id: task.id)
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let index {
+          allTasks.insert(snapshot, at: min(index, allTasks.count))
+        } else {
+          allTasks.insert(snapshot, at: 0)
+        }
+        rebuildSearchIndex()
+        regroupResults()
+      },
+      commit: {
+        try? await TaskRepository.shared.deleteTask(id: task.id)
+      }
+    )
   }
 
   func duplicate(_ task: Task) {
@@ -163,11 +194,23 @@ final class SearchStore {
   }
 
   func postpone(_ task: Task) async {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
+    let index = allTasks.firstIndex(where: { $0.id == task.id })
     let iso = TaskMapper.postponedDateISO(for: task)
     try? await TaskRepository.shared.updateTaskDate(id: task.id, isoDate: iso)
     allTasks.removeAll { $0.id == task.id }
     rebuildSearchIndex()
     regroupResults()
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      if let index {
+        allTasks.insert(snapshot, at: min(index, allTasks.count))
+      } else {
+        allTasks.insert(snapshot, at: 0)
+      }
+      rebuildSearchIndex()
+      regroupResults()
+    }
   }
 
   private func scheduleFilter() {

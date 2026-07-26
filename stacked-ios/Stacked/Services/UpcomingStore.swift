@@ -228,6 +228,7 @@ final class UpcomingStore {
     let originalIndex = i
     let snapshot = tasks[i]
     let taskId = task.id
+    let undoGate = CompleteUndoGate()
 
     // Mark antes do rebuild — remount UIKit chega com done=true e ainda anima o fill.
     TaskCompleteAnimationBridge.mark(taskId)
@@ -242,11 +243,28 @@ final class UpcomingStore {
       animatedRemoval: { [self] in
         tasks.removeAll { $0.id == taskId }
         rebuildScheduleDerived()
+        TaskActionUndo.presentCompleted(taskId: taskId, gate: undoGate) { [self] in
+          var restored = snapshot
+          restored.done = false
+          tasks.insert(restored, at: min(originalIndex, tasks.count))
+          rebuildScheduleDerived()
+        }
       },
       persist: {
+        if undoGate.cancelled { return }
         if let newId = try await self.repo.completeTask(snapshot) {
+          undoGate.occurrenceId = newId
+          if undoGate.cancelled {
+            try? await self.repo.toggleTaskDone(id: taskId, done: false)
+            try? await self.repo.deleteTask(id: newId)
+            return
+          }
           await TaskCalendarSync.syncTaskId(newId)
           await TabDataLoader.load(.upcoming)
+        }
+        if undoGate.cancelled {
+          try? await self.repo.toggleTaskDone(id: taskId, done: false)
+          return
         }
         TaskCalendarSync.remove(taskId: taskId)
         GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
@@ -261,19 +279,56 @@ final class UpcomingStore {
   }
 
   func delete(_ task: Task) {
+    let snapshot = task
+    let index = tasks.firstIndex(where: { $0.id == task.id })
     tasks.removeAll { $0.id == task.id }
     rebuildScheduleDerived()
-    TaskCalendarSync.remove(taskId: task.id)
-    _Concurrency.Task {
-      try? await repo.deleteTask(id: task.id)
-      GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
-    }
+    PendingTaskDeletion.schedule(
+      id: task.id,
+      restore: { [self] in
+        if let index {
+          tasks.insert(snapshot, at: min(index, tasks.count))
+        } else {
+          tasks.insert(snapshot, at: 0)
+        }
+        rebuildScheduleDerived()
+      },
+      commit: {
+        try? await self.repo.deleteTask(id: task.id)
+        TaskCalendarSync.remove(taskId: task.id)
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
+      }
+    )
   }
 
   func postpone(_ task: Task) async {
+    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
+    let snapshot = task
+    let index = tasks.firstIndex(where: { $0.id == task.id })
     let iso = TaskMapper.postponedDateISO(for: task)
     try? await repo.updateTaskDate(id: task.id, isoDate: iso)
+    tasks.removeAll { $0.id == task.id }
+    rebuildScheduleDerived()
+    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+      if let index {
+        tasks.insert(snapshot, at: min(index, tasks.count))
+      } else {
+        tasks.insert(snapshot, at: 0)
+      }
+      rebuildScheduleDerived()
+      _Concurrency.Task { await self.load() }
+    }
     await load()
+  }
+
+  func purgeLocally(id: String, snapshot: Task) -> LocalTaskListUndo.RestoreToken? {
+    guard let index = tasks.firstIndex(where: { $0.id == id }) else { return nil }
+    tasks.remove(at: index)
+    rebuildScheduleDerived()
+    return LocalTaskListUndo.RestoreToken(restore: { [self] in
+      tasks.insert(snapshot, at: min(index, tasks.count))
+      rebuildScheduleDerived()
+    })
   }
 }
 
