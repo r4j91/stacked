@@ -18,6 +18,7 @@ import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 import { showsTrailingTime } from "@/lib/theme/task-row-layout";
+import { useSubtaskBranch } from "@/lib/theme/use-subtask-branch";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
@@ -32,36 +33,43 @@ import {
 export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
   const { selectedSubtaskKey, selectSubtask, toggleSubtaskDone } = useWorkbench();
   const layout = useTaskRowLayout();
+  const showBranch = useSubtaskBranch();
   if (!open || !task.subtasks?.length) return null;
 
   const subs = task.subtasks;
   const trailingTime = showsTrailingTime(layout);
 
   return (
-    <div className="subtask-tree relative mr-2 mt-0.5 space-y-0.5 pb-1.5">
-      <div
-        className="subtask-tree-line pointer-events-none absolute top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
-        style={{ height: `calc(100% - 10px)` }}
-        aria-hidden
-      />
+    <div className={`subtask-tree relative mr-2 mt-0.5 space-y-0.5 pb-1.5 ${showBranch ? "" : "pl-0"}`}>
+      {showBranch ? (
+        <div
+          className="subtask-tree-line pointer-events-none absolute top-0 w-px bg-gradient-to-b from-[var(--color-border)] via-[var(--color-border)]/60 to-transparent"
+          style={{ height: `calc(100% - 10px)` }}
+          aria-hidden
+        />
+      ) : null}
       {subs.map((s, i) => {
         const key = `${task.id}:${i}` as SubtaskKey;
         const selected = selectedSubtaskKey === key;
         const isLast = i === subs.length - 1;
         const notes = s.notes?.trim();
         return (
-          <div key={key} className="relative pl-5">
-            <div
-              className="pointer-events-none absolute left-0 top-[17px] h-px w-4 rounded-full bg-[var(--color-border)]/90"
-              aria-hidden
-            />
-            {!isLast && (
-              <div
-                className="pointer-events-none absolute left-0 top-[17px] w-px bg-[var(--color-border)]/70"
-                style={{ height: "calc(100% + 2px)" }}
-                aria-hidden
-              />
-            )}
+          <div key={key} className={`relative ${showBranch ? "pl-5" : "pl-1"}`}>
+            {showBranch ? (
+              <>
+                <div
+                  className="pointer-events-none absolute left-0 top-[17px] h-px w-4 rounded-full bg-[var(--color-border)]/90"
+                  aria-hidden
+                />
+                {!isLast && (
+                  <div
+                    className="pointer-events-none absolute left-0 top-[17px] w-px bg-[var(--color-border)]/70"
+                    style={{ height: "calc(100% + 2px)" }}
+                    aria-hidden
+                  />
+                )}
+              </>
+            ) : null}
             <div
               role="button"
               tabIndex={0}

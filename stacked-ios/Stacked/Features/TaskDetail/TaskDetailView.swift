@@ -13,7 +13,6 @@ struct TaskDetailView: View {
   @FocusState private var descriptionFocused: Bool
   @State private var showDatePicker = false
   @State private var showDeadlinePicker = false
-  @State private var showDeleteConfirm = false
   @State private var subtaskDetailRoute: SubtaskDetailRoute?
   @State private var subtasksExpanded = false
   @State private var didInitSubtasksExpanded = false
@@ -26,6 +25,8 @@ struct TaskDetailView: View {
   @State private var notesAnchor: CGRect = .zero
 
   @AppStorage(ProductivityPreferences.anchoredDetailNotesKey) private var anchoredDetailNotes = false
+  @AppStorage(TaskDetailSheetPresentationStorage.key)
+  private var presentAsSheet = TaskDetailSheetPresentationStorage.defaultEnabled
 
   @State private var installmentRoute: InstallmentGeneratorRoute?
   @State private var showWhatsAppPreview = false
@@ -62,41 +63,22 @@ struct TaskDetailView: View {
       .background(c.background.ignoresSafeArea())
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .topBarLeading) {
-          Button {
+        ToolbarItem(placement: .cancellationAction) {
+          Button("Fechar") {
             close()
-          } label: {
-            Image(systemName: "xmark")
-              .font(AppTypography.bodySemibold)
-              .foregroundStyle(c.textSecondary)
           }
         }
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .confirmationAction) {
           HStack(spacing: 10) {
             if vm.showsWhatsAppAction {
               whatsAppToolbarButton
             }
-            Menu {
-              Button(role: .destructive) {
-                showDeleteConfirm = true
-              } label: {
-                Label("Excluir tarefa", systemImage: "trash")
-              }
-            } label: {
-              Image(systemName: "ellipsis")
-                .foregroundStyle(c.textSecondary)
+            Button("Salvar") {
+              close(playSaveHaptic: true)
             }
+            .foregroundStyle(c.accent)
           }
         }
-      }
-      .confirmationDialog("Excluir esta tarefa?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-        Button("Excluir", role: .destructive) {
-          _Concurrency.Task {
-            try? await vm.deleteTask()
-            close()
-          }
-        }
-        Button("Cancelar", role: .cancel) {}
       }
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
@@ -164,8 +146,8 @@ struct TaskDetailView: View {
         }
       }
     }
-    .opacity(isClosing ? 0 : 1)
-    .animation(isClosing ? .easeOut(duration: 0.22) : nil, value: isClosing)
+    .opacity((!presentAsSheet && isClosing) ? 0 : 1)
+    .animation((!presentAsSheet && isClosing) ? .easeOut(duration: 0.22) : nil, value: isClosing)
     .allowsHitTesting(!isClosing)
     // NET_FASEC_ETAPA1B — swipe-down / qualquer dismiss: flush títulos/notas.
     .onDisappear {
@@ -883,17 +865,21 @@ struct TaskDetailView: View {
     }
   }
 
-  private func close() {
+  private func close(playSaveHaptic: Bool = false) {
     guard !isClosing else { return }
-    isClosing = true
     // NET_FASEC_ETAPA1B — flush debounces antes de encerrar (X / Fechar).
     _Concurrency.Task {
       await vm.flushPendingAutosaves()
       await MainActor.run {
-        if reduceMotion {
+        if playSaveHaptic {
+          HapticService.saved()
+        }
+        // Folha: dismiss nativo (desce), sem fade — paridade SubtaskDetail.
+        if presentAsSheet || reduceMotion {
           dismiss()
           return
         }
+        isClosing = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
           dismiss()
         }

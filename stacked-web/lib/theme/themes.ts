@@ -25,6 +25,8 @@ export type AppThemeColors = {
   textPrimary: string
   textSecondary: string
   textTertiary: string
+  textQuaternary: string
+  hairline: string
   accent: string
   accentText: string
   navBar: string
@@ -58,6 +60,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F2F3F5",
       textSecondary: "#9296A0",
       textTertiary: "#6B6E76",
+      textQuaternary: "#6B6E76",
+      hairline: "#6B6E76",
       accent: "#5FD3DC",
       accentText: "#0A0A0A",
       navBar: "#242529",
@@ -75,6 +79,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#1C2033",
       textSecondary: "#52596E",
       textTertiary: "#757D92",
+      textQuaternary: "#757D92",
+      hairline: "#757D92",
       accent: "#3B485B",
       accentText: "#FFFFFF",
       navBar: "#FFFFFF",
@@ -92,6 +98,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E8E8F0",
       textSecondary: "#7070A0",
       textTertiary: "#4A4A6A",
+      textQuaternary: "#4A4A6A",
+      hairline: "#4A4A6A",
       accent: "#6C63FF",
       accentText: "#FFFFFF",
       navBar: "#0F0F18",
@@ -109,6 +117,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F0F0F0",
       textSecondary: "#888888",
       textTertiary: "#6E6E6E",
+      textQuaternary: "#6E6E6E",
+      hairline: "#6E6E6E",
       accent: "#00D4D4",
       accentText: "#0A0A0A",
       navBar: "#111111",
@@ -131,6 +141,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F0F0F0",
       textSecondary: "#8A8A8A",
       textTertiary: "#5A5A5A",
+      textQuaternary: "#5A5A5A",
+      hairline: "#5A5A5A",
       accent: "#00D4D4",
       accentText: "#1A1A1A",
       navBar: "#1F1F1F",
@@ -148,6 +160,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F2F2F4",
       textSecondary: "#9A9AA2",
       textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
       accent: "#E8E8EC",
       accentText: "#0A0A0A",
       navBar: "#16161A",
@@ -170,6 +184,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F2F2F4",
       textSecondary: "#9A9AA2",
       textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
       accent: "#00D4D4",
       accentText: "#0A0A0A",
       navBar: "#16161A",
@@ -192,6 +208,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#F2F2F4",
       textSecondary: "#9A9AA2",
       textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
       accent: "#86ABB0",
       accentText: "#0A1012",
       navBar: "#16161A",
@@ -214,6 +232,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E6EBEF",
       textSecondary: "#96A0AA",
       textTertiary: "#66707A",
+      textQuaternary: "#66707A",
+      hairline: "#66707A",
       accent: "#6BB5BA",
       accentText: "#0C1214",
       navBar: "#191D22",
@@ -236,6 +256,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E6EBEF",
       textSecondary: "#96A0AA",
       textTertiary: "#66707A",
+      textQuaternary: "#66707A",
+      hairline: "#66707A",
       accent: "#9DC2C7",
       accentText: "#0C1416",
       navBar: "#191D22",
@@ -258,6 +280,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E6EAF0",
       textSecondary: "#98A2B0",
       textTertiary: "#616B7A",
+      textQuaternary: "#616B7A",
+      hairline: "#616B7A",
       accent: "#8FA8C7",
       accentText: "#0E1319",
       navBar: "#171B21",
@@ -280,6 +304,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E7EAF3",
       textSecondary: "#8E97B2",
       textTertiary: "#5A6480",
+      textQuaternary: "#5A6480",
+      hairline: "#5A6480",
       accent: "#A9BAD9",
       accentText: "#0A0F1D",
       navBar: "#101626",
@@ -302,6 +328,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#ECEEF1",
       textSecondary: "#93999F",
       textTertiary: "#5C6167",
+      textQuaternary: "#5C6167",
+      hairline: "#5C6167",
       accent: "#C4CCD6",
       accentText: "#0B0C0E",
       navBar: "#131416",
@@ -324,6 +352,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#EAEDEB",
       textSecondary: "#9AA19D",
       textTertiary: "#626864",
+      textQuaternary: "#626864",
+      hairline: "#626864",
       // Web: acento de ação (iOS actionAccent) — FAB/botões
       accent: "#7FAA92",
       accentText: "#0C110E",
@@ -347,6 +377,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#ECEFED",
       textSecondary: "#949B97",
       textTertiary: "#5B615D",
+      textQuaternary: "#5B615D",
+      hairline: "#5B615D",
       accent: "#5E9474",
       accentText: "#F2F7F4",
       navBar: "#131515",
@@ -369,6 +401,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E5EBEC",
       textSecondary: "#8EA0A3",
       textTertiary: "#59696C",
+      textQuaternary: "#59696C",
+      hairline: "#59696C",
       accent: "#86ABB0",
       accentText: "#0A1012",
       navBar: "#12191C",
@@ -391,6 +425,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textPrimary: "#E5EBEC",
       textSecondary: "#8EA0A3",
       textTertiary: "#5C6B6E",
+      textQuaternary: "#5C6B6E",
+      hairline: "#5C6B6E",
       accent: "#86ABB0",
       accentText: "#0E1518",
       navBar: "#1C262A",
@@ -428,6 +464,8 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   root.style.setProperty("--color-text", colors.textPrimary)
   root.style.setProperty("--color-text-secondary", colors.textSecondary)
   root.style.setProperty("--color-text-tertiary", colors.textTertiary)
+  root.style.setProperty("--color-text-quaternary", colors.textQuaternary)
+  root.style.setProperty("--color-hairline", colors.hairline)
   root.style.setProperty("--color-accent", colors.accent)
   root.style.setProperty("--color-accent-text", colors.accentText)
   root.style.setProperty(

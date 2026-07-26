@@ -4,6 +4,8 @@ import type { Task } from "@/lib/types/task";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ArrowDown01Icon } from "@/lib/icons/nav-icons";
 import { WhatsAppTaskCopyButton } from "@/components/tasks/whatsapp-task-copy-button";
+import { SubtaskProgressRing } from "@/components/tasks/subtask-progress-ring";
+import { useSubtaskProgressRing } from "@/lib/theme/use-subtask-progress-ring";
 import { taskShowsWhatsAppCopy } from "@/lib/utils/whatsapp-routine-message";
 
 type TaskRowTrailingRailProps = {
@@ -20,6 +22,10 @@ export function TaskRowTrailingRail({
   onToggleSubtasks,
 }: TaskRowTrailingRailProps) {
   const showWhatsApp = taskShowsWhatsAppCopy(task);
+  const progressRing = useSubtaskProgressRing();
+  const subs = task.subtasks ?? [];
+  const doneSubs = subs.filter((s) => s.done).length;
+
   if (!hasSubtasks && !showWhatsApp) return null;
 
   return (
@@ -35,11 +41,15 @@ export function TaskRowTrailingRail({
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Recolher subtarefas" : "Expandir subtarefas"}
         >
-          <AppIcon
-            icon={ArrowDown01Icon}
-            size={18}
-            className={`transition-transform duration-200 ease-out ${isExpanded ? "rotate-180" : ""}`}
-          />
+          {progressRing ? (
+            <SubtaskProgressRing done={doneSubs} total={subs.length} size={22} />
+          ) : (
+            <AppIcon
+              icon={ArrowDown01Icon}
+              size={18}
+              className={`transition-transform duration-200 ease-out ${isExpanded ? "rotate-180" : ""}`}
+            />
+          )}
         </button>
       ) : (
         <span className="h-8 w-8 shrink-0" aria-hidden />

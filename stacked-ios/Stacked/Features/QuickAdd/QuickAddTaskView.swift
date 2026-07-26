@@ -291,35 +291,28 @@ struct QuickAddTaskView: View {
   private var projectChip: some View {
     let c = theme.colors
     let active = selectedProjectId != nil
-    let dot = projects.first(where: { $0.id == selectedProjectId })?.color ?? c.textSecondary
-    let name = projectPillLabel
+    let tint = projects.first(where: { $0.id == selectedProjectId })?.color ?? c.textSecondary
+    let iconColor = active ? tint : c.textSecondary
 
     return AnchoredTapButton { rect in
       showProjectMenu(anchor: rect)
     } label: {
-      HStack(spacing: 6) {
-        StackedIcons.icon(.navInbox, size: 17, color: active ? dot : c.textSecondary)
-        Text(name)
-          .font(.system(size: 14.5, weight: .medium))
-          .foregroundStyle(active ? dot : c.textSecondary)
-          .lineLimit(1)
-      }
-      .padding(.horizontal, 12)
-      .frame(height: iconCircleSize)
-      .background(
-        active
-          ? dot.opacity(0.14)
-          : actionPillBackground(colors: c)
-      )
-      .clipShape(Capsule())
-      .overlay {
-        if !active {
-          Capsule()
-            .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 0.6)
+      StackedIcons.icon(.navInbox, size: metadataIconSize, color: iconColor)
+        .frame(width: iconCircleSize, height: iconCircleSize)
+        .background(
+          active
+            ? actionPillBackground(activeColor: tint)
+            : actionPillBackground(colors: c)
+        )
+        .clipShape(Circle())
+        .overlay {
+          if !active {
+            Circle()
+              .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 0.6)
+          }
         }
-      }
     }
-    .accessibilityLabel("Projeto")
+    .accessibilityLabel(active ? "Projeto: \(projectPillLabel)" : "Projeto")
   }
 
   private func sendButton(hasTitle: Bool) -> some View {

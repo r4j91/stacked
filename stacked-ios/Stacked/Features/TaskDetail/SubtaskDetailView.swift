@@ -215,60 +215,91 @@ struct SubtaskDetailView: View {
 
   private var metadataCard: some View {
     let c = theme.colors
+    let hasPriority = priority != nil
+    let hasDueDate = dueDate != nil
+    let hasDeadline = deadline != nil
+    let hasLabels = !selectedLabelIds.isEmpty
+    let hasFilledMeta = hasPriority || hasDueDate || hasDeadline || hasLabels
+    let showAttachmentPill = persistSubtaskId != nil
+    let showPills =
+      !hasPriority || !hasDueDate || !hasDeadline || !hasLabels || showAttachmentPill
 
     return VStack(spacing: 0) {
-      metaRow(
-        icon: .flag,
-        title: "Prioridade",
-        value: priorityLabel,
-        active: priority != nil,
-        valueColor: priority?.color
-      ) { showPriorityMenu(anchor: $0) }
-
-      Divider().overlay(c.textTertiary.opacity(0.12))
-
-      metaRow(
-        icon: .calendar,
-        title: "Data",
-        value: dueDateLabel,
-        active: dueDate != nil,
-        valueColor: dueDate.map { TaskMapper.dateColor(for: $0, done: subtask.done) }
-      ) { _ in showDatePicker = true }
-
-      Divider().overlay(c.textTertiary.opacity(0.12))
-
-      metaRow(
-        icon: .target,
-        title: "Prazo",
-        value: deadlineLabel,
-        active: deadline != nil,
-        valueColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: done) }
-      ) { _ in showDeadlinePicker = true }
-
-      Divider().overlay(c.textTertiary.opacity(0.12))
-
-      metaRow(
-        icon: .tag,
-        title: "Etiquetas",
-        value: labelsSummary,
-        active: !selectedLabelIds.isEmpty,
-        valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color
-      ) { showLabelsMenu(anchor: $0) }
-
-      if persistSubtaskId != nil {
-        Divider().overlay(c.textTertiary.opacity(0.12))
-
+      if hasPriority {
         metaRow(
-          icon: .attachment,
-          title: "Anexo",
-          value: "Adicionar",
-          active: false
-        ) { showAttachmentMenu(anchor: $0) }
+          icon: .flag,
+          title: "Prioridade",
+          value: priorityLabel,
+          active: true,
+          valueColor: priority?.color
+        ) { showPriorityMenu(anchor: $0) }
+      }
+
+      if hasDueDate {
+        if hasPriority { metaDivider }
+        metaRow(
+          icon: .calendar,
+          title: "Data",
+          value: dueDateLabel,
+          active: true,
+          valueColor: dueDate.map { TaskMapper.dateColor(for: $0, done: subtask.done) }
+        ) { _ in showDatePicker = true }
+      }
+
+      if hasDeadline {
+        if hasPriority || hasDueDate { metaDivider }
+        metaRow(
+          icon: .target,
+          title: "Prazo",
+          value: deadlineLabel,
+          active: true,
+          valueColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: done) }
+        ) { _ in showDeadlinePicker = true }
+      }
+
+      if hasLabels {
+        if hasPriority || hasDueDate || hasDeadline { metaDivider }
+        metaRow(
+          icon: .tag,
+          title: "Etiquetas",
+          value: labelsSummary,
+          active: true,
+          valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color
+        ) { showLabelsMenu(anchor: $0) }
+      }
+
+      if showPills {
+        if hasFilledMeta { metaDivider }
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 8) {
+            if !hasDueDate {
+              fieldPill("Data", icon: .calendar) { _ in showDatePicker = true }
+            }
+            if !hasDeadline {
+              fieldPill("Prazo", icon: .target) { _ in showDeadlinePicker = true }
+            }
+            if !hasPriority {
+              fieldPill("Prioridade", icon: .flag) { showPriorityMenu(anchor: $0) }
+            }
+            if !hasLabels {
+              fieldPill("Etiquetas", icon: .tag) { showLabelsMenu(anchor: $0) }
+            }
+            if showAttachmentPill {
+              fieldPill("Anexo", icon: .attachment) { showAttachmentMenu(anchor: $0) }
+            }
+          }
+          .padding(.horizontal, 16)
+          .padding(.vertical, 12)
+        }
       }
     }
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 14))
     .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.textPrimary.opacity(0.06)))
+  }
+
+  private var metaDivider: some View {
+    Divider().overlay(theme.colors.textTertiary.opacity(0.12))
   }
 
   private var priorityLabel: String {
@@ -343,6 +374,22 @@ struct SubtaskDetailView: View {
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
       .contentShape(Rectangle())
+    }
+  }
+
+  private func fieldPill(_ title: String, icon: StackedIconKey, action: @escaping (CGRect) -> Void) -> some View {
+    let c = theme.colors
+    return AnchoredTapButton(action: action) {
+      HStack(spacing: 6) {
+        StackedIcons.icon(icon, size: 14, color: c.textSecondary)
+        Text(title)
+          .font(AppTypography.metadataLabel)
+      }
+      .foregroundStyle(c.textSecondary)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
+      .background(c.surfaceVariant)
+      .clipShape(Capsule())
     }
   }
 

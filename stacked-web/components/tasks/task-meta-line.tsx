@@ -27,6 +27,7 @@ import { useLabelChipStyle } from "@/lib/theme/use-label-chip-style";
 import { useDueDateChipStyle } from "@/lib/theme/use-due-date-chip-style";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 import { layoutUsesEyebrow } from "@/lib/theme/task-row-layout";
+import { useSubtaskProgressRing } from "@/lib/theme/use-subtask-progress-ring";
 import { priorityColor } from "@/lib/utils/priority";
 
 type TaskMetaLineProps = {
@@ -172,11 +173,13 @@ export function TaskMetaLine({
   const labelChipStyle = useLabelChipStyle();
   const dueDateChipStyle = useDueDateChipStyle();
   const layout = useTaskRowLayout();
+  const progressRing = useSubtaskProgressRing();
   const allLabels = labelsProp ?? contextLabels;
   const subs = task.subtasks ?? [];
   const due = parseDueDate(task.dueDate);
   const taskLabels = resolveTaskLabels(task, allLabels);
   const usesEyebrow = layoutUsesEyebrow(layout);
+  const showSubtaskCount = subs.length > 0 && !progressRing;
 
   const items: React.ReactNode[] = [];
 
@@ -218,7 +221,7 @@ export function TaskMetaLine({
 
     items.push(...LabelItems({ taskLabels, labelChipStyle, maxLabels }));
 
-    if (subs.length) {
+    if (showSubtaskCount) {
       items.push(<SubtaskCount key="sub" subs={subs} />);
     }
 
@@ -262,7 +265,7 @@ export function TaskMetaLine({
       }
     }
 
-    if (subs.length) {
+    if (showSubtaskCount) {
       items.push(<SubtaskCount key="sub" subs={subs} />);
     }
 

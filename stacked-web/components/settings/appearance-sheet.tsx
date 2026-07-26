@@ -31,6 +31,10 @@ import {
   type TaskRowLayout,
 } from "@/lib/theme/task-row-layout";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
+import { writeSubtaskProgressRing } from "@/lib/theme/subtask-progress-ring";
+import { useSubtaskProgressRing } from "@/lib/theme/use-subtask-progress-ring";
+import { writeSubtaskBranch } from "@/lib/theme/subtask-branch";
+import { useSubtaskBranch } from "@/lib/theme/use-subtask-branch";
 
 export function AppearanceSheet() {
   const { appearanceOpen, appearanceAnchor, closeAppearance } = useWorkbench();
@@ -38,6 +42,8 @@ export function AppearanceSheet() {
   const labelChipStyle = useLabelChipStyle();
   const dueDateChipStyle = useDueDateChipStyle();
   const taskRowLayout = useTaskRowLayout();
+  const subtaskProgressRing = useSubtaskProgressRing();
+  const subtaskBranch = useSubtaskBranch();
 
   return (
     <AnchoredPopover
@@ -134,6 +140,26 @@ export function AppearanceSheet() {
 
         <section>
           <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Subtarefas
+          </p>
+          <div className="space-y-1">
+            <AppearanceToggleRow
+              title="Anel de progresso"
+              subtitle="Mostra o progresso das subtarefas no lugar da seta."
+              checked={subtaskProgressRing}
+              onChange={writeSubtaskProgressRing}
+            />
+            <AppearanceToggleRow
+              title="Galho"
+              subtitle="Trilho vertical na lista expandida de subtarefas."
+              checked={subtaskBranch}
+              onChange={writeSubtaskBranch}
+            />
+          </div>
+        </section>
+
+        <section>
+          <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
             Etiquetas nos cards
           </p>
           <div className="space-y-1">
@@ -201,6 +227,45 @@ export function AppearanceSheet() {
         </section>
       </div>
     </AnchoredPopover>
+  );
+}
+
+function AppearanceToggleRow({
+  title,
+  subtitle,
+  checked,
+  onChange,
+}: {
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors hover:bg-[var(--color-hover-overlay)]"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-[11px] text-[var(--color-text-tertiary)]">{subtitle}</p>
+      </div>
+      <span
+        className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-variant)]"
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? "translate-x-[18px]" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+    </button>
   );
 }
 

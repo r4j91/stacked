@@ -13,7 +13,7 @@ struct CalendarEventRow: View {
     Button {
       onTap?()
     } label: {
-      HStack(alignment: .center, spacing: 10) {
+      HStack(alignment: .top, spacing: 10) {
         RoundedRectangle(cornerRadius: 2)
           .fill(accent)
           .frame(width: 3, height: 32)
@@ -41,8 +41,11 @@ struct CalendarEventRow: View {
 
         if let time = event.timeDisplay {
           Text(time)
-            .font(AppTypography.meta.weight(.semibold))
-            .foregroundStyle(c.textSecondary)
+            .font(AppTypography.timeTrailing)
+            .foregroundStyle(AppColors.dateUpcoming)
+            .monospacedDigit()
+            .lineLimit(1)
+            .padding(.top, 2)
         }
       }
       .padding(.horizontal, 12)
