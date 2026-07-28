@@ -23,7 +23,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Navegação",
     items: [
-      { keys: ["⌘", "1"], description: "Início" },
+      { keys: ["⌘", "1"], description: "Navegar" },
       { keys: ["⌘", "2"], description: "Inbox" },
       { keys: ["⌘", "3"], description: "Hoje" },
       { keys: ["⌘", "4"], description: "Em breve" },

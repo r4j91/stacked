@@ -28,6 +28,7 @@ private struct AppRootView: View {
           if popover.isPresented {
             PopoverOverlayHost()
               .environment(MobileChromeController.shared)
+              .ignoresSafeArea()
           }
         }
     }

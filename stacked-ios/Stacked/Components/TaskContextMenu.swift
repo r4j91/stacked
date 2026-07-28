@@ -25,6 +25,8 @@ final class TaskContextMenuModel {
   var needsAnchorReader = false
   var anchorFrame: CGRect = .zero
   var anchorCaptureGeneration = 0
+  /// Seleção de etiquetas acumulada durante a sessão do submenu "Etiquetas" (multi-toggle).
+  var pendingLabelSelection: Set<String>?
 
   var isLifted: Bool { liftPhase != .normal }
 }
@@ -50,6 +52,8 @@ struct TaskContextMenu: ViewModifier {
   var onDuplicate: () -> Void
   var onDelete: () -> Void
   var onRefresh: () -> Void
+  /// nil esconde "Adiar" do menu — telas de tarefas concluídas não postergam.
+  var onPostpone: (() -> Void)? = nil
   /// UIKIT_SCROLL_POLISH: lift no container UIKit (split) — não no SwiftUI interno.
   var onLiftPhaseChanged: ((TaskContextLiftPhase) -> Void)? = nil
 
@@ -115,14 +119,19 @@ struct TaskContextMenu: ViewModifier {
   }
 
   private var menuItems: [PopoverMenuItem] {
-    [
+    var items: [PopoverMenuItem] = [
       PopoverMenuItem(id: "edit", icon: Hugeicons.edit01, label: "Editar"),
       PopoverMenuItem(
         id: "complete",
         icon: Hugeicons.checkmarkCircle01,
         label: task.done ? "Reabrir" : "Concluir"
       ),
-      PopoverMenuItem(id: "duplicate", icon: Hugeicons.copy01, label: "Duplicar"),
+    ]
+    if onPostpone != nil {
+      items.append(PopoverMenuItem(id: "postpone", icon: Hugeicons.clock01, label: "Adiar"))
+    }
+    items.append(PopoverMenuItem(id: "duplicate", icon: Hugeicons.copy01, label: "Duplicar"))
+    items.append(
       PopoverMenuItem(
         id: "priority",
         icon: Hugeicons.flag01,
@@ -138,16 +147,29 @@ struct TaskContextMenu: ViewModifier {
           PopoverMenuItem(id: "priority:none", icon: Hugeicons.flag01, label: "Sem prioridade",
                           selected: task.priority == nil, iconColor: ThemeManager.shared.colors.textTertiary),
         ]
-      ),
+      )
+    )
+    items.append(
+      PopoverMenuItem(
+        id: "labels",
+        icon: Hugeicons.tag01,
+        label: "Etiquetas (\(task.labels.count))",
+        hasArrow: true,
+        loadChildren: { await loadLabelItems() },
+        childrenAllowToggle: true
+      )
+    )
+    items.append(
       PopoverMenuItem(
         id: "move",
         icon: Hugeicons.folder01,
         label: "Mover para projeto",
         hasArrow: true,
         loadChildren: { await loadMoveItems() }
-      ),
-      PopoverMenuItem(id: "delete", icon: Hugeicons.delete01, label: "Excluir", destructive: true),
-    ]
+      )
+    )
+    items.append(PopoverMenuItem(id: "delete", icon: Hugeicons.delete01, label: "Excluir", destructive: true))
+    return items
   }
 
   private func loadMoveItems() async -> [PopoverMenuItem]? {
@@ -166,16 +188,33 @@ struct TaskContextMenu: ViewModifier {
           let sections = (try? await SectionRepository.shared.fetchSections(projectId: project.id)) ?? []
           guard !sections.isEmpty else { return nil }
           var sectionItems = [
-            PopoverMenuItem(id: "move:\(project.id)|", icon: Hugeicons.arrowRight02, label: "Sem seção"),
+            PopoverMenuItem(id: "move:\(project.id)|", icon: Hugeicons.chevronRight, label: "Sem seção"),
           ]
           sectionItems += sections.map { s in
-            PopoverMenuItem(id: "move:\(project.id)|\(s.id)", icon: Hugeicons.arrowRight02, label: s.name)
+            PopoverMenuItem(id: "move:\(project.id)|\(s.id)", icon: Hugeicons.chevronRight, label: s.name)
           }
           return sectionItems
         }
       ))
     }
     return items
+  }
+
+  /// Catálogo carregado sob demanda (LabelCatalogCache) — checkmarks refletem as etiquetas atuais da task.
+  private func loadLabelItems() async -> [PopoverMenuItem]? {
+    let labels = await LabelCatalogCache.labels()
+    guard !labels.isEmpty else { return nil }
+    let current = Set(task.labels.map(\.id))
+    model.pendingLabelSelection = current
+    return labels.map { label in
+      PopoverMenuItem(
+        id: "label:\(label.id)",
+        icon: Hugeicons.tag01,
+        label: label.name,
+        selected: current.contains(label.id),
+        iconColor: label.color
+      )
+    }
   }
 
   private func handle(_ result: String) {
@@ -199,9 +238,26 @@ struct TaskContextMenu: ViewModifier {
       }
       return
     }
+    if result.hasPrefix("label:") {
+      let labelId = String(result.dropFirst("label:".count))
+      var current = model.pendingLabelSelection ?? Set(task.labels.map(\.id))
+      if current.contains(labelId) {
+        current.remove(labelId)
+      } else {
+        current.insert(labelId)
+      }
+      model.pendingLabelSelection = current
+      let ids = Array(current)
+      _Concurrency.Task {
+        try? await LabelRepository.shared.setTaskLabels(taskId: task.id, labelIds: ids)
+        onRefresh()
+      }
+      return
+    }
     switch result {
     case "edit": onEdit()
     case "complete": onComplete()
+    case "postpone": onPostpone?()
     case "duplicate": onDuplicate()
     case "delete": onDelete()
     default: break
@@ -300,6 +356,7 @@ extension View {
     onDuplicate: @escaping () -> Void,
     onDelete: @escaping () -> Void,
     onRefresh: @escaping () -> Void = {},
+    onPostpone: (() -> Void)? = nil,
     onLiftPhaseChanged: ((TaskContextLiftPhase) -> Void)? = nil
   ) -> some View {
     modifier(TaskContextMenu(
@@ -309,6 +366,7 @@ extension View {
       onDuplicate: onDuplicate,
       onDelete: onDelete,
       onRefresh: onRefresh,
+      onPostpone: onPostpone,
       onLiftPhaseChanged: onLiftPhaseChanged
     ))
   }

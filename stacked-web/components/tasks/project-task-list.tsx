@@ -12,6 +12,8 @@ import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { useHoldToReorder } from "@/lib/hooks/use-hold-to-reorder";
 import { Add01Icon } from "@/lib/icons/nav-icons";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
+import { useDisplayMode } from "@/lib/theme/use-display-mode";
+import { isCardDisplayMode } from "@/lib/theme/display-mode";
 
 function CollapsibleSectionHeader({
   section,
@@ -73,6 +75,8 @@ export function ProjectTaskList() {
     currentProject,
     openQuickAdd,
   } = useWorkbench();
+  const displayMode = useDisplayMode();
+  const hideSeparators = isCardDisplayMode(displayMode);
 
   const [dialog, setDialog] = useState<{ mode: "rename"; section: Section } | null>(null);
   const [menuSection, setMenuSection] = useState<Section | null>(null);
@@ -135,6 +139,7 @@ export function ProjectTaskList() {
     <div className="reorder-enabled-list project-task-list">
       {items.map((item, i) => {
         if (item.kind === "separator") {
+          if (hideSeparators) return null;
           return <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[var(--color-border)]/60" />;
         }
         if (item.kind === "task") {

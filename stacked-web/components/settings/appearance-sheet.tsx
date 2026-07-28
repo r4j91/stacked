@@ -483,6 +483,16 @@ function DisplayModePreview({
     >
       {mode === "halo" ? (
         <span className="h-6 w-full rounded-md border border-[color-mix(in_srgb,var(--color-text)_8%,transparent)] bg-[color-mix(in_srgb,var(--color-surface)_72%,var(--color-background))]" />
+      ) : mode === "balloons" ? (
+        <div className="flex flex-col gap-1">
+          <span className="h-2.5 w-full rounded-[5px] border border-[color-mix(in_srgb,var(--color-text)_9%,transparent)] bg-[var(--color-surface)]" />
+          <span className="h-2.5 w-full rounded-[5px] border border-[color-mix(in_srgb,var(--color-text)_9%,transparent)] bg-[var(--color-surface)]" />
+        </div>
+      ) : mode === "listPlus" ? (
+        <>
+          <span className="mx-auto h-1 w-[80%] rounded-full bg-[var(--color-text)]/50" />
+          <span className="mx-auto h-1 w-[55%] rounded-full bg-[var(--color-text)]/35" />
+        </>
       ) : (
         <>
           <span className="h-1 w-full rounded-full bg-[var(--color-text)]/50" />

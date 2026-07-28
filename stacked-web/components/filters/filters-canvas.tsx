@@ -36,6 +36,8 @@ import {
 import { criteriaSummary } from "@/lib/utils/filter-criteria";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { Add01Icon, ArrowRight01Icon, FilterHorizontalIcon } from "@/lib/icons/nav-icons";
+import { useSavedFilterSort } from "@/lib/hooks/use-saved-filter-sort";
+import { sortFilterResults } from "@/lib/utils/saved-filter-sort";
 
 const FILTER_LABELS: Record<TaskFilterKind, { title: string; color: string }> = {
   overdue: { title: "Atrasadas", color: "var(--color-overdue)" },
@@ -65,6 +67,7 @@ export function FiltersCanvas() {
   } = useWorkbench();
 
   const showCompleted = isShowCompleted("filters");
+  const [sortMode, setSortMode] = useSavedFilterSort(savedParam ?? kind ?? null);
 
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState(mockFilterCounts());
@@ -241,6 +244,8 @@ export function FiltersCanvas() {
 
   if (savedParam && activeSavedFilter) {
     const tint = activeSavedFilter.color ?? "var(--color-accent)";
+    const sortedFilterResults = sortFilterResults(filterResults, sortMode);
+    const sortedCompletedFilterResults = sortFilterResults(completedFilterResults, sortMode);
     return (
       <>
         <div className="mb-4 flex items-center gap-2 px-1">
@@ -263,6 +268,7 @@ export function FiltersCanvas() {
           <ViewOptionsMenu
             showCompleted={showCompleted}
             onToggleCompleted={() => toggleShowCompleted("filters")}
+            sort={{ mode: sortMode, onChange: setSortMode }}
             extraItems={[
               {
                 label: "Editar filtro",
@@ -280,7 +286,7 @@ export function FiltersCanvas() {
         </div>
 
         <div className="filter-result-list">
-          {filterResults.map((item) =>
+          {sortedFilterResults.map((item) =>
             item.kind === "task" ? (
               <TaskRow key={filterResultId(item)} task={item.task} embedded />
             ) : (
@@ -293,10 +299,10 @@ export function FiltersCanvas() {
             ),
           )}
 
-          {showCompleted && completedFilterResults.length > 0 && (
+          {showCompleted && sortedCompletedFilterResults.length > 0 && (
             <>
-              <ListSectionHeader title="Concluídas" count={completedFilterResults.length} />
-              {completedFilterResults.map((item) =>
+              <ListSectionHeader title="Concluídas" count={sortedCompletedFilterResults.length} />
+              {sortedCompletedFilterResults.map((item) =>
                 item.kind === "task" ? (
                   <TaskRow key={filterResultId(item)} task={item.task} embedded />
                 ) : (
@@ -335,6 +341,7 @@ export function FiltersCanvas() {
 
   if (kind) {
     const meta = FILTER_LABELS[kind];
+    const sortedPresetFilterResults = sortFilterResults(presetFilterResults, sortMode);
     return (
       <>
         <button
@@ -346,13 +353,14 @@ export function FiltersCanvas() {
         </button>
         <div className="mb-4 flex items-center gap-2 px-2">
           <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
-          <h2 className="text-lg font-bold">{meta.title}</h2>
+          <h2 className="flex-1 text-lg font-bold">{meta.title}</h2>
           <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
             {presetFilterResults.length}
           </span>
+          <ViewOptionsMenu sort={{ mode: sortMode, onChange: setSortMode }} />
         </div>
         <div className="filter-result-list">
-          {presetFilterResults.map((item) =>
+          {sortedPresetFilterResults.map((item) =>
             item.kind === "task" ? (
               <TaskRow key={filterResultId(item)} task={item.task} embedded />
             ) : (

@@ -126,10 +126,10 @@ struct PopoverOverlayHost: View {
         .environment(ThemeManager.shared)
         .environment(MobileChromeController.shared)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
         .zIndex(9999)
       }
     }
+    .ignoresSafeArea()
     .allowsHitTesting(boundPresenter.isPresented)
     .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
       updateKeyboardHeight(from: note)

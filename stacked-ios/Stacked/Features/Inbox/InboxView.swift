@@ -100,7 +100,8 @@ struct InboxView: View {
       onComplete: { store.completeInbox($0) },
       onDuplicate: { store.duplicateInbox($0) },
       onDelete: { store.deleteInbox($0) },
-      onRefresh: { _Concurrency.Task { await store.loadInbox() } }
+      onRefresh: { _Concurrency.Task { await store.loadInbox() } },
+      onPostpone: { task in _Concurrency.Task { try? await store.postponeInbox(task) } }
     )
     .stackedScrollEdgeChrome()
   }
@@ -267,7 +268,8 @@ struct InboxView: View {
       onComplete: { store.completeInbox(task) },
       onDuplicate: { store.duplicateInbox(task) },
       onDelete: { store.deleteInbox(task) },
-      onRefresh: { _Concurrency.Task { await store.loadInbox() } }
+      onRefresh: { _Concurrency.Task { await store.loadInbox() } },
+      onPostpone: { _Concurrency.Task { try? await store.postponeInbox(task) } }
     )
   }
 }

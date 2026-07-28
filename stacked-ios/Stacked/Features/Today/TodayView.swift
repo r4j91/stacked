@@ -110,6 +110,7 @@ struct TodayView: View {
       onDuplicate: { store.duplicateToday($0) },
       onDelete: { store.deleteToday($0) },
       onRefresh: { _Concurrency.Task { await store.loadToday() } },
+      onPostpone: { task in _Concurrency.Task { try? await store.postponeToday(task) } },
       onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
       onScheduledSubtaskTap: { entry in
         subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
@@ -414,7 +415,8 @@ struct TodayView: View {
         onComplete: { store.completeToday(task) },
         onDuplicate: { store.duplicateToday(task) },
         onDelete: { store.deleteToday(task) },
-        onRefresh: { _Concurrency.Task { await store.loadToday() } }
+        onRefresh: { _Concurrency.Task { await store.loadToday() } },
+        onPostpone: { _Concurrency.Task { try? await store.postponeToday(task) } }
       )
     }
   }

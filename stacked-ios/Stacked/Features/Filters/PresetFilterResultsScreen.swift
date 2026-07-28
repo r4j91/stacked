@@ -112,9 +112,9 @@ struct PresetFilterResultsScreen: View {
     List {
       Section {
         EmptyStateView(
-          icon: kind.stackedIcon,
-          title: "Nenhum item",
-          subtitle: "Nada neste filtro por enquanto."
+          illustration: .inboxZero,
+          title: "Tudo limpo por aqui",
+          subtitle: "Nenhum item corresponde a este filtro no momento."
         )
         .stackedListEmptyStateRow()
       }
@@ -191,6 +191,9 @@ struct PresetFilterResultsScreen: View {
           await store.openFilter(kind)
           await store.loadDashboard()
         }
+      },
+      onPostpone: kind == .completedToday ? nil : { task in
+        _Concurrency.Task { await store.postpone(task) }
       },
       onFilterSubtaskToggle: { sub, parent, index in
         store.completeSubtask(parent: parent, sub: sub, at: index)
@@ -282,7 +285,10 @@ struct PresetFilterResultsScreen: View {
           await store.openFilter(kind)
           await store.loadDashboard()
         }
-      }
+      },
+      onPostpone: canPostpone ? {
+        _Concurrency.Task { await store.postpone(task) }
+      } : nil
     )
   }
 }

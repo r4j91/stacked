@@ -494,6 +494,12 @@ textarea:focus:not(:focus-visible) {
   border-radius: 0;
 }
 
+/* Balões+ — mesma estrutura do balão Halo, superfície sólida (paridade iOS cardsRefined) */
+.task-halo-balloon--solid {
+  border-color: color-mix(in srgb, var(--color-text) 9%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-background));
+}
+
 .task-halo-balloon .task-row--in-halo[data-selected] {
   background: var(--color-hover-overlay);
 }

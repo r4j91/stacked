@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useWorkbench } from "@/components/shell/workbench-context";
+import { HomeDayRail } from "@/components/shell/home-day-rail";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import {
@@ -15,15 +16,8 @@ import {
   Notification01Icon,
 } from "@/lib/icons/nav-icons";
 
-function greeting(name: string): string {
-  const hour = new Date().getHours();
-  const prefix = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-  return `${prefix}, ${name}`;
-}
-
 export function HomeCanvas() {
-  const { userProfile, navCounts, filterCounts, projects, prefetchProject } = useWorkbench();
-  const displayName = userProfile.name || "você";
+  const { navCounts, filterCounts, projects, prefetchProject } = useWorkbench();
 
   return (
     <main
@@ -33,14 +27,7 @@ export function HomeCanvas() {
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)] outline-none"
     >
       <div className="mx-auto flex h-full w-full max-w-[var(--content-max-width)] min-w-0 flex-col px-4 lg:px-6">
-        <header className="shrink-0 border-b border-[var(--color-border)] pb-4 pt-5">
-          <h1 className="type-screen-title">
-            {greeting(displayName)}
-          </h1>
-          <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">
-            Resumo e atalhos para o seu dia
-          </p>
-        </header>
+        <HomeDayRail />
 
         <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-4 pt-4 lg:pb-8">
           {filterCounts.overdue > 0 && (
@@ -61,7 +48,7 @@ export function HomeCanvas() {
             <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
               Acesso rápido
             </h2>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <QuickLink
                 href="/inbox"
                 icon={InboxIcon}
@@ -79,6 +66,11 @@ export function HomeCanvas() {
                 icon={Calendar03Icon}
                 label="Em breve"
                 count={filterCounts.week}
+              />
+              <QuickLink
+                href="/done"
+                icon={TaskDone01Icon}
+                label="Concluídas"
               />
             </div>
           </section>
@@ -131,7 +123,7 @@ function QuickLink({
   href: string;
   icon: typeof Home01Icon;
   label: string;
-  count: number;
+  count?: number;
 }) {
   return (
     <Link
@@ -140,7 +132,7 @@ function QuickLink({
     >
       <AppIcon icon={icon} size={20} className="text-[var(--color-text-secondary)]" />
       <span className="flex-1 font-semibold">{label}</span>
-      {count > 0 && (
+      {!!count && count > 0 && (
         <span className="rounded-full bg-[var(--color-surface-variant)] px-2 py-0.5 text-xs font-semibold tabular-nums">
           {count}
         </span>

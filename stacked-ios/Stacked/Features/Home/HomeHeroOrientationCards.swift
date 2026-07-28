@@ -180,7 +180,6 @@ struct HomeHeroHorizonToneCard: View {
 
 struct HomeHeroDayRulerCard: View {
   @Environment(ThemeManager.self) private var theme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let store: HomeStore
   let metrics: HomeHeroMetrics
@@ -202,8 +201,7 @@ struct HomeHeroDayRulerCard: View {
       DayRulerView(
         currentHour: now,
         accent: isOverdue ? AppColors.overdue : c.accent,
-        tickColor: c.textPrimary,
-        reduceMotion: reduceMotion
+        tickColor: c.textPrimary
       )
       .padding(.top, 12)
       .accessibilityHidden(true)
@@ -254,7 +252,6 @@ struct HomeHeroDayRulerCard: View {
 
 struct HomeHeroDayRailCard: View {
   @Environment(ThemeManager.self) private var theme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   let store: HomeStore
   let metrics: HomeHeroMetrics
@@ -281,8 +278,7 @@ struct HomeHeroDayRailCard: View {
         DayRailView(
           progress: dayProgress,
           accent: accent,
-          trackColor: c.textPrimary,
-          reduceMotion: reduceMotion
+          trackColor: c.textPrimary
         )
         .accessibilityHidden(true)
 
@@ -384,9 +380,6 @@ private struct DayRulerView: View {
   let currentHour: Int
   let accent: Color
   let tickColor: Color
-  let reduceMotion: Bool
-
-  @State private var appeared = false
 
   var body: some View {
     HStack(alignment: .bottom, spacing: 0) {
@@ -397,20 +390,9 @@ private struct DayRulerView: View {
           .fill(tickFill(isNow: isNow, isPast: isPast))
           .frame(width: isNow ? 2.5 : 1.5, height: isNow ? 15 : 7)
           .frame(maxWidth: .infinity)
-          .opacity(appeared || reduceMotion ? 1 : 0.35)
-          .scaleEffect(y: appeared || reduceMotion || !isNow ? 1 : 0.7, anchor: .bottom)
       }
     }
     .frame(height: 16)
-    .onAppear {
-      guard !reduceMotion else {
-        appeared = true
-        return
-      }
-      withAnimation(.easeOut(duration: 0.45).delay(0.05)) {
-        appeared = true
-      }
-    }
   }
 
   private func tickFill(isNow: Bool, isPast: Bool) -> Color {
@@ -421,20 +403,18 @@ private struct DayRulerView: View {
 }
 
 /// Trilho contínuo: o dia como uma faixa, posição atual como leitura (minuto incluso).
+/// Sem animação de entrada — `List` recria a célula no scroll e o reveal 0→agora ficava chato.
 private struct DayRailView: View {
   let progress: CGFloat
   let accent: Color
   let trackColor: Color
-  let reduceMotion: Bool
-
-  @State private var revealedProgress: CGFloat = 0
 
   private let majorHours: [CGFloat] = [0, 0.25, 0.5, 0.75]
 
   var body: some View {
     GeometryReader { geo in
       let w = geo.size.width
-      let p = reduceMotion ? progress : revealedProgress
+      let p = progress
       let beadX = max(3, min(w - 3, w * p))
 
       ZStack(alignment: .leading) {
@@ -475,27 +455,6 @@ private struct DayRailView: View {
       .frame(maxHeight: .infinity, alignment: .center)
     }
     .frame(height: 12)
-    .onAppear { animateIn() }
-    .onChange(of: progress) { _, _ in
-      guard !reduceMotion else {
-        revealedProgress = progress
-        return
-      }
-      withAnimation(.easeOut(duration: 0.35)) {
-        revealedProgress = progress
-      }
-    }
-  }
-
-  private func animateIn() {
-    if reduceMotion {
-      revealedProgress = progress
-      return
-    }
-    revealedProgress = 0
-    withAnimation(.easeOut(duration: 0.55)) {
-      revealedProgress = progress
-    }
   }
 }
 

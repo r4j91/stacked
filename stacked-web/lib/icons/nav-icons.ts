@@ -33,4 +33,5 @@ export {
   BubbleChatIcon,
   Target01Icon,
   Attachment01Icon,
+  TextIcon,
 } from "@hugeicons/core-free-icons"

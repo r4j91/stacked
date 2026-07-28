@@ -79,7 +79,7 @@ enum ProjectDisplayMode: String, CaseIterable {
     case "cardsLight": .cardsLight
     case "cards": .cards
     case "folders", "hybrid": .cards
-    default: .cards
+    default: .listComfort
     }
   }
 }

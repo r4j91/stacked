@@ -11,6 +11,7 @@ export type AppThemeId =
   | "slate"
   | "slateCyan"
   | "slateAmazonite"
+  | "slateEmber"
   | "ashCyan"
   | "ashAmazonite"
   | "titanium"
@@ -18,6 +19,7 @@ export type AppThemeId =
   | "basalt"
   | "basaltAmazonite"
   | "basaltSky"
+  | "basaltEmber"
 
 export type AppThemeColors = {
   background: string
@@ -303,6 +305,31 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Fundo Slate + laranja mais vivo (#E8874A). */
+  slateEmber: {
+    id: "slateEmber",
+    name: "Slate Ember",
+    subtitle: "Laranja suave",
+    previewSwatch: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      accent: "#E8874A",
+    },
+    colors: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      surfaceVariant: "#2C2C32",
+      textPrimary: "#F2F2F4",
+      textSecondary: "#9A9AA2",
+      textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
+      accent: "#E8874A",
+      accentText: "#1A120E",
+      navBar: "#16161A",
+      isDark: true,
+    },
+  },
   ashCyan: {
     id: "ashCyan",
     name: "Ash Cyan",
@@ -474,15 +501,42 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Fundo Basalt + mesmo laranja do Slate Ember. */
+  basaltEmber: {
+    id: "basaltEmber",
+    name: "Basalt Ember",
+    subtitle: "Things · laranja",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#E8874A",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#E8874A",
+      accentText: "#1A120E",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
 }
 
 /** Paridade iOS AppThemeId.recommended */
 export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "slate",
+  "slateEmber",
   "graphite",
   "moonstone",
   "fog",
   "basalt",
+  "basaltEmber",
 ]
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"

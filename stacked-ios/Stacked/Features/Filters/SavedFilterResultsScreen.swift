@@ -181,8 +181,12 @@ struct SavedFilterResultsScreen: View {
   private var filterEmptyList: some View {
     List {
       Section {
-        EmptyStateView(icon: .navFilters, title: "Nenhum item", subtitle: "Nada neste filtro por enquanto.")
-          .stackedListEmptyStateRow()
+        EmptyStateView(
+          illustration: .inboxZero,
+          title: "Tudo limpo por aqui",
+          subtitle: "Nenhum item corresponde a este filtro no momento."
+        )
+        .stackedListEmptyStateRow()
       }
       Section {
         ListTailSpacer()
@@ -302,6 +306,11 @@ struct SavedFilterResultsScreen: View {
           await store.openSavedFilter(filter)
           await store.loadDashboard()
         }
+      },
+      onPostpone: { task in
+        guard !task.done else { return }
+        ensureStoreLinked()
+        _Concurrency.Task { await store.postpone(task) }
       },
       onFilterSubtaskToggle: { sub, parent, index in
         ensureStoreLinked()
@@ -463,7 +472,11 @@ struct SavedFilterResultsScreen: View {
           await store.openSavedFilter(filter)
           await store.loadDashboard()
         }
-      }
+      },
+      onPostpone: canPostpone ? {
+        ensureStoreLinked()
+        _Concurrency.Task { await store.postpone(task) }
+      } : nil
     )
   }
 

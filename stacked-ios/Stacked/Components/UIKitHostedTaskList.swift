@@ -92,6 +92,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var onDuplicate: (Task) -> Void
   var onDelete: (Task) -> Void
   var onRefresh: () -> Void
+  /// nil esconde "Adiar" do menu de contexto — telas de concluídas não postergam.
+  var onPostpone: ((Task) -> Void)? = nil
   var onWhatsAppCopy: ((Task) -> Void)? = nil
   var onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil
   var onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil
@@ -133,6 +135,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onDuplicate: @escaping (Task) -> Void,
     onDelete: @escaping (Task) -> Void,
     onRefresh: @escaping () -> Void,
+    onPostpone: ((Task) -> Void)? = nil,
     onWhatsAppCopy: ((Task) -> Void)? = nil,
     onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil,
     onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil,
@@ -163,6 +166,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onDuplicate: onDuplicate,
       onDelete: onDelete,
       onRefresh: onRefresh,
+      onPostpone: onPostpone,
       onWhatsAppCopy: onWhatsAppCopy,
       onScheduledSubtaskToggle: onScheduledSubtaskToggle,
       onScheduledSubtaskTap: onScheduledSubtaskTap,
@@ -195,6 +199,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onDuplicate: @escaping (Task) -> Void,
     onDelete: @escaping (Task) -> Void,
     onRefresh: @escaping () -> Void,
+    onPostpone: ((Task) -> Void)? = nil,
     onWhatsAppCopy: ((Task) -> Void)? = nil,
     onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)? = nil,
     onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)? = nil,
@@ -225,6 +230,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     self.onDuplicate = onDuplicate
     self.onDelete = onDelete
     self.onRefresh = onRefresh
+    self.onPostpone = onPostpone
     self.onWhatsAppCopy = onWhatsAppCopy
     self.onScheduledSubtaskToggle = onScheduledSubtaskToggle
     self.onScheduledSubtaskTap = onScheduledSubtaskTap
@@ -278,6 +284,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onDuplicate: onDuplicate,
       onDelete: onDelete,
       onRefresh: onRefresh,
+      onPostpone: onPostpone,
       onWhatsAppCopy: onWhatsAppCopy,
       onScheduledSubtaskToggle: onScheduledSubtaskToggle,
       onScheduledSubtaskTap: onScheduledSubtaskTap,
@@ -348,6 +355,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var onDuplicate: (Task) -> Void
     var onDelete: (Task) -> Void
     var onRefresh: () -> Void
+    var onPostpone: ((Task) -> Void)?
     var onWhatsAppCopy: ((Task) -> Void)?
     var onScheduledSubtaskToggle: ((SubtaskScheduleEntry) -> Void)?
     var onScheduledSubtaskTap: ((SubtaskScheduleEntry) -> Void)?
@@ -579,6 +587,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           onDuplicate: { config.onDuplicate(task) },
           onDelete: { config.onDelete(task) },
           onRefresh: config.onRefresh,
+          onPostpone: config.onPostpone.map { fn in { fn(task) } },
           timelineRailEnabled: config.timelineRailEnabled,
           timelineConnectsUp: rail.up,
           timelineConnectsDown: rail.down,

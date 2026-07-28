@@ -2,6 +2,7 @@
 
 import type { AnchorRect } from "@/components/ui/anchored-popover";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
+import { useDisplayMode } from "@/lib/theme/use-display-mode";
 
 type ListSectionHeaderProps = {
   title: string;
@@ -48,6 +49,8 @@ export function ListSectionHeader({
   reorderDragOver,
   reorderDropPosition,
 }: ListSectionHeaderProps) {
+  const displayMode = useDisplayMode();
+  const showHairline = displayMode === "listPlus";
   return (
     <div
       data-reorder-item
@@ -55,6 +58,8 @@ export function ListSectionHeader({
       {...(reorderHoldProps ?? {})}
       data-task-drop-section={dropSectionId}
       className={`group/reorder-row flex items-center gap-2 px-2 pb-2 pt-4 ${
+        showHairline ? "mb-1 border-b border-[var(--color-border)]/55 pb-2.5" : ""
+      } ${
         reorderDragOver
           ? reorderDropPosition === "after"
             ? "reorder-drop-target reorder-drop-target-after"
@@ -72,7 +77,7 @@ export function ListSectionHeader({
           type="button"
           data-no-reorder
           onClick={onToggle}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-btn-secondary-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-btn-secondary-hover-bg)] hover:text-[var(--color-text)]"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)]"
           aria-expanded={expanded}
           aria-label={expanded ? "Recolher seção" : "Expandir seção"}
         >
@@ -102,7 +107,7 @@ export function ListSectionHeader({
           type="button"
           data-no-reorder
           onClick={(e) => onMenu(e.currentTarget.getBoundingClientRect())}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-btn-secondary-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-btn-secondary-hover-bg)] hover:text-[var(--color-text)]"
+          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)]"
           aria-label={`Opções da seção ${title}`}
         >
           ···

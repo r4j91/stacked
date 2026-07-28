@@ -13,6 +13,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case slate
     case slateCyan
     case slateAmazonite
+    case slateEmber
     case ashCyan
     case ashAmazonite
     case titanium
@@ -20,16 +21,19 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case basalt
     case basaltAmazonite
     case basaltSky
+    case basaltEmber
 
     var id: String { rawValue }
 
     /// Curadoria principal do seletor. Os demais continuam em “Mais temas”.
     static let recommended: [AppThemeId] = [
         .slate,
+        .slateEmber,
         .graphite,
         .moonstone,
         .fog,
         .basalt,
+        .basaltEmber,
     ]
 
     var displayName: String {
@@ -45,6 +49,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: "Slate"
         case .slateCyan: "Slate Cyan"
         case .slateAmazonite: "Slate Amazonite"
+        case .slateEmber: "Slate Ember"
         case .ashCyan: "Ash Cyan"
         case .ashAmazonite: "Ash Amazonite"
         case .titanium: "Titanium"
@@ -52,6 +57,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basalt: "Basalt"
         case .basaltAmazonite: "Basalt Amazonite"
         case .basaltSky: "Basalt Sky"
+        case .basaltEmber: "Basalt Ember"
         }
     }
 
@@ -68,6 +74,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: "Monocromático"
         case .slateCyan: "Ciano Obsidian"
         case .slateAmazonite: "Petróleo"
+        case .slateEmber: "Laranja"
         case .ashCyan: "Cinza frio · ciano suave"
         case .ashAmazonite: "Cinza frio · petróleo"
         case .titanium: "Escuro metálico"
@@ -75,6 +82,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basalt: "Cinza Things"
         case .basaltAmazonite: "Things · petróleo"
         case .basaltSky: "Things · azul"
+        case .basaltEmber: "Things · laranja"
         }
     }
 
@@ -97,6 +105,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x00D4D4))
         case .slateAmazonite:
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
+        case .slateEmber:
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0xE8874A))
+        case .basaltEmber:
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xE8874A))
         case .ashCyan:
             return (Color(hex: 0x191D22), Color(hex: 0x22272E), Color(hex: 0x6BB5BA))
         case .ashAmazonite:
@@ -130,6 +142,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slate: .slate
         case .slateCyan: .slateCyan
         case .slateAmazonite: .slateAmazonite
+        case .slateEmber: .slateEmber
         case .ashCyan: .ashCyan
         case .ashAmazonite: .ashAmazonite
         case .titanium: .titanium
@@ -137,6 +150,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basalt: .basalt
         case .basaltAmazonite: .basaltAmazonite
         case .basaltSky: .basaltSky
+        case .basaltEmber: .basaltEmber
         }
     }
 }
@@ -400,6 +414,27 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
+    /// Slate Ember — fundo Slate; laranja mais presente (sem neon).
+    static let slateEmber = AppThemeColors(
+        background: Color(hex: 0x16161A),
+        surface: Color(hex: 0x1C1C20),
+        surfaceVariant: Color(hex: 0x2C2C32),
+        textPrimary: Color(hex: 0xF2F2F4),
+        textSecondary: Color(hex: 0x9A9AA2),
+        textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),
+        hairline: Color(hex: 0x65656D),
+        accent: Color(hex: 0xE8874A),
+        onAccent: Color(hex: 0x1A120E),
+        actionAccent: Color(hex: 0xE8874A),
+        onActionAccent: Color(hex: 0x1A120E),
+        fabGradientStart: Color(hex: 0xF09A5C),
+        fabGradientEnd: Color(hex: 0xD46E38),
+        folderTint: Color(hex: 0xE8874A),
+        navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
     /// Ash Cyan — cinza Things (#191D22); ciano mineral, sem neon.
     static let ashCyan = AppThemeColors(
         background: Color(hex: 0x191D22),
@@ -542,6 +577,27 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0x5B9FE8),
         fabGradientEnd: Color(hex: 0x5B9FE8),
         folderTint: Color(hex: 0x5B9FE8),
+        navBar: Color(hex: 0x282E3A),
+        isDark: true
+    )
+
+    /// Basalt Ember — fundo Things; mesmo laranja do Slate Ember.
+    static let basaltEmber = AppThemeColors(
+        background: Color(hex: 0x1C222D),
+        surface: Color(hex: 0x282E3A),
+        surfaceVariant: Color(hex: 0x323946),
+        textPrimary: Color(hex: 0xE8ECF2),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x6B7382),
+        hairline: Color(hex: 0x6B7382),
+        accent: Color(hex: 0xE8874A),
+        onAccent: Color(hex: 0x1A120E),
+        actionAccent: Color(hex: 0xE8874A),
+        onActionAccent: Color(hex: 0x1A120E),
+        fabGradientStart: Color(hex: 0xF09A5C),
+        fabGradientEnd: Color(hex: 0xD46E38),
+        folderTint: Color(hex: 0xE8874A),
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )

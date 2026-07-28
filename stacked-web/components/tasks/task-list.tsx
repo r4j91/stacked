@@ -17,8 +17,10 @@ import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
-import { showsTrailingTime } from "@/lib/theme/task-row-layout";
+import { showsTrailingTime, showsTaskRowEyebrow, taskRowCircleTopPx } from "@/lib/theme/task-row-layout";
 import { useSubtaskBranch } from "@/lib/theme/use-subtask-branch";
+import { useDisplayMode } from "@/lib/theme/use-display-mode";
+import { isCardDisplayMode } from "@/lib/theme/display-mode";
 import { useTaskListKeyboard } from "@/lib/hooks/use-task-list-keyboard";
 import { ListSectionHeader } from "@/components/tasks/list-section-header";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
@@ -80,28 +82,29 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
                   selectSubtask(task.id, i);
                 }
               }}
-              className={`flex min-h-9 cursor-pointer items-start gap-2.5 rounded-[var(--radius-sm)] px-2 py-1 transition-colors duration-150 ${
+              className={`flex min-h-[44px] cursor-pointer items-start gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 transition-colors duration-150 ${
                 selected ? "bg-[var(--color-hover-overlay)]" : "hover:bg-[var(--color-hover-overlay)]/70"
               }`}
             >
-              <DoneCircle
-                small
-                done={s.done}
-                priority={s.priority}
-                label={`${s.done ? "Marcar pendente" : "Marcar concluída"}: ${s.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleSubtaskDone(key);
-                }}
-              />
+              <div className="flex h-5 w-[22px] shrink-0 items-center justify-center self-start" style={{ marginTop: 1 }}>
+                <DoneCircle
+                  done={s.done}
+                  priority={s.priority}
+                  label={`${s.done ? "Marcar pendente" : "Marcar concluída"}: ${s.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSubtaskDone(key);
+                  }}
+                />
+              </div>
               <div className="min-w-0 flex-1">
                 <TaskRowEyebrow layout={layout} priority={s.priority} />
-                <div className="flex items-baseline gap-1.5">
+                <div className="flex items-baseline gap-2">
                   <span
-                    className={`min-w-0 flex-1 truncate text-[13px] font-medium ${
+                    className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
                       s.done
                         ? "text-[var(--color-text-tertiary)] line-through"
-                        : "text-[var(--color-text-secondary)]"
+                        : "text-[var(--color-text)]"
                     }`}
                   >
                     {s.name}
@@ -110,7 +113,7 @@ export function InlineSubtasks({ task, open }: { task: Task; open: boolean }) {
                 </div>
                 {notes ? (
                   <p
-                    className={`mt-0.5 truncate text-[12px] text-[var(--color-text-tertiary)] ${
+                    className={`mt-0.5 truncate text-[12.5px] text-[var(--color-text-secondary)] ${
                       s.done ? "line-through opacity-60" : ""
                     }`}
                   >
@@ -157,15 +160,24 @@ export const TaskRow = memo(function TaskRow({
     useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
   const layout = useTaskRowLayout();
+  const displayMode = useDisplayMode();
   const subs = task.subtasks ?? [];
   const isExpanded = expandedSubtasks.has(task.id);
   const isSelected = !embedded && selectedTaskId === task.id;
   const isKeyboardFocused = !embedded && keyboardFocused;
   const hasRail = subs.length > 0 || taskShowsWhatsAppCopy(task);
   const trailingTime = showsTrailingTime(layout);
+  const isBalloons = displayMode === "balloons";
+  const isCardMode = isCardDisplayMode(displayMode);
+  const isListPlus = displayMode === "listPlus";
+  const hasEyebrow = showsTaskRowEyebrow({
+    layout,
+    project: task.project,
+    priority: task.priority,
+  });
+  const circleTop = taskRowCircleTopPx(hasEyebrow);
 
-  return (
-    <>
+  const row = (
       <SwipeableTaskRow
         onComplete={() => toggleTaskDone(task.id)}
         onDefer={() => void deferTask(task.id)}
@@ -196,9 +208,11 @@ export const TaskRow = memo(function TaskRow({
               else selectTask(task.id);
             }
           }}
-          className={`group/reorder-row task-row task-row-grid mb-0.5 min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border px-2 py-2 transition-[background-color,border-color,opacity] duration-150 ${
+          className={`group/reorder-row task-row task-row-grid min-h-[52px] cursor-pointer rounded-[var(--radius-md)] border transition-[background-color,border-color,opacity,padding] duration-150 ${
+            isListPlus ? "px-3 py-2.5" : "px-2 py-2"
+          } ${isCardMode ? "" : isListPlus ? "mb-1 " : "mb-0.5 "}${
             hasRail ? "" : "task-row-grid--no-rail "
-          }${
+          }${isCardMode ? "task-row--in-halo " : ""}${
             reorderDragOver
               ? reorderDropPosition === "after"
                 ? "reorder-drop-target reorder-drop-target-after border-transparent"
@@ -213,27 +227,36 @@ export const TaskRow = memo(function TaskRow({
           data-completing={task.done ? "true" : undefined}
           data-selected={isSelected ? "" : undefined}
         >
-          <div className="reorder-gutter flex items-center justify-center" aria-hidden={!reorderHandleProps}>
+          <div
+            className="reorder-gutter flex items-start justify-center"
+            style={{ paddingTop: circleTop }}
+            aria-hidden={!reorderHandleProps}
+          >
             {reorderHandleProps ? (
               <ReorderDragHandle dragProps={reorderHandleProps} label={`Reordenar ${task.title}`} />
             ) : null}
           </div>
-          <DoneCircle
-            done={task.done}
-            priority={task.priority}
-            label={task.done ? "Marcar pendente" : "Marcar concluída"}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleTaskDone(task.id);
-            }}
-          />
+          <div
+            className="task-row-grid__circle flex items-start justify-center self-start"
+            style={{ paddingTop: circleTop }}
+          >
+            <DoneCircle
+              done={task.done}
+              priority={task.priority}
+              label={task.done ? "Marcar pendente" : "Marcar concluída"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTaskDone(task.id);
+              }}
+            />
+          </div>
           <div className="task-row-grid__content min-w-0 flex-1">
             <TaskRowEyebrow
               layout={layout}
               project={task.project}
               priority={task.priority}
             />
-            <div className="flex items-baseline gap-1.5">
+            <div className="flex items-baseline gap-2">
               <p
                 className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
                   task.done ? "text-[var(--color-text-tertiary)] line-through" : ""
@@ -260,12 +283,32 @@ export const TaskRow = memo(function TaskRow({
           ) : null}
         </div>
       </SwipeableTaskRow>
-      {subs.length > 0 && (
-        <div className="expand-panel" data-open={isExpanded ? "true" : "false"}>
-          <div>
-            <InlineSubtasks task={task} open={isExpanded} />
-          </div>
+  );
+
+  const expand =
+    subs.length > 0 ? (
+      <div
+        className={`expand-panel ${isCardMode ? "task-halo-balloon__panel" : ""}`}
+        data-open={isExpanded ? "true" : "false"}
+      >
+        <div>
+          <InlineSubtasks task={task} open={isExpanded} />
         </div>
+      </div>
+    ) : null;
+
+  return (
+    <>
+      {isCardMode ? (
+        <div className={`task-halo-balloon ${isBalloons ? "task-halo-balloon--solid" : ""} mb-2`}>
+          {row}
+          {expand}
+        </div>
+      ) : (
+        <>
+          {row}
+          {expand}
+        </>
       )}
       {menu}
     </>

@@ -5,11 +5,14 @@ import Hugeicons
 struct TaskListScreenHeader: View {
   @Environment(ThemeManager.self) private var theme
   @AppStorage private var showCompleted: Bool
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
 
   let title: String
   var subtitle: String?
 
-  @State private var optionsAnchor: CGRect = .zero
+  private var displayMode: ProjectDisplayMode {
+    ProjectDisplayMode.from(displayModeRaw)
+  }
 
   init(
     title: String,
@@ -25,18 +28,29 @@ struct TaskListScreenHeader: View {
   var body: some View {
     let c = theme.colors
     ScreenHeaderChrome(title: title, subtitle: subtitle) {
-      Button(action: openOptionsMenu) {
+      // Âncora no toque via UIKit (igual Filtros/Projeto) — readAnchor no ScrollView/List
+      // ficava deslocado e o menu abria longe do ⋮.
+      AnchoredTapButton { rect in
+        openOptionsMenu(anchor: rect)
+      } label: {
         LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
           StackedIcons.icon(.more, size: 18, color: c.textPrimary)
         }
       }
-      .buttonStyle(PressableStyle(cornerRadius: 20))
-      .readAnchor($optionsAnchor)
       .accessibilityLabel("Opções")
     }
   }
 
-  private func openOptionsMenu() {
+  private func openOptionsMenu(anchor: CGRect) {
+    let modeChildren = ProjectDisplayMode.allCases.map { mode in
+      PopoverMenuItem(
+        id: "mode_\(mode.rawValue)",
+        icon: mode.menuIcon,
+        label: mode.label,
+        selected: displayMode == mode,
+        iconColor: theme.colors.textSecondary
+      )
+    }
     let items = [
       PopoverMenuItem(
         id: "toggle_completed",
@@ -44,10 +58,29 @@ struct TaskListScreenHeader: View {
         label: showCompleted ? "Ocultar concluídas" : "Mostrar concluídas",
         iconColor: theme.colors.textSecondary
       ),
+      PopoverMenuItem(
+        id: "display_mode",
+        icon: displayMode.menuIcon,
+        label: "Chrome da lista",
+        hasArrow: true,
+        iconColor: theme.colors.textSecondary,
+        children: modeChildren
+      ),
     ]
-    presentAnchoredPopover(anchorRect: optionsAnchor, items: items) { result in
-      guard result == "toggle_completed" else { return }
-      showCompleted.toggle()
+    presentAnchoredPopover(
+      anchorRect: anchor,
+      items: items,
+      alignTrailing: true
+    ) { result in
+      guard let result else { return }
+      if result == "toggle_completed" {
+        showCompleted.toggle()
+        return
+      }
+      if result.hasPrefix("mode_"),
+         let mode = ProjectDisplayMode(rawValue: String(result.dropFirst("mode_".count))) {
+        displayModeRaw = mode.rawValue
+      }
     }
   }
 }

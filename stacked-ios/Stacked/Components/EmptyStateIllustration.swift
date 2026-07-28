@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// Ilustrações calmas para Inbox zero / Hoje livre — tema do app, composição centrada.
+/// Ilustrações calmas para Inbox zero / Hoje livre / Em breve livre / Projeto em dia — tema do app, composição centrada.
 enum EmptyStateIllustrationKind {
   case inboxZero
   case todayClear
+  case upcomingClear
+  case projectClear
 }
 
 struct EmptyStateIllustration: View {
@@ -15,6 +17,8 @@ struct EmptyStateIllustration: View {
       switch kind {
       case .inboxZero: InboxZeroIllustration()
       case .todayClear: TodayClearIllustration()
+      case .upcomingClear: UpcomingClearIllustration()
+      case .projectClear: ProjectClearIllustration()
       }
     }
     .frame(width: 168, height: 128)
@@ -216,6 +220,186 @@ private struct Hill: Shape {
     )
     path.closeSubpath()
     return path
+  }
+}
+
+// MARK: - Upcoming clear
+
+private struct UpcomingClearIllustration: View {
+  @Environment(ThemeManager.self) private var theme
+
+  var body: some View {
+    let c = theme.colors
+    let line = c.textTertiary.opacity(c.isDark ? 0.34 : 0.28)
+
+    ZStack {
+      Circle()
+        .fill(
+          RadialGradient(
+            colors: [
+              c.accent.opacity(c.isDark ? 0.18 : 0.12),
+              c.accent.opacity(c.isDark ? 0.05 : 0.03),
+              .clear,
+            ],
+            center: .center,
+            startRadius: 8,
+            endRadius: 58
+          )
+        )
+        .frame(width: 114, height: 114)
+
+      Circle()
+        .fill(c.surfaceVariant.opacity(c.isDark ? 0.40 : 0.70))
+        .overlay {
+          Circle()
+            .strokeBorder(c.textPrimary.opacity(c.isDark ? 0.06 : 0.08), lineWidth: 1)
+        }
+        .frame(width: 86, height: 86)
+
+      // Calendário — página com anéis de encadernação
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(c.surface.opacity(c.isDark ? 0.80 : 0.97))
+        .overlay {
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .strokeBorder(line, lineWidth: 1.35)
+        }
+        .frame(width: 62, height: 54)
+        .offset(y: 8)
+        .overlay(alignment: .top) {
+          HStack(spacing: 22) {
+            Capsule()
+              .fill(line.opacity(0.85))
+              .frame(width: 4, height: 10)
+            Capsule()
+              .fill(line.opacity(0.85))
+              .frame(width: 4, height: 10)
+          }
+          .offset(y: -3)
+        }
+        .overlay {
+          VStack(spacing: 5) {
+            Capsule()
+              .fill(c.textTertiary.opacity(c.isDark ? 0.22 : 0.16))
+              .frame(width: 30, height: 3)
+            Capsule()
+              .fill(c.textTertiary.opacity(c.isDark ? 0.14 : 0.10))
+              .frame(width: 20, height: 3)
+          }
+          .offset(y: 10)
+        }
+
+      // Selo de "tudo em dia"
+      Circle()
+        .fill(
+          LinearGradient(
+            colors: [
+              c.accent.opacity(c.isDark ? 0.28 : 0.20),
+              c.accent.opacity(c.isDark ? 0.16 : 0.12),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+        .overlay {
+          Circle()
+            .strokeBorder(c.accent.opacity(c.isDark ? 0.35 : 0.28), lineWidth: 1)
+        }
+        .frame(width: 28, height: 28)
+        .overlay {
+          Image(systemName: "checkmark")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(c.accent.opacity(c.isDark ? 0.92 : 0.78))
+        }
+        .offset(x: 27, y: -22)
+    }
+  }
+}
+
+// MARK: - Project clear
+
+private struct ProjectClearIllustration: View {
+  @Environment(ThemeManager.self) private var theme
+
+  var body: some View {
+    let c = theme.colors
+    let line = c.textTertiary.opacity(c.isDark ? 0.34 : 0.28)
+    let fill = c.surface.opacity(c.isDark ? 0.78 : 0.96)
+    let green = AppColors.tagGreen
+
+    ZStack {
+      Circle()
+        .fill(
+          RadialGradient(
+            colors: [
+              green.opacity(c.isDark ? 0.16 : 0.11),
+              green.opacity(c.isDark ? 0.04 : 0.03),
+              .clear,
+            ],
+            center: .center,
+            startRadius: 8,
+            endRadius: 58
+          )
+        )
+        .frame(width: 114, height: 114)
+        .offset(y: -2)
+
+      Circle()
+        .fill(c.surfaceVariant.opacity(c.isDark ? 0.40 : 0.70))
+        .overlay {
+          Circle()
+            .strokeBorder(c.textPrimary.opacity(c.isDark ? 0.06 : 0.08), lineWidth: 1)
+        }
+        .frame(width: 86, height: 86)
+
+      // Pasta — aba + corpo
+      RoundedRectangle(cornerRadius: 4, style: .continuous)
+        .fill(fill)
+        .overlay {
+          RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .strokeBorder(line, lineWidth: 1.35)
+        }
+        .frame(width: 28, height: 9)
+        .offset(x: -18, y: -1)
+
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(fill)
+        .overlay {
+          RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .strokeBorder(line, lineWidth: 1.35)
+        }
+        .frame(width: 68, height: 46)
+        .offset(y: 8)
+        .overlay {
+          Capsule()
+            .fill(line.opacity(0.4))
+            .frame(width: 34, height: 2)
+            .offset(y: 8)
+        }
+
+      // Selo de conclusão
+      Circle()
+        .fill(
+          LinearGradient(
+            colors: [
+              green.opacity(c.isDark ? 0.28 : 0.20),
+              green.opacity(c.isDark ? 0.16 : 0.12),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+        .overlay {
+          Circle()
+            .strokeBorder(green.opacity(c.isDark ? 0.35 : 0.28), lineWidth: 1)
+        }
+        .frame(width: 30, height: 30)
+        .overlay {
+          Image(systemName: "checkmark")
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(green.opacity(c.isDark ? 0.92 : 0.78))
+        }
+        .offset(x: 24, y: -20)
+    }
   }
 }
 

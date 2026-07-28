@@ -64,6 +64,7 @@ struct UpcomingView: View {
           },
           onDelete: { store.delete($0) },
           onRefresh: { _Concurrency.Task { await store.load() } },
+          onPostpone: { task in _Concurrency.Task { await store.postpone(task) } },
           onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
           onScheduledSubtaskTap: { entry in
             subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
@@ -152,9 +153,9 @@ struct UpcomingView: View {
       } else if store.groupedSchedule.isEmpty {
         Section {
           EmptyStateView(
-            icon: .navUpcoming,
-            title: "Nenhuma tarefa",
-            subtitle: "Selecione outro dia ou adicione uma tarefa com data de vencimento."
+            illustration: .upcomingClear,
+            title: "Agenda livre",
+            subtitle: "Nada por vir neste período. Selecione outro dia ou adicione uma tarefa com data de vencimento."
           )
           .stackedListEmptyStateRow()
         }
@@ -344,7 +345,8 @@ struct UpcomingView: View {
         }
       },
       onDelete: { store.delete(task) },
-      onRefresh: { _Concurrency.Task { await store.load() } }
+      onRefresh: { _Concurrency.Task { await store.load() } },
+      onPostpone: { _Concurrency.Task { await store.postpone(task) } }
     )
   }
 }

@@ -134,7 +134,8 @@ struct SearchView: View {
       onComplete: { store.complete($0) },
       onDuplicate: { store.duplicate($0) },
       onDelete: { store.delete($0) },
-      onRefresh: { _Concurrency.Task { await store.load() } }
+      onRefresh: { _Concurrency.Task { await store.load() } },
+      onPostpone: { task in _Concurrency.Task { await store.postpone(task) } }
     )
     .stackedScrollEdgeChrome()
   }
@@ -178,7 +179,8 @@ struct SearchView: View {
       onComplete: { store.complete(task) },
       onDuplicate: { store.duplicate(task) },
       onDelete: { store.delete(task) },
-      onRefresh: { _Concurrency.Task { await store.load() } }
+      onRefresh: { _Concurrency.Task { await store.load() } },
+      onPostpone: { _Concurrency.Task { await store.postpone(task) } }
     )
   }
 }

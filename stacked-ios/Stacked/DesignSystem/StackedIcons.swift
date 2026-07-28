@@ -23,8 +23,8 @@ enum StackedIcons {
     case .tag: Hugeicons.tag01
     case .logbook: Hugeicons.taskDone01
     case .productivity: Hugeicons.analytics01
-    case .chevronRight: Hugeicons.arrowRight02
-    case .chevronDown: Hugeicons.arrowDown01
+    case .chevronRight: Hugeicons.chevronRight
+    case .chevronDown: Hugeicons.chevronDown
     case .exclamation: Hugeicons.alert01
     case .list: Hugeicons.listView
     case .paintbrush: Hugeicons.paintBrush01

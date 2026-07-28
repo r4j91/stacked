@@ -160,6 +160,8 @@ final class UIKitSplitTaskRowView: UIView {
     var onDuplicate: () -> Void
     var onDelete: () -> Void
     var onRefresh: () -> Void
+    /// nil esconde "Adiar" do menu de contexto — telas de concluídas não postergam.
+    var onPostpone: (() -> Void)? = nil
     var timelineRailEnabled: Bool = false
     var timelineConnectsUp: Bool = false
     var timelineConnectsDown: Bool = false
@@ -260,6 +262,7 @@ final class UIKitSplitTaskRowView: UIView {
         onDuplicate: config.onDuplicate,
         onDelete: config.onDelete,
         onRefresh: config.onRefresh,
+        onPostpone: config.onPostpone,
         onLiftPhaseChanged: { [weak self] phase in
           self?.applyLiftPhase(phase, animated: true)
         }

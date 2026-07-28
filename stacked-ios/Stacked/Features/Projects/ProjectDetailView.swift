@@ -451,6 +451,11 @@ struct ProjectDetailView: View {
         ensureStoreLinked()
         _Concurrency.Task { await store.load() }
       },
+      onPostpone: { task in
+        guard !task.done else { return }
+        ensureStoreLinked()
+        _Concurrency.Task { await store.postpone(task) }
+      },
       onWhatsAppCopy: { whatsAppCopyTask = $0 }
     )
     // Remonta o host UIKit ao trocar Balões/Lista ou layout dos cards —
@@ -571,7 +576,11 @@ struct ProjectDetailView: View {
 
           if pending.isEmpty && completed.isEmpty && sections.isEmpty {
             Section {
-              EmptyStateView(icon: .checkCircle, title: "Projeto em dia", subtitle: "Nenhuma tarefa pendente")
+              EmptyStateView(
+                illustration: .projectClear,
+                title: "Projeto em dia",
+                subtitle: "Nenhuma tarefa pendente por aqui."
+              )
               .stackedListEmptyStateRow()
             }
           }
@@ -752,6 +761,10 @@ struct ProjectDetailView: View {
           onRefresh: {
             ensureStoreLinked()
             _Concurrency.Task { await store.load() }
+          },
+          onPostpone: {
+            ensureStoreLinked()
+            _Concurrency.Task { await store.postpone(task) }
           }
         )
     }

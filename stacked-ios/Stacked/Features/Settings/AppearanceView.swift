@@ -13,6 +13,7 @@ struct AppearanceView: View {
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+  @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
@@ -51,6 +52,10 @@ struct AppearanceView: View {
 
   private var taskRowLayout: TaskRowLayout {
     TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
+  }
+
+  private var displayMode: ProjectDisplayMode {
+    ProjectDisplayMode.from(displayModeRaw)
   }
 
   private var chromeGlassMode: ChromeGlassMode {
@@ -121,10 +126,24 @@ struct AppearanceView: View {
         }
 
         appearancePanel(
+          id: .displayMode,
+          title: "Chrome da lista",
+          summary: displayMode.label,
+          footer: "Balões, Halo e Lista+ em todas as abas. Independente do layout dos metadados."
+        ) {
+          ForEach(Array(ProjectDisplayMode.allCases.enumerated()), id: \.element) { index, mode in
+            displayModeRow(mode)
+            if index < ProjectDisplayMode.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 56)
+            }
+          }
+        }
+
+        appearancePanel(
           id: .taskRowLayout,
           title: "Layout das tarefas",
           summary: taskRowLayoutSummary,
-          footer: "Faixa superior e Híbrida fundem a agenda. Trilho só em Hoje e Em breve."
+          footer: "Metadados da linha. Trilho só em Hoje e Em breve."
         ) {
           ForEach(Array(TaskRowLayout.allCases.enumerated()), id: \.element) { index, layout in
             taskRowLayoutRow(layout)
@@ -655,6 +674,54 @@ struct AppearanceView: View {
     .buttonStyle(.plain)
   }
 
+  private func displayModeRow(_ mode: ProjectDisplayMode) -> some View {
+    let c = theme.colors
+    let isSelected = displayMode == mode
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      displayModeRaw = mode.rawValue
+    } label: {
+      HStack(spacing: 14) {
+        StackedIcons.image(mode.menuIcon)
+          .font(.system(size: 18, weight: .medium))
+          .foregroundStyle(isSelected ? c.accent : c.textSecondary)
+          .frame(width: 28, height: 28)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(mode.label)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(displayModeSubtitle(mode))
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func displayModeSubtitle(_ mode: ProjectDisplayMode) -> String {
+    switch mode {
+    case .cards: "Cards separados"
+    case .cardsRefined: "Cards + subtarefas em fila"
+    case .cardsLight: "Card translúcido com contorno suave"
+    case .list: "Lista compacta"
+    case .listPremium: "Lista com mais respiro"
+    case .listComfort: "Gutter confortável (padrão)"
+    }
+  }
+
   private func timelineRailRow() -> some View {
     let c = theme.colors
 
@@ -992,6 +1059,7 @@ struct AppearanceView: View {
 private enum AppearanceSectionID: String, Hashable {
   case theme
   case navBar
+  case displayMode
   case taskRowLayout
   case homeHero
   case appIcon
@@ -1002,6 +1070,7 @@ private enum AppearanceSectionID: String, Hashable {
     switch self {
     case .theme: .paintbrush
     case .navBar: .grid
+    case .displayMode: .list
     case .taskRowLayout: .list
     case .homeHero: .sun
     case .appIcon: .checkCircle

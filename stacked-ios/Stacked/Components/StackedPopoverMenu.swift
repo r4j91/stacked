@@ -12,6 +12,9 @@ struct PopoverMenuItem: Identifiable {
   var iconColor: Color?
   var children: [PopoverMenuItem]?
   var loadChildren: (() async -> [PopoverMenuItem]?)?
+  /// Quando este item abre um submenu (children/loadChildren), controla se esse submenu
+  /// vira multi-seleção (toggle sem fechar) — paridade com o picker de etiquetas.
+  var childrenAllowToggle: Bool = false
 }
 
 struct StackedPopoverOverlay: View {
@@ -59,7 +62,7 @@ struct StackedPopoverOverlay: View {
       // SUBSTITUIDO_POPOVER_E2: menuCard inteiro (glass+shadow+conteúdo) recebia scale+opacity.
     }
     .onAppear {
-      pageStack = [PopoverMenuPage(title: nil, items: rootItems)]
+      pageStack = [PopoverMenuPage(title: nil, items: rootItems, allowsToggle: allowsToggle)]
       toggleSelections = Set(rootItems.filter(\.selected).map(\.id))
       // SUBSTITUIDO_POPOVER_E1: AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { isPresented = true }
       AppMotion.animate(AppMotion.popoverPresentSpring, reduceMotion: reduceMotion) { isPresented = true }
@@ -97,7 +100,7 @@ struct StackedPopoverOverlay: View {
     return preferAbove || keyboardHeight > 0 || spaceBelow < h + 8 || spaceBelow < spaceAbove
   }
 
-  private var topInset: CGFloat { forcePreferAbove ? 8 : 60 }
+  private var topInset: CGFloat { forcePreferAbove ? 8 : 12 }
 
   private var scaleAnchor: UnitPoint {
     showsAbove ? .bottomLeading : .topLeading
@@ -128,15 +131,16 @@ struct StackedPopoverOverlay: View {
 
     let top: CGFloat
     if showsAbove {
-      var proposed = anchor.minY - h - 6
+      var proposed = anchor.minY - h - 4
       proposed = max(proposed, topInset)
       if keyboardHeight > 0, !usesLocalHostCoordinates {
-        proposed = min(proposed, keyboardTop - h - 6)
+        proposed = min(proposed, keyboardTop - h - 4)
         proposed = max(proposed, topInset)
       }
       top = proposed
     } else {
-      top = min(anchor.maxY + 4, keyboardTop - h - 10)
+      // Colado na âncora — headers (⋮ Inbox/Hoje) ficavam com vão grande.
+      top = min(anchor.maxY - 2, keyboardTop - h - 8)
     }
 
     return CGPoint(x: left + w / 2, y: top + h / 2)
@@ -226,7 +230,7 @@ struct StackedPopoverOverlay: View {
 
   private func menuItemRow(_ item: PopoverMenuItem) -> some View {
     let c = theme.colors
-    let isSelected = allowsToggle
+    let isSelected = currentPage.allowsToggle
       ? toggleSelections.contains(item.id)
       : item.selected
     return Button { _Concurrency.Task { await tap(item) } } label: {
@@ -241,9 +245,7 @@ struct StackedPopoverOverlay: View {
           .foregroundStyle(item.destructive ? AppColors.priorityHigh : c.textPrimary)
         Spacer()
         if item.hasArrow {
-          StackedIcons.image(.chevronRight)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(c.textTertiary)
+          DisclosureChevron(size: 11, color: c.textTertiary)
         } else if isSelected {
           StackedIcons.image(.check)
             .font(.system(size: 12, weight: .bold))
@@ -262,7 +264,7 @@ struct StackedPopoverOverlay: View {
   private func rowSelectionBackground(isSelected: Bool, item: PopoverMenuItem) -> Color {
     guard isSelected else { return .clear }
     let c = theme.colors
-    if allowsToggle {
+    if currentPage.allowsToggle {
       return (item.iconColor ?? c.accent).opacity(0.12)
     }
     return c.accent.opacity(0.14)
@@ -271,21 +273,25 @@ struct StackedPopoverOverlay: View {
   private func tap(_ item: PopoverMenuItem) async {
     if let children = item.children {
       HapticService.selection()
+      let toggle = item.childrenAllowToggle
+      if toggle { toggleSelections.formUnion(children.filter(\.selected).map(\.id)) }
       AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
-        pageStack.append(PopoverMenuPage(title: item.label, items: children))
+        pageStack.append(PopoverMenuPage(title: item.label, items: children, allowsToggle: toggle))
       }
       return
     }
     if let loader = item.loadChildren {
       HapticService.selection()
+      let toggle = item.childrenAllowToggle
       AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
-        pageStack.append(PopoverMenuPage(title: item.label, items: [], loading: true))
+        pageStack.append(PopoverMenuPage(title: item.label, items: [], loading: true, allowsToggle: toggle))
       }
       let loaded = await loader()
       guard !_Concurrency.Task.isCancelled else { return }
+      if toggle, let loaded { toggleSelections.formUnion(loaded.filter(\.selected).map(\.id)) }
       AppMotion.animate(AppMotion.popoverSpring, reduceMotion: reduceMotion) {
         if let loaded, !loaded.isEmpty {
-          pageStack[pageStack.count - 1] = PopoverMenuPage(title: item.label, items: loaded)
+          pageStack[pageStack.count - 1] = PopoverMenuPage(title: item.label, items: loaded, allowsToggle: toggle)
         } else {
           pageStack.removeLast()
           dismiss(item.id)
@@ -293,7 +299,7 @@ struct StackedPopoverOverlay: View {
       }
       return
     }
-    if allowsToggle {
+    if currentPage.allowsToggle {
       HapticService.selection()
       if toggleSelections.contains(item.id) {
         toggleSelections.remove(item.id)
@@ -339,6 +345,7 @@ private struct PopoverMenuPage {
   var title: String?
   var items: [PopoverMenuItem]
   var loading = false
+  var allowsToggle = false
 }
 
 private struct AnchorKey: PreferenceKey {

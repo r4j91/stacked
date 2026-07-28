@@ -40,7 +40,7 @@ export const navItems: {
   href: string;
   label: string;
 }[] = [
-  { id: "home", href: "/home", label: "Início" },
+  { id: "home", href: "/home", label: "Navegar" },
   { id: "inbox", href: "/inbox", label: "Inbox" },
   { id: "today", href: "/today", label: "Hoje" },
   { id: "upcoming", href: "/upcoming", label: "Em breve" },

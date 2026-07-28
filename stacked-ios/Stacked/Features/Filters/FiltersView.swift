@@ -26,6 +26,7 @@ struct FiltersView: View {
   @Namespace private var taskDetailZoom
   @State private var showBuilder = false
   @State private var editingFilter: SavedFilter?
+  @State private var showNewProject = false
 
   var body: some View {
     NavigationStack {
@@ -66,6 +67,9 @@ struct FiltersView: View {
     }
     .tint(theme.colors.textSecondary)
     .background(theme.colors.background.ignoresSafeArea(.all))
+    .newProjectFloating(isPresented: $showNewProject) {
+      _Concurrency.Task { await store.loadDashboard() }
+    }
     .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
       _Concurrency.Task {
         await store.loadDashboard()
@@ -209,8 +213,13 @@ struct FiltersView: View {
 
         Section {
           if store.projects.isEmpty {
-            EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
-              .stackedListEmptyStateRow()
+            VStack(spacing: AppSpacing.md) {
+              EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
+              Button("Criar projeto") { showNewProject = true }
+                .font(AppTypography.bodySemibold)
+                .foregroundStyle(theme.colors.accent)
+            }
+            .stackedListEmptyStateRow()
           } else {
             filtersDashboardCard {
               VStack(spacing: 0) {
