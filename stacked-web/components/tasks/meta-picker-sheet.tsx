@@ -443,15 +443,13 @@ function PickerButton({
         active ? "bg-[var(--color-surface-variant)] font-semibold" : ""
       } ${muted ? "text-[var(--color-text-tertiary)]" : ""}`}
     >
-      {projectIcon != null && dot ? (
-        <ProjectIcon iconKey={projectIcon} color={dot} size={18} />
+      {projectIcon !== undefined || dot ? (
+        <ProjectIcon iconKey={projectIcon} color={dot ?? "var(--color-text-secondary)"} size={18} />
       ) : icon ? (
         <span style={{ color: iconColor ?? "var(--color-text-secondary)" }}>
           <AppIcon icon={icon as typeof Home01Icon} size={16} strokeWidth={1.75} />
         </span>
-      ) : (
-        dot && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dot }} />
-      )}
+      ) : null}
       <span className="flex-1">{label}</span>
     </button>
   );

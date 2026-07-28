@@ -76,7 +76,19 @@ export function showsTaskRowEyebrow({
   return hasProject;
 }
 
-/** Hora no trailing do título só no layout atual (F2/X2 fundem na meta). */
-export function showsTrailingTime(layout: TaskRowLayout): boolean {
-  return layout === "default";
+/** Hora no canto direito do card — paridade iOS timeTrailing (todos os layouts). */
+export function showsTrailingTime(_layout?: TaskRowLayout): boolean {
+  return true;
+}
+
+/**
+ * Padding-top do círculo para alinhar ao mid do título (paridade iOS TaskRowCircleAlign).
+ * Eyebrow acima empurra o título — o círculo acompanha; meta abaixo não move o círculo.
+ */
+export function taskRowCircleTopPx(hasEyebrow: boolean): number {
+  const contentTop = 2;
+  const eyebrow = hasEyebrow ? 16 : 0;
+  const titleLine = 20;
+  const circle = 22;
+  return Math.max(0, contentTop + eyebrow + titleLine / 2 - circle / 2);
 }

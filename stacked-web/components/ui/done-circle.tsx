@@ -12,17 +12,17 @@ const INACTIVE_RING_FILL = "8%";
 type DoneCircleProps = {
   done: boolean;
   small?: boolean;
-  /** Cor do anel quando pendente — paridade iOS PriorityDot */
+  /** Cor do anel/fill — prioridade; sem prioridade = terciário (cinza) */
   priority?: Priority | null;
   onClick?: (e: React.MouseEvent) => void;
   label: string;
 };
 
-/** Paridade iOS PriorityDot + DoneCircle — check verde com pop ao concluir */
+/** Paridade iOS DoneCircle — concluído = fill sólido da prioridade + ✓ branco */
 export function DoneCircle({ done, small, priority, onClick, label }: DoneCircleProps) {
-  const size = small ? "h-[17px] w-[17px]" : "h-5 w-5";
-  const iconSize = small ? 10 : 12;
-  const ringColor = priorityColor(priority);
+  const size = small ? "h-[17px] w-[17px]" : "h-[22px] w-[22px]";
+  const iconSize = small ? 10 : 13;
+  const accent = priorityColor(priority);
   const prevDone = useRef(done);
   const [pop, setPop] = useState(false);
 
@@ -47,16 +47,21 @@ export function DoneCircle({ done, small, priority, onClick, label }: DoneCircle
       <button
         type="button"
         onClick={onClick}
-        className={`done-circle done-circle--done flex shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-done)] bg-[color-mix(in_srgb,var(--color-done)_15%,transparent)] text-[var(--color-done)] ${size} ${
+        className={`done-circle done-circle--done flex shrink-0 items-center justify-center rounded-full border-2 text-white ${size} ${
           pop ? "done-circle--pop" : ""
         }`}
+        style={{
+          borderColor: accent,
+          backgroundColor: accent,
+          color: "#fff",
+        }}
         aria-label={label}
       >
         <AppIcon
           icon={Tick01Icon}
           size={iconSize}
           strokeWidth={2.75}
-          className={`done-circle__tick text-[var(--color-done)] ${pop ? "done-circle__tick--pop" : ""}`}
+          className={`done-circle__tick text-white ${pop ? "done-circle__tick--pop" : ""}`}
         />
       </button>
     );
@@ -68,8 +73,8 @@ export function DoneCircle({ done, small, priority, onClick, label }: DoneCircle
       onClick={onClick}
       className={`done-circle flex shrink-0 items-center justify-center rounded-full border-2 transition-colors hover:brightness-110 ${size}`}
       style={{
-        borderColor: ringColor,
-        backgroundColor: `color-mix(in srgb, ${ringColor} ${INACTIVE_RING_FILL}, transparent)`,
+        borderColor: accent,
+        backgroundColor: `color-mix(in srgb, ${accent} ${INACTIVE_RING_FILL}, transparent)`,
       }}
       aria-label={label}
     />

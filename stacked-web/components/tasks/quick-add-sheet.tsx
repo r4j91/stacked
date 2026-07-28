@@ -332,6 +332,8 @@ function MetaChip({
     >
       {projectIcon && active ? (
         <ProjectIcon iconKey={projectIcon} color={color} size={14} />
+      ) : active && icon === Folder01Icon ? (
+        <ProjectIcon iconKey={null} color={color} size={14} />
       ) : (
         <span style={{ color }}>
           <AppIcon icon={icon as typeof Home01Icon} size={14} strokeWidth={1.75} />

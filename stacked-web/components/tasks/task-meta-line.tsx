@@ -6,15 +6,12 @@ import { useWorkbench } from "@/components/shell/workbench-context";
 import {
   parseDueDate,
   formatTaskDate,
-  formatDueDateTimeLabel,
-  formatTimeDisplay,
   dueDateChipColor,
   deadlineChipColor,
   deadlineChipLabel,
 } from "@/lib/utils/date";
 import { TagChip } from "@/components/ui/tag-chip";
 import { DueDateChip } from "@/components/ui/due-date-chip";
-import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { AppIcon } from "@/components/ui/app-icon";
 import {
   TaskDone01Icon,
@@ -56,7 +53,7 @@ function resolveTaskLabels(task: Task, allLabels: Label[]): ChipLabel[] {
 
 function FusedScheduleFlat({
   dueDate,
-  time,
+  time: _time,
   done,
   hideDate,
 }: {
@@ -65,26 +62,23 @@ function FusedScheduleFlat({
   done?: boolean;
   hideDate?: boolean;
 }) {
+  // Hora fica no trailing do card (paridade iOS) — meta só mostra a data.
+  void _time;
   const due = parseDueDate(dueDate);
   const color = dueDateChipColor(due, Boolean(done));
 
-  if (!hideDate && dueDate) {
-    const label = formatDueDateTimeLabel(dueDate, time);
-    if (!label) return null;
-    return (
-      <span
-        className="inline-flex max-w-full shrink items-center gap-1 truncate text-xs font-semibold tabular-nums"
-        style={{ color }}
-      >
-        <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
-        <span className="truncate">{label}</span>
-      </span>
-    );
-  }
-
-  const timeLabel = formatTimeDisplay(time);
-  if (!timeLabel) return null;
-  return <TaskRowTime time={time} />;
+  if (hideDate || !dueDate) return null;
+  const label = formatTaskDate(due);
+  if (!label) return null;
+  return (
+    <span
+      className="inline-flex max-w-full shrink items-center gap-1 truncate text-xs font-semibold tabular-nums"
+      style={{ color }}
+    >
+      <AppIcon icon={Calendar03Icon} size={14} strokeWidth={1.75} />
+      <span className="truncate">{label}</span>
+    </span>
+  );
 }
 
 function PriorityFlag({ priority }: { priority: NonNullable<Task["priority"]> }) {
@@ -188,14 +182,12 @@ export function TaskMetaLine({
       items.push(<PriorityFlag key="prio" priority={task.priority} />);
     }
 
-    const hasFusedSchedule =
-      (!hideDate && Boolean(task.dueDate)) || Boolean(formatTimeDisplay(task.time));
+    const hasFusedSchedule = !hideDate && Boolean(task.dueDate);
     if (hasFusedSchedule) {
       items.push(
         <FusedScheduleFlat
           key="sched"
           dueDate={task.dueDate}
-          time={task.time}
           done={task.done}
           hideDate={hideDate}
         />,
@@ -307,14 +299,12 @@ export function SubtaskMetaLine({ sub, maxLabels = 2 }: { sub: Subtask; maxLabel
       items.push(<PriorityFlag key="prio" priority={sub.priority} />);
     }
 
-    const hasFusedSchedule =
-      Boolean(sub.dueDate) || Boolean(formatTimeDisplay(sub.time));
+    const hasFusedSchedule = Boolean(sub.dueDate);
     if (hasFusedSchedule) {
       items.push(
         <FusedScheduleFlat
           key="sched"
           dueDate={sub.dueDate}
-          time={sub.time}
           done={sub.done}
         />,
       );

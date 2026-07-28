@@ -45,6 +45,6 @@ export function priorityColor(priority?: Priority | null): string {
     case "P3":
       return "var(--color-p3)"
     default:
-      return "var(--color-text-secondary)"
+      return "var(--color-text-tertiary)"
   }
 }

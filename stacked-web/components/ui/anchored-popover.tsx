@@ -27,6 +27,8 @@ type AnchoredPopoverProps = {
   placement?: "side" | "below";
   /** id do elemento título para aria-labelledby */
   labelledBy?: string;
+  /** Se true, o shell não rola — o filho controla o scroll (ex.: Aparência). */
+  lockOverflow?: boolean;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -44,6 +46,7 @@ export function AnchoredPopover({
   verticalAlign = "auto",
   placement = "side",
   labelledBy,
+  lockOverflow = false,
 }: AnchoredPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -141,7 +144,9 @@ export function AnchoredPopover({
       />
       <div
         ref={popoverRef}
-        className={`fixed z-[calc(var(--z-popover)+1)] max-h-[min(70vh,420px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${className}`}
+        className={`fixed z-[calc(var(--z-popover)+1)] flex max-h-[min(70vh,420px)] flex-col scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${
+          lockOverflow ? "overflow-hidden" : "overflow-y-auto"
+        } ${className}`}
         style={{
           width,
           top: pos?.top ?? Math.max(12, anchorRect?.top ?? 80),

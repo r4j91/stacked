@@ -47,18 +47,20 @@ export function FilterSubtaskRow({
           }`}
         >
           <div className="reorder-gutter" aria-hidden />
-          <DoneCircle
-            done={subtask.done}
-            priority={subtask.priority}
-            label={`${subtask.done ? "Marcar pendente" : "Marcar concluída"}: ${subtask.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSubtaskDone(key);
-            }}
-          />
+          <div className="task-row-grid__circle flex items-start justify-center self-start pt-0.5">
+            <DoneCircle
+              done={subtask.done}
+              priority={subtask.priority}
+              label={`${subtask.done ? "Marcar pendente" : "Marcar concluída"}: ${subtask.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSubtaskDone(key);
+              }}
+            />
+          </div>
           <div className="task-row-grid__content min-w-0 flex-1">
             <TaskRowEyebrow layout={layout} priority={subtask.priority} />
-            <div className="flex items-baseline gap-1.5">
+            <div className="flex items-baseline gap-2">
               <p
                 className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
                   subtask.done ? "text-[var(--color-text-tertiary)] line-through" : ""
