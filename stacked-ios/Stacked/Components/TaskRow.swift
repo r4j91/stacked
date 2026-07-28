@@ -218,7 +218,7 @@ struct TaskRow: View {
     // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
     let core = VStack(spacing: 0) {
       if bodyMode != .panelOnly {
-        rowHeader(expandTrailing: 8, expandTop: 8)
+        rowHeader(expandTrailing: 8)
           .frame(height: headerHeight)
       }
       if bodyMode != .headerOnly {
@@ -261,7 +261,6 @@ struct TaskRow: View {
     let comfort = style == .listComfort
     let premiumLike = style == .listPremium || comfort
     let expandTrailing: CGFloat = comfort ? 12 : (premiumLike ? 10 : 12)
-    let expandTop: CGFloat = comfort ? 8 : (premiumLike ? 6 : 8)
     let showHairline = style.showsListHairline && bodyMode != .panelOnly
     let showParentDivider =
       style.showsListParentDivider
@@ -270,7 +269,7 @@ struct TaskRow: View {
     // UIKIT_SCROLL_POLISH: bodyMode fatia header/painel em hosts separados.
     return VStack(spacing: 0) {
       if bodyMode != .panelOnly {
-        rowHeader(expandTrailing: expandTrailing, expandTop: expandTop)
+        rowHeader(expandTrailing: expandTrailing)
           .opacity(displayDone ? 0.45 : 1)
           .frame(height: headerHeight)
       }
@@ -367,7 +366,7 @@ struct TaskRow: View {
     )
   }
 
-  private func rowHeader(expandTrailing: CGFloat, expandTop: CGFloat) -> some View {
+  private func rowHeader(expandTrailing: CGFloat) -> some View {
     let showsWhatsApp = showsWhatsAppCopyButton
     let trailingBottom: CGFloat = 6
     let headerH = exactHeaderHeight
@@ -417,8 +416,9 @@ struct TaskRow: View {
     .frame(height: headerH, alignment: .topLeading)
     .overlay(alignment: .topTrailing) {
       if task.hasSubtasks {
+        // Expand shares title-mid with DoneCircle via TaskRowCircleAlign.
         expandButton
-          .padding(.top, expandTop)
+          .padding(.top, circleTop)
           .padding(.trailing, expandTrailing)
           .disabled(!rowInteractionsEnabled)
       }
