@@ -125,88 +125,116 @@ struct InboxView: View {
 
   @ViewBuilder
   private func swiftUIListBody(subtitle: String, colors: AppThemeColors) -> some View {
-    List {
-      Section {
-        TaskListScreenHeader(
-          title: "Inbox",
-          subtitle: subtitle,
-          showCompletedKey: ShowCompletedPreferences.inboxKey,
-          showCompletedDefault: false
-        )
-          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
+    let isEmpty =
+      !store.inboxLoading
+      && store.inboxError == nil
+      && store.inboxPending.isEmpty
+      && (store.inboxCompleted.isEmpty || !showCompleted)
 
-      if store.inboxLoading {
-        Section {
-          ProgressView()
-            .tint(colors.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.inboxError {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.loadInbox() }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.inboxPending.isEmpty && (store.inboxCompleted.isEmpty || !showCompleted) {
-        Section {
+    if isEmpty {
+      ScrollView {
+        VStack(spacing: 0) {
+          TaskListScreenHeader(
+            title: "Inbox",
+            subtitle: subtitle,
+            showCompletedKey: ShowCompletedPreferences.inboxKey,
+            showCompletedDefault: false
+          )
+          .padding(.top, 4)
+          .padding(.bottom, 8)
+
           EmptyStateView(
             illustration: .inboxZero,
             title: "Tudo certo",
             subtitle: "Sua caixa de entrada está vazia — sem pendências soltas por aqui."
           )
-          .stackedListEmptyStateRow()
+          .stackedStandaloneEmptyState()
+          .frame(minHeight: 360)
         }
-      } else {
+        .frame(maxWidth: .infinity)
+      }
+      .scrollContentBackground(.hidden)
+      .refreshable { await store.loadInbox() }
+    } else {
+      List {
         Section {
-          ForEach(store.inboxPending) { task in
-            taskRow(task)
-          }
+          TaskListScreenHeader(
+            title: "Inbox",
+            subtitle: subtitle,
+            showCompletedKey: ShowCompletedPreferences.inboxKey,
+            showCompletedDefault: false
+          )
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowBackground(Color.clear)
         }
 
-        if showCompleted && !store.inboxCompleted.isEmpty {
+        if store.inboxLoading {
           Section {
-            Button {
-              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
-            } label: {
-              HStack {
-                Text("Concluídas (\(store.inboxCompleted.count))")
-                  .font(AppTypography.completedSectionHeader)
-                  .foregroundStyle(colors.textSecondary)
-                Spacer()
-                Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                  .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(colors.textTertiary)
-              }
+            ProgressView()
+              .tint(colors.accent)
+              .frame(maxWidth: .infinity)
+              .listRowSeparator(.hidden)
+              .listSectionSeparator(.hidden)
+              .listRowBackground(Color.clear)
+          }
+        } else if let err = store.inboxError {
+          Section {
+            LoadErrorView(message: err) {
+              _Concurrency.Task { await store.loadInbox() }
             }
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
             .listRowBackground(Color.clear)
+          }
+        } else {
+          Section {
+            ForEach(store.inboxPending) { task in
+              taskRow(task)
+            }
+          }
 
-            if completedExpanded {
-              ForEach(store.inboxCompleted) { task in
-                TaskRow(
-                  task: task,
-                  style: displayMode.taskRowStyle,
-                  flatSubtaskQueue: displayMode.flatSubtaskQueue,
-                  deferHeavyWork: !allowRowHeavyWork
-                ) { }
-                  .opacity(0.7)
-                  .listRowInsets(cardInsets)
-                  .listRowSeparator(.hidden)
-                  .listRowBackground(Color.clear)
+          if showCompleted && !store.inboxCompleted.isEmpty {
+            Section {
+              Button {
+                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
+              } label: {
+                HStack {
+                  Text("Concluídas (\(store.inboxCompleted.count))")
+                    .font(AppTypography.completedSectionHeader)
+                    .foregroundStyle(colors.textSecondary)
+                  Spacer()
+                  Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
+                    .font(AppTypography.metaSmall.weight(.semibold))
+                    .foregroundStyle(colors.textTertiary)
+                }
+              }
+              .listRowBackground(Color.clear)
+
+              if completedExpanded {
+                ForEach(store.inboxCompleted) { task in
+                  TaskRow(
+                    task: task,
+                    style: displayMode.taskRowStyle,
+                    flatSubtaskQueue: displayMode.flatSubtaskQueue,
+                    deferHeavyWork: !allowRowHeavyWork
+                  ) { }
+                    .opacity(0.7)
+                    .listRowInsets(cardInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
               }
             }
           }
         }
       }
+      .listStyle(.plain)
+      .scrollContentBackground(.hidden)
+      .stackedListTailInset()
+      .refreshable { await store.loadInbox() }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedListTailInset()
-    .refreshable { await store.loadInbox() }
   }
 
   @ViewBuilder

@@ -158,105 +158,134 @@ struct TodayView: View {
   @ViewBuilder
   private func swiftUITodayBody(colors: AppThemeColors) -> some View {
     let timeline = store.todayTimeline
+    let isEmpty =
+      !store.todayLoading
+      && store.todayError == nil
+      && store.todayOverdueItems.isEmpty
+      && timeline.isEmpty
+      && (store.todayCompleted.isEmpty || !showCompleted)
 
-    List {
-      Section {
-        TaskListScreenHeader(
-          title: "Hoje",
-          subtitle: NavTab.today.subtitle,
-          showCompletedKey: ShowCompletedPreferences.todayKey,
-          showCompletedDefault: false
-        )
-          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
+    // Empty fora do List: evita flash do separador de seção do UITableView/List.
+    if isEmpty {
+      ScrollView {
+        VStack(spacing: 0) {
+          TaskListScreenHeader(
+            title: "Hoje",
+            subtitle: NavTab.today.subtitle,
+            showCompletedKey: ShowCompletedPreferences.todayKey,
+            showCompletedDefault: false
+          )
+          .padding(.top, 4)
+          .padding(.bottom, 8)
 
-      if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
-        Section {
-          ProgressView()
-            .tint(colors.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.todayError {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.loadToday() }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.todayOverdueItems.isEmpty && timeline.isEmpty && (store.todayCompleted.isEmpty || !showCompleted) {
-        Section {
           EmptyStateView(
             illustration: .todayClear,
             title: "Dia livre",
             subtitle: "Nada agendado para hoje. Aproveite o momento."
           )
-          .stackedListEmptyStateRow()
+          .stackedStandaloneEmptyState()
+          .frame(minHeight: 360)
         }
-      } else {
-        if !store.todayOverdueItems.isEmpty {
-          Section {
-            scheduleSectionRows(store.todayOverdueItems)
-          } header: {
-            ListSectionHeader(text: "ATRASADAS")
-          }
-        }
-
-        if !timeline.isEmpty {
-          Section {
-            scheduleSectionRows(timeline)
-          } header: {
-            if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
-          }
-        }
-
-        if showCompleted && !store.todayCompleted.isEmpty {
-          Section {
-            Button {
-              AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
-            } label: {
-              HStack {
-                Text("Concluídas (\(store.todayCompleted.count))")
-                  .font(AppTypography.completedSectionHeader)
-                  .foregroundStyle(colors.textSecondary)
-                Spacer()
-                Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                  .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(colors.textTertiary)
-              }
-            }
+        .frame(maxWidth: .infinity)
+      }
+      .scrollContentBackground(.hidden)
+      .refreshable { await store.loadToday() }
+    } else {
+      List {
+        Section {
+          TaskListScreenHeader(
+            title: "Hoje",
+            subtitle: NavTab.today.subtitle,
+            showCompletedKey: ShowCompletedPreferences.todayKey,
+            showCompletedDefault: false
+          )
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
             .listRowBackground(Color.clear)
+        }
 
-            if completedExpanded {
-              ForEach(Array(store.todayCompleted.enumerated()), id: \.element.id) { index, task in
-                TaskRow(
-                  task: task,
-                  style: displayMode.taskRowStyle,
-                  flatSubtaskQueue: displayMode.flatSubtaskQueue,
-                  deferHeavyWork: !allowRowHeavyWork
-                ) { }
-                  .opacity(0.7)
-                  .timelineRail(
-                    enabled: timelineRailEnabled,
-                    nodeColor: TimelineRailNodeColor.forTask(task),
-                    connectsUp: index > 0,
-                    connectsDown: index < store.todayCompleted.count - 1
-                  )
-                  .listRowInsets(railListInsets)
-                  .listRowSeparator(.hidden)
-                  .listRowBackground(Color.clear)
+        if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
+          Section {
+            ProgressView()
+              .tint(colors.accent)
+              .frame(maxWidth: .infinity)
+              .listRowSeparator(.hidden)
+              .listSectionSeparator(.hidden)
+              .listRowBackground(Color.clear)
+          }
+        } else if let err = store.todayError {
+          Section {
+            LoadErrorView(message: err) {
+              _Concurrency.Task { await store.loadToday() }
+            }
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowBackground(Color.clear)
+          }
+        } else {
+          if !store.todayOverdueItems.isEmpty {
+            Section {
+              scheduleSectionRows(store.todayOverdueItems)
+            } header: {
+              ListSectionHeader(text: "ATRASADAS")
+            }
+          }
+
+          if !timeline.isEmpty {
+            Section {
+              scheduleSectionRows(timeline)
+            } header: {
+              if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
+            }
+          }
+
+          if showCompleted && !store.todayCompleted.isEmpty {
+            Section {
+              Button {
+                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
+              } label: {
+                HStack {
+                  Text("Concluídas (\(store.todayCompleted.count))")
+                    .font(AppTypography.completedSectionHeader)
+                    .foregroundStyle(colors.textSecondary)
+                  Spacer()
+                  Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
+                    .font(AppTypography.metaSmall.weight(.semibold))
+                    .foregroundStyle(colors.textTertiary)
+                }
+              }
+              .listRowBackground(Color.clear)
+
+              if completedExpanded {
+                ForEach(Array(store.todayCompleted.enumerated()), id: \.element.id) { index, task in
+                  TaskRow(
+                    task: task,
+                    style: displayMode.taskRowStyle,
+                    flatSubtaskQueue: displayMode.flatSubtaskQueue,
+                    deferHeavyWork: !allowRowHeavyWork
+                  ) { }
+                    .opacity(0.7)
+                    .timelineRail(
+                      enabled: timelineRailEnabled,
+                      nodeColor: TimelineRailNodeColor.forTask(task),
+                      connectsUp: index > 0,
+                      connectsDown: index < store.todayCompleted.count - 1
+                    )
+                    .listRowInsets(railListInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
               }
             }
           }
         }
       }
+      .listStyle(.plain)
+      .scrollContentBackground(.hidden)
+      .stackedListTailInset()
+      .refreshable { await store.loadToday() }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedListTailInset()
-    .refreshable { await store.loadToday() }
   }
 
   private var rowInsets: EdgeInsets {

@@ -94,6 +94,7 @@ extension View {
     self
       .listRowInsets(EdgeInsets())
       .listRowSeparator(.hidden)
+      .listSectionSeparator(.hidden)
       .listRowBackground(Color.clear)
       .frame(maxWidth: .infinity, alignment: .center)
       .containerRelativeFrame(.vertical) { length, _ in

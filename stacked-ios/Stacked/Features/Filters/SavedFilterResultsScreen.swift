@@ -17,10 +17,14 @@ struct SavedFilterResultsScreen: View {
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @Bindable private var store = FiltersStore.shared
   @AppStorage private var showCompleted: Bool
+  @AppStorage private var sortRaw: String
   @State private var usesStore = false
   @State private var allowRowHeavyWork = false
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
+  private var sortMode: SavedFilterSortMode {
+    SavedFilterSortMode(rawValue: sortRaw) ?? SavedFilterSortPreferences.defaultMode
+  }
 
   init(
     filter: SavedFilter,
@@ -44,6 +48,10 @@ struct SavedFilterResultsScreen: View {
       wrappedValue: false,
       ShowCompletedPreferences.savedFilterKey(filterId: filter.id)
     )
+    _sortRaw = AppStorage(
+      wrappedValue: SavedFilterSortPreferences.defaultMode.rawValue,
+      SavedFilterSortPreferences.key(filterId: filter.id)
+    )
   }
 
   private var rowInsets: EdgeInsets {
@@ -58,6 +66,14 @@ struct SavedFilterResultsScreen: View {
     usesStore ? store.filterCompletedResults : initialCompleted
   }
 
+  private var displayedPendingResults: [FilterResultItem] {
+    FilterResultSorter.sort(pendingResults, by: sortMode)
+  }
+
+  private var displayedCompletedResults: [FilterResultItem] {
+    FilterResultSorter.sort(completedResults, by: sortMode)
+  }
+
   private var isLoading: Bool {
     usesStore ? store.filterLoading : initialPending.isEmpty && initialCompleted.isEmpty && !store.hasSavedFilterCache(filter.id)
   }
@@ -69,7 +85,7 @@ struct SavedFilterResultsScreen: View {
   private var prefersUIKitList: Bool {
     useUIKitTaskList
       && !isLoading
-      && (!pendingResults.isEmpty || (showCompleted && !completedResults.isEmpty))
+      && (!displayedPendingResults.isEmpty || (showCompleted && !displayedCompletedResults.isEmpty))
   }
 
   var body: some View {
@@ -184,11 +200,11 @@ struct SavedFilterResultsScreen: View {
   private func filterResultsList(colors: AppThemeColors) -> some View {
     List {
       Section {
-        ForEach(pendingResults) { item in
+        ForEach(displayedPendingResults) { item in
           resultRow(item, canPostpone: true)
         }
       }
-      if showCompleted && !completedResults.isEmpty {
+      if showCompleted && !displayedCompletedResults.isEmpty {
         Section {
           Text("Concluídas")
             .font(AppTypography.completedSectionHeader)
@@ -196,7 +212,7 @@ struct SavedFilterResultsScreen: View {
             .listRowInsets(rowInsets)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
-          ForEach(completedResults) { item in
+          ForEach(displayedCompletedResults) { item in
             resultRow(item, canPostpone: false)
           }
         }
@@ -219,17 +235,17 @@ struct SavedFilterResultsScreen: View {
         id: "pending",
         header: nil,
         tasks: [],
-        filterItems: pendingResults
+        filterItems: displayedPendingResults
       ),
     ]
-    if showCompleted, !completedResults.isEmpty {
+    if showCompleted, !displayedCompletedResults.isEmpty {
       sections.append(
         UIKitTaskSection(
           id: "completed",
           header: .plain("Concluídas"),
           tasks: [],
           dimmed: true,
-          filterItems: completedResults
+          filterItems: displayedCompletedResults
         )
       )
     }
@@ -310,12 +326,29 @@ struct SavedFilterResultsScreen: View {
   }
 
   private func openOptions(anchor: CGRect) {
+    let sortItems = SavedFilterSortMode.allCases.map { mode in
+      PopoverMenuItem(
+        id: "sort_\(mode.rawValue)",
+        icon: sortIcon(for: mode),
+        label: mode.label,
+        selected: sortMode == mode,
+        iconColor: theme.colors.textSecondary
+      )
+    }
     let items: [PopoverMenuItem] = [
       PopoverMenuItem(
         id: "toggle_completed",
         icon: showCompleted ? Hugeicons.eyeOff : Hugeicons.eye,
         label: showCompleted ? "Ocultar concluídas" : "Mostrar concluídas",
         iconColor: theme.colors.textSecondary
+      ),
+      PopoverMenuItem(
+        id: "sort",
+        icon: Hugeicons.filterHorizontal,
+        label: "Ordenar",
+        hasArrow: true,
+        iconColor: theme.colors.textSecondary,
+        children: sortItems
       ),
       PopoverMenuItem(id: "edit", icon: Hugeicons.edit01, label: "Editar filtro"),
       PopoverMenuItem(id: "delete", icon: Hugeicons.delete01, label: "Excluir filtro", destructive: true),
@@ -325,6 +358,12 @@ struct SavedFilterResultsScreen: View {
       switch result {
       case "toggle_completed":
         showCompleted.toggle()
+      case "sort_dueDate":
+        sortRaw = SavedFilterSortMode.dueDate.rawValue
+      case "sort_alphabetical":
+        sortRaw = SavedFilterSortMode.alphabetical.rawValue
+      case "sort_priority":
+        sortRaw = SavedFilterSortMode.priority.rawValue
       case "edit":
         onEditFilter(filter)
       case "delete":
@@ -334,6 +373,14 @@ struct SavedFilterResultsScreen: View {
       default:
         break
       }
+    }
+  }
+
+  private func sortIcon(for mode: SavedFilterSortMode) -> HugeiconsAsset {
+    switch mode {
+    case .dueDate: Hugeicons.calendar03
+    case .alphabetical: Hugeicons.text
+    case .priority: Hugeicons.flag01
     }
   }
 
