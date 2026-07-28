@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — temas claros suaves (mockups)</title>
+  <style>
+    :root {
+      --page-bg: #121316;
+      --page-text: #F2F3F5;
+      --page-muted: #9296A0;
+      --page-dim: #6B6E76;
+      --page-line: #2C2D33;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      --p1: #EF5A5F;
+      --p2: #F5A623;
+      --p3: #4D9FEC;
+      --tag-purple: #B18CF5;
+      --tag-green: #8FD46B;
+      --done: #7ECC49;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--page-bg);
+      color: var(--page-text);
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 20px 96px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .lede {
+      color: var(--page-muted);
+      font-size: 14.5px;
+      max-width: 68ch;
+      margin: 0 0 10px;
+    }
+    .principle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 28px;
+    }
+    .principle span {
+      font-size: 12px;
+      color: var(--page-muted);
+      background: #1C1D21;
+      border: 1px solid var(--page-line);
+      border-radius: 999px;
+      padding: 6px 12px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 22px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding: 10px 0;
+      background: color-mix(in srgb, var(--page-bg) 92%, transparent);
+      backdrop-filter: blur(10px);
+    }
+    .tab {
+      appearance: none;
+      border: 1px solid var(--page-line);
+      background: #1C1D21;
+      color: var(--page-muted);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+    .tab:hover { color: var(--page-text); }
+    .tab.active {
+      color: #0A0A0A;
+      background: #5FD3DC;
+      border-color: #5FD3DC;
+    }
+    .tab.ref {
+      border-style: dashed;
+      opacity: 0.85;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .grid.solo {
+      grid-template-columns: minmax(280px, 380px);
+      justify-content: start;
+    }
+
+    .card {
+      background: #1A1B1E;
+      border: 1px solid var(--page-line);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card.hidden { display: none; }
+    .card-meta {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--page-line);
+    }
+    .card-meta h2 {
+      margin: 0 0 2px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .card-meta .sub {
+      margin: 0 0 10px;
+      font-size: 12.5px;
+      color: var(--page-muted);
+    }
+    .swatches {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .hex-row {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+      font-size: 11px;
+      color: var(--page-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .hex-row b { color: var(--page-muted); font-weight: 600; }
+
+    .phone {
+      padding: 14px;
+      background: #121316;
+    }
+    .screen {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--t-hairline) 35%, transparent);
+      background: var(--t-bg);
+      color: var(--t-text);
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t-text);
+      opacity: 0.7;
+    }
+
+    .header {
+      padding: 8px 16px 12px;
+    }
+    .header h3 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--t-text);
+    }
+    .header .date {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--t-text2);
+    }
+
+    .list {
+      flex: 1;
+      padding: 0 8px 8px;
+    }
+    .section-label {
+      padding: 10px 10px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--t-text3);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 11px 10px;
+      border-radius: 12px;
+      background: var(--t-surface);
+      margin-bottom: 6px;
+    }
+    .row.alt {
+      background: transparent;
+      border-bottom: 1px solid color-mix(in srgb, var(--t-hairline) 22%, transparent);
+      border-radius: 0;
+      margin-bottom: 0;
+    }
+    .check {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 50%;
+      border: 2px solid var(--prio, var(--t-text3));
+      background: transparent;
+    }
+    .check.done {
+      border-color: var(--done);
+      background: color-mix(in srgb, var(--done) 22%, transparent);
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--t-text);
+      letter-spacing: -0.01em;
+    }
+    .title.struck {
+      text-decoration: line-through;
+      color: var(--t-text3);
+      font-weight: 500;
+    }
+    .preview {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--t-text2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 210px;
+    }
+    .meta {
+      margin-top: 5px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--t-variant);
+      color: var(--t-text2);
+    }
+    .chip.today {
+      background: color-mix(in srgb, #2EC4B6 18%, var(--t-variant));
+      color: #1A8A82;
+    }
+    .chip.tag-p {
+      background: color-mix(in srgb, var(--tag-purple) 18%, var(--t-variant));
+      color: #7A57C4;
+    }
+    .chip.tag-g {
+      background: color-mix(in srgb, var(--tag-green) 20%, var(--t-variant));
+      color: #4F8F2E;
+    }
+    .subcount {
+      font-size: 11.5px;
+      color: var(--t-text3);
+      font-weight: 600;
+      white-space: nowrap;
+      padding-top: 3px;
+    }
+
+    .nav {
+      margin-top: auto;
+      padding: 10px 14px 14px;
+      display: flex;
+      justify-content: center;
+    }
+    .pill {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      background: color-mix(in srgb, var(--t-surface) 88%, var(--t-bg));
+      border: 1px solid color-mix(in srgb, var(--t-hairline) 28%, transparent);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      backdrop-filter: blur(8px);
+    }
+    .nav-item {
+      width: 40px;
+      height: 32px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: var(--t-text3);
+      font-size: 13px;
+    }
+    .nav-item.active {
+      background: color-mix(in srgb, var(--t-accent) 18%, transparent);
+      color: var(--t-accent);
+      font-weight: 700;
+    }
+    .fab {
+      width: 44px;
+      height: 44px;
+      margin-left: 8px;
+      border-radius: 50%;
+      background: var(--t-accent);
+      color: var(--t-accent-text);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      font-weight: 500;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--t-accent) 35%, transparent);
+    }
+
+    .verdict {
+      margin-top: 36px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: #1A1B1E;
+      border: 1px solid var(--page-line);
+    }
+    .verdict h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .verdict ol {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--page-muted);
+      font-size: 13.5px;
+    }
+    .verdict li { margin-bottom: 8px; }
+    .verdict strong { color: var(--page-text); font-weight: 600; }
+
+    .compare-note {
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--page-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Temas claros suaves</h1>
+    <p class="lede">
+      Alternativas ao Moonstone (quase branco). Mesma lógica do Stacked: profundidade por
+      camadas de tom (bg → surface → variant), sem <code>#FFFFFF</code>, accent ciano da marca
+      um pouco mais escuro para contraste em fundo claro.
+    </p>
+    <div class="principle">
+      <span>Sem branco puro</span>
+      <span>3 camadas de tom</span>
+      <span>Accent ciano legível</span>
+      <span>Quiet Control Room</span>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-filter="all">Todos</button>
+      <button class="tab ref" data-filter="moonstone">Moonstone (atual)</button>
+      <button class="tab" data-filter="fog">Fog</button>
+      <button class="tab" data-filter="pearl">Pearl</button>
+      <button class="tab" data-filter="seafoam">Seafoam</button>
+      <button class="tab" data-filter="limestone">Limestone</button>
+      <button class="tab" data-filter="cloud">Cloud</button>
+    </div>
+
+    <div class="grid" id="grid">
+
+      <!-- MOONSTONE (ref) -->
+      <article class="card" data-id="moonstone" style="
+        --t-bg:#F2F4F7; --t-surface:#FFFFFF; --t-variant:#E8ECF2;
+        --t-text:#1C2033; --t-text2:#52596E; --t-text3:#757D92;
+        --t-hairline:#757D92; --t-accent:#3B485B; --t-accent-text:#FFFFFF;
+      ">
+        <div class="card-meta">
+          <h2>Moonstone <span style="color:var(--page-dim);font-weight:500;font-size:12px">atual</span></h2>
+          <p class="sub">Claro “clássico”. Surface branca. Bom contraste, mas o branco estoura.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#F2F4F7"></div>
+            <div class="swatch" style="background:#FFFFFF"></div>
+            <div class="swatch" style="background:#E8ECF2"></div>
+            <div class="swatch" style="background:#3B485B"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #F2F4F7</div>
+            <div><b>surface</b> #FFFFFF</div>
+            <div><b>variant</b> #E8ECF2</div>
+            <div><b>accent</b> #3B485B</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+      <!-- FOG -->
+      <article class="card" data-id="fog" style="
+        --t-bg:#E6E8ED; --t-surface:#EEEFF3; --t-variant:#DCDFE6;
+        --t-text:#1A1C22; --t-text2:#5C616C; --t-text3:#7A808C;
+        --t-hairline:#8A909C; --t-accent:#2A9AA3; --t-accent-text:#F4FBFC;
+      ">
+        <div class="card-meta">
+          <h2>Fog</h2>
+          <p class="sub">Gêmeo claro do Graphite. Cinza frio, sem branco. O mais “Stacked”.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#E6E8ED"></div>
+            <div class="swatch" style="background:#EEEFF3"></div>
+            <div class="swatch" style="background:#DCDFE6"></div>
+            <div class="swatch" style="background:#2A9AA3"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #E6E8ED</div>
+            <div><b>surface</b> #EEEFF3</div>
+            <div><b>variant</b> #DCDFE6</div>
+            <div><b>accent</b> #2A9AA3</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+      <!-- PEARL -->
+      <article class="card" data-id="pearl" style="
+        --t-bg:#E4E9F0; --t-surface:#ECF0F6; --t-variant:#D7DEE8;
+        --t-text:#182033; --t-text2:#556074; --t-text3:#748094;
+        --t-hairline:#8490A2; --t-accent:#3D7EA8; --t-accent-text:#F5FAFE;
+      ">
+        <div class="card-meta">
+          <h2>Pearl</h2>
+          <p class="sub">Pérola azulada. Mais “céu nublado” que papel. Sofisticado, Things-like.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#E4E9F0"></div>
+            <div class="swatch" style="background:#ECF0F6"></div>
+            <div class="swatch" style="background:#D7DEE8"></div>
+            <div class="swatch" style="background:#3D7EA8"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #E4E9F0</div>
+            <div><b>surface</b> #ECF0F6</div>
+            <div><b>variant</b> #D7DEE8</div>
+            <div><b>accent</b> #3D7EA8</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+      <!-- SEAFOAM -->
+      <article class="card" data-id="seafoam" style="
+        --t-bg:#E2EBEB; --t-surface:#EBF3F3; --t-variant:#D4E1E1;
+        --t-text:#152022; --t-text2:#4F6466; --t-text3:#6E8284;
+        --t-hairline:#7E9294; --t-accent:#1F8F96; --t-accent-text:#F3FBFC;
+      ">
+        <div class="card-meta">
+          <h2>Seafoam</h2>
+          <p class="sub">Fundo com tinta teal discreta. Accent da marca “vive” no ambiente.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#E2EBEB"></div>
+            <div class="swatch" style="background:#EBF3F3"></div>
+            <div class="swatch" style="background:#D4E1E1"></div>
+            <div class="swatch" style="background:#1F8F96"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #E2EBEB</div>
+            <div><b>surface</b> #EBF3F3</div>
+            <div><b>variant</b> #D4E1E1</div>
+            <div><b>accent</b> #1F8F96</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+      <!-- LIMESTONE -->
+      <article class="card" data-id="limestone" style="
+        --t-bg:#E8E5E0; --t-surface:#F0EDE8; --t-variant:#DDD8D1;
+        --t-text:#1F1C18; --t-text2:#615C55; --t-text3:#807A72;
+        --t-hairline:#908A82; --t-accent:#2B8A8F; --t-accent-text:#F4FBFC;
+      ">
+        <div class="card-meta">
+          <h2>Limestone</h2>
+          <p class="sub">Pedra quente neutra (não cream). Bom à luz do dia; menos “hospital”.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#E8E5E0"></div>
+            <div class="swatch" style="background:#F0EDE8"></div>
+            <div class="swatch" style="background:#DDD8D1"></div>
+            <div class="swatch" style="background:#2B8A8F"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #E8E5E0</div>
+            <div><b>surface</b> #F0EDE8</div>
+            <div><b>variant</b> #DDD8D1</div>
+            <div><b>accent</b> #2B8A8F</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+      <!-- CLOUD -->
+      <article class="card" data-id="cloud" style="
+        --t-bg:#D5D8DE; --t-surface:#E0E3E9; --t-variant:#C8CCD4;
+        --t-text:#17191E; --t-text2:#4E545E; --t-text3:#6B727C;
+        --t-hairline:#7A818C; --t-accent:#268F97; --t-accent-text:#F2FAFB;
+      ">
+        <div class="card-meta">
+          <h2>Cloud</h2>
+          <p class="sub">Semi-claro / “dia nublado”. Menos brilho de tela; ponte entre dark e light.</p>
+          <div class="swatches">
+            <div class="swatch" style="background:#D5D8DE"></div>
+            <div class="swatch" style="background:#E0E3E9"></div>
+            <div class="swatch" style="background:#C8CCD4"></div>
+            <div class="swatch" style="background:#268F97"></div>
+          </div>
+          <div class="hex-row">
+            <div><b>bg</b> #D5D8DE</div>
+            <div><b>surface</b> #E0E3E9</div>
+            <div><b>variant</b> #C8CCD4</div>
+            <div><b>accent</b> #268F97</div>
+          </div>
+        </div>
+        <div class="phone"><div class="screen" data-screen></div></div>
+      </article>
+
+    </div>
+
+    <p class="compare-note">Clique nas abas para isolar um tema. Abra o arquivo no browser: <code>docs/mockups/light-themes-soft.html</code></p>
+
+    <div class="verdict">
+      <h2>Sugestão de direção</h2>
+      <ol>
+        <li><strong>Fog</strong> como tema claro principal: mesma personalidade do Graphite, só invertido. Zero branco, camadas claras.</li>
+        <li><strong>Seafoam</strong> como variante “de marca”: quem gosta do accent ciano vai sentir o tema coerente.</li>
+        <li><strong>Cloud</strong> se a dor for brilho (outdoor / OLED): claro o bastante, sem estourar.</li>
+        <li><strong>Limestone / Pearl</strong> como opcionais quente vs frio, se quiserem família maior.</li>
+        <li>Moonstone pode ficar, ou migrar surface de <code>#FFFFFF</code> → <code>#EEEFF3</code> (virar Fog).</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const screenHTML = `
+      <div class="status"><span>9:41</span><span>●●●</span></div>
+      <div class="header">
+        <h3>Hoje</h3>
+        <div class="date">terça, 28 de julho</div>
+      </div>
+      <div class="list">
+        <div class="section-label">Manhã</div>
+        <div class="row">
+          <div class="check" style="--prio:var(--p1)"></div>
+          <div>
+            <div class="title">Revisar backlog do Q3</div>
+            <div class="preview">Priorizar itens com deadline esta semana…</div>
+            <div class="meta">
+              <span class="chip today">Hoje</span>
+              <span class="chip">Produto</span>
+              <span class="chip tag-p">Ideia</span>
+            </div>
+          </div>
+          <div class="subcount">2/5 ▾</div>
+        </div>
+        <div class="row">
+          <div class="check" style="--prio:var(--p2)"></div>
+          <div>
+            <div class="title">Responder e-mails da sprint</div>
+            <div class="meta">
+              <span class="chip today">Hoje</span>
+              <span class="chip">Inbox</span>
+            </div>
+          </div>
+          <div class="subcount"></div>
+        </div>
+        <div class="section-label">Tarde</div>
+        <div class="row">
+          <div class="check" style="--prio:var(--p3)"></div>
+          <div>
+            <div class="title">Ajustar chips de deadline</div>
+            <div class="preview">Manter contraste em temas claros…</div>
+            <div class="meta">
+              <span class="chip">Design</span>
+              <span class="chip tag-g">Em andamento</span>
+            </div>
+          </div>
+          <div class="subcount">3/3 ▾</div>
+        </div>
+        <div class="row">
+          <div class="check done"></div>
+          <div>
+            <div class="title struck">Comprar café</div>
+            <div class="meta"><span class="chip">Pessoal</span></div>
+          </div>
+          <div class="subcount"></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div class="pill">
+          <div class="nav-item">⌂</div>
+          <div class="nav-item">☐</div>
+          <div class="nav-item active">◎</div>
+          <div class="nav-item">▦</div>
+          <div class="nav-item">☰</div>
+        </div>
+        <div class="fab">+</div>
+      </div>
+    `;
+
+    document.querySelectorAll("[data-screen]").forEach((el) => {
+      el.innerHTML = screenHTML;
+    });
+
+    const grid = document.getElementById("grid");
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        const filter = tab.dataset.filter;
+        const cards = [...grid.querySelectorAll(".card")];
+        cards.forEach((card) => {
+          const show = filter === "all" || card.dataset.id === filter;
+          card.classList.toggle("hidden", !show);
+        });
+        grid.classList.toggle("solo", filter !== "all");
+      });
+    });
+  </script>
+</body>
+</html>

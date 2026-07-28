@@ -2,7 +2,10 @@
 export type AppThemeId =
   | "graphite"
   | "moonstone"
-  | "midnight"
+  | "fog"
+  | "fogAmazonite"
+  | "cloud"
+  | "cloudAmazonite"
   | "obsidian"
   | "anthracite"
   | "slate"
@@ -11,12 +14,10 @@ export type AppThemeId =
   | "ashCyan"
   | "ashAmazonite"
   | "titanium"
-  | "sodalite"
-  | "hematite"
-  | "jade"
-  | "aventurine"
   | "amazonite"
-  | "larimar"
+  | "basalt"
+  | "basaltAmazonite"
+  | "basaltSky"
 
 export type AppThemeColors = {
   background: string
@@ -48,6 +49,9 @@ export type AppTheme = {
   previewSwatch?: AppThemePreviewSwatch
 }
 
+/** Accent amazonite escurecido p/ contraste em fundo claro (ícones/tabs). Fill ainda lê como petróleo. */
+const LIGHT_AMAZONITE_ACCENT = "#3F7076"
+
 export const themes: Record<AppThemeId, AppTheme> = {
   graphite: {
     id: "graphite",
@@ -72,38 +76,121 @@ export const themes: Record<AppThemeId, AppTheme> = {
     id: "moonstone",
     name: "Moonstone",
     subtitle: "Claro",
+    previewSwatch: {
+      background: "#EEF1F6",
+      surface: "#F5F7FA",
+      accent: "#3B485B",
+    },
     colors: {
-      background: "#F2F4F7",
-      surface: "#FFFFFF",
-      surfaceVariant: "#E8ECF2",
-      textPrimary: "#1C2033",
-      textSecondary: "#52596E",
-      textTertiary: "#757D92",
-      textQuaternary: "#757D92",
-      hairline: "#757D92",
+      // Sem #FFFFFF — superfície off-white; texto terciário escurecido (≥4.5:1)
+      background: "#EEF1F6",
+      surface: "#F5F7FA",
+      surfaceVariant: "#E2E6EE",
+      textPrimary: "#1A1D28",
+      textSecondary: "#4A5163",
+      textTertiary: "#656A78",
+      textQuaternary: "#7A8091",
+      hairline: "#8A909C",
       accent: "#3B485B",
       accentText: "#FFFFFF",
-      navBar: "#FFFFFF",
+      navBar: "#F5F7FA",
       isDark: false,
     },
   },
-  midnight: {
-    id: "midnight",
-    name: "Midnight",
-    subtitle: "Escuro premium",
+  fog: {
+    id: "fog",
+    name: "Fog",
+    subtitle: "Cinza frio claro",
+    previewSwatch: {
+      background: "#E6E8ED",
+      surface: "#EEEFF3",
+      accent: "#2A9AA3",
+    },
     colors: {
-      background: "#0A0A0F",
-      surface: "#12121A",
-      surfaceVariant: "#1E1E2E",
-      textPrimary: "#E8E8F0",
-      textSecondary: "#7070A0",
-      textTertiary: "#4A4A6A",
-      textQuaternary: "#4A4A6A",
-      hairline: "#4A4A6A",
-      accent: "#6C63FF",
-      accentText: "#FFFFFF",
-      navBar: "#0F0F18",
-      isDark: true,
+      background: "#E6E8ED",
+      surface: "#EEEFF3",
+      surfaceVariant: "#DCDFE6",
+      textPrimary: "#1A1C22",
+      textSecondary: "#4E535E",
+      textTertiary: "#5C616C",
+      textQuaternary: "#727882",
+      hairline: "#8A909C",
+      accent: "#2A9AA3",
+      accentText: "#F4FBFC",
+      navBar: "#EEEFF3",
+      isDark: false,
+    },
+  },
+  fogAmazonite: {
+    id: "fogAmazonite",
+    name: "Fog Amazonite",
+    subtitle: "Cinza frio · petróleo",
+    previewSwatch: {
+      background: "#E6E8ED",
+      surface: "#EEEFF3",
+      accent: "#86ABB0",
+    },
+    colors: {
+      background: "#E6E8ED",
+      surface: "#EEEFF3",
+      surfaceVariant: "#DCDFE6",
+      textPrimary: "#1A1C22",
+      textSecondary: "#4E535E",
+      textTertiary: "#5C616C",
+      textQuaternary: "#727882",
+      hairline: "#8A909C",
+      accent: LIGHT_AMAZONITE_ACCENT,
+      accentText: "#F4FBFC",
+      navBar: "#EEEFF3",
+      isDark: false,
+    },
+  },
+  cloud: {
+    id: "cloud",
+    name: "Cloud",
+    subtitle: "Semi-claro",
+    previewSwatch: {
+      background: "#D5D8DE",
+      surface: "#E0E3E9",
+      accent: "#268F97",
+    },
+    colors: {
+      background: "#D5D8DE",
+      surface: "#E0E3E9",
+      surfaceVariant: "#C8CCD4",
+      textPrimary: "#17191E",
+      textSecondary: "#454A54",
+      textTertiary: "#555C66",
+      textQuaternary: "#6B727C",
+      hairline: "#7A818C",
+      accent: "#268F97",
+      accentText: "#F2FAFB",
+      navBar: "#E0E3E9",
+      isDark: false,
+    },
+  },
+  cloudAmazonite: {
+    id: "cloudAmazonite",
+    name: "Cloud Amazonite",
+    subtitle: "Semi-claro · petróleo",
+    previewSwatch: {
+      background: "#D5D8DE",
+      surface: "#E0E3E9",
+      accent: "#86ABB0",
+    },
+    colors: {
+      background: "#D5D8DE",
+      surface: "#E0E3E9",
+      surfaceVariant: "#C8CCD4",
+      textPrimary: "#17191E",
+      textSecondary: "#454A54",
+      textTertiary: "#555C66",
+      textQuaternary: "#6B727C",
+      hairline: "#7A818C",
+      accent: LIGHT_AMAZONITE_ACCENT,
+      accentText: "#F2FAFB",
+      navBar: "#E0E3E9",
+      isDark: false,
     },
   },
   obsidian: {
@@ -288,103 +375,6 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  sodalite: {
-    id: "sodalite",
-    name: "Sodalite",
-    subtitle: "Azul profundo",
-    previewSwatch: {
-      background: "#070A12",
-      surface: "#101626",
-      accent: "#A9BAD9",
-    },
-    colors: {
-      background: "#0A0E19",
-      surface: "#101626",
-      surfaceVariant: "#161E33",
-      textPrimary: "#E7EAF3",
-      textSecondary: "#8E97B2",
-      textTertiary: "#5A6480",
-      textQuaternary: "#5A6480",
-      hairline: "#5A6480",
-      accent: "#A9BAD9",
-      accentText: "#0A0F1D",
-      navBar: "#101626",
-      isDark: true,
-    },
-  },
-  hematite: {
-    id: "hematite",
-    name: "Hematite",
-    subtitle: "Preto polido",
-    previewSwatch: {
-      background: "#060707",
-      surface: "#131416",
-      accent: "#C4CCD6",
-    },
-    colors: {
-      background: "#0A0B0C",
-      surface: "#131416",
-      surfaceVariant: "#1A1C1F",
-      textPrimary: "#ECEEF1",
-      textSecondary: "#93999F",
-      textTertiary: "#5C6167",
-      textQuaternary: "#5C6167",
-      hairline: "#5C6167",
-      accent: "#C4CCD6",
-      accentText: "#0B0C0E",
-      navBar: "#131416",
-      isDark: true,
-    },
-  },
-  jade: {
-    id: "jade",
-    name: "Jade",
-    subtitle: "Verde discreto",
-    previewSwatch: {
-      background: "#121313",
-      surface: "#191B1B",
-      accent: "#7FAA92",
-    },
-    colors: {
-      background: "#121313",
-      surface: "#191B1B",
-      surfaceVariant: "#212423",
-      textPrimary: "#EAEDEB",
-      textSecondary: "#9AA19D",
-      textTertiary: "#626864",
-      textQuaternary: "#626864",
-      hairline: "#626864",
-      // Web: acento de ação (iOS actionAccent) — FAB/botões
-      accent: "#7FAA92",
-      accentText: "#0C110E",
-      navBar: "#191B1B",
-      isDark: true,
-    },
-  },
-  aventurine: {
-    id: "aventurine",
-    name: "Aventurine",
-    subtitle: "Verde profundo",
-    previewSwatch: {
-      background: "#0B0C0C",
-      surface: "#131515",
-      accent: "#5E9474",
-    },
-    colors: {
-      background: "#0B0C0C",
-      surface: "#131515",
-      surfaceVariant: "#1A1D1C",
-      textPrimary: "#ECEFED",
-      textSecondary: "#949B97",
-      textTertiary: "#5B615D",
-      textQuaternary: "#5B615D",
-      hairline: "#5B615D",
-      accent: "#5E9474",
-      accentText: "#F2F7F4",
-      navBar: "#131515",
-      isDark: true,
-    },
-  },
   amazonite: {
     id: "amazonite",
     name: "Amazonite",
@@ -409,27 +399,78 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  larimar: {
-    id: "larimar",
-    name: "Larimar",
-    subtitle: "Petróleo cinza",
+  /** Things 3–like charcoal (#1C222D) — cinza nos botões / accent. */
+  basalt: {
+    id: "basalt",
+    name: "Basalt",
+    subtitle: "Cinza Things",
     previewSwatch: {
-      background: "#141C1F",
-      surface: "#1C262A",
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#A8B0BC",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#A8B0BC",
+      accentText: "#12161E",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
+  /** Mesmo fundo Basalt + petróleo Amazonite. */
+  basaltAmazonite: {
+    id: "basaltAmazonite",
+    name: "Basalt Amazonite",
+    subtitle: "Things · petróleo",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
       accent: "#86ABB0",
     },
     colors: {
-      background: "#141C1F",
-      surface: "#1C262A",
-      surfaceVariant: "#263236",
-      textPrimary: "#E5EBEC",
-      textSecondary: "#8EA0A3",
-      textTertiary: "#5C6B6E",
-      textQuaternary: "#5C6B6E",
-      hairline: "#5C6B6E",
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
       accent: "#86ABB0",
-      accentText: "#0E1518",
-      navBar: "#1C262A",
+      accentText: "#0A1012",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
+  /** Mesmo fundo Basalt + azul do FAB Things. */
+  basaltSky: {
+    id: "basaltSky",
+    name: "Basalt Sky",
+    subtitle: "Things · azul",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#5B9FE8",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#5B9FE8",
+      accentText: "#0A121C",
+      navBar: "#282E3A",
       isDark: true,
     },
   },
@@ -440,8 +481,8 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "slate",
   "graphite",
   "moonstone",
-  "anthracite",
-  "larimar",
+  "fog",
+  "basalt",
 ]
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"
@@ -457,10 +498,14 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   const isLight = !colors.isDark
 
   root.dataset.theme = themeId
+  root.style.setProperty("color-scheme", isLight ? "light" : "dark")
   root.style.setProperty("--color-bg", colors.background)
   root.style.setProperty("--color-surface", colors.surface)
   root.style.setProperty("--color-surface-variant", colors.surfaceVariant)
-  root.style.setProperty("--color-surface-hover", colors.isDark ? "#35353d" : "#DDE2EA")
+  root.style.setProperty(
+    "--color-surface-hover",
+    isLight ? colors.surfaceVariant : "#35353d",
+  )
   root.style.setProperty("--color-text", colors.textPrimary)
   root.style.setProperty("--color-text-secondary", colors.textSecondary)
   root.style.setProperty("--color-text-tertiary", colors.textTertiary)
@@ -470,12 +515,31 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   root.style.setProperty("--color-accent-text", colors.accentText)
   root.style.setProperty(
     "--color-border",
-    isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+    isLight ? "rgba(0, 0, 0, 0.10)" : "rgba(255, 255, 255, 0.08)",
   )
   root.style.setProperty(
     "--color-border-strong",
-    isLight ? "rgba(0, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.12)",
+    isLight ? "rgba(0, 0, 0, 0.16)" : "rgba(255, 255, 255, 0.12)",
   )
+
+  // Datas / prioridades: em claro, tom um pouco mais fechado (menos “estourado”)
+  root.style.setProperty(
+    "--color-date-upcoming",
+    isLight ? "#5A6470" : "#8a9099",
+  )
+  root.style.setProperty(
+    "--color-deadline",
+    isLight ? "#4A6B88" : "#7b9bb8",
+  )
+  root.style.setProperty("--color-p1", isLight ? "#D14B52" : "#ef5a5f")
+  root.style.setProperty("--color-p2", isLight ? "#D4891A" : "#f5a623")
+  root.style.setProperty("--color-p3", isLight ? "#3A88D4" : "#4d9fec")
+  root.style.setProperty("--color-due-today", isLight ? "#1A9E94" : "#2ec4b6")
+  root.style.setProperty("--color-overdue", isLight ? "#D14B52" : "#ef5a5f")
+  root.style.setProperty("--color-tag-green", isLight ? "#6BB34F" : "#8fd46b")
+  root.style.setProperty("--chip-fill-pct", isLight ? "10%" : "14%")
+  root.style.setProperty("--chip-border-pct", isLight ? "28%" : "40%")
+  root.dataset.colorScheme = isLight ? "light" : "dark"
 
   if (isSlate) {
     root.style.setProperty("--color-nav-indicator", colors.surfaceVariant)
@@ -492,26 +556,30 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     root.style.setProperty("--color-focus-ring", colors.accent)
     root.style.setProperty("--color-btn-primary-bg", colors.accent)
     root.style.setProperty("--color-btn-primary-fg", colors.accentText)
-    root.style.setProperty("--color-btn-secondary-bg", colors.surfaceVariant)
+    // Claro: surface elevada + borda mais presente (variant some no bg)
+    root.style.setProperty(
+      "--color-btn-secondary-bg",
+      isLight ? colors.surface : colors.surfaceVariant,
+    )
     root.style.setProperty("--color-btn-secondary-fg", colors.textPrimary)
     root.style.setProperty(
       "--color-btn-secondary-border",
-      isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+      isLight ? "rgba(0, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.08)",
     )
     root.style.setProperty(
       "--color-btn-secondary-hover-bg",
-      isLight ? "#DDE2EA" : "#35353d",
+      isLight ? colors.surfaceVariant : "#35353d",
     )
     root.style.setProperty("--color-nav-badge", colors.textSecondary)
   }
 
   root.style.setProperty(
     "--color-hover-overlay",
-    isLight ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.04)",
+    isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.04)",
   )
   root.style.setProperty(
     "--color-hover-overlay-strong",
-    isLight ? "rgba(0, 0, 0, 0.07)" : "rgba(255, 255, 255, 0.07)",
+    isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.07)",
   )
   root.style.setProperty("--color-placeholder", colors.textSecondary)
   root.style.setProperty(
@@ -520,7 +588,7 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   )
   root.style.setProperty(
     "--color-scrollbar-thumb",
-    isLight ? "rgba(0, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.14)",
+    isLight ? "rgba(0, 0, 0, 0.18)" : "rgba(255, 255, 255, 0.14)",
   )
 
   if (isSlate) {
@@ -531,12 +599,7 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     root.style.setProperty("--color-selected-fg", colors.accentText)
   }
 
-  if (themeId === "moonstone") {
-    root.style.setProperty("--color-inspector-bg", "#FFFFFF")
-    root.style.setProperty("--color-bg", "#EEF1F6")
-  } else {
-    root.style.setProperty("--color-inspector-bg", colors.surface)
-  }
+  root.style.setProperty("--color-inspector-bg", colors.surface)
 
   let themeColorMeta = document.querySelector('meta[name="theme-color"]')
   if (!themeColorMeta) {
@@ -544,8 +607,5 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     themeColorMeta.setAttribute("name", "theme-color")
     document.head.appendChild(themeColorMeta)
   }
-  themeColorMeta.setAttribute(
-    "content",
-    themeId === "moonstone" ? "#EEF1F6" : colors.background,
-  )
+  themeColorMeta.setAttribute("content", colors.background)
 }

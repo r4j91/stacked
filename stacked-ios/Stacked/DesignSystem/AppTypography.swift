@@ -9,8 +9,8 @@ enum AppTypography {
   static let taskPreview: Font = .system(size: 14)
   static let body: Font = .system(size: 14)
   static let bodySemibold: Font = .system(size: 15, weight: .semibold)
-  static let meta: Font = .system(size: 12)
-  static let metaSmall: Font = .system(size: 11)
+  static let meta: Font = .system(size: 12, weight: .medium)
+  static let metaSmall: Font = .system(size: 11, weight: .medium)
   static let sectionLabel: Font = .system(size: 11, weight: .bold)
   /// Título de seção colapsável em detalhe de projeto.
   static let collapsibleSectionTitle: Font = .system(size: 14, weight: .bold)

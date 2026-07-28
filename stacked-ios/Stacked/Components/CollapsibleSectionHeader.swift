@@ -47,13 +47,22 @@ struct CollapsibleSectionHeader: View {
         AnchoredTapButton { rect in
           openSectionMenu(section: section, anchor: rect)
         } label: {
-          StackedIcons.image(.more)
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(c.textTertiary)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
+          StackedIcons.icon(.more, size: 16, color: c.textPrimary)
+            .frame(width: 32, height: 32)
+            .background {
+              Circle()
+                .fill(c.isDark ? c.surfaceVariant : c.surface)
+            }
+            .overlay {
+              if !c.isDark {
+                Circle()
+                  .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+              }
+            }
+            .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableStyle(cornerRadius: 16))
+        .padding(.leading, 4)
         .accessibilityLabel("Opções da seção \(title)")
       }
     }

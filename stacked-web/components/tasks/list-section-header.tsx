@@ -72,7 +72,7 @@ export function ListSectionHeader({
           type="button"
           data-no-reorder
           onClick={onToggle}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-text-secondary)]"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-btn-secondary-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-btn-secondary-hover-bg)] hover:text-[var(--color-text)]"
           aria-expanded={expanded}
           aria-label={expanded ? "Recolher seção" : "Expandir seção"}
         >
@@ -102,7 +102,7 @@ export function ListSectionHeader({
           type="button"
           data-no-reorder
           onClick={(e) => onMenu(e.currentTarget.getBoundingClientRect())}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-text-secondary)]"
+          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-btn-secondary-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--color-btn-secondary-hover-bg)] hover:text-[var(--color-text)]"
           aria-label={`Opções da seção ${title}`}
         >
           ···

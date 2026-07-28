@@ -37,7 +37,7 @@ struct DoneCircle: View {
   var size: CGFloat = 22
   var borderWidth: CGFloat = 2
   var tickSize: CGFloat = 13
-  var ringColor: Color = Color(hex: 0x6B6E76)
+  var ringColor: Color = ThemeManager.shared.colors.textTertiary
   var ringFillAlpha: CGFloat = 0
   /// UIKit cell + scroll: bitmap estático — `Circle().strokeBorder` “nada” no AA.
   var scrollStable: Bool = false

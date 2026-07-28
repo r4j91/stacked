@@ -158,7 +158,8 @@ textarea {
 
 [data-upcoming-scroll],
 .scroll-pane {
-  contain: layout style paint;
+  /* Sem `paint`: troca de tema deixava tarjas/bands stale no Em breve. */
+  contain: layout style;
 }
 
 /* Hover só com mouse fino — evita transition durante scroll/trackpad */
@@ -230,6 +231,15 @@ textarea:focus:not(:focus-visible) {
     background-color 0.15s ease-out,
     border-color 0.15s ease-out,
     color 0.15s ease-out;
+}
+
+:root[data-color-scheme="light"] .btn-secondary {
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-color-scheme="light"] .task-meta-line {
+  font-weight: 500;
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -455,14 +465,41 @@ textarea:focus:not(:focus-visible) {
   content-visibility: visible;
   contain-intrinsic-size: auto;
   display: grid;
-  align-items: center;
+  align-items: start;
   column-gap: 8px;
   grid-template-columns: var(--reorder-gutter) min-content minmax(0, 1fr) var(--task-row-rail);
 }
 
 .task-row-grid__content {
-  align-self: center;
+  align-self: start;
   min-width: 0;
+}
+
+.task-row-grid__circle {
+  width: 22px;
+}
+
+/* Halo — balão único envolvendo header + subtarefas (paridade iOS cardsLight) */
+.task-halo-balloon {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 5.5%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-background));
+}
+
+.task-halo-balloon .task-row--in-halo {
+  margin-bottom: 0;
+  border-color: transparent;
+  background: transparent;
+  border-radius: 0;
+}
+
+.task-halo-balloon .task-row--in-halo[data-selected] {
+  background: var(--color-hover-overlay);
+}
+
+.task-halo-balloon__panel[data-open="true"] > div {
+  background: color-mix(in srgb, var(--color-background) 42%, transparent);
 }
 
 .task-row-rail {

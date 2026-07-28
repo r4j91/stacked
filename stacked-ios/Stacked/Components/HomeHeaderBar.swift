@@ -103,12 +103,17 @@ private struct HomeHeaderQuietBorder: ViewModifier {
   func body(content: Content) -> some View {
     let c = theme.colors
     let mode = ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+    let showQuiet = mode == .quiet || mode == .frosted
+    // Temas claros: borda sempre — pills somem no fundo sem contorno.
+    let showLightEdge = !c.isDark
     content.overlay {
-      if mode == .quiet || mode == .frosted {
+      if showQuiet || showLightEdge {
         Capsule()
           .strokeBorder(
-            c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-            lineWidth: LiquidGlass.navSelectionStrokeWidth
+            c.isDark
+              ? c.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity)
+              : Color.black.opacity(0.12),
+            lineWidth: c.isDark ? LiquidGlass.navSelectionStrokeWidth : 1
           )
       }
     }

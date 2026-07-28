@@ -19,7 +19,7 @@ struct NavBarStylePreview: View {
     .overlay {
       RoundedRectangle(cornerRadius: 8)
         .strokeBorder(
-          selected ? colors.accent : Color.white.opacity(0.08),
+          selected ? colors.accent : (colors.isDark ? Color.white : Color.black).opacity(0.08),
           lineWidth: selected ? 1.5 : 1
         )
     }

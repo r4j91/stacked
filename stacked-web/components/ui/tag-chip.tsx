@@ -4,6 +4,7 @@ import { AppIcon } from "@/components/ui/app-icon";
 import { Tag01Icon } from "@/lib/icons/nav-icons";
 import type { Home01Icon } from "@hugeicons/core-free-icons";
 import type { LabelChipStyle } from "@/lib/theme/label-chip-style";
+import { useMetaInk } from "@/lib/theme/use-meta-ink";
 
 type TagChipProps = {
   label: string;
@@ -23,26 +24,27 @@ export function TagChip({
   maxWidth,
   style = "soft",
 }: TagChipProps) {
+  const ink = useMetaInk(color);
   const maxW = maxWidth ? `${maxWidth}px` : undefined;
 
   if (style === "dot") {
     return (
       <span className="inline-flex max-w-full items-center gap-1.5" style={{ maxWidth: maxW }}>
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ink }} />
         <span className="truncate text-xs font-medium text-[var(--color-text-secondary)]">{label}</span>
       </span>
     );
   }
 
   if (style === "flat" || style === "ink") {
-    const textColor = style === "ink" ? "var(--color-text-secondary)" : color;
+    const textColor = style === "ink" ? "var(--color-text-secondary)" : ink;
     return (
       <span
         className="inline-flex max-w-full items-center gap-1 text-xs font-medium"
         style={{ color: textColor, maxWidth: maxW }}
       >
         {showIcon && (
-          <span style={{ color }} className="inline-flex shrink-0">
+          <span style={{ color: ink }} className="inline-flex shrink-0">
             <AppIcon icon={icon as typeof Home01Icon} size={14} strokeWidth={1.75} />
           </span>
         )}
@@ -56,9 +58,9 @@ export function TagChip({
       <span
         className="inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium"
         style={{
-          color,
+          color: ink,
           backgroundColor: "transparent",
-          borderColor: `color-mix(in srgb, ${color} 50%, transparent)`,
+          borderColor: `color-mix(in srgb, ${ink} 50%, transparent)`,
           maxWidth: maxW,
         }}
       >
@@ -72,9 +74,9 @@ export function TagChip({
     <span
       className="inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium"
       style={{
-        color,
-        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-        borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+        color: ink,
+        backgroundColor: `color-mix(in srgb, ${ink} var(--chip-fill-pct, 12%), transparent)`,
+        borderColor: `color-mix(in srgb, ${ink} var(--chip-border-pct, 30%), transparent)`,
         maxWidth: maxW,
       }}
     >

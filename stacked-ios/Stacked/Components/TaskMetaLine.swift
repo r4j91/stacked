@@ -374,7 +374,7 @@ struct TaskRowEyebrow: View {
         if showPriority, let priority {
           Text(priority.label)
             .font(.system(size: 10, weight: .bold))
-            .foregroundStyle(priority.color)
+            .foregroundStyle(priority.color.metaInk(isDark: theme.colors.isDark))
             .tracking(0.4)
         }
       }
@@ -385,15 +385,20 @@ struct TaskRowEyebrow: View {
 
 /// Agenda fundida plana (Hoje · 14:30) — layouts F2/X2.
 private struct FusedScheduleFlat: View {
+  @Environment(ThemeManager.self) private var theme
   let label: String
   let color: Color
 
+  private var ink: Color {
+    color.metaInk(isDark: theme.colors.isDark)
+  }
+
   var body: some View {
     HStack(alignment: .center, spacing: 4) {
-      StackedIcons.icon(.calendar, size: 14, color: color)
+      StackedIcons.icon(.calendar, size: 14, color: ink)
       Text(label)
         .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(color)
+        .foregroundStyle(ink)
         .lineLimit(1)
         .monospacedDigit()
     }
@@ -401,15 +406,20 @@ private struct FusedScheduleFlat: View {
 }
 
 private struct PriorityFlagChip: View {
+  @Environment(ThemeManager.self) private var theme
   let priority: Priority
+
+  private var ink: Color {
+    priority.color.metaInk(isDark: theme.colors.isDark)
+  }
 
   var body: some View {
     Text(priority.label)
       .font(.system(size: 10, weight: .bold))
-      .foregroundStyle(priority.color)
+      .foregroundStyle(ink)
       .padding(.horizontal, 6)
       .padding(.vertical, 2)
-      .background(priority.color.opacity(0.14))
+      .background(ink.opacity(0.14))
       .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
   }
 }
@@ -441,6 +451,10 @@ struct TagChip: View {
   /// `.soft` fixo para prioridade; etiquetas passam a preferência do Aparência.
   var style: LabelChipStyle = .soft
 
+  private var ink: Color {
+    color.metaInk(isDark: theme.colors.isDark)
+  }
+
   var body: some View {
     switch style {
     case .soft:
@@ -457,22 +471,22 @@ struct TagChip: View {
   }
 
   private var softChip: some View {
-    chipContent(textColor: color, iconColor: color)
+    chipContent(textColor: ink, iconColor: ink)
       .padding(.horizontal, 7)
       .padding(.vertical, 3)
-      .background(color.opacity(0.12))
+      .background(ink.opacity(0.12))
       .clipShape(RoundedRectangle(cornerRadius: 6))
-      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.30), lineWidth: 0.8))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(ink.opacity(0.30), lineWidth: 0.8))
   }
 
   private var flatChip: some View {
-    chipContent(textColor: color, iconColor: color)
+    chipContent(textColor: ink, iconColor: ink)
   }
 
   private var dotChip: some View {
     HStack(alignment: .center, spacing: 5) {
       Circle()
-        .fill(color)
+        .fill(ink)
         .frame(width: 6, height: 6)
       Text(label)
         .font(.system(size: 12, weight: .medium))
@@ -482,15 +496,15 @@ struct TagChip: View {
   }
 
   private var inkChip: some View {
-    chipContent(textColor: theme.colors.textSecondary, iconColor: color)
+    chipContent(textColor: theme.colors.textSecondary, iconColor: ink)
   }
 
   private var outlineChip: some View {
-    chipContent(textColor: color, iconColor: color)
+    chipContent(textColor: ink, iconColor: ink)
       .padding(.horizontal, 7)
       .padding(.vertical, 3)
       .clipShape(RoundedRectangle(cornerRadius: 6))
-      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.50), lineWidth: 0.8))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(ink.opacity(0.50), lineWidth: 0.8))
   }
 
   @ViewBuilder
@@ -605,6 +619,10 @@ struct DueDateChip: View {
   var style: DueDateChipStyle = .soft
   var icon: StackedIconKey = .calendar
 
+  private var ink: Color {
+    color.metaInk(isDark: theme.colors.isDark)
+  }
+
   var body: some View {
     switch style {
     case .soft:
@@ -621,22 +639,22 @@ struct DueDateChip: View {
   }
 
   private var softChip: some View {
-    chipContent(textColor: color, showIcon: true)
+    chipContent(textColor: ink, showIcon: true)
       .padding(.horizontal, 7)
       .padding(.vertical, 3)
-      .background(color.opacity(0.12))
+      .background(ink.opacity(0.12))
       .clipShape(RoundedRectangle(cornerRadius: 6))
-      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.30), lineWidth: 0.8))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(ink.opacity(0.30), lineWidth: 0.8))
   }
 
   private var flatChip: some View {
-    chipContent(textColor: color, showIcon: true)
+    chipContent(textColor: ink, showIcon: true)
   }
 
   private var plainChip: some View {
     Text(label)
       .font(.system(size: 12, weight: .medium))
-      .foregroundStyle(color)
+      .foregroundStyle(ink)
       .lineLimit(1)
   }
 
@@ -645,36 +663,36 @@ struct DueDateChip: View {
       dayBadge
       Text(label)
         .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(color)
+        .foregroundStyle(ink)
         .lineLimit(1)
     }
   }
 
   private var outlineChip: some View {
-    chipContent(textColor: color, showIcon: true)
+    chipContent(textColor: ink, showIcon: true)
       .padding(.horizontal, 7)
       .padding(.vertical, 3)
       .clipShape(RoundedRectangle(cornerRadius: 6))
-      .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.50), lineWidth: 0.8))
+      .overlay(RoundedRectangle(cornerRadius: 6).stroke(ink.opacity(0.50), lineWidth: 0.8))
   }
 
   private var dayBadge: some View {
     Text(day.map(String.init) ?? "–")
       .font(.system(size: 9, weight: .bold, design: .rounded))
-      .foregroundStyle(color)
+      .foregroundStyle(ink)
       .frame(width: 16, height: 14)
-      .background(color.opacity(0.14))
+      .background(ink.opacity(0.14))
       .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
       .overlay(
         RoundedRectangle(cornerRadius: 3, style: .continuous)
-          .stroke(color.opacity(0.40), lineWidth: 0.7)
+          .stroke(ink.opacity(0.40), lineWidth: 0.7)
       )
   }
 
   private func chipContent(textColor: Color, showIcon: Bool) -> some View {
     HStack(alignment: .center, spacing: 4) {
       if showIcon {
-        StackedIcons.icon(icon, size: 14, color: color)
+        StackedIcons.icon(icon, size: 14, color: ink)
       }
       Text(label)
         .font(.system(size: 12, weight: .medium))

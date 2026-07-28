@@ -23,13 +23,14 @@ struct TaskListScreenHeader: View {
   }
 
   var body: some View {
+    let c = theme.colors
     ScreenHeaderChrome(title: title, subtitle: subtitle) {
       Button(action: openOptionsMenu) {
-        StackedIcons.icon(.more, size: 20, color: theme.colors.textSecondary)
-          .frame(width: 44, height: 44)
-          .contentShape(Rectangle())
+        LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+          StackedIcons.icon(.more, size: 18, color: c.textPrimary)
+        }
       }
-      .buttonStyle(PressableStyle(cornerRadius: 10))
+      .buttonStyle(PressableStyle(cornerRadius: 20))
       .readAnchor($optionsAnchor)
       .accessibilityLabel("Opções")
     }

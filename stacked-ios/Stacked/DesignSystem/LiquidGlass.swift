@@ -263,7 +263,11 @@ private struct PopoverCardSurface<Content: View>: View {
       }
     }
     .overlay {
-      shape.strokeBorder(Color.white.opacity(PopoverStyle.cardStrokeOpacity), lineWidth: 0.5)
+      shape.strokeBorder(
+        (theme.colors.isDark ? Color.white : Color.black)
+          .opacity(PopoverStyle.cardStrokeOpacity * (theme.colors.isDark ? 1 : 1.25)),
+        lineWidth: 0.5
+      )
     }
     .shadow(
       color: .black.opacity(suppressShadow ? 0 : PopoverStyle.cardShadowOpacity),
@@ -395,6 +399,7 @@ private struct FabGlassSurface<Content: View>: View {
 }
 
 private struct ToolbarGlassPill<Content: View>: View {
+  @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
 
@@ -425,23 +430,39 @@ private struct ToolbarGlassPill<Content: View>: View {
     GlassChromePreference.prefersQuiet(mode: chromeMode)
   }
 
+  /// Em claro, surfaceVariant ≈ fundo — eleva com `surface` + borda legível.
+  private var pillFill: Color {
+    let c = theme.colors
+    return c.isDark ? navBarColor : c.surface
+  }
+
   var body: some View {
+    let isLight = !theme.colors.isDark
     let padded = content
       .padding(.horizontal, 14)
       .padding(.vertical, 7)
 
-    if useSolid {
-      padded.background(Capsule().fill(navBarColor))
-    } else if useStaticFrosted {
-      padded.background { LiquidGlass.frostedFill(shape: Capsule(), tint: navBarColor) }
-    } else if useStaticFrozen {
-      padded.background(Capsule().fill(navBarColor.opacity(LiquidGlass.frozenTrackOpacity)))
-    } else {
-      padded.glassEffect(
-        .regular.tint(navBarColor.opacity(LiquidGlass.glassTintOpacity)),
-        in: .capsule
-      )
+    Group {
+      if useSolid {
+        padded.background(Capsule().fill(pillFill))
+      } else if useStaticFrosted {
+        padded.background { LiquidGlass.frostedFill(shape: Capsule(), tint: pillFill) }
+      } else if useStaticFrozen {
+        padded.background(Capsule().fill(pillFill.opacity(LiquidGlass.frozenTrackOpacity)))
+      } else {
+        padded.glassEffect(
+          .regular.tint(pillFill.opacity(LiquidGlass.glassTintOpacity)),
+          in: .capsule
+        )
+      }
     }
+    .overlay {
+      if isLight {
+        Capsule()
+          .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+      }
+    }
+    .shadow(color: isLight ? Color.black.opacity(0.06) : .clear, radius: isLight ? 2 : 0, y: isLight ? 1 : 0)
   }
 }
 

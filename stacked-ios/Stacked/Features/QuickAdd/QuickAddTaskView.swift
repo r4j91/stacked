@@ -415,7 +415,7 @@ struct QuickAddTaskView: View {
       PopoverMenuItem(id: "low", icon: Hugeicons.flag01, label: "Prioridade 3",
                       selected: priority == .low, iconColor: AppColors.priorityLow),
       PopoverMenuItem(id: "none", icon: Hugeicons.flag01, label: "Sem prioridade",
-                      selected: priority == nil, iconColor: Color(hex: 0x6B6E76)),
+                      selected: priority == nil, iconColor: theme.colors.textTertiary),
     ]) { result in
       guard let result else { return }
       switch result {

@@ -112,5 +112,5 @@ enum FilterCriteriaSummary {
 }
 
 private extension AppColors {
-  static var textTertiaryFallback: Color { Color(hex: 0x6B6E76) }
+  static var textTertiaryFallback: Color { ThemeManager.shared.colors.textTertiary }
 }

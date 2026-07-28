@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Paridade lib/theme/app_colors.dart — cores semânticas (não mudam com tema)
 enum AppColors {
@@ -14,10 +15,14 @@ enum AppColors {
 
   static let dateDueToday = Color(hex: 0x2EC4B6)
   static let dateOverdue = Color(hex: 0xDC4C3E)
-  /// Data futura — cinza cool (não compete com o accent).
-  static let dateUpcoming = Color(hex: 0x8A9099)
+  /// Data futura — cinza cool (não compete com o accent). Em claro, tom mais escuro p/ contraste.
+  static var dateUpcoming: Color {
+    ThemeManager.shared.colors.isDark ? Color(hex: 0x8A9099) : Color(hex: 0x5A6470)
+  }
   /// Prazo (Deadline) — aço azulado; distinto da data e do accent teal.
-  static let deadline = Color(hex: 0x7B9BB8)
+  static var deadline: Color {
+    ThemeManager.shared.colors.isDark ? Color(hex: 0x7B9BB8) : Color(hex: 0x4A6B88)
+  }
   /// Chip de data concluída / neutro.
   static let textTertiary = Color(hex: 0x6B6E76)
 
@@ -31,5 +36,37 @@ enum AppColors {
     let clean = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
     guard let value = UInt32(clean, radix: 16) else { return fallback }
     return Color(hex: value)
+  }
+}
+
+// MARK: - Meta ink (claro)
+
+/// Dessatura cores de meta (chips) só no tema claro — escuro intacto.
+enum SoftMetaColor {
+  private static let saturationScale: CGFloat = 0.52
+
+  static func soften(_ color: Color, isDark: Bool) -> Color {
+    guard !isDark else { return color }
+    let ui = UIColor(color)
+    var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    if ui.getHue(&h, saturation: &s, brightness: &b, alpha: &a) {
+      let softS = s * saturationScale
+      let softB = min(b, 0.72) * 0.88 + 0.06
+      return Color(UIColor(hue: h, saturation: softS, brightness: softB, alpha: a))
+    }
+    var r: CGFloat = 0, g: CGFloat = 0, bl: CGFloat = 0
+    guard ui.getRed(&r, green: &g, blue: &bl, alpha: &a) else { return color }
+    let mix: CGFloat = 0.42
+    let nr = r * (1 - mix) + 0.36 * mix
+    let ng = g * (1 - mix) + 0.39 * mix
+    let nb = bl * (1 - mix) + 0.44 * mix
+    return Color(UIColor(red: nr, green: ng, blue: nb, alpha: a))
+  }
+}
+
+extension Color {
+  /// Cor de tinta para metadados — dessaturada no claro.
+  func metaInk(isDark: Bool) -> Color {
+    SoftMetaColor.soften(self, isDark: isDark)
   }
 }

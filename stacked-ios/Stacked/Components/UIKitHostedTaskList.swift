@@ -379,6 +379,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var lastFingerprint: Int = 0
   /// Estilo/layout da row — se só flat/insets mudam, ItemIDs iguais e o apply não reconfigura cells.
   private var lastPresentationKey: Int = 0
+  /// Tema atual — fingerprint estrutural ignora bg; sticky headers do Em breve ficavam com fill velho.
+  private var lastThemeToken: Int = 0
   private var taskById: [String: Task] = [:]
   private var scheduleSubtaskById: [String: SubtaskScheduleEntry] = [:]
   private var calendarEventById: [String: CalendarEvent] = [:]
@@ -404,6 +406,8 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   /// PERF_SCROLL_345 (item 3): reconfigure de conteúdo chegado no meio do fling —
   /// aplica uma vez só no settle em vez de custar frames durante o gesto.
   private var pendingContentRefresh = false
+  /// Troca de tema durante scroll — aplica chrome/sticky no settle.
+  private var pendingThemeRefresh = false
   /// Continuidade do trilho por ItemID (só com timelineRailEnabled).
   private var timelineRailEdges: [ItemID: (up: Bool, down: Bool)] = [:]
 
@@ -913,6 +917,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
     let presentationKey = Self.presentationKey(configuration)
     let presentationChanged = presentationKey != lastPresentationKey
+    let themeToken = Self.themeToken(configuration.background)
+    let themeChanged = themeToken != lastThemeToken
+    if themeChanged {
+      lastThemeToken = themeToken
+    }
 
     if fingerprint == lastFingerprint {
       // PERF_SCROLL_345 (item 3): store “pingando” no meio do fling não custa
@@ -920,6 +929,11 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       // Estrutura (fingerprint) mudando ainda aplica na hora, mesmo rolando.
       if isUserScrolling {
         pendingContentRefresh = true
+        if themeChanged { pendingThemeRefresh = true }
+        return
+      }
+      if themeChanged {
+        applyThemeChromeRefresh()
         return
       }
       // Mesma estrutura — ainda assim refresca bodies (done de subtarefa etc.).
@@ -930,6 +944,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     lastPresentationKey = presentationKey
     // Rebuild estrutural cobre o conteúdo — refresh pendente do fling fica obsoleto.
     pendingContentRefresh = false
+    pendingThemeRefresh = false
     taskContentHashById = [:]
     for section in configuration.sections {
       for task in Self.tasks(in: section) {
@@ -988,32 +1003,48 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
     // Diffable: se os ItemIDs forem iguais (ex.: Balões↔Balões+), apply não
     // reconfigura — força refresh das task cells para o novo layout.
-    if presentationChanged {
+    if presentationChanged || themeChanged {
       clearVisibleLockedHeights()
-      reconfigureAllTaskItems()
+      reconfigureAllVisibleChrome()
     }
+  }
+
+  /// Sticky day headers + cells + ícones — sem rebuild estrutural.
+  private func applyThemeChromeRefresh() {
+    pendingThemeRefresh = false
+    warmRowIconCache()
+    refreshVisiblePinnedPlainHeaders()
+    reconfigureAllVisibleChrome()
+  }
+
+  private func refreshVisiblePinnedPlainHeaders() {
+    guard config?.pinPlainSectionHeaders == true, collectionView != nil else { return }
+    let kind = UICollectionView.elementKindSectionHeader
+    for indexPath in collectionView.indexPathsForVisibleSupplementaryElements(ofKind: kind) {
+      guard let cell = collectionView.supplementaryView(forElementKind: kind, at: indexPath)
+              as? UICollectionViewCell
+      else { continue }
+      configurePinnedPlainHeader(cell, at: indexPath)
+    }
+  }
+
+  private func reconfigureAllVisibleChrome() {
+    guard dataSource != nil else { return }
+    var snap = dataSource.snapshot()
+    let rows = snap.itemIdentifiers
+    guard !rows.isEmpty else {
+      refreshVisiblePinnedPlainHeaders()
+      return
+    }
+    snap.reconfigureItems(rows)
+    dataSource.apply(snap, animatingDifferences: false)
+    refreshVisiblePinnedPlainHeaders()
   }
 
   private func clearVisibleLockedHeights() {
     for cell in collectionView.visibleCells {
       (cell as? UIKitSizedTaskCell)?.lockedHeight = nil
     }
-  }
-
-  private func reconfigureAllTaskItems() {
-    guard dataSource != nil else { return }
-    var snap = dataSource.snapshot()
-    let rows = snap.itemIdentifiers.filter {
-      switch $0 {
-      case .task, .scheduleSubtask, .calendarEvent:
-        return true
-      default:
-        return false
-      }
-    }
-    guard !rows.isEmpty else { return }
-    snap.reconfigureItems(rows)
-    dataSource.apply(snap, animatingDifferences: false)
   }
 
   private func rebuildTimelineRailEdges(from configuration: Configuration) {
@@ -1169,6 +1200,19 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.rowInsets.top)
     hasher.combine(configuration.rowInsets.right)
     hasher.combine(configuration.rowInsets.bottom)
+    return hasher.finalize()
+  }
+
+  /// Detecta troca de tema mesmo com lista estruturalmente idêntica (Em breve sticky).
+  private static func themeToken(_ background: UIColor) -> Int {
+    var hasher = Hasher()
+    hasher.combine(ThemeManager.shared.currentId.rawValue)
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    background.getRed(&r, green: &g, blue: &b, alpha: &a)
+    hasher.combine(Int((r * 255).rounded()))
+    hasher.combine(Int((g * 255).rounded()))
+    hasher.combine(Int((b * 255).rounded()))
+    hasher.combine(Int((a * 255).rounded()))
     return hasher.finalize()
   }
 
@@ -1492,6 +1536,12 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     isUserScrolling = false
     if scrollWorkGate.isScrolling {
       scrollWorkGate.isScrolling = false
+    }
+    if pendingThemeRefresh {
+      pendingThemeRefresh = false
+      pendingContentRefresh = false
+      applyThemeChromeRefresh()
+      return
     }
     if pendingContentRefresh {
       pendingContentRefresh = false

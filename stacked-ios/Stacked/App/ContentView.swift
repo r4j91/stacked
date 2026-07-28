@@ -88,7 +88,9 @@ struct ContentView: View {
       RoundedRectangle(cornerRadius: 8)
         .fill(color)
         .frame(height: 44)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+          (theme.colors.isDark ? Color.white : Color.black).opacity(0.08)
+        ))
       Text(label)
         .font(AppTypography.metaSmall)
         .foregroundStyle(theme.colors.textTertiary)

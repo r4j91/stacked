@@ -969,7 +969,9 @@ struct AppearanceView: View {
     }
     .frame(height: 36)
     .clipShape(RoundedRectangle(cornerRadius: 8))
-    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.08)))
+    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+      (themeId.colors.isDark ? Color.white : Color.black).opacity(0.08)
+    ))
   }
 
   private func iconPreview(_ iconId: AppIconId) -> some View {
@@ -980,7 +982,7 @@ struct AppearanceView: View {
       .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       .overlay(
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-          .stroke(Color.white.opacity(0.08))
+          .stroke((theme.colors.isDark ? Color.white : Color.black).opacity(0.08))
       )
   }
 }
@@ -1027,7 +1029,9 @@ private struct AppearanceSectionHeader: View {
             .fill(expanded ? c.accent.opacity(0.16) : c.surface)
           RoundedRectangle(cornerRadius: 11, style: .continuous)
             .strokeBorder(
-              expanded ? c.accent.opacity(0.28) : Color.white.opacity(0.06),
+              expanded
+                ? c.accent.opacity(0.28)
+                : (c.isDark ? Color.white : Color.black).opacity(0.06),
               lineWidth: 1
             )
           StackedIcons.icon(icon, size: 17, color: expanded ? c.accent : c.textSecondary)

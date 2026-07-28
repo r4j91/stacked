@@ -10,16 +10,18 @@ struct PressableStyle: ButtonStyle {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label
+    let highlight = (ThemeManager.shared.colors.isDark ? Color.white : Color.black)
+      .opacity(highlightOpacity)
+    return configuration.label
       .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
       .background {
         Group {
           if configuration.isPressed {
             if let cornerRadius {
               RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(Color.white.opacity(highlightOpacity))
+                .fill(highlight)
             } else {
-              Color.white.opacity(highlightOpacity)
+              highlight
             }
           }
         }

@@ -327,8 +327,9 @@ private struct PopoverRowButtonStyle: ButtonStyle {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .background(configuration.isPressed ? Color.white.opacity(0.06) : Color.clear)
+    let pressFill = (ThemeManager.shared.colors.isDark ? Color.white : Color.black).opacity(0.06)
+    return configuration.label
+      .background(configuration.isPressed ? pressFill : Color.clear)
       // SUBSTITUIDO_FASE2: .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
       .animation(AppMotion.press(reduceMotion: reduceMotion), value: configuration.isPressed)
   }

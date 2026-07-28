@@ -136,7 +136,7 @@ struct TaskContextMenu: ViewModifier {
           PopoverMenuItem(id: "priority:low", icon: Hugeicons.flag01, label: "Baixa",
                           selected: task.priority == .low, iconColor: AppColors.priorityLow),
           PopoverMenuItem(id: "priority:none", icon: Hugeicons.flag01, label: "Sem prioridade",
-                          selected: task.priority == nil, iconColor: Color(hex: 0x6B6E76)),
+                          selected: task.priority == nil, iconColor: ThemeManager.shared.colors.textTertiary),
         ]
       ),
       PopoverMenuItem(

@@ -461,7 +461,7 @@ function SubtasksCard({ task }: { task: Task }) {
         >
           Parcelas
         </button>
-        <div className="h-0.5 max-w-20 flex-1 overflow-hidden rounded bg-white/10">
+        <div className="h-0.5 max-w-20 flex-1 overflow-hidden rounded bg-[var(--color-border)]">
           <div className="h-full rounded bg-[var(--color-done)]" style={{ width: `${pct}%` }} />
         </div>
         <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">
