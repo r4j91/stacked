@@ -11,9 +11,9 @@ export function softenMetaColor(color: string, isLight: boolean): string {
   if (!rgb) return color
 
   const [h, s, l] = rgbToHsl(rgb.r, rgb.g, rgb.b)
-  // Menos chroma (~45% da saturação) e L um pouco mais baixo p/ contraste no claro
-  const softS = s * 0.52
-  const softL = Math.max(0.28, Math.min(0.52, l * 0.78))
+  // Antes ~52% da saturação (muito cinza); sobe um pouco sem voltar ao vivo.
+  const softS = s * 0.68
+  const softL = Math.max(0.28, Math.min(0.56, l * 0.82))
   const out = hslToRgb(h, softS, softL)
   return rgbToHex(out.r, out.g, out.b)
 }

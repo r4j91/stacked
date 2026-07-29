@@ -43,7 +43,8 @@ enum AppColors {
 
 /// Dessatura cores de meta (chips) só no tema claro — escuro intacto.
 enum SoftMetaColor {
-  private static let saturationScale: CGFloat = 0.52
+  /// Antes 0.52 (muito cinza); sobe um pouco a saturação sem voltar ao vivo.
+  private static let saturationScale: CGFloat = 0.68
 
   static func soften(_ color: Color, isDark: Bool) -> Color {
     guard !isDark else { return color }
@@ -51,12 +52,12 @@ enum SoftMetaColor {
     var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     if ui.getHue(&h, saturation: &s, brightness: &b, alpha: &a) {
       let softS = s * saturationScale
-      let softB = min(b, 0.72) * 0.88 + 0.06
+      let softB = min(b, 0.74) * 0.90 + 0.05
       return Color(UIColor(hue: h, saturation: softS, brightness: softB, alpha: a))
     }
     var r: CGFloat = 0, g: CGFloat = 0, bl: CGFloat = 0
     guard ui.getRed(&r, green: &g, blue: &bl, alpha: &a) else { return color }
-    let mix: CGFloat = 0.42
+    let mix: CGFloat = 0.28
     let nr = r * (1 - mix) + 0.36 * mix
     let ng = g * (1 - mix) + 0.39 * mix
     let nb = bl * (1 - mix) + 0.44 * mix

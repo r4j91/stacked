@@ -127,8 +127,15 @@ struct AnchoredNotesPopoverOverlay: View {
           .focused($focused)
           .padding(12)
           .frame(maxWidth: .infinity, minHeight: 140, alignment: .topLeading)
-          .background(c.surfaceVariant.opacity(0.9))
+          .background(c.surfaceVariant.opacity(c.isDark ? 0.9 : 1))
           .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+              .strokeBorder(
+                c.isDark ? Color.clear : Color.black.opacity(0.12),
+                lineWidth: 1
+              )
+          )
           .padding(.horizontal, 12)
           .onChange(of: text) { _, _ in
             onTextChange?()
@@ -141,6 +148,7 @@ struct AnchoredNotesPopoverOverlay: View {
             icon: .copy,
             tint: c.textSecondary,
             fill: c.surfaceVariant,
+            outlined: !c.isDark,
             enabled: canCopy || didCopy
           ) {
             copyAll()
@@ -153,6 +161,7 @@ struct AnchoredNotesPopoverOverlay: View {
             icon: .check,
             tint: Color.black.opacity(0.82),
             fill: c.accent,
+            outlined: false,
             enabled: true
           ) {
             HapticService.selection()
@@ -172,6 +181,7 @@ struct AnchoredNotesPopoverOverlay: View {
     icon: StackedIconKey,
     tint: Color,
     fill: Color,
+    outlined: Bool = false,
     enabled: Bool,
     action: @escaping () -> Void
   ) -> some View {
@@ -187,6 +197,13 @@ struct AnchoredNotesPopoverOverlay: View {
       .padding(.vertical, 11)
       .background(fill.opacity(enabled ? 1 : 0.55))
       .clipShape(Capsule())
+      .overlay(
+        Capsule()
+          .strokeBorder(
+            outlined ? Color.black.opacity(enabled ? 0.14 : 0.08) : Color.clear,
+            lineWidth: 1
+          )
+      )
     }
     .buttonStyle(.plain)
   }

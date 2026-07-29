@@ -865,18 +865,30 @@ struct TaskRow: View {
     let c = theme.colors
     if flatSubtaskQueue { return .clear }
     guard style.isCardFamily else { return .clear }
+
     // Halo: painel mais escuro (menos lift claro no celular).
     if style == .cardLight {
+      if c.isDark {
+        if !stabilizeExpandInSelfSizingCell {
+          return c.background.opacity(0.38)
+        }
+        let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+        return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
+      }
+      // Claro: background@0.38 some no card — usa surfaceVariant mais presente.
       if !stabilizeExpandInSelfSizingCell {
-        return c.background.opacity(0.38)
+        return c.surfaceVariant.opacity(0.92)
       }
       let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
-      return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
+      return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.88)
     }
+
+    // Balões
+    let panelAlpha: CGFloat = c.isDark ? 0.45 : 0.72
     if !stabilizeExpandInSelfSizingCell {
-      return c.surfaceVariant.opacity(0.45)
+      return c.surfaceVariant.opacity(panelAlpha)
     }
-    return Self.opaqueBlend(src: c.surfaceVariant, dst: c.surface, alpha: 0.45)
+    return Self.opaqueBlend(src: c.surfaceVariant, dst: c.surface, alpha: panelAlpha)
   }
 
   /// src over dst com alpha de src (sem blend transparente em runtime).
