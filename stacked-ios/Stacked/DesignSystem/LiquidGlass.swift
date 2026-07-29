@@ -19,8 +19,8 @@ enum LiquidGlass {
   static let navSelectionStrokeWidth: CGFloat = 0.75
   /// Fill estático no freeze — parece glass pausado, sem amostrar a lista.
   static let frozenTrackOpacity: CGFloat = 0.88
-  /// Tint sobre Material no modo Glass fosco (legado FASE1).
-  static let frostedTintOpacity: CGFloat = 0.52
+  /// Tint sobre Material no modo Glass fosco — 0.52 lavava demais (navbar “fumê”).
+  static let frostedTintOpacity: CGFloat = 0.70
 
   /// Blur clássico + tint — visual glass sem `.glassEffect` / morph.
   @ViewBuilder

@@ -14,6 +14,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case slateCyan
     case slateAmazonite
     case slateEmber
+    case slateMoonstone
+    case slateJade
     case ashCyan
     case ashAmazonite
     case titanium
@@ -21,7 +23,11 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case basalt
     case basaltAmazonite
     case basaltSky
+    case basaltMoonstone
     case basaltEmber
+    case basaltGold
+    case basaltJade
+    case basaltViolet
 
     var id: String { rawValue }
 
@@ -34,6 +40,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         .fog,
         .basalt,
         .basaltEmber,
+        .basaltGold,
     ]
 
     var displayName: String {
@@ -50,6 +57,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slateCyan: "Slate Cyan"
         case .slateAmazonite: "Slate Amazonite"
         case .slateEmber: "Slate Ember"
+        case .slateMoonstone: "Slate Moonstone"
+        case .slateJade: "Slate Jade"
         case .ashCyan: "Ash Cyan"
         case .ashAmazonite: "Ash Amazonite"
         case .titanium: "Titanium"
@@ -57,7 +66,11 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basalt: "Basalt"
         case .basaltAmazonite: "Basalt Amazonite"
         case .basaltSky: "Basalt Sky"
+        case .basaltMoonstone: "Basalt Moonstone"
         case .basaltEmber: "Basalt Ember"
+        case .basaltGold: "Basalt Gold"
+        case .basaltJade: "Basalt Jade"
+        case .basaltViolet: "Basalt Violet"
         }
     }
 
@@ -75,14 +88,20 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slateCyan: "Ciano Obsidian"
         case .slateAmazonite: "Petróleo"
         case .slateEmber: "Laranja"
+        case .slateMoonstone: "Aço"
+        case .slateJade: "Jade"
         case .ashCyan: "Cinza frio · ciano suave"
         case .ashAmazonite: "Cinza frio · petróleo"
         case .titanium: "Escuro metálico"
         case .amazonite: "Petróleo"
         case .basalt: "Cinza Things"
         case .basaltAmazonite: "Things · petróleo"
-        case .basaltSky: "Things · azul"
+        case .basaltSky: "Things · petróleo"
+        case .basaltMoonstone: "Things · aço"
         case .basaltEmber: "Things · laranja"
+        case .basaltGold: "Things · champagne"
+        case .basaltJade: "Things · jade"
+        case .basaltViolet: "Things · ametista"
         }
     }
 
@@ -98,7 +117,15 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltAmazonite:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x86ABB0))
         case .basaltSky:
-            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x5B9FE8))
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x86ABB0))
+        case .basaltMoonstone:
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x3A5068))
+        case .basaltGold:
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xC2A67A))
+        case .basaltJade:
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x7FA89A))
+        case .basaltViolet:
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x9A8BB5))
         case .anthracite:
             return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x00D4D4))
         case .slateCyan:
@@ -107,6 +134,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
         case .slateEmber:
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0xF06B2C))
+        case .slateMoonstone:
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x3A5068))
+        case .slateJade:
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x7FA89A))
         case .basaltEmber:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xF06B2C))
         case .ashCyan:
@@ -143,6 +174,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slateCyan: .slateCyan
         case .slateAmazonite: .slateAmazonite
         case .slateEmber: .slateEmber
+        case .slateMoonstone: .slateMoonstone
+        case .slateJade: .slateJade
         case .ashCyan: .ashCyan
         case .ashAmazonite: .ashAmazonite
         case .titanium: .titanium
@@ -150,7 +183,11 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basalt: .basalt
         case .basaltAmazonite: .basaltAmazonite
         case .basaltSky: .basaltSky
+        case .basaltMoonstone: .basaltMoonstone
         case .basaltEmber: .basaltEmber
+        case .basaltGold: .basaltGold
+        case .basaltJade: .basaltJade
+        case .basaltViolet: .basaltViolet
         }
     }
 }
@@ -436,6 +473,48 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
+    /// Slate Moonstone — fundo Slate; azul aço do Moonstone.
+    static let slateMoonstone = AppThemeColors(
+        background: Color(hex: 0x16161A),
+        surface: Color(hex: 0x1C1C20),
+        surfaceVariant: Color(hex: 0x2C2C32),
+        textPrimary: Color(hex: 0xF2F2F4),
+        textSecondary: Color(hex: 0x9A9AA2),
+        textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),
+        hairline: Color(hex: 0x65656D),
+        accent: Color(hex: 0x3A5068),
+        onAccent: Color(hex: 0xFFFFFF),
+        actionAccent: Color(hex: 0x3A5068),
+        onActionAccent: Color(hex: 0xFFFFFF),
+        fabGradientStart: Color(hex: 0x3A5068),
+        fabGradientEnd: Color(hex: 0x3A5068),
+        folderTint: Color(hex: 0x3A5068),
+        navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
+    /// Slate Jade — fundo Slate; sage do Basalt Jade.
+    static let slateJade = AppThemeColors(
+        background: Color(hex: 0x16161A),
+        surface: Color(hex: 0x1C1C20),
+        surfaceVariant: Color(hex: 0x2C2C32),
+        textPrimary: Color(hex: 0xF2F2F4),
+        textSecondary: Color(hex: 0x9A9AA2),
+        textTertiary: Color(hex: 0x65656D),
+        textQuaternary: Color(hex: 0x65656D),
+        hairline: Color(hex: 0x65656D),
+        accent: Color(hex: 0x7FA89A),
+        onAccent: Color(hex: 0x0C1412),
+        actionAccent: Color(hex: 0x7FA89A),
+        onActionAccent: Color(hex: 0x0C1412),
+        fabGradientStart: Color(hex: 0x96BAAE),
+        fabGradientEnd: Color(hex: 0x628A7C),
+        folderTint: Color(hex: 0x7FA89A),
+        navBar: Color(hex: 0x16161A),
+        isDark: true
+    )
+
     /// Ash Cyan — cinza Things (#191D22); ciano mineral, sem neon.
     static let ashCyan = AppThemeColors(
         background: Color(hex: 0x191D22),
@@ -561,7 +640,7 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
-    /// Basalt Sky — Things + azul do FAB.
+    /// Basalt Sky — Things + petróleo Amazonite (antes azul FAB #5B9FE8).
     static let basaltSky = AppThemeColors(
         background: Color(hex: 0x1C222D),
         surface: Color(hex: 0x282E3A),
@@ -571,13 +650,34 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x6B7382),
         textQuaternary: Color(hex: 0x6B7382),
         hairline: Color(hex: 0x6B7382),
-        accent: Color(hex: 0x5B9FE8),
-        onAccent: Color(hex: 0x0A121C),
-        actionAccent: Color(hex: 0x5B9FE8),
-        onActionAccent: Color(hex: 0x0A121C),
-        fabGradientStart: Color(hex: 0x5B9FE8),
-        fabGradientEnd: Color(hex: 0x5B9FE8),
-        folderTint: Color(hex: 0x5B9FE8),
+        accent: Color(hex: 0x86ABB0),
+        onAccent: Color(hex: 0x0A1012),
+        actionAccent: Color(hex: 0x86ABB0),
+        onActionAccent: Color(hex: 0x0A1012),
+        fabGradientStart: Color(hex: 0xA3C6CB),
+        fabGradientEnd: Color(hex: 0x6B8F95),
+        folderTint: Color(hex: 0x86ABB0),
+        navBar: Color(hex: 0x282E3A),
+        isDark: true
+    )
+
+    /// Basalt Moonstone — Things + aço azulado (deadline / Moonstone em escuro).
+    static let basaltMoonstone = AppThemeColors(
+        background: Color(hex: 0x1C222D),
+        surface: Color(hex: 0x282E3A),
+        surfaceVariant: Color(hex: 0x323946),
+        textPrimary: Color(hex: 0xE8ECF2),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x6B7382),
+        hairline: Color(hex: 0x6B7382),
+        accent: Color(hex: 0x3A5068),
+        onAccent: Color(hex: 0xFFFFFF),
+        actionAccent: Color(hex: 0x3A5068),
+        onActionAccent: Color(hex: 0xFFFFFF),
+        fabGradientStart: Color(hex: 0x3A5068),
+        fabGradientEnd: Color(hex: 0x3A5068),
+        folderTint: Color(hex: 0x3A5068),
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )
@@ -599,6 +699,69 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xF88A48),
         fabGradientEnd: Color(hex: 0xD85518),
         folderTint: Color(hex: 0xF06B2C),
+        navBar: Color(hex: 0x282E3A),
+        isDark: true
+    )
+
+    /// Basalt Gold — Things + champagne (luxo discreto).
+    static let basaltGold = AppThemeColors(
+        background: Color(hex: 0x1C222D),
+        surface: Color(hex: 0x282E3A),
+        surfaceVariant: Color(hex: 0x323946),
+        textPrimary: Color(hex: 0xE8ECF2),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x6B7382),
+        hairline: Color(hex: 0x6B7382),
+        accent: Color(hex: 0xC2A67A),
+        onAccent: Color(hex: 0x16120C),
+        actionAccent: Color(hex: 0xC2A67A),
+        onActionAccent: Color(hex: 0x16120C),
+        fabGradientStart: Color(hex: 0xD4BC94),
+        fabGradientEnd: Color(hex: 0xA88858),
+        folderTint: Color(hex: 0xC2A67A),
+        navBar: Color(hex: 0x282E3A),
+        isDark: true
+    )
+
+    /// Basalt Jade — Things + sage suave.
+    static let basaltJade = AppThemeColors(
+        background: Color(hex: 0x1C222D),
+        surface: Color(hex: 0x282E3A),
+        surfaceVariant: Color(hex: 0x323946),
+        textPrimary: Color(hex: 0xE8ECF2),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x6B7382),
+        hairline: Color(hex: 0x6B7382),
+        accent: Color(hex: 0x7FA89A),
+        onAccent: Color(hex: 0x0C1412),
+        actionAccent: Color(hex: 0x7FA89A),
+        onActionAccent: Color(hex: 0x0C1412),
+        fabGradientStart: Color(hex: 0x96BAAE),
+        fabGradientEnd: Color(hex: 0x628A7C),
+        folderTint: Color(hex: 0x7FA89A),
+        navBar: Color(hex: 0x282E3A),
+        isDark: true
+    )
+
+    /// Basalt Violet — Things + ametista suave.
+    static let basaltViolet = AppThemeColors(
+        background: Color(hex: 0x1C222D),
+        surface: Color(hex: 0x282E3A),
+        surfaceVariant: Color(hex: 0x323946),
+        textPrimary: Color(hex: 0xE8ECF2),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x6B7382),
+        hairline: Color(hex: 0x6B7382),
+        accent: Color(hex: 0x9A8BB5),
+        onAccent: Color(hex: 0x120E18),
+        actionAccent: Color(hex: 0x9A8BB5),
+        onActionAccent: Color(hex: 0x120E18),
+        fabGradientStart: Color(hex: 0xB0A0C8),
+        fabGradientEnd: Color(hex: 0x7A6B98),
+        folderTint: Color(hex: 0x9A8BB5),
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )

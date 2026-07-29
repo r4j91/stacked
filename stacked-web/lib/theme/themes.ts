@@ -12,6 +12,8 @@ export type AppThemeId =
   | "slateCyan"
   | "slateAmazonite"
   | "slateEmber"
+  | "slateMoonstone"
+  | "slateJade"
   | "ashCyan"
   | "ashAmazonite"
   | "titanium"
@@ -19,7 +21,11 @@ export type AppThemeId =
   | "basalt"
   | "basaltAmazonite"
   | "basaltSky"
+  | "basaltMoonstone"
   | "basaltEmber"
+  | "basaltGold"
+  | "basaltJade"
+  | "basaltViolet"
 
 export type AppThemeColors = {
   background: string
@@ -330,6 +336,56 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Fundo Slate + azul aço do Moonstone. */
+  slateMoonstone: {
+    id: "slateMoonstone",
+    name: "Slate Moonstone",
+    subtitle: "Aço",
+    previewSwatch: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      accent: "#3A5068",
+    },
+    colors: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      surfaceVariant: "#2C2C32",
+      textPrimary: "#F2F2F4",
+      textSecondary: "#9A9AA2",
+      textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
+      accent: "#3A5068",
+      accentText: "#FFFFFF",
+      navBar: "#16161A",
+      isDark: true,
+    },
+  },
+  /** Fundo Slate + sage do Basalt Jade. */
+  slateJade: {
+    id: "slateJade",
+    name: "Slate Jade",
+    subtitle: "Jade",
+    previewSwatch: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      accent: "#7FA89A",
+    },
+    colors: {
+      background: "#16161A",
+      surface: "#1C1C20",
+      surfaceVariant: "#2C2C32",
+      textPrimary: "#F2F2F4",
+      textSecondary: "#9A9AA2",
+      textTertiary: "#65656D",
+      textQuaternary: "#65656D",
+      hairline: "#65656D",
+      accent: "#7FA89A",
+      accentText: "#0C1412",
+      navBar: "#16161A",
+      isDark: true,
+    },
+  },
   ashCyan: {
     id: "ashCyan",
     name: "Ash Cyan",
@@ -476,15 +532,15 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  /** Mesmo fundo Basalt + azul do FAB Things. */
+  /** Mesmo fundo Basalt + petróleo Amazonite (antes azul FAB #5B9FE8). */
   basaltSky: {
     id: "basaltSky",
     name: "Basalt Sky",
-    subtitle: "Things · azul",
+    subtitle: "Things · petróleo",
     previewSwatch: {
       background: "#1C222D",
       surface: "#282E3A",
-      accent: "#5B9FE8",
+      accent: "#86ABB0",
     },
     colors: {
       background: "#1C222D",
@@ -495,8 +551,33 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#6B7382",
       textQuaternary: "#6B7382",
       hairline: "#6B7382",
-      accent: "#5B9FE8",
-      accentText: "#0A121C",
+      accent: "#86ABB0",
+      accentText: "#0A1012",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
+  /** Fundo Basalt + aço azulado (deadline / Moonstone em escuro). */
+  basaltMoonstone: {
+    id: "basaltMoonstone",
+    name: "Basalt Moonstone",
+    subtitle: "Things · aço",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#3A5068",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#3A5068",
+      accentText: "#FFFFFF",
       navBar: "#282E3A",
       isDark: true,
     },
@@ -526,6 +607,81 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Fundo Basalt + champagne (luxo discreto). */
+  basaltGold: {
+    id: "basaltGold",
+    name: "Basalt Gold",
+    subtitle: "Things · champagne",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#C2A67A",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#C2A67A",
+      accentText: "#16120C",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
+  /** Fundo Basalt + sage suave. */
+  basaltJade: {
+    id: "basaltJade",
+    name: "Basalt Jade",
+    subtitle: "Things · jade",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#7FA89A",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#7FA89A",
+      accentText: "#0C1412",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
+  /** Fundo Basalt + ametista suave. */
+  basaltViolet: {
+    id: "basaltViolet",
+    name: "Basalt Violet",
+    subtitle: "Things · ametista",
+    previewSwatch: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      accent: "#9A8BB5",
+    },
+    colors: {
+      background: "#1C222D",
+      surface: "#282E3A",
+      surfaceVariant: "#323946",
+      textPrimary: "#E8ECF2",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#6B7382",
+      hairline: "#6B7382",
+      accent: "#9A8BB5",
+      accentText: "#120E18",
+      navBar: "#282E3A",
+      isDark: true,
+    },
+  },
 }
 
 /** Paridade iOS AppThemeId.recommended */
@@ -537,6 +693,7 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "fog",
   "basalt",
   "basaltEmber",
+  "basaltGold",
 ]
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"
