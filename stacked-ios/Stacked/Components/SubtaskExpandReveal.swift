@@ -46,8 +46,11 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   }
 
   func updateUIView(_ uiView: SubtaskExpandContainerView, context: Context) {
-    let width = uiView.bounds.width > 1 ? uiView.bounds.width : context.coordinator.lastWidth
-    context.coordinator.lastWidth = width
+    // Prefere bounds reais; senão lastWidth / estimativa de tela (permite animar no cold open).
+    let width = uiView.resolvedMeasureWidth(fallback: context.coordinator.lastWidth)
+    if uiView.bounds.width > 1 || (uiView.superview?.bounds.width ?? 0) > 1 {
+      context.coordinator.lastWidth = width
+    }
     let hosting = context.coordinator.hosting(in: uiView)
 
     let revisionChanged = contentRevision != context.coordinator.lastContentRevision
@@ -75,7 +78,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   final class Coordinator {
     weak var container: SubtaskExpandContainerView?
     private var host: UIHostingController<AnyView>?
-    var lastWidth: CGFloat = 320
+    var lastWidth: CGFloat = 0
     var wasExpanded = false
     var lastContentRevision: Int = .min
     var hasPushedContent = false
@@ -124,6 +127,8 @@ final class SubtaskExpandContainerView: UIView {
   private var stabilizeSelfSizingParent = false
   /// Altura antes do remasure de meta — detecta encolhe stale.
   private var contentRemeasureBaseline: CGFloat = 0
+  /// Cold open com width 0: preservar animação no remasure do 1º layout.
+  private var pendingAnimatedExpand = false
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -146,6 +151,31 @@ final class SubtaskExpandContainerView: UIView {
   override func didMoveToWindow() {
     super.didMoveToWindow()
     attachHostedControllerIfNeeded()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    // Cold open: width chega no 1º layout — remede PRESERVANDO animação (não snap).
+    guard lastExpanded == true, !isAnimating, let hosting = hostedController else { return }
+    let width = resolvedMeasureWidth(fallback: 0)
+    guard width > 1 else { return }
+    let widthDrift = abs(width - lastAppliedWidth) > 1
+    let needsInitialHeight = fullHeight <= 0 || (selfHeightConstraint?.constant ?? 0) <= 0.5
+    guard widthDrift || needsInitialHeight else { return }
+    let animateOpen = pendingAnimatedExpand && needsInitialHeight
+    pendingAnimatedExpand = false
+    lastAppliedWidth = width
+    scheduleRemeasure(hosting: hosting, width: width, animated: animateOpen)
+  }
+
+  /// Largura para sizeThatFits — bounds reais; cold = estimativa de tela (não 320 fixo).
+  func resolvedMeasureWidth(fallback: CGFloat) -> CGFloat {
+    if bounds.width > 1 { return bounds.width }
+    if let sw = superview?.bounds.width, sw > 1 { return sw }
+    if fallback > 1 { return fallback }
+    // Estimativa: evita medida 0 no mount e permite a animação de abertura começar.
+    let estimated = DisplayScreen.bounds.width - 40
+    return estimated > 1 ? estimated : 0
   }
 
   /// Fundo do clip = mesma tinta do painel SwiftUI (slack de medida não vira tarja).
@@ -221,8 +251,8 @@ final class SubtaskExpandContainerView: UIView {
       return
     }
 
-    let fitWidth = max(width, 1)
-    let widthChanged = abs(fitWidth - lastAppliedWidth) > 1
+    let fitWidth = width
+    let widthChanged = fitWidth > 1 && abs(fitWidth - lastAppliedWidth) > 1
     if widthChanged {
       lastAppliedWidth = fitWidth
     }
@@ -244,6 +274,23 @@ final class SubtaskExpandContainerView: UIView {
         fullHeight = 0
         hostView?.transform = .identity
       }
+    }
+
+    // Width ainda 0 (cold mount sem estimativa) — espera layout; guarda flag de animação.
+    if expanded, fitWidth <= 1 {
+      lastExpanded = expanded
+      pendingAnimatedExpand = animated && !snapOpen
+      hosting.view.isUserInteractionEnabled = true
+      clipView?.isUserInteractionEnabled = true
+      isUserInteractionEnabled = true
+      return
+    }
+
+    if stateChanged, expanded {
+      pendingAnimatedExpand = animated && !snapOpen
+    }
+    if !expanded {
+      pendingAnimatedExpand = false
     }
 
     // Só layoutPass com painel já aberto (etiqueta etc.).
@@ -310,6 +357,7 @@ final class SubtaskExpandContainerView: UIView {
     // Abrir UIKit: cresce a altura e reâncora o offset — topo do card (chevron) fica parado.
     // pinParent:false fazia o chevron “descer e voltar” no grow da collection.
     if expanded, stabilizeSelfSizingParent {
+      pendingAnimatedExpand = false
       expandWithPinnedParent(height: target, animated: shouldAnimate)
       return
     }
@@ -550,8 +598,12 @@ final class SubtaskExpandContainerView: UIView {
     guard animated else {
       UIView.performWithoutAnimation {
         applyLayout()
+        self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
         self.superview?.layoutIfNeeded()
-        collectionView?.layoutIfNeeded()
+        if let collectionView {
+          collectionView.performBatchUpdates(nil)
+          collectionView.layoutIfNeeded()
+        }
         pin()
       }
       return
@@ -577,6 +629,8 @@ final class SubtaskExpandContainerView: UIView {
         pin()
       },
       completion: { [weak self] _ in
+        // Só após a animação — batch no meio do grow quebrava o ease.
+        self?.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
         pin()
         self?.isAnimating = false
       }

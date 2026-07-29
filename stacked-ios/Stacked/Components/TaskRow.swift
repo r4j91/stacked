@@ -875,16 +875,16 @@ struct TaskRow: View {
         let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
         return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
       }
-      // Claro: background@0.38 some no card — usa surfaceVariant mais presente.
+      // Claro: meio-termo — visível vs card, sem ficar pesado (antes 0.92/0.88).
       if !stabilizeExpandInSelfSizingCell {
-        return c.surfaceVariant.opacity(0.92)
+        return c.surfaceVariant.opacity(0.58)
       }
       let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
-      return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.88)
+      return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.55)
     }
 
     // Balões
-    let panelAlpha: CGFloat = c.isDark ? 0.45 : 0.72
+    let panelAlpha: CGFloat = c.isDark ? 0.45 : 0.55
     if !stabilizeExpandInSelfSizingCell {
       return c.surfaceVariant.opacity(panelAlpha)
     }
@@ -1105,6 +1105,7 @@ struct TaskRow: View {
         setRowExpanded(true)
         bumpSubtaskRevealLayout()
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
+        // Síncrono com o grow — defer quebrava a animação da collection.
         onSubtaskExpansionChanged?(true)
         return
       }

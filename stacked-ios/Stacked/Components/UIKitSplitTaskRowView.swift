@@ -180,10 +180,12 @@ final class UIKitSplitTaskRowView: UIView {
       )
     )
 
+    var seededOpen = false
     if lastTaskId != task.id {
       lastTaskId = task.id
       store.seed(from: task, restoreExpansion: true)
       applyLiftPhase(.normal, animated: false)
+      seededOpen = store.expanded
     } else if store.subtaskRevealActive || store.expanded {
       let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
       if store.displaySubtasks != sorted {
@@ -303,6 +305,26 @@ final class UIKitSplitTaskRowView: UIView {
 
     invalidateIntrinsicContentSize()
     setNeedsLayout()
+
+    // Restore seed: lista UIKit não passa por TaskRow.restore — notificar + soltar snap.
+    // Snap (sem animação de toggle) — não interfere no open por clique.
+    if seededOpen {
+      notifyExpansionChanged(expanded: true)
+      let expansionNotify = config.onSubtaskExpansionChanged
+      let seededTaskId = task.id
+      DispatchQueue.main.async { [weak self] in
+        guard let self, self.lastTaskId == seededTaskId, self.store.expanded else { return }
+        expansionNotify(true)
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+        guard let self, self.lastTaskId == seededTaskId, self.store.expanded else { return }
+        if self.store.snapRevealOpen {
+          self.store.snapRevealOpen = false
+        }
+        self.invalidatePanelHostIntrinsicSize()
+        self.notifyExpansionChanged(expanded: true)
+      }
+    }
   }
 
   private func ensureHosts() {
@@ -543,6 +565,15 @@ final class UIKitSplitTaskRowView: UIView {
     var view: UIView? = superview
     while let current = view {
       if let cell = current as? UICollectionViewCell { return cell }
+      view = current.superview
+    }
+    return nil
+  }
+
+  private func enclosingCollectionView() -> UICollectionView? {
+    var view: UIView? = superview
+    while let current = view {
+      if let collection = current as? UICollectionView { return collection }
       view = current.superview
     }
     return nil
