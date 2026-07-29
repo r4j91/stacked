@@ -15,6 +15,7 @@ struct HomeView: View {
   @State private var showProductivity = false
   @State private var showNotifications = false
   @State private var projectOptions: ProjectRoute?
+  @State private var projectsEditMode: EditMode = .inactive
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
 
   private var homeHeroStyle: HomeHeroStyle {
@@ -51,6 +52,7 @@ struct HomeView: View {
       .stackedDashboardListChrome()
       .stackedTabletCentered()
       .background(c.background)
+      .environment(\.editMode, $projectsEditMode)
       .navigationTitle("")
       .navigationBarTitleDisplayMode(.inline)
       .toolbarBackground(.hidden, for: .navigationBar)
@@ -150,41 +152,62 @@ struct HomeView: View {
   }
 
   private var projectsSection: some View {
-    Section {
+    let c = theme.colors
+    let editing = projectsEditMode == .active
+
+    return Section {
       if store.projects.isEmpty {
         VStack(spacing: AppSpacing.md) {
           EmptyStateView(icon: .folder, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
           Button("Criar projeto") { showNewProject = true }
             .font(AppTypography.bodySemibold)
-            .foregroundStyle(theme.colors.accent)
+            .foregroundStyle(c.accent)
         }
         .stackedListEmptyStateRow()
       } else {
         ForEach(store.projects) { project in
-          Button {
-            let projectId = project.id
-            ProjectDetailCache.shared.prefetch(projectId: projectId)
-            selectedProject = ProjectRoute(
-              id: projectId,
-              name: project.name,
-              snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
-            )
-          } label: {
-            projectRow(project)
-          }
-          .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
-          .contextMenu {
-            Button("Opções do projeto") {
-              projectOptions = ProjectRoute(id: project.id, name: project.name)
+          Group {
+            if editing {
+              projectRow(project, showChevron: false)
+            } else {
+              Button {
+                let projectId = project.id
+                ProjectDetailCache.shared.prefetch(projectId: projectId)
+                selectedProject = ProjectRoute(
+                  id: projectId,
+                  name: project.name,
+                  snapshot: ProjectDetailCache.shared.snapshot(for: projectId)
+                )
+              } label: {
+                projectRow(project, showChevron: true)
+              }
+              .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
+              .contextMenu {
+                Button("Opções do projeto") {
+                  projectOptions = ProjectRoute(id: project.id, name: project.name)
+                }
+              }
             }
           }
           .listRowInsets(homeListRowInsets)
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
         }
+        .onMove(perform: store.reorderProjects)
       }
     } header: {
-      ListSectionHeader(text: "PROJETOS")
+      ListSectionHeaderWithTrailing(text: "PROJETOS") {
+        if store.projects.count >= 2 {
+          Button(editing ? "Concluir" : "Editar") {
+            HapticService.selection()
+            projectsEditMode = editing ? .inactive : .active
+          }
+          .font(AppTypography.sectionLabel)
+          .foregroundStyle(c.accent)
+          .textCase(nil)
+          .buttonStyle(.plain)
+        }
+      }
     }
   }
 
@@ -206,7 +229,7 @@ struct HomeView: View {
     .listRowBackground(Color.clear)
   }
 
-  private func projectRow(_ project: HomeProject) -> some View {
+  private func projectRow(_ project: HomeProject, showChevron: Bool = true) -> some View {
     let c = theme.colors
     let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.folderTint)
     return HStack(spacing: AppSpacing.md + 2) {
@@ -215,7 +238,9 @@ struct HomeView: View {
       Text(project.name).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
       Spacer()
       Text("\(project.taskCount)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
-      DisclosureChevron(color: c.textTertiary.opacity(0.7))
+      if showChevron {
+        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+      }
     }
     .padding(.vertical, AppSpacing.sm + 2)
   }

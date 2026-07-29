@@ -106,9 +106,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .slateAmazonite:
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
         case .slateEmber:
-            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0xE8874A))
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0xF06B2C))
         case .basaltEmber:
-            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xE8874A))
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xF06B2C))
         case .ashCyan:
             return (Color(hex: 0x191D22), Color(hex: 0x22272E), Color(hex: 0x6BB5BA))
         case .ashAmazonite:
@@ -414,7 +414,7 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
-    /// Slate Ember — fundo Slate; laranja mais presente (sem neon).
+    /// Slate Ember — fundo Slate; laranja vivo (#F06B2C), sem neon.
     static let slateEmber = AppThemeColors(
         background: Color(hex: 0x16161A),
         surface: Color(hex: 0x1C1C20),
@@ -424,13 +424,13 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x65656D),
         textQuaternary: Color(hex: 0x65656D),
         hairline: Color(hex: 0x65656D),
-        accent: Color(hex: 0xE8874A),
-        onAccent: Color(hex: 0x1A120E),
-        actionAccent: Color(hex: 0xE8874A),
-        onActionAccent: Color(hex: 0x1A120E),
-        fabGradientStart: Color(hex: 0xF09A5C),
-        fabGradientEnd: Color(hex: 0xD46E38),
-        folderTint: Color(hex: 0xE8874A),
+        accent: Color(hex: 0xF06B2C),
+        onAccent: Color(hex: 0x1A100C),
+        actionAccent: Color(hex: 0xF06B2C),
+        onActionAccent: Color(hex: 0x1A100C),
+        fabGradientStart: Color(hex: 0xF88A48),
+        fabGradientEnd: Color(hex: 0xD85518),
+        folderTint: Color(hex: 0xF06B2C),
         navBar: Color(hex: 0x16161A),
         isDark: true
     )
@@ -591,13 +591,13 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x6B7382),
         textQuaternary: Color(hex: 0x6B7382),
         hairline: Color(hex: 0x6B7382),
-        accent: Color(hex: 0xE8874A),
-        onAccent: Color(hex: 0x1A120E),
-        actionAccent: Color(hex: 0xE8874A),
-        onActionAccent: Color(hex: 0x1A120E),
-        fabGradientStart: Color(hex: 0xF09A5C),
-        fabGradientEnd: Color(hex: 0xD46E38),
-        folderTint: Color(hex: 0xE8874A),
+        accent: Color(hex: 0xF06B2C),
+        onAccent: Color(hex: 0x1A100C),
+        actionAccent: Color(hex: 0xF06B2C),
+        onActionAccent: Color(hex: 0x1A100C),
+        fabGradientStart: Color(hex: 0xF88A48),
+        fabGradientEnd: Color(hex: 0xD85518),
+        folderTint: Color(hex: 0xF06B2C),
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )

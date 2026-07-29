@@ -305,15 +305,15 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  /** Fundo Slate + laranja mais vivo (#E8874A). */
+  /** Fundo Slate + laranja vivo (#F06B2C). */
   slateEmber: {
     id: "slateEmber",
     name: "Slate Ember",
-    subtitle: "Laranja suave",
+    subtitle: "Laranja",
     previewSwatch: {
       background: "#16161A",
       surface: "#1C1C20",
-      accent: "#E8874A",
+      accent: "#F06B2C",
     },
     colors: {
       background: "#16161A",
@@ -324,8 +324,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#65656D",
       textQuaternary: "#65656D",
       hairline: "#65656D",
-      accent: "#E8874A",
-      accentText: "#1A120E",
+      accent: "#F06B2C",
+      accentText: "#1A100C",
       navBar: "#16161A",
       isDark: true,
     },
@@ -509,7 +509,7 @@ export const themes: Record<AppThemeId, AppTheme> = {
     previewSwatch: {
       background: "#1C222D",
       surface: "#282E3A",
-      accent: "#E8874A",
+      accent: "#F06B2C",
     },
     colors: {
       background: "#1C222D",
@@ -520,8 +520,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#6B7382",
       textQuaternary: "#6B7382",
       hairline: "#6B7382",
-      accent: "#E8874A",
-      accentText: "#1A120E",
+      accent: "#F06B2C",
+      accentText: "#1A100C",
       navBar: "#282E3A",
       isDark: true,
     },

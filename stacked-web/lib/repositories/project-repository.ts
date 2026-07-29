@@ -26,13 +26,24 @@ function mapProjectRow(
 async function fetchProjectRows(
   client: SupabaseClient,
 ): Promise<Record<string, unknown>[]> {
-  const withIcon = await client
+  const withSort = await client
     .from("projects")
-    .select("id, nome, cor, icone")
+    .select("id, nome, cor, icone, sort_order")
+    .order("sort_order", { ascending: true })
     .order("nome", { ascending: true });
-  if (!withIcon.error) return (withIcon.data ?? []) as Record<string, unknown>[];
+  if (!withSort.error) return (withSort.data ?? []) as Record<string, unknown>[];
 
-  if (!String(withIcon.error.message).includes("icone")) throw withIcon.error;
+  const msg = String(withSort.error.message);
+  if (!msg.includes("sort_order") && !msg.includes("icone")) throw withSort.error;
+
+  if (msg.includes("sort_order")) {
+    const withIcon = await client
+      .from("projects")
+      .select("id, nome, cor, icone")
+      .order("nome", { ascending: true });
+    if (!withIcon.error) return (withIcon.data ?? []) as Record<string, unknown>[];
+    if (!String(withIcon.error.message).includes("icone")) throw withIcon.error;
+  }
 
   const fallback = await client
     .from("projects")
@@ -104,11 +115,23 @@ export class ProjectRepository {
     description?: string;
   }): Promise<string> {
     const userId = await requireAuthUserId(this.client);
+    let sortOrder = 0;
+    const { data: lastRows, error: orderError } = await this.client
+      .from("projects")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1);
+    if (!orderError) {
+      const last = lastRows?.[0] as { sort_order?: number } | undefined;
+      sortOrder = (typeof last?.sort_order === "number" ? last.sort_order : -1) + 1;
+    }
+
     const payload: Record<string, unknown> = {
       nome: input.name.trim(),
       cor: input.color,
       icone: input.icon ?? DEFAULT_PROJECT_ICON,
       user_id: userId,
+      sort_order: sortOrder,
       ...(input.description?.trim() ? { descricao: input.description.trim() } : {}),
     };
     const { data, error } = await this.client
@@ -117,8 +140,10 @@ export class ProjectRepository {
       .select("id")
       .single();
     if (error) {
-      if (String(error.message).includes("icone")) {
-        delete payload.icone;
+      const msg = String(error.message);
+      if (msg.includes("sort_order")) delete payload.sort_order;
+      if (msg.includes("icone")) delete payload.icone;
+      if (msg.includes("sort_order") || msg.includes("icone")) {
         const retry = await this.client.from("projects").insert(payload).select("id").single();
         if (retry.error) throw retry.error;
         return String(retry.data.id);
@@ -155,23 +180,50 @@ export class ProjectRepository {
     if (error) throw error;
   }
 
+  async reorderProjects(orderedIds: string[]): Promise<void> {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        this.client.from("projects").update({ sort_order: index }).eq("id", id),
+      ),
+    );
+  }
+
   async fetchProjectsWithTaskStats(): Promise<ProjectWithStats[]> {
     let data: Record<string, unknown>[] | null = null;
-    const withIcon = await this.client
+    const withSort = await this.client
       .from("projects")
       .select("id, nome, cor, icone, tasks(concluida)")
+      .order("sort_order", { ascending: true })
       .order("nome", { ascending: true });
-    if (!withIcon.error) {
-      data = withIcon.data as Record<string, unknown>[];
-    } else if (String(withIcon.error.message).includes("icone")) {
+    if (!withSort.error) {
+      data = withSort.data as Record<string, unknown>[];
+    } else if (String(withSort.error.message).includes("sort_order")) {
+      const withIcon = await this.client
+        .from("projects")
+        .select("id, nome, cor, icone, tasks(concluida)")
+        .order("nome", { ascending: true });
+      if (!withIcon.error) {
+        data = withIcon.data as Record<string, unknown>[];
+      } else if (String(withIcon.error.message).includes("icone")) {
+        const fallback = await this.client
+          .from("projects")
+          .select("id, nome, cor, tasks(concluida)")
+          .order("nome", { ascending: true });
+        if (fallback.error) throw fallback.error;
+        data = fallback.data as Record<string, unknown>[];
+      } else {
+        throw withIcon.error;
+      }
+    } else if (String(withSort.error.message).includes("icone")) {
       const fallback = await this.client
         .from("projects")
         .select("id, nome, cor, tasks(concluida)")
+        .order("sort_order", { ascending: true })
         .order("nome", { ascending: true });
       if (fallback.error) throw fallback.error;
       data = fallback.data as Record<string, unknown>[];
     } else {
-      throw withIcon.error;
+      throw withSort.error;
     }
 
     return (data ?? []).map((row) => {

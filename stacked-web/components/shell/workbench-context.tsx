@@ -241,6 +241,7 @@ type WorkbenchContextValue = {
   updateLabel: (id: string, patch: { name?: string; color?: string }) => Promise<void>;
   deleteLabel: (id: string) => Promise<void>;
   reorderLabels: (orderedIds: string[]) => Promise<void>;
+  reorderProjects: (orderedIds: string[]) => Promise<void>;
   projectSheetOpen: boolean;
   projectSheetMode: "create" | "edit";
   projectSheetProject: Project | null;
@@ -2127,6 +2128,31 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [showToast, usingMock],
   );
 
+  const reorderProjects = useCallback(
+    async (orderedIds: string[]) => {
+      setProjects((prev) => {
+        const map = new Map(prev.map((p) => [p.id, p]));
+        return orderedIds
+          .map((id) => map.get(id) ?? null)
+          .filter((p): p is Project => p !== null);
+      });
+      if (!usingMock && isSupabaseConfigured()) {
+        try {
+          await new ProjectRepository(createClient()).reorderProjects(orderedIds);
+        } catch {
+          try {
+            const list = await new ProjectRepository(createClient()).fetchProjects();
+            setProjects(list);
+          } catch {
+            /* keep optimistic */
+          }
+          showToast("Erro ao reordenar projetos");
+        }
+      }
+    },
+    [showToast, usingMock],
+  );
+
   const value: WorkbenchContextValue = useMemo(
     () => ({
     view,
@@ -2245,6 +2271,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     updateLabel,
     deleteLabel,
     reorderLabels,
+    reorderProjects,
     projectSheetOpen,
     projectSheetMode,
     projectSheetProject,
@@ -2371,6 +2398,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       updateLabel,
       deleteLabel,
       reorderLabels,
+      reorderProjects,
       projectSheetOpen,
       projectSheetMode,
       projectSheetProject,

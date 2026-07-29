@@ -3,15 +3,25 @@
 type ReorderDragHandleProps = {
   dragProps: Record<string, unknown>;
   label?: string;
+  /** Sempre visível (modo Editar) — senão só no hover da row. */
+  alwaysVisible?: boolean;
 };
 
-export function ReorderDragHandle({ dragProps, label = "Reordenar" }: ReorderDragHandleProps) {
+export function ReorderDragHandle({
+  dragProps,
+  label = "Reordenar",
+  alwaysVisible = false,
+}: ReorderDragHandleProps) {
   return (
     <button
       type="button"
       {...dragProps}
       onClick={(e) => e.stopPropagation()}
-      className="reorder-handle flex h-7 w-4 shrink-0 cursor-grab items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] opacity-0 transition-[opacity,background-color,color] duration-150 ease-out hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)] group-hover/reorder-row:opacity-55 hover:!opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+      className={`reorder-handle flex h-7 w-4 shrink-0 cursor-grab items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] transition-[opacity,background-color,color] duration-150 ease-out hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text-secondary)] hover:!opacity-100 focus-visible:opacity-100 active:cursor-grabbing ${
+        alwaysVisible
+          ? "opacity-55"
+          : "opacity-0 group-hover/reorder-row:opacity-55"
+      }`}
       aria-label={label}
       title={label}
     >

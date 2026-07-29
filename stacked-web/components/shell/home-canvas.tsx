@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { HomeDayRail } from "@/components/shell/home-day-rail";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
+import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
+import { applyLabelReorder, useLabelListReorder } from "@/lib/hooks/use-label-list-reorder";
 import {
   Home01Icon,
   InboxIcon,
   Calendar03Icon,
-  FilterHorizontalIcon,
   TaskDone01Icon,
   Sun01Icon,
   ArrowRight01Icon,
@@ -17,7 +19,23 @@ import {
 } from "@/lib/icons/nav-icons";
 
 export function HomeCanvas() {
-  const { navCounts, filterCounts, projects, prefetchProject } = useWorkbench();
+  const { navCounts, filterCounts, projects, prefetchProject, reorderProjects } = useWorkbench();
+  const [organizing, setOrganizing] = useState(false);
+
+  const handleReorder = useCallback(
+    (draggedId: string, targetId: string, position: "before" | "after") => {
+      const next = applyLabelReorder(
+        projects.map((p) => p.id),
+        draggedId,
+        targetId,
+        position,
+      );
+      void reorderProjects(next);
+    },
+    [projects, reorderProjects],
+  );
+
+  const projectDrag = useLabelListReorder(handleReorder);
 
   return (
     <main
@@ -76,36 +94,90 @@ export function HomeCanvas() {
           </section>
 
           <section>
-            <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Projetos
-            </h2>
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <h2 className="flex-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                Projetos
+              </h2>
+              {projects.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => setOrganizing((v) => !v)}
+                  className="text-xs font-semibold text-[var(--color-accent)] hover:opacity-80"
+                >
+                  {organizing ? "Concluir" : "Editar"}
+                </button>
+              )}
+            </div>
             {projects.length === 0 ? (
               <p className="px-1 py-4 text-sm text-[var(--color-text-tertiary)]">
                 Nenhum projeto ainda.
               </p>
             ) : (
-              <div className="flex flex-col gap-0.5">
-                {projects.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/projects/${p.id}`}
-                    onMouseEnter={() => prefetchProject(p.id)}
-                    onFocus={() => prefetchProject(p.id)}
-                    onPointerEnter={() => prefetchProject(p.id)}
-                    onTouchStart={() => prefetchProject(p.id)}
-                    className="flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
-                  >
-                    <ProjectIcon iconKey={p.icon} color={p.color} size={20} />
-                    <span className="flex-1 truncate font-medium">{p.name}</span>
-                    {p.pendingCount > 0 && (
-                      <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">
-                        {p.pendingCount}
-                      </span>
-                    )}
-                    <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-40" />
-                  </Link>
-                ))}
-              </div>
+              <ul className="flex flex-col gap-0.5">
+                {projects.map((p) => {
+                  const isDropTarget = projectDrag.overId === p.id;
+                  const isDragging = projectDrag.draggingId === p.id;
+                  const rowClass = `flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-[var(--color-text-secondary)] ${
+                    organizing
+                      ? "hover:bg-[var(--color-surface)]"
+                      : "hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+                  } ${
+                    isDropTarget
+                      ? projectDrag.overPosition === "after"
+                        ? "border-b-2 border-[var(--color-accent)]"
+                        : "border-t-2 border-[var(--color-accent)]"
+                      : ""
+                  } ${isDragging ? "opacity-40" : ""}`;
+
+                  if (organizing) {
+                    return (
+                      <li
+                        key={p.id}
+                        data-reorder-item
+                        {...projectDrag.getDropProps(p.id)}
+                        className={`group/reorder-row ${rowClass}`}
+                      >
+                        <ReorderDragHandle
+                          dragProps={projectDrag.getHandleProps(p.id)}
+                          label={`Reordenar ${p.name}`}
+                          alwaysVisible
+                        />
+                        <ProjectIcon iconKey={p.icon} color={p.color} size={20} />
+                        <span className="flex-1 truncate font-medium text-[var(--color-text)]">
+                          {p.name}
+                        </span>
+                        {p.pendingCount > 0 && (
+                          <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">
+                            {p.pendingCount}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        href={`/projects/${p.id}`}
+                        onMouseEnter={() => prefetchProject(p.id)}
+                        onFocus={() => prefetchProject(p.id)}
+                        onPointerEnter={() => prefetchProject(p.id)}
+                        onTouchStart={() => prefetchProject(p.id)}
+                        className={rowClass}
+                      >
+                        <ProjectIcon iconKey={p.icon} color={p.color} size={20} />
+                        <span className="flex-1 truncate font-medium">{p.name}</span>
+                        {p.pendingCount > 0 && (
+                          <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">
+                            {p.pendingCount}
+                          </span>
+                        )}
+                        <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-40" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </section>
         </div>

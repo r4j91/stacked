@@ -23,6 +23,7 @@ struct ProjectRowDTO: Decodable {
   let nome: String?
   let cor: String?
   let icone: String?
+  let sort_order: Int
 
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -34,7 +35,8 @@ struct ProjectRowDTO: Decodable {
     nome = try c.decodeIfPresent(String.self, forKey: .nome)
     cor = try c.decodeIfPresent(String.self, forKey: .cor)
     icone = try c.decodeIfPresent(String.self, forKey: .icone)
+    sort_order = try c.decodeIfPresent(Int.self, forKey: .sort_order) ?? 0
   }
 
-  private enum CodingKeys: String, CodingKey { case id, nome, cor, icone }
+  private enum CodingKeys: String, CodingKey { case id, nome, cor, icone, sort_order }
 }

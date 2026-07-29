@@ -68,7 +68,8 @@ struct MobileShell<Content: View>: View {
           }
 
           if !hideBottomChrome, chrome.fabOpen {
-            Color.black.opacity(0.55)
+            // Escuro: 0.55 ok. Claro: preto forte faz o fade parecer lento — suaviza.
+            Color.black.opacity(c.isDark ? 0.55 : 0.28)
               .ignoresSafeArea()
               .contentShape(Rectangle())
               .onTapGesture { chrome.closeFabMenu() }

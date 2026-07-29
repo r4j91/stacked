@@ -235,6 +235,20 @@ final class HomeStore {
     await refreshHeroInsights(todayStr: today)
   }
 
+  /// Reordenação local + persistência (Home edit mode).
+  func reorderProjects(from source: IndexSet, to destination: Int) {
+    projects.move(fromOffsets: source, toOffset: destination)
+    let ids = projects.map(\.id)
+    _Concurrency.Task {
+      do {
+        try await ProjectRepository.shared.reorderProjects(ids: ids)
+        HapticService.selection()
+      } catch {
+        await load()
+      }
+    }
+  }
+
   /// Atualiza clima ao vivo quando o cache expirou, sem recarregar a Home inteira.
   func refreshWeatherIfNeeded() async {
     guard let next = await HomeWeatherService.shared.refreshIfStale(fallbackTimeOfDay: timeOfDay) else {
