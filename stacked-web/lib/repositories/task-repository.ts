@@ -38,7 +38,7 @@ export class TaskRepository {
       .from("tasks")
       .select(TASK_SELECT)
       .eq("concluida", false)
-      .lte("data_vencimento", todayStr)
+      .or(`data_vencimento.lte.${todayStr},deadline.lte.${todayStr}`)
       .order("data_vencimento", { ascending: true })
       .order("ordem", { ascending: true })
       .order("id", { ascending: true });
@@ -260,7 +260,7 @@ export class TaskRepository {
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("concluida", false)
-        .lt("data_vencimento", todayStr),
+        .or(`data_vencimento.lt.${todayStr},deadline.lt.${todayStr}`),
       this.client
         .from("tasks")
         .select("id", { count: "exact", head: true })
@@ -298,7 +298,9 @@ export class TaskRepository {
 
     switch (kind) {
       case "overdue":
-        q = q.eq("concluida", false).lt("data_vencimento", todayStr);
+        q = q
+          .eq("concluida", false)
+          .or(`data_vencimento.lt.${todayStr},deadline.lt.${todayStr}`);
         break;
       case "today":
         q = q.eq("concluida", false).eq("data_vencimento", todayStr);

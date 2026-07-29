@@ -16,7 +16,8 @@ final class TaskRepository {
       .from("tasks")
       .select(TaskSelect.unified)
       .eq("concluida", value: false)
-      .lte("data_vencimento", value: today)
+      // Due hoje/atrasada OU prazo (deadline) até hoje.
+      .or("data_vencimento.lte.\(today),deadline.lte.\(today)")
       .order("data_vencimento", ascending: true)
       .order("ordem", ascending: true)
       .order("id", ascending: true)
@@ -240,7 +241,7 @@ final class TaskRepository {
       .select("id")
       .eq("user_id", value: userId)
       .eq("concluida", value: false)
-      .lt("data_vencimento", value: todayStr)
+      .or("data_vencimento.lt.\(todayStr),deadline.lt.\(todayStr)")
       .execute()
       .value
 
@@ -337,7 +338,7 @@ final class TaskRepository {
       .from("tasks")
       .select("id")
       .eq("concluida", value: false)
-      .lt("data_vencimento", value: todayStr)
+      .or("data_vencimento.lt.\(todayStr),deadline.lt.\(todayStr)")
       .execute()
       .value
 
@@ -391,7 +392,9 @@ final class TaskRepository {
 
     switch kind {
     case .overdue:
-      query = query.eq("concluida", value: false).lt("data_vencimento", value: todayStr)
+      query = query
+        .eq("concluida", value: false)
+        .or("data_vencimento.lt.\(todayStr),deadline.lt.\(todayStr)")
     case .today:
       query = query.eq("concluida", value: false).eq("data_vencimento", value: todayStr)
     case .week:
@@ -518,9 +521,18 @@ final class TaskRepository {
   private func presetResultSortDate(_ item: FilterResultItem) -> Date {
     switch item {
     case .task(let task):
-      return task.dueDate ?? .distantFuture
+      return earliestDate(task.dueDate, task.deadline) ?? .distantFuture
     case .subtask(let sub, _, _):
-      return sub.dueDate ?? .distantFuture
+      return earliestDate(sub.dueDate, sub.deadline) ?? .distantFuture
+    }
+  }
+
+  private func earliestDate(_ a: Date?, _ b: Date?) -> Date? {
+    switch (a, b) {
+    case let (a?, b?): return min(a, b)
+    case let (a?, nil): return a
+    case let (nil, b?): return b
+    case (nil, nil): return nil
     }
   }
 

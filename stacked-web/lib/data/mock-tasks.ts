@@ -139,11 +139,17 @@ export function mockFilterCounts(): import("@/lib/types/task").FilterDashboardCo
   let overdue = 0;
   let todayCount = 0;
   let week = 0;
-  for (const t of MOCK_TASKS.filter((x) => !x.done && x.dueDate)) {
-    const d = t.dueDate!;
-    if (d < today) overdue++;
-    else if (d === today) todayCount++;
-    else if (d > today && d <= weekEnd) week++;
+  for (const t of MOCK_TASKS.filter((x) => !x.done)) {
+    const due = t.dueDate;
+    const deadline = t.deadline;
+    const isOverdue =
+      (due != null && due < today) || (deadline != null && deadline < today);
+    if (isOverdue) {
+      overdue++;
+      continue;
+    }
+    if (due === today || deadline === today) todayCount++;
+    else if (due && due > today && due <= weekEnd) week++;
   }
   return {
     overdue,
@@ -157,14 +163,17 @@ export function mockFilteredTasks(kind: import("@/lib/types/task").TaskFilterKin
   const today = "2026-06-28";
   const weekEnd = "2026-07-05";
   return MOCK_TASKS.filter((t) => {
-    if (!t.dueDate && kind !== "completedToday") return false;
     switch (kind) {
       case "overdue":
-        return !t.done && t.dueDate! < today;
+        return (
+          !t.done &&
+          ((t.dueDate != null && t.dueDate < today) ||
+            (t.deadline != null && t.deadline < today))
+        );
       case "today":
-        return !t.done && t.dueDate === today;
+        return !t.done && (t.dueDate === today || t.deadline === today);
       case "week":
-        return !t.done && t.dueDate! > today && t.dueDate! <= weekEnd;
+        return !t.done && !!t.dueDate && t.dueDate > today && t.dueDate <= weekEnd;
       case "completedToday":
         return t.done;
       default:

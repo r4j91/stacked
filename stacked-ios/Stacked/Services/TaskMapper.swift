@@ -222,20 +222,27 @@ enum TaskMapper {
     return parseDueDate(trimmed)
   }
 
-  /// Paridade today_screen — separa atrasadas vs hoje
+  /// Paridade today_screen — separa atrasadas vs hoje (due OU deadline vencido).
   static func splitTodayPending(_ tasks: [Task], now: Date = Date()) -> (overdue: [Task], today: [Task]) {
     let todayStart = Calendar.current.startOfDay(for: now)
     var overdue: [Task] = []
     var today: [Task] = []
     for t in tasks {
-      guard let due = t.dueDate else {
+      if isOverdue(due: t.dueDate, deadline: t.deadline, todayStart: todayStart) {
+        overdue.append(t)
+      } else {
         today.append(t)
-        continue
       }
-      if due < todayStart { overdue.append(t) }
-      else { today.append(t) }
     }
     return (overdue, today)
+  }
+
+  /// Atrasada se data de vencimento ou prazo (deadline) for antes de hoje.
+  static func isOverdue(due: Date?, deadline: Date?, todayStart: Date? = nil, now: Date = Date()) -> Bool {
+    let today = todayStart ?? startOfDay(now)
+    if let due, startOfDay(due) < today { return true }
+    if let deadline, startOfDay(deadline) < today { return true }
+    return false
   }
 
   static func tomorrowISO(from now: Date = Date()) -> String {
@@ -393,7 +400,7 @@ enum TaskMapper {
     return combinedDateTime(dueDate: base, time: time)
   }
 
-  /// Paridade today_screen — separa subtarefas atrasadas vs hoje.
+  /// Paridade today_screen — separa subtarefas atrasadas vs hoje (due OU deadline).
   static func splitTodayScheduledSubtasks(
     _ entries: [SubtaskScheduleEntry],
     now: Date = Date()
@@ -402,9 +409,19 @@ enum TaskMapper {
     var overdue: [SubtaskScheduleEntry] = []
     var today: [SubtaskScheduleEntry] = []
     for entry in entries {
-      guard let due = entry.subtask.dueDate else { continue }
-      if due < todayStart { overdue.append(entry) }
-      else if startOfDay(due) == todayStart { today.append(entry) }
+      let due = entry.subtask.dueDate.map { startOfDay($0) }
+      let deadline = entry.subtask.deadline.map { startOfDay($0) }
+      let isOverdue =
+        (due.map { $0 < todayStart } ?? false)
+        || (deadline.map { $0 < todayStart } ?? false)
+      let isToday =
+        (due.map { $0 == todayStart } ?? false)
+        || (deadline.map { $0 == todayStart } ?? false)
+      if isOverdue {
+        overdue.append(entry)
+      } else if isToday {
+        today.append(entry)
+      }
     }
     return (overdue, today)
   }

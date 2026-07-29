@@ -1,5 +1,5 @@
 import type { Priority, Subtask, Task } from "@/lib/types/task";
-import { formatTaskDate, parseDueDate, toDateStr } from "@/lib/utils/date";
+import { formatTaskDate, parseDueDate, startOfDay, toDateStr } from "@/lib/utils/date";
 import { sortSubtasksForDisplay } from "@/lib/utils/subtask-ordering";
 
 type DbRow = Record<string, unknown>;
@@ -102,19 +102,32 @@ export function mapTaskList(rows: unknown): Task[] {
   return rows.map((r) => mapTaskRow(r as DbRow));
 }
 
-/** Paridade today_screen.dart — separa atrasadas vs hoje */
+/** Paridade today_screen.dart — separa atrasadas vs hoje (due OU deadline vencido). */
 export function splitTodayPending(tasks: Task[], now = new Date()): {
   overdue: Task[];
   today: Task[];
 } {
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStart = startOfDay(now);
   const overdue: Task[] = [];
   const today: Task[] = [];
 
   for (const t of tasks) {
-    const due = parseDueDate(t.dueDate);
-    if (due && due.getTime() < todayStart.getTime()) overdue.push(t);
+    if (isTaskOverdue(t, now, todayStart)) overdue.push(t);
     else today.push(t);
   }
   return { overdue, today };
+}
+
+/** Atrasada se data de vencimento ou prazo (deadline) for antes de hoje. */
+export function isTaskOverdue(
+  task: Pick<Task, "dueDate" | "deadline" | "done">,
+  now = new Date(),
+  todayStart = startOfDay(now),
+): boolean {
+  if (task.done) return false;
+  const due = parseDueDate(task.dueDate);
+  const deadline = parseDueDate(task.deadline);
+  if (due && due.getTime() < todayStart.getTime()) return true;
+  if (deadline && deadline.getTime() < todayStart.getTime()) return true;
+  return false;
 }

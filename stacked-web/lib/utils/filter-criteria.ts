@@ -76,20 +76,29 @@ function matchesLabels(labelIds: string[], required: string[]): boolean {
   return required.every((id) => ids.has(id));
 }
 
-function matchesDate(due: string | null | undefined, scope: FilterDateScope, now = new Date()): boolean {
+function matchesDate(
+  due: string | null | undefined,
+  deadline: string | null | undefined,
+  scope: FilterDateScope,
+  now = new Date(),
+): boolean {
   if (scope === "any") return true;
   const todayStr = toDateStr(startOfDay(now));
   const weekStr = toDateStr(addDays(startOfDay(now), 7));
-  if (scope === "no_date") return !due;
-  if (!due) return false;
-  const dueStr = due.length >= 10 ? due.slice(0, 10) : due;
+  const dueStr = due && due.length >= 10 ? due.slice(0, 10) : due || null;
+  const deadlineStr =
+    deadline && deadline.length >= 10 ? deadline.slice(0, 10) : deadline || null;
+  if (scope === "no_date") return !dueStr && !deadlineStr;
   switch (scope) {
     case "overdue":
-      return dueStr < todayStr;
+      return (
+        (dueStr != null && dueStr < todayStr) ||
+        (deadlineStr != null && deadlineStr < todayStr)
+      );
     case "today":
-      return dueStr === todayStr;
+      return dueStr === todayStr || deadlineStr === todayStr;
     case "week":
-      return dueStr > todayStr && dueStr <= weekStr;
+      return dueStr != null && dueStr > todayStr && dueStr <= weekStr;
     default:
       return true;
   }
@@ -107,7 +116,7 @@ export function taskMatchesCriteria(task: Task, criteria: FilterCriteria, now = 
   if (criteria.projectId && task.projectId !== criteria.projectId) return false;
   if (!matchesPriority(task.priority, criteria.priorities)) return false;
   if (!matchesLabels(taskLabelIds(task), criteria.labelIds)) return false;
-  if (!matchesDate(task.dueDate ?? task.date, criteria.dateScope, now)) return false;
+  if (!matchesDate(task.dueDate ?? task.date, task.deadline, criteria.dateScope, now)) return false;
   return true;
 }
 
@@ -120,7 +129,7 @@ export function subtaskMatchesCriteria(
   if (criteria.projectId && parent.projectId !== criteria.projectId) return false;
   if (!matchesPriority(sub.priority, criteria.priorities)) return false;
   if (!matchesLabels(sub.labelIds ?? [], criteria.labelIds)) return false;
-  if (!matchesDate(subtaskDueStr(sub), criteria.dateScope, now)) return false;
+  if (!matchesDate(subtaskDueStr(sub), sub.deadline, criteria.dateScope, now)) return false;
   return true;
 }
 

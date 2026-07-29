@@ -29,7 +29,13 @@ enum FilterMatcher {
     if let projectId = criteria.projectId, task.projectId != projectId { return false }
     if !matchesPriority(task.priority, criteria: criteria.priorities) { return false }
     if !matchesLabels(task.labels.map(\.id), required: criteria.labelIds) { return false }
-    if !matchesDate(task.dueDate, scope: criteria.dateScope, todayStr: todayStr, weekStr: weekStr) { return false }
+    if !matchesDate(
+      due: task.dueDate,
+      deadline: task.deadline,
+      scope: criteria.dateScope,
+      todayStr: todayStr,
+      weekStr: weekStr
+    ) { return false }
     return true
   }
 
@@ -43,7 +49,13 @@ enum FilterMatcher {
     if let projectId = criteria.projectId, parent.projectId != projectId { return false }
     if !matchesPriority(sub.priority, criteria: criteria.priorities) { return false }
     if !matchesLabels(sub.labelIds, required: criteria.labelIds) { return false }
-    if !matchesDate(sub.dueDate, scope: criteria.dateScope, todayStr: todayStr, weekStr: weekStr) { return false }
+    if !matchesDate(
+      due: sub.dueDate,
+      deadline: sub.deadline,
+      scope: criteria.dateScope,
+      todayStr: todayStr,
+      weekStr: weekStr
+    ) { return false }
     return true
   }
 
@@ -101,7 +113,8 @@ enum FilterMatcher {
   }
 
   private static func matchesDate(
-    _ due: Date?,
+    due: Date?,
+    deadline: Date?,
     scope: FilterDateScope,
     todayStr: String,
     weekStr: String
@@ -110,16 +123,18 @@ enum FilterMatcher {
     case .any:
       return true
     case .noDate:
-      return due == nil
+      return due == nil && deadline == nil
     case .overdue, .today, .week:
-      guard let due else { return false }
-      let dueStr = TaskMapper.dateString(due)
+      let dueStr = due.map { TaskMapper.dateString($0) }
+      let deadlineStr = deadline.map { TaskMapper.dateString($0) }
       switch scope {
       case .overdue:
-        return dueStr < todayStr
+        return (dueStr.map { $0 < todayStr } ?? false)
+          || (deadlineStr.map { $0 < todayStr } ?? false)
       case .today:
-        return dueStr == todayStr
+        return dueStr == todayStr || deadlineStr == todayStr
       case .week:
+        guard let dueStr else { return false }
         return dueStr > todayStr && dueStr <= weekStr
       default:
         return true
