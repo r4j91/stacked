@@ -127,9 +127,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltViolet:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x9A8BB5))
         case .anthracite:
-            return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x00D4D4))
+            return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x5FD3DC))
         case .slateCyan:
-            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x00D4D4))
+            return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x5FD3DC))
         case .slateAmazonite:
             return (Color(hex: 0x16161A), Color(hex: 0x1C1C20), Color(hex: 0x86ABB0))
         case .slateEmber:
@@ -230,8 +230,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F3F5),
         textSecondary: Color(hex: 0x9296A0),
         textTertiary: Color(hex: 0x6B6E76),
-        textQuaternary: Color(hex: 0x6B6E76),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x6B6E76),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x55585E),
+        hairline: Color(hex: 0x3A3B40),
         accent: Color(hex: 0x5FD3DC),
         onAccent: Color(hex: 0x1A1B1E),
         actionAccent: Color(hex: 0x5FD3DC),
@@ -356,15 +356,15 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF0F0F0),
         textSecondary: Color(hex: 0x888888),
         textTertiary: Color(hex: 0x555555),
-        textQuaternary: Color(hex: 0x555555),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x555555),         // = textTertiary nesta etapa
-        accent: Color(hex: 0x00D4D4),
+        textQuaternary: Color(hex: 0x444444),
+        hairline: Color(hex: 0x2E2E2E),
+        accent: Color(hex: 0x5FD3DC),
         onAccent: Color(hex: 0x0D0D0D),
-        actionAccent: Color(hex: 0x00D4D4),
+        actionAccent: Color(hex: 0x5FD3DC),
         onActionAccent: Color(hex: 0x0D0D0D),
-        fabGradientStart: Color(hex: 0x00D4D4),
-        fabGradientEnd: Color(hex: 0x00D4D4),
-        folderTint: Color(hex: 0x00D4D4),
+        fabGradientStart: Color(hex: 0x5FD3DC),
+        fabGradientEnd: Color(hex: 0x5FD3DC),
+        folderTint: Color(hex: 0x5FD3DC),
         navBar: Color(hex: 0x111111),
         isDark: true
     )
@@ -377,15 +377,15 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF0F0F0),
         textSecondary: Color(hex: 0x8A8A8A),
         textTertiary: Color(hex: 0x5A5A5A),
-        textQuaternary: Color(hex: 0x5A5A5A),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x5A5A5A),         // = textTertiary nesta etapa
-        accent: Color(hex: 0x00D4D4),
+        textQuaternary: Color(hex: 0x484848),
+        hairline: Color(hex: 0x333333),
+        accent: Color(hex: 0x5FD3DC),
         onAccent: Color(hex: 0x1A1A1A),
-        actionAccent: Color(hex: 0x00D4D4),
+        actionAccent: Color(hex: 0x5FD3DC),
         onActionAccent: Color(hex: 0x1A1A1A),
-        fabGradientStart: Color(hex: 0x00D4D4),
-        fabGradientEnd: Color(hex: 0x00D4D4),
-        folderTint: Color(hex: 0x00D4D4),
+        fabGradientStart: Color(hex: 0x5FD3DC),
+        fabGradientEnd: Color(hex: 0x5FD3DC),
+        folderTint: Color(hex: 0x5FD3DC),
         navBar: Color(hex: 0x1F1F1F),
         isDark: true
     )
@@ -397,8 +397,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
-        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x52525A),
+        hairline: Color(hex: 0x3A3A40),
         accent: Color(hex: 0xE8E8EC),
         onAccent: Color(hex: 0x16161A),
         actionAccent: Color(hex: 0xE8E8EC),
@@ -418,15 +418,15 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
-        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
-        accent: Color(hex: 0x00D4D4),
+        textQuaternary: Color(hex: 0x52525A),
+        hairline: Color(hex: 0x3A3A40),
+        accent: Color(hex: 0x5FD3DC),
         onAccent: Color(hex: 0x0A0A0A),
-        actionAccent: Color(hex: 0x00D4D4),
+        actionAccent: Color(hex: 0x5FD3DC),
         onActionAccent: Color(hex: 0x0A0A0A),
-        fabGradientStart: Color(hex: 0x00D4D4),
-        fabGradientEnd: Color(hex: 0x00D4D4),
-        folderTint: Color(hex: 0x00D4D4),
+        fabGradientStart: Color(hex: 0x5FD3DC),
+        fabGradientEnd: Color(hex: 0x5FD3DC),
+        folderTint: Color(hex: 0x5FD3DC),
         navBar: Color(hex: 0x16161A),
         isDark: true
     )
@@ -439,8 +439,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
-        textQuaternary: Color(hex: 0x65656D),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x65656D),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x52525A),
+        hairline: Color(hex: 0x3A3A40),
         accent: Color(hex: 0x86ABB0),
         onAccent: Color(hex: 0x0A1012),
         actionAccent: Color(hex: 0x86ABB0),
@@ -523,8 +523,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EBEF),
         textSecondary: Color(hex: 0x96A0AA),
         textTertiary: Color(hex: 0x66707A),
-        textQuaternary: Color(hex: 0x66707A),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x66707A),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x525A62),
+        hairline: Color(hex: 0x3A4048),
         accent: Color(hex: 0x6BB5BA),
         onAccent: Color(hex: 0x0C1214),
         actionAccent: Color(hex: 0x6BB5BA),
@@ -544,8 +544,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EBEF),
         textSecondary: Color(hex: 0x96A0AA),
         textTertiary: Color(hex: 0x66707A),
-        textQuaternary: Color(hex: 0x66707A),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x66707A),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x525A62),
+        hairline: Color(hex: 0x3A4048),
         accent: Color(hex: 0x9DC2C7),
         onAccent: Color(hex: 0x0C1416),
         actionAccent: Color(hex: 0x9DC2C7),
@@ -564,8 +564,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE6EAF0),
         textSecondary: Color(hex: 0x98A2B0),
         textTertiary: Color(hex: 0x616B7A),
-        textQuaternary: Color(hex: 0x616B7A),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x616B7A),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x4E5664),
+        hairline: Color(hex: 0x383E48),
         accent: Color(hex: 0x8FA8C7),
         onAccent: Color(hex: 0x0E1319),
         actionAccent: Color(hex: 0x8FA8C7),
@@ -585,8 +585,8 @@ struct AppThemeColors: Equatable {
         textPrimary: Color(hex: 0xE5EBEC),
         textSecondary: Color(hex: 0x8EA0A3),
         textTertiary: Color(hex: 0x59696C),
-        textQuaternary: Color(hex: 0x59696C),   // = textTertiary nesta etapa
-        hairline: Color(hex: 0x59696C),         // = textTertiary nesta etapa
+        textQuaternary: Color(hex: 0x485558),
+        hairline: Color(hex: 0x343E40),
         accent: Color(hex: 0x86ABB0),
         onAccent: Color(hex: 0x0A1012),
         actionAccent: Color(hex: 0x86ABB0),
@@ -775,8 +775,8 @@ final class ThemeManager {
 
   private static let storageKey = "stacked_theme_id"
 
-  /// Primeiro launch → Slate Cyan; quem já escolheu tema mantém a preferência salva.
-  var currentId: AppThemeId = .slateCyan {
+  /// Primeiro launch → Graphite; quem já escolheu tema mantém a preferência salva.
+  var currentId: AppThemeId = .graphite {
     didSet { UserDefaults.standard.set(currentId.rawValue, forKey: Self.storageKey) }
   }
 

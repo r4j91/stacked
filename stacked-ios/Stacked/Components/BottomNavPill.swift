@@ -13,7 +13,7 @@ struct BottomNavPill: View {
 
   private let tabs = NavTab.allCases
   private let indicatorInset: CGFloat = 2
-  private let pillShape = RoundedRectangle(cornerRadius: 32)
+  private let pillShape = RoundedRectangle(cornerRadius: 24)
   private let indicatorCornerRadius: CGFloat = 28
 
   private var useSolidChrome: Bool {

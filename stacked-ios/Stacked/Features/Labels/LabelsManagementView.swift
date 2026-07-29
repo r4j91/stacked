@@ -26,13 +26,12 @@ struct LabelsManagementView: View {
                   .listRowInsets(EdgeInsets())
                   .listRowSeparator(.hidden)
                   .listRowBackground(Color.clear)
-                  .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                  .contextMenu {
                     Button(role: .destructive) {
                       _Concurrency.Task { await deleteLabel(label) }
                     } label: {
-                      StackedIcons.image(.trash)
+                      Label("Excluir", systemImage: "trash")
                     }
-                    .accessibilityLabel("Excluir etiqueta \(label.name)")
                   }
               }
               .onMove(perform: moveLabels)
@@ -106,6 +105,16 @@ struct LabelsManagementView: View {
           }
           .buttonStyle(.plain)
           .accessibilityLabel("Editar etiqueta \(label.name)")
+
+          Button(role: .destructive) {
+            _Concurrency.Task { await deleteLabel(label) }
+          } label: {
+            Text("Excluir")
+              .font(AppTypography.meta.weight(.semibold))
+              .foregroundStyle(AppColors.priorityHigh)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Excluir etiqueta \(label.name)")
         }
       }
       .padding(.horizontal, SettingsChrome.rowPaddingH)

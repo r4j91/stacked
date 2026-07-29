@@ -82,10 +82,10 @@ struct ListSectionHeader: View {
   let text: String
 
   var body: some View {
-    Text(text)
+    Text(ListSectionHeaderDisplay.softened(text))
       .font(AppTypography.sectionLabel)
       .foregroundStyle(theme.colors.textTertiary)
-      .tracking(0.6)
+      .tracking(0.2)
       .padding(.leading, AppSpacing.xs)
   }
 }
@@ -98,13 +98,25 @@ struct ListSectionHeaderWithTrailing<Trailing: View>: View {
 
   var body: some View {
     HStack(alignment: .center, spacing: 8) {
-      Text(text)
+      Text(ListSectionHeaderDisplay.softened(text))
         .font(AppTypography.sectionLabel)
         .foregroundStyle(theme.colors.textTertiary)
-        .tracking(0.6)
+        .tracking(0.2)
       Spacer(minLength: 0)
       trailing()
     }
+  }
+}
+
+private enum ListSectionHeaderDisplay {
+  /// Callers may still pass ALL CAPS — soften to title case for Quiet Control Room.
+  static func softened(_ text: String) -> String {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty,
+          trimmed == trimmed.uppercased(with: .current),
+          trimmed.contains(where: \.isLetter)
+    else { return text }
+    return trimmed.capitalized(with: .current)
   }
 }
 
@@ -179,7 +191,7 @@ struct SettingsSectionHeader: View {
     Text(text.uppercased())
       .font(AppTypography.sectionLabel)
       .foregroundStyle(theme.colors.textTertiary)
-      .tracking(0.6)
+      .tracking(0.2)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.leading, 4)
   }

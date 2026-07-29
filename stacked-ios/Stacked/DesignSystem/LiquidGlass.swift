@@ -38,7 +38,7 @@ enum LiquidGlass {
   ) -> some View {
     GlassSurface(
       navBarColor: navBarColor,
-      shape: RoundedRectangle(cornerRadius: 32),
+      shape: RoundedRectangle(cornerRadius: 24),
       content: content
     )
   }

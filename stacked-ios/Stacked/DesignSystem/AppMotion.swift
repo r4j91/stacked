@@ -18,9 +18,9 @@ enum AppMotion {
     .smooth(duration: 0.28)
   }
 
-  /// Personalidade contida — bounce no ícone de aba, rotação do FAB.
+  /// Personalidade contida — chrome quieto (sem overshoot).
   static var bouncy: Animation {
-    .bouncy(duration: 0.32, extraBounce: 0.1)
+    .snappy(duration: 0.28, extraBounce: 0)
   }
 
   // MARK: - Aliases semânticos (tuning fino sobre os tokens)
@@ -54,7 +54,7 @@ enum AppMotion {
 
   /// Navbar: bounce no ícone ao selecionar — segue o blob ~35ms depois.
   static var iconBounceSpring: Animation {
-    .bouncy(duration: 0.26, extraBounce: 0.08)
+    .snappy(duration: 0.26, extraBounce: 0)
   }
 
   /// Navbar expandida (Fase 2) — cápsula ativa expande/colapsa.
@@ -68,8 +68,8 @@ enum AppMotion {
 
   /// Navbar ilha (Fase 3) — expandir/colapsar.
   static var islandNavSpring: Animation {
-    // AJUSTADO_ISLAND_SPRING
-    .spring(response: 0.36, dampingFraction: 0.72)
+    // AJUSTADO_ISLAND_SPRING — damping mais seco (menos “água”).
+    .spring(response: 0.36, dampingFraction: 0.86)
   }
 
   /// Ilha — troca de aba com colapso: snappy sem bounce (evita animar largura com spring pesado).

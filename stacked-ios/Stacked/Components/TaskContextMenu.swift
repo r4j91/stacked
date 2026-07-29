@@ -6,7 +6,7 @@ enum TaskContextLift {
   static let minimumDuration: Double = 0.35
   static let scale: CGFloat = 1.02
   static let offsetY: CGFloat = -5
-  static let shadowOpacity: Double = 0.16
+  static let shadowOpacity: Double = 0
   static let shadowRadius: CGFloat = 10
   static let shadowY: CGFloat = 5
 }

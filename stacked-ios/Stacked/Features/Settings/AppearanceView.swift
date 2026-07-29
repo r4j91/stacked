@@ -23,7 +23,7 @@ struct AppearanceView: View {
   private var taskDetailAsSheet = TaskDetailSheetPresentationStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
   @State private var showMoreThemes = false
-  @State private var showMoreHeroes = false
+  @State private var showMoreDisplayModes = false
   /// Uma seção aberta por vez — accordion leve no padrão do app (tudo fechado ao entrar).
   @State private var expandedSection: AppearanceSectionID? = nil
   /// Mantém o `SubtaskExpandReveal` montado até o collapse terminar (evita ghost).
@@ -62,16 +62,23 @@ struct AppearanceView: View {
     ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
   }
 
+  private static let primaryDisplayModes: [ProjectDisplayMode] = [.listComfort, .list, .cards]
+
+  private var moreDisplayModes: [ProjectDisplayMode] {
+    ProjectDisplayMode.allCases.filter { !Self.primaryDisplayModes.contains($0) }
+  }
+
   var body: some View {
     let c = theme.colors
     let recommendedThemes = AppThemeId.recommended
     let moreThemes = AppThemeId.allCases.filter { !recommendedThemes.contains($0) }
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
-    let heroGroups = showMoreHeroes
-      ? HomeHeroStyleGroup.pickerGroups
-      : [.recommended]
+    let heroGroups = HomeHeroStyleGroup.pickerGroups
     let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
+    let visibleDisplayModes = showMoreDisplayModes
+      ? Self.primaryDisplayModes + moreDisplayModes
+      : Self.primaryDisplayModes
 
     // ScrollView (não List): accordion custom + List brigam no resize das rows.
     ScrollView {
@@ -129,12 +136,24 @@ struct AppearanceView: View {
           id: .displayMode,
           title: "Chrome da lista",
           summary: displayMode.label,
-          footer: "Balões, Halo e Lista+ em todas as abas. Independente do layout dos metadados."
+          footer: "Lista+, Lista e Balões. Outros estilos em Mais."
         ) {
-          ForEach(Array(ProjectDisplayMode.allCases.enumerated()), id: \.element) { index, mode in
+          ForEach(Array(visibleDisplayModes.enumerated()), id: \.element) { index, mode in
+            if showMoreDisplayModes, mode == moreDisplayModes.first {
+              appearanceGroupHeader("Mais")
+            }
             displayModeRow(mode)
-            if index < ProjectDisplayMode.allCases.count - 1 {
+            if index < visibleDisplayModes.count - 1 {
               SettingsCardDivider(leadingPadding: 56)
+            }
+          }
+          if !moreDisplayModes.isEmpty {
+            moreOptionsButton(
+              expanded: showMoreDisplayModes,
+              collapsedTitle: "Mais estilos",
+              expandedTitle: "Só recomendados"
+            ) {
+              showMoreDisplayModes.toggle()
             }
           }
         }
@@ -159,7 +178,7 @@ struct AppearanceView: View {
           id: .homeHero,
           title: "Topo da Home",
           summary: homeHeroStyle.displayName,
-          footer: "Trilho, Manchete, Horizonte e Clássico. Use ⋯ para ocultar. Clima e Jornada em Mais estilos."
+          footer: "Trilho, Manchete, Horizonte e Clássico. Use ⋯ para ocultar."
         ) {
           appearanceGroupHeader("Recomendados")
           ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
@@ -183,13 +202,6 @@ struct AppearanceView: View {
                 }
               }
             }
-          }
-          moreOptionsButton(
-            expanded: showMoreHeroes,
-            collapsedTitle: "Mais estilos (Clima e Jornada)",
-            expandedTitle: "Só recomendados"
-          ) {
-            showMoreHeroes.toggle()
           }
         }
 
@@ -281,8 +293,8 @@ struct AppearanceView: View {
       if !AppThemeId.recommended.contains(theme.currentId) {
         showMoreThemes = true
       }
-      if homeHeroStyle.pickerGroup != .recommended {
-        showMoreHeroes = true
+      if !Self.primaryDisplayModes.contains(displayMode) {
+        showMoreDisplayModes = true
       }
       if HomeHeroStyleStorage.migrateRetiredSelectionIfNeeded() {
         homeHeroStyleRaw = UserDefaults.standard.string(forKey: HomeHeroStyleStorage.key)
@@ -379,7 +391,7 @@ struct AppearanceView: View {
     hasher.combine(summary)
     hasher.combine(footer)
     hasher.combine(showMoreThemes)
-    hasher.combine(showMoreHeroes)
+    hasher.combine(showMoreDisplayModes)
     hasher.combine(homeHeroStyleHiddenRaw)
     hasher.combine(labelChipStyleRaw)
     hasher.combine(dueDateChipStyleRaw)

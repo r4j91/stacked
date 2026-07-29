@@ -216,9 +216,9 @@ enum HomeHeroStyleGroup: String, CaseIterable, Identifiable {
     }
   }
 
-  /// Grupos ainda oferecidos em Aparência.
+  /// Grupos ainda oferecidos em Aparência (só recomendados; clima/jornada fora do picker).
   static var pickerGroups: [HomeHeroStyleGroup] {
-    [.recommended, .weather, .journey]
+    [.recommended]
   }
 
   var isAvailableInPicker: Bool {

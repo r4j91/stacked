@@ -14,7 +14,7 @@ struct ClassicNavBar: View {
 
   private let tabs = NavTab.allCases
   private let indicatorInset: CGFloat = ClassicNavGlassLayout.indicatorInset
-  private let pillShape = RoundedRectangle(cornerRadius: 32)
+  private let pillShape = RoundedRectangle(cornerRadius: 24)
   private let indicatorCornerRadius: CGFloat = ClassicNavGlassLayout.indicatorCornerRadius
 
   private var chromeMode: ChromeGlassMode {

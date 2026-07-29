@@ -12,7 +12,7 @@ struct ExpandedNavBar: View {
   @Namespace private var capsuleNamespace
 
   private let tabs = NavTab.allCases
-  private let pillShape = RoundedRectangle(cornerRadius: 32)
+  private let pillShape = RoundedRectangle(cornerRadius: 24)
 
   private var chromeMode: ChromeGlassMode {
     ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)

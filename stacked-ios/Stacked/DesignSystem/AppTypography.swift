@@ -32,8 +32,8 @@ enum AppTypography {
   static let settingsTitle: Font = .system(size: 15, weight: .medium)
   static let sheetPageTitle: Font = .system(size: 16, weight: .bold)
   static let cardHeading: Font = .system(size: 13.5, weight: .semibold)
-  static let metricHero: Font = .system(size: 36, weight: .heavy)
-  static let metricHeroCompact: Font = .system(size: 32, weight: .heavy)
+  static let metricHero: Font = .system(size: 24, weight: .heavy)
+  static let metricHeroCompact: Font = .system(size: 22, weight: .heavy)
   static let popoverRowLabel: Font = .system(size: 15)
 
   // Fase K — tokens adicionais
