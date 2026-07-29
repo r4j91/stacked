@@ -81,7 +81,7 @@ export const themes: Record<AppThemeId, AppTheme> = {
     previewSwatch: {
       background: "#EEF1F6",
       surface: "#F5F7FA",
-      accent: "#3B485B",
+      accent: "#3A5068",
     },
     colors: {
       // Sem #FFFFFF — superfície off-white; texto terciário escurecido (≥4.5:1)
@@ -93,7 +93,7 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#656A78",
       textQuaternary: "#7A8091",
       hairline: "#8A909C",
-      accent: "#3B485B",
+      accent: "#3A5068",
       accentText: "#FFFFFF",
       navBar: "#F5F7FA",
       isDark: false,

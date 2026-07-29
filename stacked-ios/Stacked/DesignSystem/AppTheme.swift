@@ -122,7 +122,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .cloudAmazonite:
             return (Color(hex: 0xD5D8DE), Color(hex: 0xE0E3E9), Color(hex: 0x86ABB0))
         case .moonstone:
-            return (Color(hex: 0xEEF1F6), Color(hex: 0xF5F7FA), Color(hex: 0x3B485B))
+            return (Color(hex: 0xEEF1F6), Color(hex: 0xF5F7FA), Color(hex: 0x3A5068))
         default:
             let c = colors
             return (c.background, c.surface, c.accent)
@@ -207,6 +207,7 @@ struct AppThemeColors: Equatable {
     )
 
     /// Moonstone — claro legível: sem branco puro; terciário ≥4.5:1.
+    /// Accent levemente mais azul que o slate-cinza anterior (#3B485B → #3A5068).
     static let moonstone = AppThemeColors(
         background: Color(hex: 0xEEF1F6),
         surface: Color(hex: 0xF5F7FA),
@@ -216,13 +217,13 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x656A78),
         textQuaternary: Color(hex: 0x7A8091),
         hairline: Color(hex: 0x8A909C),
-        accent: Color(hex: 0x3B485B),
+        accent: Color(hex: 0x3A5068),
         onAccent: Color(hex: 0xFFFFFF),
-        actionAccent: Color(hex: 0x3B485B),
+        actionAccent: Color(hex: 0x3A5068),
         onActionAccent: Color(hex: 0xFFFFFF),
-        fabGradientStart: Color(hex: 0x3B485B),
-        fabGradientEnd: Color(hex: 0x3B485B),
-        folderTint: Color(hex: 0x3B485B),
+        fabGradientStart: Color(hex: 0x3A5068),
+        fabGradientEnd: Color(hex: 0x3A5068),
+        folderTint: Color(hex: 0x3A5068),
         navBar: Color(hex: 0xF5F7FA),
         isDark: false
     )
