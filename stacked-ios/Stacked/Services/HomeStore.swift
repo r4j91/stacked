@@ -27,11 +27,120 @@ final class HomeStore {
   /// Âncora de “agora” para relógio/saudação/trilho — só atualiza no foreground/aba, sem timer.
   private(set) var temporalAnchor = Date()
 
-  private init() {}
+  private static let diskCacheKeyPrefix = "home.dashboard.snapshot.v1."
+
+  private init() {
+    hydrateFromDisk()
+  }
 
   /// Recalcula hora/saudação/trilho sem refetch. Chamar ao voltar à Home ou ao foreground.
   func refreshTemporal() {
     temporalAnchor = Date()
+  }
+
+  /// Já há algo para pintar (memória ou disco) — não mostrar ProgressView no hero.
+  var hasDisplayableDashboard: Bool {
+    !projects.isEmpty
+      || todayTotal > 0
+      || overdueCount > 0
+      || inboxCount > 0
+      || upcomingCount > 0
+      || focusTaskTitle != nil
+      || primaryOverdueTitle != nil
+  }
+
+  /// Restaura último snapshot do UserDefaults (cold start após kill).
+  func hydrateFromDisk() {
+    guard !hasDisplayableDashboard else { return }
+    guard let userId = SupabaseService.client.auth.currentUser?.id else { return }
+    guard let data = UserDefaults.standard.data(forKey: Self.diskCacheKey(userId)),
+          let snap = try? JSONDecoder().decode(HomeDashboardSnapshot.self, from: data)
+    else { return }
+    applySnapshot(snap)
+  }
+
+  static func clearDiskCache(userId: UUID? = nil) {
+    let defaults = UserDefaults.standard
+    if let userId {
+      defaults.removeObject(forKey: diskCacheKey(userId))
+      return
+    }
+    let prefix = diskCacheKeyPrefix
+    for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+      defaults.removeObject(forKey: key)
+    }
+  }
+
+  /// Logout / troca de conta — limpa memória + disco.
+  func resetForSignOut() {
+    Self.clearDiskCache()
+    overdueCount = 0
+    todayPending = 0
+    todayDone = 0
+    todayTotal = 0
+    inboxCount = 0
+    upcomingCount = 0
+    projects = []
+    isLoading = false
+    error = nil
+    focusTaskTitle = nil
+    focusTaskTime = nil
+    primaryOverdueTitle = nil
+    primaryOverdueTime = nil
+    queueLines = []
+    completionStreak = 0
+    streakWeekCompleted = Array(repeating: false, count: 7)
+    temporalAnchor = Date()
+  }
+
+  private static func diskCacheKey(_ userId: UUID) -> String {
+    diskCacheKeyPrefix + userId.uuidString
+  }
+
+  private func applySnapshot(_ snap: HomeDashboardSnapshot) {
+    overdueCount = snap.overdueCount
+    todayPending = snap.todayPending
+    todayDone = snap.todayDone
+    todayTotal = snap.todayTotal
+    inboxCount = snap.inboxCount
+    upcomingCount = snap.upcomingCount
+    projects = snap.projects
+    focusTaskTitle = snap.focusTaskTitle
+    focusTaskTime = snap.focusTaskTime
+    primaryOverdueTitle = snap.primaryOverdueTitle
+    primaryOverdueTime = snap.primaryOverdueTime
+    queueLines = snap.queueLines
+    completionStreak = snap.completionStreak
+    if snap.streakWeekCompleted.count == 7 {
+      streakWeekCompleted = snap.streakWeekCompleted
+    }
+    if let weather = snap.weatherSnapshot {
+      weatherSnapshot = weather
+    }
+  }
+
+  private func persistToDisk() {
+    guard let userId = SupabaseService.client.auth.currentUser?.id else { return }
+    let snap = HomeDashboardSnapshot(
+      overdueCount: overdueCount,
+      todayPending: todayPending,
+      todayDone: todayDone,
+      todayTotal: todayTotal,
+      inboxCount: inboxCount,
+      upcomingCount: upcomingCount,
+      projects: projects,
+      focusTaskTitle: focusTaskTitle,
+      focusTaskTime: focusTaskTime,
+      primaryOverdueTitle: primaryOverdueTitle,
+      primaryOverdueTime: primaryOverdueTime,
+      queueLines: queueLines,
+      completionStreak: completionStreak,
+      streakWeekCompleted: streakWeekCompleted,
+      weatherSnapshot: weatherSnapshot,
+      savedAt: Date()
+    )
+    guard let data = try? JSONEncoder().encode(snap) else { return }
+    UserDefaults.standard.set(data, forKey: Self.diskCacheKey(userId))
   }
 
   var motivationContent: (quote: String, footnote: String) {
@@ -206,7 +315,9 @@ final class HomeStore {
   }
 
   func load() async {
-    isLoading = projects.isEmpty
+    hydrateFromDisk()
+    // Stale-while-revalidate: spinner só na 1ª visita sem cache.
+    isLoading = !hasDisplayableDashboard
     error = nil
     defer { isLoading = false }
     guard let userId = SupabaseService.client.auth.currentUser?.id else {
@@ -230,9 +341,13 @@ final class HomeStore {
       inboxCount = try await pendingReq.filter { $0 == nil }.count
     } catch {
       if AsyncLoad.isCancellation(error) { return }
-      self.error = error.localizedDescription
+      // Com cache na tela, não apaga o hero por erro de rede.
+      if !hasDisplayableDashboard {
+        self.error = error.localizedDescription
+      }
     }
     await refreshHeroInsights(todayStr: today)
+    persistToDisk()
   }
 
   /// Reordenação local + persistência (Home edit mode).
@@ -275,6 +390,7 @@ final class HomeStore {
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
+      persistToDisk()
     } catch {
       if AsyncLoad.isCancellation(error) { return }
     }

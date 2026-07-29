@@ -13,12 +13,12 @@ enum HomeHeroInsights {
     let weekCompleted: [Bool]
   }
 
-  struct QueueLine: Identifiable, Equatable {
+  struct QueueLine: Identifiable, Equatable, Codable {
     let id: String
     let title: String
     let scope: Scope
 
-    enum Scope: Equatable {
+    enum Scope: String, Equatable, Codable {
       case overdue
       case today
     }

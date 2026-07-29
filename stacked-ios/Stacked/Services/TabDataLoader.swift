@@ -8,6 +8,7 @@ enum TabDataLoader {
     // NET_FASEC_ETAPA5 — uma “transação” de UI por aba (stores já usam async let interno).
     switch tab {
     case .home:
+      HomeStore.shared.hydrateFromDisk()
       await HomeStore.shared.load()
     case .today:
       await TaskStore.shared.loadToday()

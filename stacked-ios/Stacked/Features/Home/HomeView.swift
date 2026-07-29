@@ -66,6 +66,7 @@ struct HomeView: View {
       }
       .refreshable { await store.load() }
       .task {
+        store.hydrateFromDisk()
         store.refreshTemporal()
         await NotificationService.shared.prefetchPreview()
         await store.refreshWeatherIfNeeded()

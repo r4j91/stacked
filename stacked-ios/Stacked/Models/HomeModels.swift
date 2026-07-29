@@ -7,12 +7,32 @@ struct HomeTaskSummary {
   let overdueCount: Int
 }
 
-struct HomeProject: Identifiable, Equatable {
+struct HomeProject: Identifiable, Equatable, Codable {
   let id: String
   let name: String
   let colorHex: String?
   let iconKey: String?
   let taskCount: Int
+}
+
+/// Snapshot leve da Home — cold start sem ProgressView (stale-while-revalidate).
+struct HomeDashboardSnapshot: Codable, Equatable {
+  var overdueCount: Int
+  var todayPending: Int
+  var todayDone: Int
+  var todayTotal: Int
+  var inboxCount: Int
+  var upcomingCount: Int
+  var projects: [HomeProject]
+  var focusTaskTitle: String?
+  var focusTaskTime: String?
+  var primaryOverdueTitle: String?
+  var primaryOverdueTime: String?
+  var queueLines: [HomeHeroInsights.QueueLine]
+  var completionStreak: Int
+  var streakWeekCompleted: [Bool]
+  var weatherSnapshot: HomeHeroInsights.WeatherSnapshot?
+  var savedAt: Date
 }
 
 struct ProjectRoute: Identifiable, Hashable {

@@ -61,8 +61,9 @@ struct RootView: View {
       NetLog.markForeground()
       WidgetSnapshotSync.refreshFromCachedToday()
       GlobalDataRefresh.refreshRelativeDateChips()
+      HomeStore.shared.hydrateFromDisk()
       _Concurrency.Task {
-        // NET_FASEC_ETAPA4 — refresh proativo de sessão ao voltar do background.
+        // Session primeiro; resto escalonado para não “travar” o reopen.
         do {
           _ = try await NetLog.timed("auth.refreshSession", step: .authRefresh) {
             try await SupabaseService.client.auth.refreshSession()
@@ -70,11 +71,14 @@ struct RootView: View {
         } catch {
           // Refresh falhou — request seguinte ainda tenta via autoRefreshToken.
         }
+        try? await _Concurrency.Task.sleep(for: .milliseconds(350))
+        guard !_Concurrency.Task.isCancelled else { return }
         await HomeStore.shared.refreshWeatherIfNeeded()
-        // Contagens + notifs: defer para não empilhar no resume junto com session/widget.
-        try? await _Concurrency.Task.sleep(for: .milliseconds(600))
+        try? await _Concurrency.Task.sleep(for: .milliseconds(500))
         guard !_Concurrency.Task.isCancelled else { return }
         await NotificationService.shared.rescheduleAllPending()
+        try? await _Concurrency.Task.sleep(for: .milliseconds(400))
+        guard !_Concurrency.Task.isCancelled else { return }
         await GlobalDataRefresh.refreshDashboardCounts()
       }
     }
