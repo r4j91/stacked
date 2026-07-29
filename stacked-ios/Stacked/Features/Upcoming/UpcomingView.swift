@@ -15,68 +15,20 @@ struct UpcomingView: View {
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
-  /// UIKit na lista de schedule (inclui subtarefas avulsas e eventos).
-  private var prefersUIKitList: Bool {
-    guard useUIKitTaskList,
-          !store.isLoading,
-          store.error == nil || !store.groupedSchedule.isEmpty,
-          !store.groupedSchedule.isEmpty
-    else { return false }
-    return true
-  }
-
   var body: some View {
     let c = theme.colors
 
-    VStack(spacing: 0) {
-      if store.mode != .agenda {
-        calendarSection
-          .padding(.horizontal, AppSpacing.sm)
-          .padding(.bottom, AppSpacing.sm)
-      }
-
-      if prefersUIKitList {
-        UIKitHostedTaskList(
-          sections: upcomingUIKitSections,
-          showProject: true,
-          style: displayMode.taskRowStyle,
-          flatSubtaskQueue: displayMode.flatSubtaskQueue,
-          rowInsets: rowInsets,
-          background: c.background,
-          leadingChrome: {
-            AnyView(upcomingListChrome)
-          },
-          supportsTimelineRail: true,
-          onToggle: { store.complete($0) },
-          onTap: { detailRoute = TaskDetailRoute(task: $0) },
-          onSubtaskTap: { task, sub in
-            subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-          },
-          onSubtaskChanged: { store.applySubtaskPatch($0) },
-          onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-          onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-          onComplete: { store.complete($0) },
-          onDuplicate: { task in
-            _Concurrency.Task {
-              _ = try? await TaskRepository.shared.duplicateTask(task)
-              await store.load()
-            }
-          },
-          onDelete: { store.delete($0) },
-          onRefresh: { _Concurrency.Task { await store.load() } },
-          onPostpone: { task in _Concurrency.Task { await store.postpone(task) } },
-          onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
-          onScheduledSubtaskTap: { entry in
-            subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
-          },
-          onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) },
-          pinPlainSectionHeaders: true
-        )
-        .stackedScrollEdgeChrome()
-      } else {
-        upcomingSwiftUIList
-      }
-    }
+    UpcomingScreenBody(
+      colors: c,
+      useUIKitTaskList: useUIKitTaskList,
+      timelineRailEnabled: timelineRailEnabled,
+      displayMode: displayMode,
+      reduceMotion: reduceMotion,
+      allowRowHeavyWork: allowRowHeavyWork,
+      detailRoute: $detailRoute,
+      subtaskDetailRoute: $subtaskDetailRoute,
+      taskDetailZoom: taskDetailZoom
+    )
     .stackedTabletCentered()
     .background(c.background)
     .refreshable { await store.load() }
@@ -98,115 +50,74 @@ struct UpcomingView: View {
       .environment(ThemeManager.shared)
     }
   }
+}
 
-  private var upcomingUIKitSections: [UIKitTaskSection] {
-    store.groupedSchedule.map { group in
-      UIKitTaskSection(
-        id: String(Int(group.day.timeIntervalSince1970)),
-        header: .plain(TaskMapper.dayLabel(for: group.day).uppercased()),
-        tasks: [],
-        scheduleItems: group.items
-      )
-    }
+// MARK: - Screen body (calendar + list gate)
+
+private struct UpcomingScreenBody: View {
+  @State private var store = UpcomingStore.shared
+
+  let colors: AppThemeColors
+  let useUIKitTaskList: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  /// UIKit na lista de schedule (inclui subtarefas avulsas e eventos).
+  private var prefersUIKitList: Bool {
+    guard useUIKitTaskList,
+          !store.isLoading,
+          store.error == nil || !store.groupedSchedule.isEmpty,
+          !store.groupedSchedule.isEmpty
+    else { return false }
+    return true
   }
 
-  private var upcomingListChrome: some View {
-    VStack(alignment: .leading, spacing: AppSpacing.sm) {
-      ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
-      modeToggle
-        .padding(.horizontal, AppSpacing.lg)
-    }
-  }
+  var body: some View {
+    VStack(spacing: 0) {
+      UpcomingCalendarChrome(reduceMotion: reduceMotion)
 
-  @ViewBuilder
-  private var upcomingSwiftUIList: some View {
-    let c = theme.colors
-    List {
-      Section {
-        ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
-          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-
-      Section {
-        modeToggle
-          .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
-      }
-
-      if store.isLoading {
-        Section {
-          ProgressView()
-            .tint(c.accent)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-        }
-      } else if let err = store.error, store.tasks.isEmpty && store.scheduledSubtasks.isEmpty {
-        Section {
-          LoadErrorView(message: err) {
-            _Concurrency.Task { await store.load() }
-          }
-          .listRowBackground(Color.clear)
-        }
-      } else if store.groupedSchedule.isEmpty {
-        Section {
-          EmptyStateView(
-            illustration: .upcomingClear,
-            title: "Agenda livre",
-            subtitle: "Nada por vir neste período. Selecione outro dia ou adicione uma tarefa com data de vencimento."
-          )
-          .stackedListEmptyStateRow()
-        }
+      if prefersUIKitList {
+        UpcomingUIKitListContent(
+          colors: colors,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute
+        )
       } else {
-        ForEach(store.groupedSchedule, id: \.day) { group in
-          Section {
-            ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
-              scheduleRow(
-                item,
-                connectsUp: index > 0,
-                connectsDown: index < group.items.count - 1
-              )
-            }
-          } header: {
-            ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
-          }
-        }
+        UpcomingSwiftUIListContent(
+          colors: colors,
+          timelineRailEnabled: timelineRailEnabled,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          allowRowHeavyWork: allowRowHeavyWork,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute,
+          taskDetailZoom: taskDetailZoom
+        )
       }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    // Soft topo só no path SwiftUI (Home) — no UIKit o soft hitcha; sticky usa fill sólido.
-    .stackedDashboardListChrome()
   }
+}
 
-  private var modeToggle: some View {
-    let c = theme.colors
-    return HStack(spacing: AppSpacing.xs) {
-      ForEach(UpcomingCalendarMode.allCases) { mode in
-        let selected = store.mode == mode
-        Button {
-          HapticService.selection()
-          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-            store.mode = mode
-          }
-        } label: {
-          Text(mode.label)
-            .font(AppTypography.modeToggleLabel(selected: selected))
-            .foregroundStyle(selected ? c.accent : c.textSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, AppSpacing.sm)
-            .background(selected ? c.surfaceVariant : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-      }
+// MARK: - Calendar chrome (mode / focused day — not schedule rows)
+
+private struct UpcomingCalendarChrome: View {
+  @State private var store = UpcomingStore.shared
+  @Environment(ThemeManager.self) private var theme
+  let reduceMotion: Bool
+
+  var body: some View {
+    if store.mode != .agenda {
+      calendarSection
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.bottom, AppSpacing.sm)
     }
-    .padding(AppSpacing.xs)
-    .background(c.surface)
-    .clipShape(RoundedRectangle(cornerRadius: 12))
-    .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.textPrimary.opacity(0.06)))
   }
 
   @ViewBuilder
@@ -244,10 +155,210 @@ struct UpcomingView: View {
       EmptyView()
     }
   }
+}
 
-  private var rowInsets: EdgeInsets {
-    displayMode.taskListRowInsets
+private struct UpcomingModeToggle: View {
+  @State private var store = UpcomingStore.shared
+  @Environment(ThemeManager.self) private var theme
+  let reduceMotion: Bool
+
+  var body: some View {
+    let c = theme.colors
+    HStack(spacing: AppSpacing.xs) {
+      ForEach(UpcomingCalendarMode.allCases) { mode in
+        let selected = store.mode == mode
+        Button {
+          HapticService.selection()
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
+            store.mode = mode
+          }
+        } label: {
+          Text(mode.label)
+            .font(AppTypography.modeToggleLabel(selected: selected))
+            .foregroundStyle(selected ? c.accent : c.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.sm)
+            .background(selected ? c.surfaceVariant : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+      }
+    }
+    .padding(AppSpacing.xs)
+    .background(c.surface)
+    .clipShape(RoundedRectangle(cornerRadius: 12))
+    .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.textPrimary.opacity(0.06)))
   }
+}
+
+// MARK: - UIKit list (groupedSchedule only)
+
+private struct UpcomingUIKitListContent: View {
+  @State private var store = UpcomingStore.shared
+
+  let colors: AppThemeColors
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+
+  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
+
+  private var upcomingUIKitSections: [UIKitTaskSection] {
+    store.groupedSchedule.map { group in
+      UIKitTaskSection(
+        id: String(Int(group.day.timeIntervalSince1970)),
+        header: .plain(TaskMapper.dayLabel(for: group.day).uppercased()),
+        tasks: [],
+        scheduleItems: group.items
+      )
+    }
+  }
+
+  var body: some View {
+    UIKitHostedTaskList(
+      sections: upcomingUIKitSections,
+      showProject: true,
+      style: displayMode.taskRowStyle,
+      flatSubtaskQueue: displayMode.flatSubtaskQueue,
+      rowInsets: rowInsets,
+      background: colors.background,
+      leadingChrome: {
+        AnyView(
+          VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
+            UpcomingModeToggle(reduceMotion: reduceMotion)
+              .padding(.horizontal, AppSpacing.lg)
+          }
+        )
+      },
+      supportsTimelineRail: true,
+      onToggle: { store.complete($0) },
+      onTap: { detailRoute = TaskDetailRoute(task: $0) },
+      onSubtaskTap: { task, sub in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
+      },
+      onSubtaskChanged: { store.applySubtaskPatch($0) },
+      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
+      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
+      onComplete: { store.complete($0) },
+      onDuplicate: { task in
+        _Concurrency.Task {
+          _ = try? await TaskRepository.shared.duplicateTask(task)
+          await store.load()
+        }
+      },
+      onDelete: { store.delete($0) },
+      onRefresh: { _Concurrency.Task { await store.load() } },
+      onPostpone: { task in _Concurrency.Task { await store.postpone(task) } },
+      onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
+      onScheduledSubtaskTap: { entry in
+        subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
+      },
+      onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) },
+      pinPlainSectionHeaders: true
+    )
+    .stackedScrollEdgeChrome()
+  }
+}
+
+// MARK: - SwiftUI list shell
+
+private struct UpcomingSwiftUIListContent: View {
+  let colors: AppThemeColors
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  var body: some View {
+    List {
+      Section {
+        ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
+          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
+      Section {
+        UpcomingModeToggle(reduceMotion: reduceMotion)
+          .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.lg, bottom: AppSpacing.sm, trailing: AppSpacing.lg))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
+      UpcomingSwiftUIStatusOrRows(
+        colors: colors,
+        timelineRailEnabled: timelineRailEnabled,
+        displayMode: displayMode,
+        allowRowHeavyWork: allowRowHeavyWork,
+        detailRoute: $detailRoute,
+        subtaskDetailRoute: $subtaskDetailRoute,
+        taskDetailZoom: taskDetailZoom
+      )
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    // Soft topo só no path SwiftUI (Home) — no UIKit o soft hitcha; sticky usa fill sólido.
+    .stackedDashboardListChrome()
+  }
+}
+
+// MARK: - Loading/error/empty vs schedule rows
+
+private struct UpcomingSwiftUIStatusOrRows: View {
+  @State private var store = UpcomingStore.shared
+
+  let colors: AppThemeColors
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  var body: some View {
+    if store.isLoading {
+      Section {
+        ProgressView()
+          .tint(colors.accent)
+          .frame(maxWidth: .infinity)
+          .listRowBackground(Color.clear)
+      }
+    } else if let err = store.error, store.tasks.isEmpty && store.scheduledSubtasks.isEmpty {
+      Section {
+        LoadErrorView(message: err) {
+          _Concurrency.Task { await store.load() }
+        }
+        .listRowBackground(Color.clear)
+      }
+    } else {
+      UpcomingScheduleRows(
+        timelineRailEnabled: timelineRailEnabled,
+        displayMode: displayMode,
+        allowRowHeavyWork: allowRowHeavyWork,
+        detailRoute: $detailRoute,
+        subtaskDetailRoute: $subtaskDetailRoute,
+        taskDetailZoom: taskDetailZoom
+      )
+    }
+  }
+}
+
+private struct UpcomingScheduleRows: View {
+  @State private var store = UpcomingStore.shared
+
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
 
   private var railListInsets: EdgeInsets {
     var insets = rowInsets
@@ -255,6 +366,33 @@ struct UpcomingView: View {
       insets.leading = max(4, insets.leading - 24)
     }
     return insets
+  }
+
+  var body: some View {
+    if store.groupedSchedule.isEmpty {
+      Section {
+        EmptyStateView(
+          illustration: .upcomingClear,
+          title: "Agenda livre",
+          subtitle: "Nada por vir neste período. Selecione outro dia ou adicione uma tarefa com data de vencimento."
+        )
+        .stackedListEmptyStateRow()
+      }
+    } else {
+      ForEach(store.groupedSchedule, id: \.day) { group in
+        Section {
+          ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+            scheduleRow(
+              item,
+              connectsUp: index > 0,
+              connectsDown: index < group.items.count - 1
+            )
+          }
+        } header: {
+          ListSectionHeader(text: TaskMapper.dayLabel(for: group.day).uppercased())
+        }
+      }
+    }
   }
 
   @ViewBuilder

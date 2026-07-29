@@ -285,10 +285,19 @@ final class HomeStore {
     let today = TaskMapper.parseDueDate(todayStr) ?? cal.startOfDay(for: Date())
     let streakSince = cal.date(byAdding: .day, value: -21, to: today) ?? today
 
-    async let todayTasksReq = TaskRepository.shared.fetchTodayTasks()
     async let completionsReq = TaskRepository.shared.fetchProductivityCompletionDates(since: streakSince)
 
-    let todayTasks = (try? await todayTasksReq) ?? []
+    // Reusa TaskStore quando Hoje já carregou — evita 2º fetchTodayTasks no cold path da Home.
+    let store = TaskStore.shared
+    let fromStore = store.todayOverdue + store.todayOnly
+    let todayTasks: [Task]
+    if !fromStore.isEmpty {
+      todayTasks = fromStore
+    } else if !store.todayLoading {
+      todayTasks = (try? await TaskRepository.shared.fetchTodayTasks()) ?? []
+    } else {
+      todayTasks = []
+    }
     let completions = (try? await completionsReq) ?? []
 
     if let focus = HomeHeroInsights.resolveFocusTask(from: todayTasks) {

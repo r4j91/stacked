@@ -236,7 +236,11 @@ private struct DoneCircleRasterView: UIViewRepresentable {
 
 /// Bitmap do anel/check — estável sob `contentOffset` fracionário na lista UIKit.
 enum DoneCircleRaster {
-  private static var cache: [String: UIImage] = [:]
+  private static let cache: NSCache<NSString, UIImage> = {
+    let c = NSCache<NSString, UIImage>()
+    c.countLimit = 80
+    return c
+  }()
   // UIKIT_SCROLL_POLISH: private static let doneUIColor = UIColor(AppColors.success)
 
   static func image(
@@ -255,8 +259,8 @@ enum DoneCircleRaster {
       String(format: "%.3f", ringFillAlpha),
       String(format: "%.1f", tickSize),
       ringColor.cgColor.components?.map { String(format: "%.3f", $0) }.joined(separator: ",") ?? "x",
-    ].joined(separator: "|")
-    if let cached = cache[key] { return cached }
+    ].joined(separator: "|") as NSString
+    if let cached = cache.object(forKey: key) { return cached }
 
     let format = UIGraphicsImageRendererFormat.default()
     format.opaque = false
@@ -288,7 +292,7 @@ enum DoneCircleRaster {
         cg.strokeEllipse(in: ringRect)
       }
     }
-    cache[key] = image
+    cache.setObject(image, forKey: key)
     return image
   }
 }

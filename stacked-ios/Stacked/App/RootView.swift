@@ -70,9 +70,12 @@ struct RootView: View {
         } catch {
           // Refresh falhou — request seguinte ainda tenta via autoRefreshToken.
         }
+        await HomeStore.shared.refreshWeatherIfNeeded()
+        // Contagens + notifs: defer para não empilhar no resume junto com session/widget.
+        try? await _Concurrency.Task.sleep(for: .milliseconds(600))
+        guard !_Concurrency.Task.isCancelled else { return }
         await NotificationService.shared.rescheduleAllPending()
         await GlobalDataRefresh.refreshDashboardCounts()
-        await HomeStore.shared.refreshWeatherIfNeeded()
       }
     }
     .sheet(isPresented: $showSearch) {
@@ -125,19 +128,20 @@ struct RootView: View {
     }
   }
 
-  /// Pré-monta abas inativas no idle — 1ª visita deixa de custar no meio do gesto da ilha.
+  /// Pré-monta só a aba mais provável — mount-on-select cobre o resto.
   private func scheduleWarmTabMounts(excluding priority: NavTab) {
     tabWarmMountTask?.cancel()
     tabWarmMountTask = _Concurrency.Task { @MainActor in
-      try? await _Concurrency.Task.sleep(for: .milliseconds(700))
+      try? await _Concurrency.Task.sleep(for: .milliseconds(1200))
       guard !_Concurrency.Task.isCancelled else { return }
 
-      for tab in NavTab.allCases where tab != priority {
-        guard !_Concurrency.Task.isCancelled else { return }
-        if !mountedTabs.contains(tab) {
-          mountedTabs.insert(tab)
-        }
-        try? await _Concurrency.Task.sleep(for: .milliseconds(140))
+      let warm: NavTab = switch priority {
+      case .home: .today
+      case .today: .inbox
+      default: .today
+      }
+      if !mountedTabs.contains(warm) {
+        mountedTabs.insert(warm)
       }
     }
   }

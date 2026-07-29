@@ -21,27 +21,23 @@ struct TodayView: View {
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
-  /// UIKit quando há conteúdo (inclui subtarefas avulsas e eventos de calendário).
-  private var prefersUIKitList: Bool {
-    guard useUIKitTaskList,
-          !store.todayLoading || !store.todayTimeline.isEmpty || !store.todayOverdueItems.isEmpty,
-          store.todayError == nil
-    else { return false }
-    return !store.todayOverdueItems.isEmpty
-      || !store.todayTimeline.isEmpty
-      || (showCompleted && !store.todayCompleted.isEmpty)
-  }
-
   var body: some View {
     let c = theme.colors
 
-    Group {
-      if prefersUIKitList {
-        uikitTodayBody(colors: c)
-      } else {
-        swiftUITodayBody(colors: c)
-      }
-    }
+    TodayScreenBody(
+      colors: c,
+      showCompleted: showCompleted,
+      useUIKitTaskList: useUIKitTaskList,
+      timelineRailEnabled: timelineRailEnabled,
+      displayMode: displayMode,
+      t2RowsPlaceholder: t2RowsPlaceholder,
+      reduceMotion: reduceMotion,
+      completedExpanded: $completedExpanded,
+      allowRowHeavyWork: allowRowHeavyWork,
+      detailRoute: $detailRoute,
+      subtaskDetailRoute: $subtaskDetailRoute,
+      taskDetailZoom: taskDetailZoom
+    )
     .stackedTabletCentered()
     .background(c.background)
     .stackedListRowWorkGate($allowRowHeavyWork)
@@ -69,8 +65,127 @@ struct TodayView: View {
     }
   }
 
-  @ViewBuilder
-  private func uikitTodayBody(colors: AppThemeColors) -> some View {
+  private func openPendingTaskIfNeeded() {
+    guard let id = router.consumeTaskId() else { return }
+    guard TaskIdentity.isValidUUID(id) else { return }
+    detailRoute = TaskDetailRoute(taskId: id)
+  }
+}
+
+// MARK: - Screen body (prefersUIKitList gate — minimal store reads)
+
+private struct TodayScreenBody: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let useUIKitTaskList: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let t2RowsPlaceholder: Bool
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  /// UIKit quando há conteúdo (inclui subtarefas avulsas e eventos de calendário).
+  private var prefersUIKitList: Bool {
+    guard useUIKitTaskList,
+          !store.todayLoading || !store.todayTimeline.isEmpty || !store.todayOverdueItems.isEmpty,
+          store.todayError == nil
+    else { return false }
+    return !store.todayOverdueItems.isEmpty
+      || !store.todayTimeline.isEmpty
+      || (showCompleted && !store.todayCompleted.isEmpty)
+  }
+
+  var body: some View {
+    Group {
+      if prefersUIKitList {
+        TodayUIKitListContent(
+          colors: colors,
+          showCompleted: showCompleted,
+          timelineRailEnabled: timelineRailEnabled,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute
+        )
+      } else {
+        TodaySwiftUIListContent(
+          colors: colors,
+          showCompleted: showCompleted,
+          timelineRailEnabled: timelineRailEnabled,
+          displayMode: displayMode,
+          t2RowsPlaceholder: t2RowsPlaceholder,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          allowRowHeavyWork: allowRowHeavyWork,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute,
+          taskDetailZoom: taskDetailZoom
+        )
+      }
+    }
+  }
+}
+
+// MARK: - UIKit list (timeline arrays only)
+
+private struct TodayUIKitListContent: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+
+  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
+
+  private var todayUIKitSections: [UIKitTaskSection] {
+    var sections: [UIKitTaskSection] = []
+
+    if !store.todayOverdueItems.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "overdue",
+          header: .plain("ATRASADAS"),
+          tasks: [],
+          scheduleItems: store.todayOverdueItems
+        )
+      )
+    }
+    if !store.todayTimeline.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "today",
+          header: store.todayOverdueItems.isEmpty ? nil : .plain("HOJE"),
+          tasks: [],
+          scheduleItems: store.todayTimeline
+        )
+      )
+    }
+    if showCompleted, !store.todayCompleted.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .completedToggle(count: store.todayCompleted.count, expanded: completedExpanded),
+          tasks: store.todayCompleted,
+          dimmed: true
+        )
+      )
+    }
+    return sections
+  }
+
+  var body: some View {
     UIKitHostedTaskList(
       sections: todayUIKitSections,
       showProject: true,
@@ -119,53 +234,34 @@ struct TodayView: View {
     )
     .stackedScrollEdgeChrome()
   }
+}
 
-  private var todayUIKitSections: [UIKitTaskSection] {
-    var sections: [UIKitTaskSection] = []
+// MARK: - SwiftUI list shell (empty gate + list chrome)
 
-    if !store.todayOverdueItems.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "overdue",
-          header: .plain("ATRASADAS"),
-          tasks: [],
-          scheduleItems: store.todayOverdueItems
-        )
-      )
-    }
-    if !store.todayTimeline.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "today",
-          header: store.todayOverdueItems.isEmpty ? nil : .plain("HOJE"),
-          tasks: [],
-          scheduleItems: store.todayTimeline
-        )
-      )
-    }
-    if showCompleted, !store.todayCompleted.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .completedToggle(count: store.todayCompleted.count, expanded: completedExpanded),
-          tasks: store.todayCompleted,
-          dimmed: true
-        )
-      )
-    }
-    return sections
-  }
+private struct TodaySwiftUIListContent: View {
+  @State private var store = TaskStore.shared
 
-  @ViewBuilder
-  private func swiftUITodayBody(colors: AppThemeColors) -> some View {
-    let timeline = store.todayTimeline
-    let isEmpty =
-      !store.todayLoading
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let t2RowsPlaceholder: Bool
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var isEmpty: Bool {
+    !store.todayLoading
       && store.todayError == nil
       && store.todayOverdueItems.isEmpty
-      && timeline.isEmpty
+      && store.todayTimeline.isEmpty
       && (store.todayCompleted.isEmpty || !showCompleted)
+  }
 
+  var body: some View {
     // Empty fora do List: evita flash do separador de seção do UITableView/List.
     if isEmpty {
       ScrollView {
@@ -206,81 +302,19 @@ struct TodayView: View {
             .listRowBackground(Color.clear)
         }
 
-        if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
-          Section {
-            ProgressView()
-              .tint(colors.accent)
-              .frame(maxWidth: .infinity)
-              .listRowSeparator(.hidden)
-              .listSectionSeparator(.hidden)
-              .listRowBackground(Color.clear)
-          }
-        } else if let err = store.todayError {
-          Section {
-            LoadErrorView(message: err) {
-              _Concurrency.Task { await store.loadToday() }
-            }
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .listRowBackground(Color.clear)
-          }
-        } else {
-          if !store.todayOverdueItems.isEmpty {
-            Section {
-              scheduleSectionRows(store.todayOverdueItems)
-            } header: {
-              ListSectionHeader(text: "ATRASADAS")
-            }
-          }
-
-          if !timeline.isEmpty {
-            Section {
-              scheduleSectionRows(timeline)
-            } header: {
-              if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
-            }
-          }
-
-          if showCompleted && !store.todayCompleted.isEmpty {
-            Section {
-              Button {
-                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
-              } label: {
-                HStack {
-                  Text("Concluídas (\(store.todayCompleted.count))")
-                    .font(AppTypography.completedSectionHeader)
-                    .foregroundStyle(colors.textSecondary)
-                  Spacer()
-                  Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                    .font(AppTypography.metaSmall.weight(.semibold))
-                    .foregroundStyle(colors.textTertiary)
-                }
-              }
-              .listRowBackground(Color.clear)
-
-              if completedExpanded {
-                ForEach(Array(store.todayCompleted.enumerated()), id: \.element.id) { index, task in
-                  TaskRow(
-                    task: task,
-                    style: displayMode.taskRowStyle,
-                    flatSubtaskQueue: displayMode.flatSubtaskQueue,
-                    deferHeavyWork: !allowRowHeavyWork
-                  ) { }
-                    .opacity(0.7)
-                    .timelineRail(
-                      enabled: timelineRailEnabled,
-                      nodeColor: TimelineRailNodeColor.forTask(task),
-                      connectsUp: index > 0,
-                      connectsDown: index < store.todayCompleted.count - 1
-                    )
-                    .listRowInsets(railListInsets)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                }
-              }
-            }
-          }
-        }
+        TodaySwiftUIStatusOrRows(
+          colors: colors,
+          showCompleted: showCompleted,
+          timelineRailEnabled: timelineRailEnabled,
+          displayMode: displayMode,
+          t2RowsPlaceholder: t2RowsPlaceholder,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          allowRowHeavyWork: allowRowHeavyWork,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute,
+          taskDetailZoom: taskDetailZoom
+        )
       }
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
@@ -288,10 +322,78 @@ struct TodayView: View {
       .refreshable { await store.loadToday() }
     }
   }
+}
 
-  private var rowInsets: EdgeInsets {
-    displayMode.taskListRowInsets
+// MARK: - Loading/error chrome vs timeline rows
+
+private struct TodaySwiftUIStatusOrRows: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let t2RowsPlaceholder: Bool
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  var body: some View {
+    if store.todayLoading && store.todayTimeline.isEmpty && store.todayOverdueItems.isEmpty {
+      Section {
+        ProgressView()
+          .tint(colors.accent)
+          .frame(maxWidth: .infinity)
+          .listRowSeparator(.hidden)
+          .listSectionSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    } else if let err = store.todayError {
+      Section {
+        LoadErrorView(message: err) {
+          _Concurrency.Task { await store.loadToday() }
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowBackground(Color.clear)
+      }
+    } else {
+      TodayTimelineRows(
+        colors: colors,
+        showCompleted: showCompleted,
+        timelineRailEnabled: timelineRailEnabled,
+        displayMode: displayMode,
+        t2RowsPlaceholder: t2RowsPlaceholder,
+        reduceMotion: reduceMotion,
+        completedExpanded: $completedExpanded,
+        allowRowHeavyWork: allowRowHeavyWork,
+        detailRoute: $detailRoute,
+        subtaskDetailRoute: $subtaskDetailRoute,
+        taskDetailZoom: taskDetailZoom
+      )
+    }
   }
+}
+
+private struct TodayTimelineRows: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let timelineRailEnabled: Bool
+  let displayMode: ProjectDisplayMode
+  let t2RowsPlaceholder: Bool
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
 
   private var railListInsets: EdgeInsets {
     var insets = rowInsets
@@ -301,10 +403,64 @@ struct TodayView: View {
     return insets
   }
 
-  private func openPendingTaskIfNeeded() {
-    guard let id = router.consumeTaskId() else { return }
-    guard TaskIdentity.isValidUUID(id) else { return }
-    detailRoute = TaskDetailRoute(taskId: id)
+  var body: some View {
+    let timeline = store.todayTimeline
+
+    if !store.todayOverdueItems.isEmpty {
+      Section {
+        scheduleSectionRows(store.todayOverdueItems)
+      } header: {
+        ListSectionHeader(text: "ATRASADAS")
+      }
+    }
+
+    if !timeline.isEmpty {
+      Section {
+        scheduleSectionRows(timeline)
+      } header: {
+        if !store.todayOverdueItems.isEmpty { ListSectionHeader(text: "HOJE") }
+      }
+    }
+
+    if showCompleted && !store.todayCompleted.isEmpty {
+      Section {
+        Button {
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
+        } label: {
+          HStack {
+            Text("Concluídas (\(store.todayCompleted.count))")
+              .font(AppTypography.completedSectionHeader)
+              .foregroundStyle(colors.textSecondary)
+            Spacer()
+            Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
+              .font(AppTypography.metaSmall.weight(.semibold))
+              .foregroundStyle(colors.textTertiary)
+          }
+        }
+        .listRowBackground(Color.clear)
+
+        if completedExpanded {
+          ForEach(Array(store.todayCompleted.enumerated()), id: \.element.id) { index, task in
+            TaskRow(
+              task: task,
+              style: displayMode.taskRowStyle,
+              flatSubtaskQueue: displayMode.flatSubtaskQueue,
+              deferHeavyWork: !allowRowHeavyWork
+            ) { }
+              .opacity(0.7)
+              .timelineRail(
+                enabled: timelineRailEnabled,
+                nodeColor: TimelineRailNodeColor.forTask(task),
+                connectsUp: index > 0,
+                connectsDown: index < store.todayCompleted.count - 1
+              )
+              .listRowInsets(railListInsets)
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+          }
+        }
+      }
+    }
   }
 
   @ViewBuilder

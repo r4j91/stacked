@@ -16,29 +16,21 @@ struct InboxView: View {
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList
-      && !store.inboxLoading
-      && store.inboxError == nil
-      && (!store.inboxPending.isEmpty || (showCompleted && !store.inboxCompleted.isEmpty))
-  }
-
-  private var cardInsets: EdgeInsets {
-    displayMode.taskListRowInsets
-  }
-
   var body: some View {
     let c = theme.colors
-    let count = store.inboxPending.count
-    let subtitle = "\(count) \(count == 1 ? "tarefa" : "tarefas")"
 
-    Group {
-      if prefersUIKitList {
-        uikitInboxBody(subtitle: subtitle, colors: c)
-      } else {
-        swiftUIListBody(subtitle: subtitle, colors: c)
-      }
-    }
+    InboxScreenBody(
+      colors: c,
+      showCompleted: showCompleted,
+      useUIKitTaskList: useUIKitTaskList,
+      displayMode: displayMode,
+      reduceMotion: reduceMotion,
+      completedExpanded: $completedExpanded,
+      allowRowHeavyWork: allowRowHeavyWork,
+      detailRoute: $detailRoute,
+      subtaskDetailRoute: $subtaskDetailRoute,
+      taskDetailZoom: taskDetailZoom
+    )
     .stackedTabletCentered()
     .background(c.background)
     .stackedListRowWorkGate($allowRowHeavyWork)
@@ -60,9 +52,102 @@ struct InboxView: View {
       .environment(ThemeManager.shared)
     }
   }
+}
 
-  @ViewBuilder
-  private func uikitInboxBody(subtitle: String, colors: AppThemeColors) -> some View {
+// MARK: - Screen body (prefersUIKitList + subtitle)
+
+private struct InboxScreenBody: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let useUIKitTaskList: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var prefersUIKitList: Bool {
+    useUIKitTaskList
+      && !store.inboxLoading
+      && store.inboxError == nil
+      && (!store.inboxPending.isEmpty || (showCompleted && !store.inboxCompleted.isEmpty))
+  }
+
+  private var subtitle: String {
+    let count = store.inboxPending.count
+    return "\(count) \(count == 1 ? "tarefa" : "tarefas")"
+  }
+
+  var body: some View {
+    Group {
+      if prefersUIKitList {
+        InboxUIKitListContent(
+          subtitle: subtitle,
+          colors: colors,
+          showCompleted: showCompleted,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute
+        )
+      } else {
+        InboxSwiftUIListContent(
+          subtitle: subtitle,
+          colors: colors,
+          showCompleted: showCompleted,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          allowRowHeavyWork: allowRowHeavyWork,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute,
+          taskDetailZoom: taskDetailZoom
+        )
+      }
+    }
+  }
+}
+
+// MARK: - UIKit list (pending/completed arrays only)
+
+private struct InboxUIKitListContent: View {
+  @State private var store = TaskStore.shared
+
+  let subtitle: String
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+
+  private var cardInsets: EdgeInsets { displayMode.taskListRowInsets }
+
+  private var inboxUIKitSections: [UIKitTaskSection] {
+    var sections: [UIKitTaskSection] = []
+    if !store.inboxPending.isEmpty {
+      sections.append(UIKitTaskSection(id: "pending", title: nil, tasks: store.inboxPending))
+    }
+    if showCompleted, !store.inboxCompleted.isEmpty {
+      sections.append(
+        UIKitTaskSection(
+          id: "completed",
+          header: .completedToggle(count: store.inboxCompleted.count, expanded: completedExpanded),
+          tasks: store.inboxCompleted,
+          dimmed: true
+        )
+      )
+    }
+    return sections
+  }
+
+  var body: some View {
     UIKitHostedTaskList(
       sections: inboxUIKitSections,
       showProject: true,
@@ -105,33 +190,32 @@ struct InboxView: View {
     )
     .stackedScrollEdgeChrome()
   }
+}
 
-  private var inboxUIKitSections: [UIKitTaskSection] {
-    var sections: [UIKitTaskSection] = []
-    if !store.inboxPending.isEmpty {
-      sections.append(UIKitTaskSection(id: "pending", title: nil, tasks: store.inboxPending))
-    }
-    if showCompleted, !store.inboxCompleted.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .completedToggle(count: store.inboxCompleted.count, expanded: completedExpanded),
-          tasks: store.inboxCompleted,
-          dimmed: true
-        )
-      )
-    }
-    return sections
-  }
+// MARK: - SwiftUI list shell
 
-  @ViewBuilder
-  private func swiftUIListBody(subtitle: String, colors: AppThemeColors) -> some View {
-    let isEmpty =
-      !store.inboxLoading
+private struct InboxSwiftUIListContent: View {
+  @State private var store = TaskStore.shared
+
+  let subtitle: String
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var isEmpty: Bool {
+    !store.inboxLoading
       && store.inboxError == nil
       && store.inboxPending.isEmpty
       && (store.inboxCompleted.isEmpty || !showCompleted)
+  }
 
+  var body: some View {
     if isEmpty {
       ScrollView {
         VStack(spacing: 0) {
@@ -171,70 +255,130 @@ struct InboxView: View {
             .listRowBackground(Color.clear)
         }
 
-        if store.inboxLoading {
-          Section {
-            ProgressView()
-              .tint(colors.accent)
-              .frame(maxWidth: .infinity)
-              .listRowSeparator(.hidden)
-              .listSectionSeparator(.hidden)
-              .listRowBackground(Color.clear)
-          }
-        } else if let err = store.inboxError {
-          Section {
-            LoadErrorView(message: err) {
-              _Concurrency.Task { await store.loadInbox() }
-            }
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .listRowBackground(Color.clear)
-          }
-        } else {
-          Section {
-            ForEach(store.inboxPending) { task in
-              taskRow(task)
-            }
-          }
-
-          if showCompleted && !store.inboxCompleted.isEmpty {
-            Section {
-              Button {
-                AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
-              } label: {
-                HStack {
-                  Text("Concluídas (\(store.inboxCompleted.count))")
-                    .font(AppTypography.completedSectionHeader)
-                    .foregroundStyle(colors.textSecondary)
-                  Spacer()
-                  Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
-                    .font(AppTypography.metaSmall.weight(.semibold))
-                    .foregroundStyle(colors.textTertiary)
-                }
-              }
-              .listRowBackground(Color.clear)
-
-              if completedExpanded {
-                ForEach(store.inboxCompleted) { task in
-                  TaskRow(
-                    task: task,
-                    style: displayMode.taskRowStyle,
-                    flatSubtaskQueue: displayMode.flatSubtaskQueue,
-                    deferHeavyWork: !allowRowHeavyWork
-                  ) { }
-                    .opacity(0.7)
-                    .listRowInsets(cardInsets)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                }
-              }
-            }
-          }
-        }
+        InboxSwiftUIStatusOrRows(
+          colors: colors,
+          showCompleted: showCompleted,
+          displayMode: displayMode,
+          reduceMotion: reduceMotion,
+          completedExpanded: $completedExpanded,
+          allowRowHeavyWork: allowRowHeavyWork,
+          detailRoute: $detailRoute,
+          subtaskDetailRoute: $subtaskDetailRoute,
+          taskDetailZoom: taskDetailZoom
+        )
       }
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
       .stackedListTailInset()
       .refreshable { await store.loadInbox() }
+    }
+  }
+}
+
+// MARK: - Loading/error vs pending rows
+
+private struct InboxSwiftUIStatusOrRows: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  var body: some View {
+    if store.inboxLoading {
+      Section {
+        ProgressView()
+          .tint(colors.accent)
+          .frame(maxWidth: .infinity)
+          .listRowSeparator(.hidden)
+          .listSectionSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+    } else if let err = store.inboxError {
+      Section {
+        LoadErrorView(message: err) {
+          _Concurrency.Task { await store.loadInbox() }
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowBackground(Color.clear)
+      }
+    } else {
+      InboxPendingRows(
+        colors: colors,
+        showCompleted: showCompleted,
+        displayMode: displayMode,
+        reduceMotion: reduceMotion,
+        completedExpanded: $completedExpanded,
+        allowRowHeavyWork: allowRowHeavyWork,
+        detailRoute: $detailRoute,
+        subtaskDetailRoute: $subtaskDetailRoute,
+        taskDetailZoom: taskDetailZoom
+      )
+    }
+  }
+}
+
+private struct InboxPendingRows: View {
+  @State private var store = TaskStore.shared
+
+  let colors: AppThemeColors
+  let showCompleted: Bool
+  let displayMode: ProjectDisplayMode
+  let reduceMotion: Bool
+  @Binding var completedExpanded: Bool
+  let allowRowHeavyWork: Bool
+  @Binding var detailRoute: TaskDetailRoute?
+  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
+  var taskDetailZoom: Namespace.ID
+
+  private var cardInsets: EdgeInsets { displayMode.taskListRowInsets }
+
+  var body: some View {
+    Section {
+      ForEach(store.inboxPending) { task in
+        taskRow(task)
+      }
+    }
+
+    if showCompleted && !store.inboxCompleted.isEmpty {
+      Section {
+        Button {
+          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) { completedExpanded.toggle() }
+        } label: {
+          HStack {
+            Text("Concluídas (\(store.inboxCompleted.count))")
+              .font(AppTypography.completedSectionHeader)
+              .foregroundStyle(colors.textSecondary)
+            Spacer()
+            Image(systemName: completedExpanded ? "chevron.up" : "chevron.down")
+              .font(AppTypography.metaSmall.weight(.semibold))
+              .foregroundStyle(colors.textTertiary)
+          }
+        }
+        .listRowBackground(Color.clear)
+
+        if completedExpanded {
+          ForEach(store.inboxCompleted) { task in
+            TaskRow(
+              task: task,
+              style: displayMode.taskRowStyle,
+              flatSubtaskQueue: displayMode.flatSubtaskQueue,
+              deferHeavyWork: !allowRowHeavyWork
+            ) { }
+              .opacity(0.7)
+              .listRowInsets(cardInsets)
+              .listRowSeparator(.hidden)
+              .listRowBackground(Color.clear)
+          }
+        }
+      }
     }
   }
 

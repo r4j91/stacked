@@ -22,10 +22,6 @@ struct HomeView: View {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
   }
 
-  private var homeListRowInsets: EdgeInsets {
-    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
-  }
-
   var body: some View {
     let c = theme.colors
 
@@ -37,8 +33,13 @@ struct HomeView: View {
           onOpenFilter: onOpenFilter,
           onRetry: { _Concurrency.Task { await store.load() } }
         )
-        overviewSection
-        projectsSection
+        HomeOverviewSection(onNavigateToTab: onNavigateToTab)
+        HomeProjectsSection(
+          selectedProject: $selectedProject,
+          showNewProject: $showNewProject,
+          projectOptions: $projectOptions,
+          projectsEditMode: $projectsEditMode
+        )
 
         Section {
           ListTailSpacer()
@@ -140,8 +141,20 @@ struct HomeView: View {
     // SUBSTITUIDO_TEMAS_JADE: color: theme.colors.accent
     return Project(id: route.id, name: route.name, color: theme.colors.folderTint)
   }
+}
 
-  private var overviewSection: some View {
+// MARK: - Overview (counts only — isolated from hero loading)
+
+private struct HomeOverviewSection: View {
+  @Environment(ThemeManager.self) private var theme
+  @State private var store = HomeStore.shared
+  var onNavigateToTab: (NavTab) -> Void
+
+  private var homeListRowInsets: EdgeInsets {
+    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+  }
+
+  var body: some View {
     Section {
       navRow(icon: .navInbox, label: "Inbox", count: store.inboxCount, tab: .inbox)
       navRow(icon: .navToday, label: "Hoje", count: store.todayPending, tab: .today)
@@ -151,11 +164,44 @@ struct HomeView: View {
     }
   }
 
-  private var projectsSection: some View {
+  private func navRow(icon: StackedIconKey, label: String, count: Int, tab: NavTab) -> some View {
+    let c = theme.colors
+    return Button { onNavigateToTab(tab) } label: {
+      HStack(spacing: AppSpacing.md + 2) {
+        StackedIcons.image(icon).font(.system(size: 20)).foregroundStyle(c.textSecondary).frame(width: 28)
+        Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
+        Spacer()
+        Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
+        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+      }
+      .padding(.vertical, AppSpacing.sm + 2)
+    }
+    .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
+    .listRowInsets(homeListRowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+  }
+}
+
+// MARK: - Projects (projects array only — isolated from hero loading)
+
+private struct HomeProjectsSection: View {
+  @Environment(ThemeManager.self) private var theme
+  @State private var store = HomeStore.shared
+  @Binding var selectedProject: ProjectRoute?
+  @Binding var showNewProject: Bool
+  @Binding var projectOptions: ProjectRoute?
+  @Binding var projectsEditMode: EditMode
+
+  private var homeListRowInsets: EdgeInsets {
+    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+  }
+
+  var body: some View {
     let c = theme.colors
     let editing = projectsEditMode == .active
 
-    return Section {
+    Section {
       if store.projects.isEmpty {
         VStack(spacing: AppSpacing.md) {
           EmptyStateView(icon: .folder, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
@@ -209,24 +255,6 @@ struct HomeView: View {
         }
       }
     }
-  }
-
-  private func navRow(icon: StackedIconKey, label: String, count: Int, tab: NavTab) -> some View {
-    let c = theme.colors
-    return Button { onNavigateToTab(tab) } label: {
-      HStack(spacing: AppSpacing.md + 2) {
-        StackedIcons.image(icon).font(.system(size: 20)).foregroundStyle(c.textSecondary).frame(width: 28)
-        Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
-        Spacer()
-        Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
-        DisclosureChevron(color: c.textTertiary.opacity(0.7))
-      }
-      .padding(.vertical, AppSpacing.sm + 2)
-    }
-    .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
-    .listRowInsets(homeListRowInsets)
-    .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
   }
 
   private func projectRow(_ project: HomeProject, showChevron: Bool = true) -> some View {

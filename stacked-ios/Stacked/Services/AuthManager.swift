@@ -24,11 +24,8 @@ final class AuthManager {
       self.session = session
       isLoading = false
       if session != nil {
-        _Concurrency.Task {
-          await TaskStore.shared.loadToday()
-          await UpcomingStore.shared.load()
-          WidgetSnapshotSync.refreshAll()
-        }
+        // Tab loads: RootView bootstrap / TabDataLoader — evita fetch duplicado.
+        WidgetSnapshotSync.refreshAll()
       } else {
         WidgetSnapshotSync.clear()
       }
