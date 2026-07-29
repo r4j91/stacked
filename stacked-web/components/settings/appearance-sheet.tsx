@@ -10,12 +10,9 @@ import { DueDateChip } from "@/components/ui/due-date-chip";
 import {
   ArrowDown01Icon,
   Cancel01Icon,
-  Calendar03Icon,
   GridIcon,
   ListViewIcon,
   PaintBoardIcon,
-  Tag01Icon,
-  TaskDone01Icon,
   Tick01Icon,
 } from "@/lib/icons/nav-icons";
 import {
@@ -53,7 +50,7 @@ import {
 } from "@/lib/theme/display-mode";
 import { useDisplayMode } from "@/lib/theme/use-display-mode";
 
-type SectionId = "theme" | "display" | "layout" | "subtasks" | "labels" | "dates";
+type SectionId = "theme" | "display" | "advanced";
 
 export function AppearanceSheet() {
   const { appearanceOpen, appearanceAnchor, closeAppearance } = useWorkbench();
@@ -66,7 +63,11 @@ export function AppearanceSheet() {
   const displayMode = useDisplayMode();
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>({
     theme: true,
-    display: true,
+    display: false,
+    advanced: false,
+  });
+  const [moreThemesOpen, setMoreThemesOpen] = useState(false);
+  const [advancedSub, setAdvancedSub] = useState({
     layout: false,
     subtasks: false,
     labels: false,
@@ -76,6 +77,10 @@ export function AppearanceSheet() {
   function toggleSection(id: SectionId) {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
   }
+
+  const moreThemes = (Object.keys(themes) as AppThemeId[]).filter(
+    (id) => !RECOMMENDED_THEME_IDS.includes(id),
+  );
 
   return (
     <AnchoredPopover
@@ -124,21 +129,37 @@ export function AppearanceSheet() {
               />
             ))}
           </div>
-          <p className="px-2.5 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Mais
-          </p>
-          <div className="space-y-1">
-            {(Object.keys(themes) as AppThemeId[])
-              .filter((id) => !RECOMMENDED_THEME_IDS.includes(id))
-              .map((id) => (
-                <ThemeOption
-                  key={id}
-                  theme={themes[id]}
-                  selected={themeId === id}
-                  onSelect={() => setThemeId(id)}
+          {moreThemes.length > 0 && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setMoreThemesOpen((v) => !v)}
+                aria-expanded={moreThemesOpen}
+                className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-xs font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)]"
+              >
+                <span className="flex-1">Mais temas</span>
+                <AppIcon
+                  icon={ArrowDown01Icon}
+                  size={14}
+                  className={`shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-200 ${
+                    moreThemesOpen ? "rotate-180" : ""
+                  }`}
                 />
-              ))}
-          </div>
+              </button>
+              {moreThemesOpen ? (
+                <div className="mt-1 space-y-1">
+                  {moreThemes.map((id) => (
+                    <ThemeOption
+                      key={id}
+                      theme={themes[id]}
+                      selected={themeId === id}
+                      onSelect={() => setThemeId(id)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </AppearanceAccordion>
 
         <AppearanceAccordion
@@ -180,149 +201,192 @@ export function AppearanceSheet() {
         </AppearanceAccordion>
 
         <AppearanceAccordion
-          id="layout"
-          title="Layout dos cards"
+          id="advanced"
+          title="Avançado"
           icon={ListViewIcon}
-          summary={TASK_ROW_LAYOUTS.find((l) => l.id === taskRowLayout)?.name ?? "Atual"}
-          open={openSections.layout}
-          onToggle={() => toggleSection("layout")}
+          summary="Layout, chips e subtarefas"
+          open={openSections.advanced}
+          onToggle={() => toggleSection("advanced")}
         >
-          <div className="space-y-1">
-            {TASK_ROW_LAYOUTS.map((option) => {
-              const selected = taskRowLayout === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => writeTaskRowLayout(option.id)}
-                  className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
-                    selected
-                      ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
-                      : "hover:bg-[var(--color-hover-overlay)]"
-                  }`}
-                >
-                  <TaskRowLayoutPreview layout={option.id} selected={selected} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{option.name}</p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
-                  </div>
-                  {selected && (
-                    <span className="text-[var(--color-text)]">
-                      <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </AppearanceAccordion>
+          <div className="space-y-0.5">
+            <AdvancedSubSection
+              title="Layout dos cards"
+              summary={TASK_ROW_LAYOUTS.find((l) => l.id === taskRowLayout)?.name ?? "Atual"}
+              open={advancedSub.layout}
+              onToggle={() => setAdvancedSub((s) => ({ ...s, layout: !s.layout }))}
+            >
+              <div className="space-y-1">
+                {TASK_ROW_LAYOUTS.map((option) => {
+                  const selected = taskRowLayout === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => writeTaskRowLayout(option.id)}
+                      className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
+                        selected
+                          ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
+                          : "hover:bg-[var(--color-hover-overlay)]"
+                      }`}
+                    >
+                      <TaskRowLayoutPreview layout={option.id} selected={selected} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{option.name}</p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
+                      </div>
+                      {selected && (
+                        <span className="text-[var(--color-text)]">
+                          <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </AdvancedSubSection>
 
-        <AppearanceAccordion
-          id="subtasks"
-          title="Subtarefas"
-          icon={TaskDone01Icon}
-          summary={[
-            subtaskProgressRing ? "Anel" : null,
-            subtaskBranch ? "Galho" : null,
-          ]
-            .filter(Boolean)
-            .join(" · ") || "Padrão"}
-          open={openSections.subtasks}
-          onToggle={() => toggleSection("subtasks")}
-        >
-          <div className="space-y-1">
-            <AppearanceToggleRow
-              title="Anel de progresso"
-              subtitle="Mostra o progresso das subtarefas no lugar da seta."
-              checked={subtaskProgressRing}
-              onChange={writeSubtaskProgressRing}
-            />
-            <AppearanceToggleRow
-              title="Galho"
-              subtitle="Trilho vertical na lista expandida de subtarefas."
-              checked={subtaskBranch}
-              onChange={writeSubtaskBranch}
-            />
-          </div>
-        </AppearanceAccordion>
+            <AdvancedSubSection
+              title="Subtarefas"
+              summary={[
+                subtaskProgressRing ? "Anel" : null,
+                subtaskBranch ? "Galho" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Padrão"}
+              open={advancedSub.subtasks}
+              onToggle={() => setAdvancedSub((s) => ({ ...s, subtasks: !s.subtasks }))}
+            >
+              <div className="space-y-1">
+                <AppearanceToggleRow
+                  title="Anel de progresso"
+                  subtitle="Mostra o progresso das subtarefas no lugar da seta."
+                  checked={subtaskProgressRing}
+                  onChange={writeSubtaskProgressRing}
+                />
+                <AppearanceToggleRow
+                  title="Galho"
+                  subtitle="Trilho vertical na lista expandida de subtarefas."
+                  checked={subtaskBranch}
+                  onChange={writeSubtaskBranch}
+                />
+              </div>
+            </AdvancedSubSection>
 
-        <AppearanceAccordion
-          id="labels"
-          title="Etiquetas"
-          icon={Tag01Icon}
-          summary={LABEL_CHIP_STYLES.find((s) => s.id === labelChipStyle)?.name ?? ""}
-          open={openSections.labels}
-          onToggle={() => toggleSection("labels")}
-        >
-          <div className="space-y-1">
-            {LABEL_CHIP_STYLES.map((option) => {
-              const selected = labelChipStyle === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => writeLabelChipStyle(option.id)}
-                  className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
-                    selected
-                      ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
-                      : "hover:bg-[var(--color-hover-overlay)]"
-                  }`}
-                >
-                  <LabelChipStylePreview style={option.id} selected={selected} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{option.name}</p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
-                  </div>
-                  {selected && (
-                    <span className="text-[var(--color-text)]">
-                      <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </AppearanceAccordion>
+            <AdvancedSubSection
+              title="Etiquetas"
+              summary={LABEL_CHIP_STYLES.find((s) => s.id === labelChipStyle)?.name ?? ""}
+              open={advancedSub.labels}
+              onToggle={() => setAdvancedSub((s) => ({ ...s, labels: !s.labels }))}
+            >
+              <div className="space-y-1">
+                {LABEL_CHIP_STYLES.map((option) => {
+                  const selected = labelChipStyle === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => writeLabelChipStyle(option.id)}
+                      className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
+                        selected
+                          ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
+                          : "hover:bg-[var(--color-hover-overlay)]"
+                      }`}
+                    >
+                      <LabelChipStylePreview style={option.id} selected={selected} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{option.name}</p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
+                      </div>
+                      {selected && (
+                        <span className="text-[var(--color-text)]">
+                          <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </AdvancedSubSection>
 
-        <AppearanceAccordion
-          id="dates"
-          title="Data nos cards"
-          icon={Calendar03Icon}
-          summary={DUE_DATE_CHIP_STYLES.find((s) => s.id === dueDateChipStyle)?.name ?? ""}
-          open={openSections.dates}
-          onToggle={() => toggleSection("dates")}
-        >
-          <div className="space-y-1">
-            {DUE_DATE_CHIP_STYLES.map((option) => {
-              const selected = dueDateChipStyle === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => writeDueDateChipStyle(option.id)}
-                  className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
-                    selected
-                      ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
-                      : "hover:bg-[var(--color-hover-overlay)]"
-                  }`}
-                >
-                  <DueDateChipStylePreview style={option.id} selected={selected} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">{option.name}</p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
-                  </div>
-                  {selected && (
-                    <span className="text-[var(--color-text)]">
-                      <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            <AdvancedSubSection
+              title="Data nos cards"
+              summary={DUE_DATE_CHIP_STYLES.find((s) => s.id === dueDateChipStyle)?.name ?? ""}
+              open={advancedSub.dates}
+              onToggle={() => setAdvancedSub((s) => ({ ...s, dates: !s.dates }))}
+            >
+              <div className="space-y-1">
+                {DUE_DATE_CHIP_STYLES.map((option) => {
+                  const selected = dueDateChipStyle === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => writeDueDateChipStyle(option.id)}
+                      className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 text-left transition-colors ${
+                        selected
+                          ? "bg-[var(--color-hover-overlay-strong)] ring-1 ring-[var(--color-border-strong)]"
+                          : "hover:bg-[var(--color-hover-overlay)]"
+                      }`}
+                    >
+                      <DueDateChipStylePreview style={option.id} selected={selected} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{option.name}</p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">{option.subtitle}</p>
+                      </div>
+                      {selected && (
+                        <span className="text-[var(--color-text)]">
+                          <AppIcon icon={Tick01Icon} size={16} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </AdvancedSubSection>
           </div>
         </AppearanceAccordion>
       </div>
     </AnchoredPopover>
+  );
+}
+
+function AdvancedSubSection({
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-[var(--radius-sm)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--color-hover-overlay)]"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">{title}</p>
+          {!open && summary ? (
+            <p className="truncate text-[11px] text-[var(--color-text-tertiary)]">{summary}</p>
+          ) : null}
+        </div>
+        <AppIcon
+          icon={ArrowDown01Icon}
+          size={14}
+          className={`shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {open ? <div className="pb-1.5 pt-0.5">{children}</div> : null}
+    </div>
   );
 }
 

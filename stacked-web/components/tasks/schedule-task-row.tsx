@@ -8,7 +8,6 @@ import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { InlineSubtasks } from "@/components/tasks/task-list";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
-import { SwipeableTaskRow } from "@/components/tasks/swipeable-task-row";
 import { useTaskContextMenu } from "@/components/tasks/task-context-menu";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
@@ -30,7 +29,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
   onSelect,
   onToggleDone,
 }: ScheduleTaskRowProps) {
-  const { expandedSubtasks, toggleSubtaskExpand, deferTask, deleteTask } = useWorkbench();
+  const { expandedSubtasks, toggleSubtaskExpand } = useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
   const layout = useTaskRowLayout();
   const displayMode = useDisplayMode();
@@ -49,12 +48,6 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
   const circleTop = taskRowCircleTopPx(hasEyebrow);
 
   const row = (
-      <SwipeableTaskRow
-        onComplete={() => onToggleDone(task.id)}
-        onDefer={() => void deferTask(task.id)}
-        onDelete={() => void deleteTask(task.id)}
-        allowOverflow={false}
-      >
         <div
           role="button"
           tabIndex={0}
@@ -134,7 +127,6 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
             />
           ) : null}
         </div>
-      </SwipeableTaskRow>
   );
 
   const expand =

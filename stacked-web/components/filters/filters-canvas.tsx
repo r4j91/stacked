@@ -391,23 +391,34 @@ export function FiltersCanvas() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 px-1">
+      <ul className="flex flex-col gap-0.5 px-1">
         {cards.map(({ kind: k, count }) => {
           const meta = FILTER_LABELS[k];
           return (
-            <button
-              key={k}
-              type="button"
-              onClick={() => router.push(`/filters?kind=${k}`)}
-              className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left transition-colors hover:bg-[var(--color-surface-variant)]"
-            >
-              <span className="mb-2 inline-block h-2 w-2 rounded-full" style={{ background: meta.color }} />
-              <p className="text-2xl font-extrabold tabular-nums">{count}</p>
-              <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{meta.title}</p>
-            </button>
+            <li key={k}>
+              <button
+                type="button"
+                onClick={() => router.push(`/filters?kind=${k}`)}
+                className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-left text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+              >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: meta.color }}
+                />
+                <span className="flex-1 truncate font-medium">{meta.title}</span>
+                <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">
+                  {count}
+                </span>
+                <AppIcon
+                  icon={ArrowRight01Icon}
+                  size={14}
+                  className="shrink-0 opacity-40"
+                />
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <section className="mt-6">
         <div className="flex items-center justify-between px-1 pb-2">

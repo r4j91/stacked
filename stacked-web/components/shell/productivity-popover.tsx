@@ -135,7 +135,7 @@ export function ProductivityPopover() {
               onClick={() => setTab(i as 0 | 1)}
               className={`flex-1 rounded-[6px] py-1.5 text-xs font-semibold transition-colors ${
                 tab === i
-                  ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                  ? "bg-[var(--color-surface)] text-[var(--color-text)]"
                   : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
               }`}
             >
@@ -148,17 +148,17 @@ export function ProductivityPopover() {
           <ProductivitySkeleton />
         ) : tab === 0 ? (
           <>
-            <p className="mb-1 text-3xl font-extrabold tabular-nums">{stats.todayCount}</p>
+            <p className="mb-1 text-xl font-bold tabular-nums text-[var(--color-text)]">{stats.todayCount}</p>
             <p className="mb-4 text-xs text-[var(--color-text-tertiary)]">Concluídas hoje</p>
             <BarChart values={stats.last7} max={maxBar} labels={last7Labels()} />
           </>
         ) : (
           <>
             <div className="mb-4 flex items-end gap-2">
-              <p className="text-3xl font-extrabold tabular-nums">{stats.thisWeek}</p>
+              <p className="text-xl font-bold tabular-nums text-[var(--color-text)]">{stats.thisWeek}</p>
               <p
-                className={`mb-1 text-xs font-semibold ${
-                  stats.weekDelta >= 0 ? "text-[var(--color-done)]" : "text-[var(--color-overdue)]"
+                className={`mb-0.5 text-xs font-medium ${
+                  stats.weekDelta >= 0 ? "text-[var(--color-text-secondary)]" : "text-[var(--color-overdue)]"
                 }`}
               >
                 {stats.weekDelta >= 0 ? "+" : ""}

@@ -144,7 +144,7 @@ export function AnchoredPopover({
       />
       <div
         ref={popoverRef}
-        className={`fixed z-[calc(var(--z-popover)+1)] flex max-h-[min(70vh,420px)] flex-col scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl ${
+        className={`overlay-enter fixed z-[calc(var(--z-popover)+1)] flex max-h-[min(70vh,420px)] flex-col scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 ${
           lockOverflow ? "overflow-hidden" : "overflow-y-auto"
         } ${className}`}
         style={{

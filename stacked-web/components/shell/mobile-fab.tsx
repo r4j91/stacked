@@ -11,7 +11,7 @@ export function MobileFab() {
     <button
       type="button"
       onClick={() => openQuickAdd()}
-      className="fixed right-[14px] z-[calc(var(--z-backdrop)+1)] flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-fg)] shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-transform duration-150 ease-out active:scale-95 lg:hidden"
+      className="fixed right-[14px] z-[calc(var(--z-backdrop)+1)] flex h-14 w-14 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--color-btn-primary-fg)_12%,transparent)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-fg)] transition-transform duration-150 ease-out active:scale-95 lg:hidden"
       style={{ bottom: "var(--mobile-fab-bottom)" }}
       aria-label="Nova tarefa"
     >

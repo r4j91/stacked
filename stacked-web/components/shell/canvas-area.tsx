@@ -153,7 +153,7 @@ function StatChip({
   muted?: boolean;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+    <span className="inline-flex items-center gap-1.5 border-r border-[var(--color-border)] pr-2.5 text-xs text-[var(--color-text-secondary)] last:border-r-0 last:pr-0">
       <span
         className={`h-1.5 w-1.5 rounded-full ${
           dot === "overdue"

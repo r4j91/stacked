@@ -53,8 +53,9 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xxl: 24px;
   --task-row-rail: 36px;
-  --reorder-gutter: 16px;
+  --reorder-gutter: 0px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
@@ -322,21 +323,56 @@ textarea:focus:not(:focus-visible) {
 }
 
 .expand-panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    max-height 200ms ease-out,
+    opacity 160ms ease-out,
+    transform 160ms ease-out;
 }
 
 .expand-panel[data-open="true"] {
-  grid-template-rows: 1fr;
+  max-height: min(80vh, 1600px);
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .expand-panel[data-open="false"] {
-  grid-template-rows: 0fr;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
-.expand-panel > * {
-  overflow: hidden;
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.overlay-enter {
+  animation: overlay-enter 170ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expand-panel {
+    transition: none;
+    transform: none;
+  }
+
+  .expand-panel[data-open="true"] {
+    transform: none;
+  }
+
+  .overlay-enter {
+    animation: none;
+  }
 }
 
 .type-screen-title {
@@ -456,7 +492,7 @@ textarea:focus:not(:focus-visible) {
 }
 
 .task-list-shell {
-  --reorder-gutter: 16px;
+  --reorder-gutter: 0px;
   --task-row-rail: 36px;
 }
 

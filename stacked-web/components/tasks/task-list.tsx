@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import type { Label } from "@/lib/types/label";
 import type { Subtask, Task } from "@/lib/types/task";
 import { useWorkbench, type SubtaskKey } from "@/components/shell/workbench-context";
-import { SwipeableTaskRow } from "@/components/tasks/swipeable-task-row";
 import { useTaskContextMenu } from "@/components/tasks/task-context-menu";
 import { parseDueDate, dateKey, startOfDay } from "@/lib/utils/date";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -156,7 +155,7 @@ export const TaskRow = memo(function TaskRow({
   reorderDragging?: boolean;
   onReorderConsumeClick?: () => boolean;
 }) {
-  const { selectedTaskId, selectTask, openTaskInspector, toggleTaskDone, deferTask, deleteTask, expandedSubtasks, toggleSubtaskExpand } =
+  const { selectedTaskId, selectTask, openTaskInspector, toggleTaskDone, expandedSubtasks, toggleSubtaskExpand } =
     useWorkbench();
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
   const layout = useTaskRowLayout();
@@ -178,13 +177,6 @@ export const TaskRow = memo(function TaskRow({
   const circleTop = taskRowCircleTopPx(hasEyebrow);
 
   const row = (
-      <SwipeableTaskRow
-        onComplete={() => toggleTaskDone(task.id)}
-        onDefer={() => void deferTask(task.id)}
-        onDelete={() => void deleteTask(task.id)}
-        allowOverflow={false}
-        dragGhost={Boolean(reorderDragging)}
-      >
         <div
           role="button"
           tabIndex={0}
@@ -222,7 +214,7 @@ export const TaskRow = memo(function TaskRow({
                 : isKeyboardFocused
                   ? "border-[var(--color-border-strong)] bg-[var(--color-hover-overlay)]/80"
                   : "border-transparent"
-          } ${task.done ? "opacity-65" : ""}`}
+          } ${task.done ? "opacity-65" : ""} ${reorderDragging ? "opacity-40" : ""}`}
           data-task-id={task.id}
           data-completing={task.done ? "true" : undefined}
           data-selected={isSelected ? "" : undefined}
@@ -282,7 +274,6 @@ export const TaskRow = memo(function TaskRow({
             />
           ) : null}
         </div>
-      </SwipeableTaskRow>
   );
 
   const expand =

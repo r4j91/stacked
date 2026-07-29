@@ -66,7 +66,7 @@ export function HomeCanvas() {
             <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
               Acesso rápido
             </h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <ul className="flex flex-col gap-0.5">
               <QuickLink
                 href="/inbox"
                 icon={InboxIcon}
@@ -90,7 +90,7 @@ export function HomeCanvas() {
                 icon={TaskDone01Icon}
                 label="Concluídas"
               />
-            </div>
+            </ul>
           </section>
 
           <section>
@@ -198,17 +198,18 @@ function QuickLink({
   count?: number;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 hover:bg-[var(--color-surface-variant)]"
-    >
-      <AppIcon icon={icon} size={20} className="text-[var(--color-text-secondary)]" />
-      <span className="flex-1 font-semibold">{label}</span>
-      {!!count && count > 0 && (
-        <span className="rounded-full bg-[var(--color-surface-variant)] px-2 py-0.5 text-xs font-semibold tabular-nums">
-          {count}
-        </span>
-      )}
-    </Link>
+    <li>
+      <Link
+        href={href}
+        className="flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+      >
+        <AppIcon icon={icon} size={20} className="text-[var(--color-text-secondary)]" />
+        <span className="flex-1 truncate font-medium">{label}</span>
+        {!!count && count > 0 && (
+          <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">{count}</span>
+        )}
+        <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-40" />
+      </Link>
+    </li>
   );
 }

@@ -153,7 +153,7 @@ export function QuickAddSheet({
       >
         <form
           ref={sheetRef}
-          className="w-full max-w-md rounded-t-[var(--radius-lg)] bg-[var(--color-surface)] p-4 shadow-lg sm:rounded-[var(--radius-lg)]"
+          className="overlay-enter w-full max-w-md rounded-t-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:rounded-[var(--radius-lg)]"
           onClick={(e) => e.stopPropagation()}
           onSubmit={(e) => void handleSubmit(e)}
           role="dialog"

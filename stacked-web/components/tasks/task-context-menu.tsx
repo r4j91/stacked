@@ -260,7 +260,7 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
         onContextMenu={(e: MouseEvent) => e.preventDefault()}
       >
       <div
-        className="min-w-[220px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+        className="overlay-enter min-w-[220px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1"
         role="menu"
       >
         <MenuItem icon={Edit01Icon} label="Editar" onClick={() => run(() => selectTask(task.id))} />
@@ -300,7 +300,7 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
       {submenu && (
         <div
           ref={flyoutRef}
-          className="ml-1.5 min-w-[200px] max-h-[min(60vh,320px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+          className="ml-1.5 min-w-[200px] max-h-[min(60vh,320px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1"
           style={{ marginTop: flyoutTop }}
           role="menu"
         >
@@ -383,7 +383,7 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
       {sectionFlyout && (
         <div
           ref={sectionFlyoutRef}
-          className="ml-1.5 min-w-[200px] max-h-[min(60vh,320px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+          className="ml-1.5 min-w-[200px] max-h-[min(60vh,320px)] overflow-y-auto scroll-thin rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-1"
           style={{ marginTop: sectionFlyout.top }}
           role="menu"
         >

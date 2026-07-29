@@ -32,7 +32,7 @@ export function BottomNav() {
         style={{ bottom: "var(--mobile-pill-bottom)" }}
         aria-label="Navegação principal"
       >
-        <div className="pointer-events-auto w-[min(calc(100%-88px),420px)] rounded-[32px] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,transparent)] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.38)] backdrop-blur-md">
+        <div className="pointer-events-auto w-[min(calc(100%-88px),420px)] rounded-[var(--radius-xxl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
           <div className="flex items-stretch justify-around">
             {TABS.map((tab) => {
               const active =
@@ -46,7 +46,7 @@ export function BottomNav() {
                 <Link
                   key={tab.id}
                   href={tab.href}
-                  className={`relative flex min-h-[62px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[28px] px-0.5 py-1 text-[10.5px] font-medium transition-colors duration-150 ${
+                  className={`relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-lg)] px-0.5 py-1 text-[10.5px] font-medium transition-colors duration-150 ${
                     active
                       ? "bg-[var(--color-nav-indicator)] text-[var(--color-text)]"
                       : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
