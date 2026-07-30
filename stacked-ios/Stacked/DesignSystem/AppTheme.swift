@@ -119,7 +119,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltSky:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x86ABB0))
         case .basaltMoonstone:
-            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x3A5068))
+            return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0x4F8BB8))
         case .basaltGold:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xC2A67A))
         case .basaltJade:
@@ -129,15 +129,15 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .anthracite:
             return (Color(hex: 0x1A1A1A), Color(hex: 0x242424), Color(hex: 0x5FD3DC))
         case .slateCyan:
-            return (Color(hex: 0x202027), Color(hex: 0x292930), Color(hex: 0x5FD3DC))
+            return (Color(hex: 0x18181E), Color(hex: 0x212127), Color(hex: 0x5FD3DC))
         case .slateAmazonite:
-            return (Color(hex: 0x202027), Color(hex: 0x292930), Color(hex: 0x86ABB0))
+            return (Color(hex: 0x18181E), Color(hex: 0x212127), Color(hex: 0x86ABB0))
         case .slateEmber:
-            return (Color(hex: 0x202027), Color(hex: 0x292930), Color(hex: 0xF06B2C))
+            return (Color(hex: 0x18181E), Color(hex: 0x212127), Color(hex: 0xF06B2C))
         case .slateMoonstone:
-            return (Color(hex: 0x202027), Color(hex: 0x292930), Color(hex: 0x3A5068))
+            return (Color(hex: 0x18181E), Color(hex: 0x212127), Color(hex: 0x4F8BB8))
         case .slateJade:
-            return (Color(hex: 0x202027), Color(hex: 0x292930), Color(hex: 0x7FA89A))
+            return (Color(hex: 0x18181E), Color(hex: 0x212127), Color(hex: 0x7FA89A))
         case .basaltEmber:
             return (Color(hex: 0x1C222D), Color(hex: 0x282E3A), Color(hex: 0xF06B2C))
         case .ashCyan:
@@ -153,7 +153,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .cloudAmazonite:
             return (Color(hex: 0xD5D8DE), Color(hex: 0xE0E3E9), Color(hex: 0x86ABB0))
         case .moonstone:
-            return (Color(hex: 0xEEF1F6), Color(hex: 0xF5F7FA), Color(hex: 0x3A5068))
+            return (Color(hex: 0xEEF1F6), Color(hex: 0xF5F7FA), Color(hex: 0x3F6F96))
         default:
             let c = colors
             return (c.background, c.surface, c.accent)
@@ -244,7 +244,7 @@ struct AppThemeColors: Equatable {
     )
 
     /// Moonstone — claro legível: sem branco puro; terciário ≥4.5:1.
-    /// Accent levemente mais azul que o slate-cinza anterior (#3B485B → #3A5068).
+    /// Accent aço mais saturado (#3A5068 → #3F6F96) — ainda sóbrio no claro.
     static let moonstone = AppThemeColors(
         background: Color(hex: 0xEEF1F6),
         surface: Color(hex: 0xF5F7FA),
@@ -254,13 +254,13 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x656A78),
         textQuaternary: Color(hex: 0x7A8091),
         hairline: Color(hex: 0x8A909C),
-        accent: Color(hex: 0x3A5068),
+        accent: Color(hex: 0x3F6F96),
         onAccent: Color(hex: 0xFFFFFF),
-        actionAccent: Color(hex: 0x3A5068),
+        actionAccent: Color(hex: 0x3F6F96),
         onActionAccent: Color(hex: 0xFFFFFF),
-        fabGradientStart: Color(hex: 0x3A5068),
-        fabGradientEnd: Color(hex: 0x3A5068),
-        folderTint: Color(hex: 0x3A5068),
+        fabGradientStart: Color(hex: 0x3F6F96),
+        fabGradientEnd: Color(hex: 0x3F6F96),
+        folderTint: Color(hex: 0x3F6F96),
         navBar: Color(hex: 0xF5F7FA),
         isDark: false
     )
@@ -391,30 +391,30 @@ struct AppThemeColors: Equatable {
     )
 
     static let slate = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
         textQuaternary: Color(hex: 0x52525A),
         hairline: Color(hex: 0x3A3A40),
         accent: Color(hex: 0xE8E8EC),
-        onAccent: Color(hex: 0x202027),
+        onAccent: Color(hex: 0x18181E),
         actionAccent: Color(hex: 0xE8E8EC),
-        onActionAccent: Color(hex: 0x202027),
+        onActionAccent: Color(hex: 0x18181E),
         fabGradientStart: Color(hex: 0xE8E8EC),
         fabGradientEnd: Color(hex: 0xE8E8EC),
         folderTint: Color(hex: 0xE8E8EC),
-        navBar: Color(hex: 0x202027),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
     /// Slate Cyan — fundo Slate; acento ciano do Obsidian em botões e detalhes.
     static let slateCyan = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
@@ -427,15 +427,15 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0x5FD3DC),
         fabGradientEnd: Color(hex: 0x5FD3DC),
         folderTint: Color(hex: 0x5FD3DC),
-        navBar: Color(hex: 0x202027),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
     /// Slate Amazonite — fundo Slate; acento petróleo do Amazonite em botões e detalhes.
     static let slateAmazonite = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
@@ -448,15 +448,15 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xA3C6CB),
         fabGradientEnd: Color(hex: 0x6B8F95),
         folderTint: Color(hex: 0x86ABB0),
-        navBar: Color(hex: 0x202027),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
     /// Slate Ember — fundo Slate; laranja vivo (#F06B2C), sem neon.
     static let slateEmber = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
@@ -469,36 +469,36 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xF88A48),
         fabGradientEnd: Color(hex: 0xD85518),
         folderTint: Color(hex: 0xF06B2C),
-        navBar: Color(hex: 0x202027),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
-    /// Slate Moonstone — fundo Slate; azul aço do Moonstone.
+    /// Slate Moonstone — fundo Slate; aço mais luminoso no escuro (#4F8BB8).
     static let slateMoonstone = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
         textQuaternary: Color(hex: 0x65656D),
         hairline: Color(hex: 0x65656D),
-        accent: Color(hex: 0x3A5068),
+        accent: Color(hex: 0x4F8BB8),
         onAccent: Color(hex: 0xFFFFFF),
-        actionAccent: Color(hex: 0x3A5068),
+        actionAccent: Color(hex: 0x4F8BB8),
         onActionAccent: Color(hex: 0xFFFFFF),
-        fabGradientStart: Color(hex: 0x3A5068),
-        fabGradientEnd: Color(hex: 0x3A5068),
-        folderTint: Color(hex: 0x3A5068),
-        navBar: Color(hex: 0x202027),
+        fabGradientStart: Color(hex: 0x61A0C8),
+        fabGradientEnd: Color(hex: 0x3A739E),
+        folderTint: Color(hex: 0x4F8BB8),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
     /// Slate Jade — fundo Slate; sage do Basalt Jade.
     static let slateJade = AppThemeColors(
-        background: Color(hex: 0x202027),
-        surface: Color(hex: 0x292930),
-        surfaceVariant: Color(hex: 0x38383F),
+        background: Color(hex: 0x18181E),
+        surface: Color(hex: 0x212127),
+        surfaceVariant: Color(hex: 0x2F2F36),
         textPrimary: Color(hex: 0xF2F2F4),
         textSecondary: Color(hex: 0x9A9AA2),
         textTertiary: Color(hex: 0x65656D),
@@ -511,7 +511,7 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0x96BAAE),
         fabGradientEnd: Color(hex: 0x628A7C),
         folderTint: Color(hex: 0x7FA89A),
-        navBar: Color(hex: 0x202027),
+        navBar: Color(hex: 0x18181E),
         isDark: true
     )
 
@@ -661,7 +661,7 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
-    /// Basalt Moonstone — Things + aço azulado (deadline / Moonstone em escuro).
+    /// Basalt Moonstone — Things + aço luminoso no escuro (#4F8BB8).
     static let basaltMoonstone = AppThemeColors(
         background: Color(hex: 0x1C222D),
         surface: Color(hex: 0x282E3A),
@@ -671,13 +671,13 @@ struct AppThemeColors: Equatable {
         textTertiary: Color(hex: 0x6B7382),
         textQuaternary: Color(hex: 0x6B7382),
         hairline: Color(hex: 0x6B7382),
-        accent: Color(hex: 0x3A5068),
+        accent: Color(hex: 0x4F8BB8),
         onAccent: Color(hex: 0xFFFFFF),
-        actionAccent: Color(hex: 0x3A5068),
+        actionAccent: Color(hex: 0x4F8BB8),
         onActionAccent: Color(hex: 0xFFFFFF),
-        fabGradientStart: Color(hex: 0x3A5068),
-        fabGradientEnd: Color(hex: 0x3A5068),
-        folderTint: Color(hex: 0x3A5068),
+        fabGradientStart: Color(hex: 0x61A0C8),
+        fabGradientEnd: Color(hex: 0x3A739E),
+        folderTint: Color(hex: 0x4F8BB8),
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )
