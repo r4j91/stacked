@@ -496,7 +496,7 @@ final class UIKitSplitTaskRowView: UIView {
         fill = Self.opaqueBlend(
           src: UIColor(colors.surface),
           dst: UIColor(colors.background),
-          alpha: 0.72
+          alpha: TaskExpandDividerStyle.cardLightFillAlpha
         )
       } else {
         fill = UIColor(colors.surface)

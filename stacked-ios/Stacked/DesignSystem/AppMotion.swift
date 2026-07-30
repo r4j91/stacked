@@ -105,6 +105,16 @@ enum AppMotion {
     .timingCurve(0.55, 0.055, 0.675, 0.19, duration: 0.22)
   }
 
+  /// Cascata de entrada das linhas ao expandir (opacity + translateY; não altera altura medida).
+  static var subtaskCascade: Animation {
+    .smooth(duration: 0.24)
+  }
+
+  static let subtaskCascadeOffsetY: CGFloat = 5
+  /// Atraso entre linhas (s). Cap em `subtaskCascadeMaxIndex` para listas longas.
+  static let subtaskCascadeStepSeconds: Double = 0.03
+  static let subtaskCascadeMaxIndex: Int = 7
+
   /// Feedback de press em linhas de popover.
   static var pressFeedback: Animation {
     .snappy(duration: 0.12, extraBounce: 0)

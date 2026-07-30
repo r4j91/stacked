@@ -9,6 +9,8 @@ enum TaskExpandDividerStyle {
   static let listHairlineThickness: CGFloat = 1
   /// Mesma tinta do contorno em Halo (`textPrimary` @ 0.055, 1pt).
   static let cardLightStrokeAlpha: CGFloat = 0.055
+  /// Halo: surface sobre o bg — um pouco mais lift que 0.72 p/ separar card do fundo.
+  static let cardLightFillAlpha: CGFloat = 0.86
 
   static let cardParentInset: CGFloat = 48
   static let cardSubtaskInset: CGFloat = 60

@@ -25,7 +25,7 @@ struct TaskRowScrollPlaceholder: View {
     Group {
       if style.isCardFamily {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-          .fill(style == .cardLight ? c.surface.opacity(0.72) : c.surface)
+          .fill(style == .cardLight ? c.surface.opacity(TaskExpandDividerStyle.cardLightFillAlpha) : c.surface)
       } else {
         // Lista: fundo transparente + skeleton leve (evita barras sólidas no cold start).
         Color.clear

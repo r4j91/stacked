@@ -46,6 +46,8 @@ struct TaskRow: View {
   @State private var subtaskRevealLayoutPass = 0
   /// Remount UIKit (scroll recycle): abre já na altura final — sem 0→full no meio do fling.
   @State private var snapRevealOpen = false
+  /// Bump só no expand manual — dispara cascata (não no restore/seed do scroll).
+  @State private var subtaskCascadeEpoch = 0
   @State private var displaySubtasks: [Subtask] = []
   @State private var subtasksDone: [Bool] = []
   @State private var subtaskSortHoldId: String?
@@ -152,6 +154,17 @@ struct TaskRow: View {
       splitStoreObject.subtaskRevealLayoutPass &+= 1
     } else {
       subtaskRevealLayoutPass &+= 1
+    }
+  }
+
+  private var rowCascadeEpoch: Int {
+    usesSplitStore ? splitStoreObject.subtaskCascadeEpoch : subtaskCascadeEpoch
+  }
+  private func bumpSubtaskCascade() {
+    if usesSplitStore {
+      splitStoreObject.subtaskCascadeEpoch &+= 1
+    } else {
+      subtaskCascadeEpoch &+= 1
     }
   }
 
@@ -740,7 +753,8 @@ struct TaskRow: View {
               || showsEyebrow
               || !sub.labelIds.isEmpty
             let circleTop = TaskRowCircleAlign.circleTopInset(hasEyebrow: showsEyebrow)
-            HStack(alignment: .top, spacing: 0) {
+            Group {
+              HStack(alignment: .top, spacing: 0) {
               Button { toggleSubtask(at: index, sub: sub) } label: {
                 subtaskDot(sub: sub, done: done)
                   .frame(width: TaskRowCircleAlign.hitSize, height: TaskRowCircleAlign.hitSize)
@@ -837,6 +851,12 @@ struct TaskRow: View {
                 usePrimaryTint: betweenPrimaryTint
               )
             }
+            }
+            .subtaskCascadeEntrance(
+              epoch: rowCascadeEpoch,
+              index: index,
+              reduceMotion: reduceMotion
+            )
           }
         }
       }
@@ -847,14 +867,15 @@ struct TaskRow: View {
     .background(subtaskListBackground)
   }
 
-  /// Fill do card. UIKit: opaco (paridade surface@0.72 sobre o bg). SwiftUI List: translucido.
+  /// Fill do card. UIKit: opaco (paridade surface@fillAlpha sobre o bg). SwiftUI List: translucido.
   private func cardSurfaceFill(light: Bool) -> Color {
     let c = theme.colors
     if !light { return c.surface }
+    let fillAlpha = TaskExpandDividerStyle.cardLightFillAlpha
     if stabilizeExpandInSelfSizingCell {
-      return Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+      return Self.opaqueBlend(src: c.surface, dst: c.background, alpha: fillAlpha)
     }
-    return c.surface.opacity(0.72)
+    return c.surface.opacity(fillAlpha)
   }
 
   /// Fundo SwiftUI das subtarefas — mesma tinta do `panelFill`.
@@ -870,18 +891,19 @@ struct TaskRow: View {
 
     // Halo: painel mais escuro (menos lift claro no celular).
     if style == .cardLight {
+      let fillAlpha = TaskExpandDividerStyle.cardLightFillAlpha
       if c.isDark {
         if !stabilizeExpandInSelfSizingCell {
           return c.background.opacity(0.38)
         }
-        let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+        let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: fillAlpha)
         return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
       }
       // Claro: meio-termo — visível vs card, sem ficar pesado (antes 0.92/0.88).
       if !stabilizeExpandInSelfSizingCell {
         return c.surfaceVariant.opacity(0.58)
       }
-      let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: 0.72)
+      let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: fillAlpha)
       return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.55)
     }
 
@@ -1072,6 +1094,11 @@ struct TaskRow: View {
     setRowExpanded(false)
     setRowRevealActive(false)
     setRowSnapRevealOpen(false)
+    if usesSplitStore {
+      splitStoreObject.subtaskCascadeEpoch = 0
+    } else {
+      subtaskCascadeEpoch = 0
+    }
     if restoreExpansionOnAppear, !deferHeavyWork {
       restoreSubtaskExpansionIfNeeded()
     }
@@ -1104,6 +1131,7 @@ struct TaskRow: View {
       if stabilizeExpandInSelfSizingCell {
         // Uma passagem: sem yield/AppMotion no `expanded` (isso deslocava o título na cell).
         // Sem Transaction.disablesAnimations — isso impedia o UIViewRepresentable de aplicar a altura.
+        bumpSubtaskCascade()
         setRowExpanded(true)
         bumpSubtaskRevealLayout()
         ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
@@ -1115,6 +1143,7 @@ struct TaskRow: View {
       _Concurrency.Task { @MainActor in
         await _Concurrency.Task.yield()
         guard rowRevealActive else { return }
+        bumpSubtaskCascade()
         AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
           setRowExpanded(true)
         }
@@ -1125,9 +1154,11 @@ struct TaskRow: View {
     }
     let willExpand = !rowExpanded
     if stabilizeExpandInSelfSizingCell {
+      if willExpand { bumpSubtaskCascade() }
       setRowExpanded(willExpand)
       if willExpand { bumpSubtaskRevealLayout() }
     } else {
+      if willExpand { bumpSubtaskCascade() }
       AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
         setRowExpanded(willExpand)
       }

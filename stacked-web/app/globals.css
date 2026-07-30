@@ -520,7 +520,7 @@ textarea:focus:not(:focus-visible) {
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--color-text) 5.5%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-background));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-background));
 }
 
 .task-halo-balloon .task-row--in-halo {

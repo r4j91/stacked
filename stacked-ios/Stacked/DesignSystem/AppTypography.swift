@@ -53,7 +53,8 @@ enum AppTypography {
   /// Hora à direita (layout C) — âncora visual maior que o timeChip da meta.
   static let timeTrailing: Font = .system(size: 13, weight: .bold)
   static let navRowTitle: Font = .system(size: 16, weight: .medium)
-  static let navRowCount: Font = .system(size: 16, weight: .medium)
+  /// Contagem à direita nas rows da Home/Filtros — meta, um pouco abaixo do título.
+  static let navRowCount: Font = .system(size: 14.5, weight: .medium)
   static let statBadge: Font = .system(size: 12, weight: .bold)
 
   static func modeToggleLabel(selected: Bool) -> Font {

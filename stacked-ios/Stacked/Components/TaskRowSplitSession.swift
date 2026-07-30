@@ -9,6 +9,8 @@ final class TaskRowSplitSession: ObservableObject {
   @Published var subtaskRevealActive: Bool
   @Published var subtaskRevealLayoutPass: Int
   @Published var snapRevealOpen: Bool
+  /// Bump só no expand manual — dispara cascata no host do painel (split).
+  @Published var subtaskCascadeEpoch: Int
   @Published var displaySubtasks: [Subtask]
   @Published var subtasksDone: [Bool]
   @Published var subtaskSortHoldId: String?
@@ -24,6 +26,7 @@ final class TaskRowSplitSession: ObservableObject {
     subtaskRevealActive = false
     subtaskRevealLayoutPass = 0
     snapRevealOpen = false
+    subtaskCascadeEpoch = 0
     displaySubtasks = []
     subtasksDone = []
     subtaskSortHoldId = nil
@@ -51,6 +54,7 @@ final class TaskRowSplitSession: ObservableObject {
       subtasksDone = []
     }
     subtaskRevealLayoutPass = 0
+    subtaskCascadeEpoch = 0
     subtaskSortHoldId = nil
     labelCatalog = []
     subtaskReorderTask?.cancel()
@@ -63,6 +67,7 @@ final class TaskRowSplitSession: ObservableObject {
     expanded = false
     subtaskRevealActive = false
     snapRevealOpen = false
+    subtaskCascadeEpoch = 0
     subtaskSortHoldId = nil
     subtaskReorderTask?.cancel()
     subtaskReorderTask = nil
