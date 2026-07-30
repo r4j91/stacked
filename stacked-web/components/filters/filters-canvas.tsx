@@ -35,7 +35,7 @@ import {
 } from "@/lib/data/mock-tasks";
 import { criteriaSummary } from "@/lib/utils/filter-criteria";
 import { ProjectIcon } from "@/components/ui/project-icon";
-import { Add01Icon, ArrowRight01Icon, FilterHorizontalIcon } from "@/lib/icons/nav-icons";
+import { Add01Icon, ChevronRightIcon, FilterHorizontalIcon } from "@/lib/icons/nav-icons";
 import { useSavedFilterSort } from "@/lib/hooks/use-saved-filter-sort";
 import { sortFilterResults } from "@/lib/utils/saved-filter-sort";
 
@@ -410,7 +410,7 @@ export function FiltersCanvas() {
                   {count}
                 </span>
                 <AppIcon
-                  icon={ArrowRight01Icon}
+                  icon={ChevronRightIcon}
                   size={14}
                   className="shrink-0 opacity-40"
                 />
@@ -468,7 +468,7 @@ export function FiltersCanvas() {
                 {item.pendingCount}
               </span>
               <AppIcon
-                icon={ArrowRight01Icon}
+                icon={ChevronRightIcon}
                 size={14}
                 className="shrink-0 text-[var(--color-text-tertiary)]/70"
               />

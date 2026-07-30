@@ -31,6 +31,8 @@ struct Task: Identifiable, Equatable {
   var subtasksDoneCount: Int = 0
   var subtasksTotalCount: Int = 0
   var subtasksCounterLabel: String? = nil
+  /// Valor monetário (parcelas) — usado em rows sintéticas de subtarefa (Filtros/Hoje).
+  var valor: Double? = nil
 
   var tags: [String] { labels.map(\.name) }
   // PERF_FASEB2_ETAPA4: var subtasksDone: Int { subtasks.filter(\.done).count }

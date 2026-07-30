@@ -183,7 +183,11 @@ export class TaskRepository {
     const newId = String(inserted.id);
     if (task.labelIds?.length) {
       const { error: labelError } = await this.client.from("task_labels").insert(
-        task.labelIds.map((labelId) => ({ task_id: newId, label_id: labelId })),
+        task.labelIds.map((labelId, sort_order) => ({
+          task_id: newId,
+          label_id: labelId,
+          sort_order,
+        })),
       );
       if (labelError) throw labelError;
     }
@@ -443,7 +447,11 @@ export class TaskRepository {
     const taskId = String(data.id);
     if (input.labelIds?.length) {
       const { error: labelError } = await this.client.from("task_labels").insert(
-        input.labelIds.map((labelId) => ({ task_id: taskId, label_id: labelId })),
+        input.labelIds.map((labelId, sort_order) => ({
+          task_id: taskId,
+          label_id: labelId,
+          sort_order,
+        })),
       );
       if (labelError) throw labelError;
     }
@@ -506,7 +514,11 @@ export class TaskRepository {
 
     if (labelIds.length > 0) {
       const { error: labelError } = await this.client.from("task_labels").insert(
-        labelIds.map((labelId) => ({ task_id: newId, label_id: labelId })),
+        labelIds.map((labelId, sort_order) => ({
+          task_id: newId,
+          label_id: labelId,
+          sort_order,
+        })),
       );
       if (labelError) throw labelError;
     }

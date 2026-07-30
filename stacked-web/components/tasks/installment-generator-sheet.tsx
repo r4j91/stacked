@@ -11,6 +11,8 @@ import { toDateStr } from "@/lib/utils/date";
 import {
   INSTALLMENT_FREQUENCY_OPTIONS,
   formatInstallmentDate,
+  formatInstallmentTime,
+  formatInstallmentValor,
   generateInstallmentDates,
   parseInstallmentValor,
   type InstallmentFrequency,
@@ -35,6 +37,7 @@ export function InstallmentGeneratorSheet({
   const [valorText, setValorText] = useState("");
   const [quantity, setQuantity] = useState(12);
   const [firstDueDate, setFirstDueDate] = useState(() => toDateStr(new Date()));
+  const [firstDueTime, setFirstDueTime] = useState("");
   const [frequency, setFrequency] = useState<InstallmentFrequency>("monthly");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,17 +48,21 @@ export function InstallmentGeneratorSheet({
       setValorText("");
       setQuantity(12);
       setFirstDueDate(toDateStr(new Date()));
+      setFirstDueTime("");
       setFrequency("monthly");
       setError(null);
     }
   }, [open, taskTitle]);
 
   const previewDates = useMemo(() => {
-    const base = new Date(`${firstDueDate}T12:00:00`);
+    const timePart = firstDueTime.trim() || "12:00";
+    const base = new Date(`${firstDueDate}T${timePart}:00`);
     if (Number.isNaN(base.getTime())) return [];
     return generateInstallmentDates(Math.min(Math.max(quantity, 1), 60), base, frequency);
-  }, [firstDueDate, frequency, quantity]);
+  }, [firstDueDate, firstDueTime, frequency, quantity]);
 
+  const parsedValor = useMemo(() => parseInstallmentValor(valorText), [valorText]);
+  const hasTime = Boolean(firstDueTime.trim());
   const effectiveName = nameBase.trim() || "Parcela";
   const canGenerate = effectiveName.length > 0 && quantity >= 1 && !generating;
 
@@ -74,13 +81,15 @@ export function InstallmentGeneratorSheet({
         return;
       }
 
-      const valor = parseInstallmentValor(valorText);
+      const valor = parsedValor;
+      const hora = hasTime ? firstDueTime.trim() : undefined;
       const rows = previewDates.map((date, index) => ({
         task_id: taskId,
         titulo: `${effectiveName} / Parcela ${index + 1}`,
         data_vencimento: toDateStr(date),
         concluida: false,
         ordem: index,
+        ...(hora ? { hora } : {}),
         ...(valor != null ? { valor } : {}),
       }));
 
@@ -170,15 +179,26 @@ export function InstallmentGeneratorSheet({
             </label>
           </div>
 
-          <label className="block text-xs font-medium text-[var(--color-text-secondary)]">
-            Primeiro vencimento
-            <input
-              type="date"
-              value={firstDueDate}
-              onChange={(e) => setFirstDueDate(e.target.value)}
-              className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-3 py-2 text-sm outline-none focus:border-[var(--color-border-strong)]"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs font-medium text-[var(--color-text-secondary)]">
+              Primeiro vencimento
+              <input
+                type="date"
+                value={firstDueDate}
+                onChange={(e) => setFirstDueDate(e.target.value)}
+                className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-3 py-2 text-sm outline-none focus:border-[var(--color-border-strong)]"
+              />
+            </label>
+            <label className="block text-xs font-medium text-[var(--color-text-secondary)]">
+              Hora (opcional)
+              <input
+                type="time"
+                value={firstDueTime}
+                onChange={(e) => setFirstDueTime(e.target.value)}
+                className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-variant)] px-3 py-2 text-sm outline-none focus:border-[var(--color-border-strong)]"
+              />
+            </label>
+          </div>
 
           <div>
             <p className="mb-2 text-xs font-medium text-[var(--color-text-secondary)]">Frequência</p>
@@ -207,8 +227,19 @@ export function InstallmentGeneratorSheet({
               </p>
               <ul className="max-h-36 space-y-1 overflow-y-auto text-xs text-[var(--color-text-secondary)]">
                 {previewDates.slice(0, 6).map((date, i) => (
-                  <li key={i}>
-                    {effectiveName} / Parcela {i + 1} — {formatInstallmentDate(date)}
+                  <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="text-[var(--color-text)]">
+                      {effectiveName} / Parcela {i + 1}
+                    </span>
+                    {parsedValor != null ? (
+                      <span className="font-semibold text-[var(--color-accent)]">
+                        {formatInstallmentValor(parsedValor)}
+                      </span>
+                    ) : null}
+                    <span>
+                      — {formatInstallmentDate(date)}
+                      {hasTime ? ` · ${formatInstallmentTime(date)}` : ""}
+                    </span>
                   </li>
                 ))}
                 {previewDates.length > 6 && (

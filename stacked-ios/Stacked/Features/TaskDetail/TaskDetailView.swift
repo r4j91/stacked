@@ -389,12 +389,15 @@ struct TaskDetailView: View {
             )
           }
           HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(sub.title)
-              .font(AppTypography.taskTitle)
-              .foregroundStyle(sub.done ? c.textTertiary : c.textPrimary)
-              .strikethrough(sub.done)
-              .lineLimit(2)
-              .layoutPriority(1)
+            TitleWithValor(
+              title: sub.title,
+              valor: sub.valor,
+              titleFont: AppTypography.taskTitle,
+              titleColor: sub.done ? c.textTertiary : c.textPrimary,
+              accent: c.accent,
+              done: sub.done,
+              lineLimit: 2
+            )
             Spacer(minLength: 4)
             if layout == .default, let timeDisplay = sub.timeDisplay, !timeDisplay.isEmpty {
               Text(timeDisplay)
@@ -794,9 +797,7 @@ struct TaskDetailView: View {
       }
       presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
         guard let result else { return }
-        var ids = vm.selectedLabelIds
-        if ids.contains(result) { ids.remove(result) } else { ids.insert(result) }
-        vm.setLabels(ids)
+        vm.setLabels(LabelIdOrder.toggle(vm.selectedLabelIds, id: result))
       }
     }
   }

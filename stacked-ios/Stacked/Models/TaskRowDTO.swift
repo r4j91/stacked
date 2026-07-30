@@ -65,6 +65,7 @@ struct SubtaskRowDTO: Decodable {
 }
 
 struct TaskLabelJoinDTO: Decodable {
+  let sort_order: Int?
   let labels: LabelRefDTO?
 }
 

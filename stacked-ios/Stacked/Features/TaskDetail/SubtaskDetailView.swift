@@ -18,7 +18,7 @@ struct SubtaskDetailView: View {
   @State private var dueDate: Date?
   @State private var dueTimeDate: Date?
   @State private var deadline: Date?
-  @State private var selectedLabelIds: Set<String> = []
+  @State private var selectedLabelIds: [String] = []
   @State private var labels: [TaskLabel] = []
   @State private var saving = false
   @State private var saveError: String?
@@ -59,7 +59,7 @@ struct SubtaskDetailView: View {
       return TaskMapper.combinedDateTime(dueDate: dueDate, time: time)
     }())
     _deadline = State(initialValue: subtask.deadline)
-    _selectedLabelIds = State(initialValue: Set(subtask.labelIds))
+    _selectedLabelIds = State(initialValue: subtask.labelIds)
     _resolvedSubtaskId = State(initialValue: subtask.id)
   }
 
@@ -77,10 +77,18 @@ struct SubtaskDetailView: View {
             }
             .buttonStyle(PressableStyle(onPrepare: HapticService.prepareTaskComplete))
 
-            TextField("Nova subtarefa", text: $title)
-              .font(.system(size: 20, weight: .bold))
-              .foregroundStyle(c.textPrimary)
-              .onSubmit { _Concurrency.Task { await flushPending() } }
+            VStack(alignment: .leading, spacing: 4) {
+              TextField("Nova subtarefa", text: $title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(c.textPrimary)
+                .onSubmit { _Concurrency.Task { await flushPending() } }
+              if let valor = subtask.valor {
+                Text(CurrencyFormat.brl(valor))
+                  .font(.system(size: 16, weight: .semibold))
+                  .foregroundStyle(c.accent)
+                  .monospacedDigit()
+              }
+            }
           }
           .padding(.horizontal, 20)
 
@@ -264,7 +272,7 @@ struct SubtaskDetailView: View {
           title: "Etiquetas",
           value: labelsSummary,
           active: true,
-          valueColor: labels.first(where: { selectedLabelIds.contains($0.id) })?.color
+          valueColor: LabelIdOrder.resolve(selectedLabelIds, from: labels, id: \.id).first?.color
         ) { showLabelsMenu(anchor: $0) }
       }
 
@@ -331,7 +339,7 @@ struct SubtaskDetailView: View {
   }
 
   private var labelsSummary: String {
-    let names = labels.filter { selectedLabelIds.contains($0.id) }.map(\.name)
+    let names = LabelIdOrder.resolve(selectedLabelIds, from: labels, id: \.id).map(\.name)
     if names.isEmpty { return "Nenhuma" }
     if names.count == 1 { return names[0] }
     return "\(names[0]) +\(names.count - 1)"
@@ -430,11 +438,7 @@ struct SubtaskDetailView: View {
       }
       presentAnchoredPopover(anchorRect: anchor, items: items, allowsToggle: true) { result in
         guard let result else { return }
-        if selectedLabelIds.contains(result) {
-          selectedLabelIds.remove(result)
-        } else {
-          selectedLabelIds.insert(result)
-        }
+        selectedLabelIds = LabelIdOrder.toggle(selectedLabelIds, id: result)
         _Concurrency.Task { await flushPending() }
       }
     }
@@ -455,7 +459,7 @@ struct SubtaskDetailView: View {
       dueDate: dueDate,
       time: currentTimeString,
       deadline: deadline,
-      labelIds: Array(selectedLabelIds)
+      labelIds: selectedLabelIds
     )
   }
 
@@ -533,7 +537,7 @@ struct SubtaskDetailView: View {
       || dueDate != subtask.dueDate
       || currentTimeString != subtask.time
       || deadline != subtask.deadline
-      || selectedLabelIds != Set(subtask.labelIds)
+      || selectedLabelIds != subtask.labelIds
 
     guard titleChanged || descChanged || metaChanged else { return }
 
@@ -582,7 +586,7 @@ struct SubtaskDetailView: View {
           dueDateISO: dueISO,
           time: savedTime,
           deadlineISO: deadlineISO,
-          labelIds: Array(selectedLabelIds)
+          labelIds: selectedLabelIds
         )
         if let activeId {
           await NotificationService.shared.syncSubtaskNotification(

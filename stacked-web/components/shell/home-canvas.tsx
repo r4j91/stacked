@@ -14,7 +14,7 @@ import {
   Calendar03Icon,
   TaskDone01Icon,
   Sun01Icon,
-  ArrowRight01Icon,
+  ChevronRightIcon,
   Notification01Icon,
 } from "@/lib/icons/nav-icons";
 
@@ -58,7 +58,7 @@ export function HomeCanvas() {
                 {filterCounts.overdue} tarefa{filterCounts.overdue === 1 ? "" : "s"} atrasada
                 {filterCounts.overdue === 1 ? "" : "s"}
               </span>
-              <AppIcon icon={ArrowRight01Icon} size={16} className="text-[var(--color-overdue)]" />
+              <AppIcon icon={ChevronRightIcon} size={16} className="text-[var(--color-overdue)]" />
             </Link>
           )}
 
@@ -172,7 +172,7 @@ export function HomeCanvas() {
                             {p.pendingCount}
                           </span>
                         )}
-                        <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-40" />
+                        <AppIcon icon={ChevronRightIcon} size={14} className="opacity-40" />
                       </Link>
                     </li>
                   );
@@ -208,7 +208,7 @@ function QuickLink({
         {!!count && count > 0 && (
           <span className="text-xs tabular-nums text-[var(--color-text-tertiary)]">{count}</span>
         )}
-        <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-40" />
+        <AppIcon icon={ChevronRightIcon} size={14} className="opacity-40" />
       </Link>
     </li>
   );

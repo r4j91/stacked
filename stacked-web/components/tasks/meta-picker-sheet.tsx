@@ -7,6 +7,7 @@ import type { Project } from "@/lib/types/project";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { CalendarGrid } from "@/components/tasks/calendar-grid";
+import { toggleLabelIdOrder } from "@/lib/utils/label-id-order";
 import {
   Cancel01Icon,
   Flag01Icon,
@@ -374,10 +375,7 @@ export function LabelsPicker({ open, onClose, value, labels, onChange, anchorRec
   const selected = new Set(value);
 
   function toggle(id: string) {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onChange([...next]);
+    onChange(toggleLabelIdOrder(value, id));
   }
 
   return (

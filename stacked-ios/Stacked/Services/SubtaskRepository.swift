@@ -127,6 +127,7 @@ final class SubtaskRepository {
     let task_id: String
     let titulo: String
     let data_vencimento: String
+    let hora: String?
     let valor: Double?
     let concluida: Bool
     let ordem: Int
@@ -224,7 +225,7 @@ final class SubtaskRepository {
   private static let scheduleParentSelect = """
     id, titulo, descricao, prioridade, hora, ordem, concluida, data_vencimento, recorrencia, project_id, section_id,
     projects ( nome ),
-    task_labels ( labels ( id, nome, cor ) )
+    task_labels ( sort_order, labels ( id, nome, cor ) )
     """
 
   private static let scheduleSubtaskSelect = """

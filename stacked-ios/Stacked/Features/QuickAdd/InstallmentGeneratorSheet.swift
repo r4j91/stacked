@@ -14,6 +14,7 @@ struct InstallmentGeneratorSheet: View {
   @State private var valorText = ""
   @State private var quantity = 12
   @State private var firstDueDate = Date()
+  @State private var firstDueTime: Date?
   @State private var frequency: InstallmentFrequency = .monthly
   @State private var generating = false
   @State private var errorMessage: String?
@@ -36,12 +37,22 @@ struct InstallmentGeneratorSheet: View {
     InstallmentGeneratorLogic.parseValor(valorText)
   }
 
+  /// Datas com hora da 1ª parcela preservada em cada vencimento.
   private var previewDates: [Date] {
-    InstallmentGeneratorLogic.generateDates(
+    let anchored = InstallmentGeneratorLogic.combine(date: firstDueDate, time: firstDueTime)
+    return InstallmentGeneratorLogic.generateDates(
       quantity: quantity,
-      firstDueDate: firstDueDate,
+      firstDueDate: anchored,
       frequency: frequency
     )
+  }
+
+  private var dueDateSummary: String {
+    var parts = [InstallmentGeneratorLogic.formatDate(firstDueDate)]
+    if let firstDueTime {
+      parts.append(InstallmentGeneratorLogic.formatTime(firstDueTime))
+    }
+    return parts.joined(separator: " · ")
   }
 
   private var effectiveNameBase: String {
@@ -150,9 +161,11 @@ struct InstallmentGeneratorSheet: View {
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
         initialDate: firstDueDate,
+        initialTime: firstDueTime,
         showRecurrence: false
-      ) { date, _ in
-        if let date { firstDueDate = date }
+      ) { date, time in
+        firstDueDate = date ?? firstDueDate
+        firstDueTime = date == nil ? nil : time
       }
     }
   }
@@ -238,7 +251,7 @@ struct InstallmentGeneratorSheet: View {
           Text("1ª parcela")
             .font(AppTypography.settingsTitle)
             .foregroundStyle(c.textPrimary)
-          Text(InstallmentGeneratorLogic.formatDate(firstDueDate))
+          Text(dueDateSummary)
             .font(AppTypography.metaSmall)
             .foregroundStyle(c.textTertiary)
         }
@@ -346,19 +359,24 @@ struct InstallmentGeneratorSheet: View {
         .padding(.top, 2)
 
       VStack(alignment: .leading, spacing: 4) {
-        Text("\(effectiveNameBase) / Parcela \(index)")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(c.textPrimary)
-          .lineLimit(2)
+        TitleWithValor(
+          title: "\(effectiveNameBase) / Parcela \(index)",
+          valor: parsedValor,
+          titleFont: AppTypography.settingsTitle,
+          titleColor: c.textPrimary,
+          accent: c.accent,
+          lineLimit: 2
+        )
 
         HStack(spacing: 8) {
           Text(InstallmentGeneratorLogic.formatDate(date))
             .font(AppTypography.metaSmall)
             .foregroundStyle(c.textSecondary)
-          if let parsedValor {
-            Text(formatCurrency(parsedValor))
-              .font(AppTypography.metaSmall.weight(.semibold))
-              .foregroundStyle(c.accent)
+          if firstDueTime != nil {
+            Text(InstallmentGeneratorLogic.formatTime(date))
+              .font(AppTypography.metaSmall)
+              .foregroundStyle(c.textTertiary)
+              .monospacedDigit()
           }
         }
       }
@@ -392,14 +410,6 @@ struct InstallmentGeneratorSheet: View {
 
   // MARK: - Actions
 
-  private func formatCurrency(_ value: Double) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .currency
-    formatter.locale = Locale(identifier: "pt_BR")
-    formatter.currencyCode = "BRL"
-    return formatter.string(from: NSNumber(value: value)) ?? String(format: "R$ %.2f", value)
-  }
-
   private func generate() async {
     let base = nameBase.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !base.isEmpty, quantity >= 1, !generating else { return }
@@ -410,12 +420,14 @@ struct InstallmentGeneratorSheet: View {
 
     let dates = previewDates
     let valor = parsedValor
+    let hora = InstallmentGeneratorLogic.timeString(from: firstDueTime)
 
     let rows = (0..<quantity).map { index in
       SubtaskRepository.InstallmentSubtaskInsert(
         task_id: taskId,
         titulo: "\(base) / Parcela \(index + 1)",
         data_vencimento: InstallmentGeneratorLogic.isoDueDate(dates[index]),
+        hora: hora,
         valor: valor,
         concluida: false,
         ordem: index

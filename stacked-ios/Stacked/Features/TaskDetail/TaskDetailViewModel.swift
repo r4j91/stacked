@@ -54,7 +54,7 @@ final class TaskDetailViewModel {
   var projectId: String?
   var sectionId: String?
   var projectName = "Sem projeto"
-  var selectedLabelIds: Set<String> = []
+  var selectedLabelIds: [String] = []
   var subtasks: [Subtask] = []
   var recurrence: String?
   var comments: [TaskComment] = []
@@ -118,7 +118,7 @@ final class TaskDetailViewModel {
       guard generation == loadGeneration else { return }
       comments = try await commentsReq
       guard generation == loadGeneration else { return }
-      selectedLabelIds = Set(task.labels.map(\.id))
+      selectedLabelIds = task.labels.map(\.id)
       publishCardSnapshot()
     } catch {
       guard generation == loadGeneration else { return }
@@ -158,7 +158,7 @@ final class TaskDetailViewModel {
     whatsappRoutine = task.whatsappRoutine
     whatsappRoutineReady = true
     seedLabels = task.labels
-    selectedLabelIds = Set(task.labels.map(\.id))
+    selectedLabelIds = task.labels.map(\.id)
   }
 
   func setWhatsappRoutine(_ enabled: Bool) {
@@ -290,13 +290,13 @@ final class TaskDetailViewModel {
     }
   }
 
-  func setLabels(_ ids: Set<String>) {
+  func setLabels(_ ids: [String]) {
     selectedLabelIds = ids
     publishCardSnapshot()
     enqueueSave { [self] in
       // Espera create otimista — labels em tarefa ainda não no servidor geravam toast falso.
       await TaskOptimisticSync.waitUntilReady(taskId: taskId)
-      let labelIds = Array(ids)
+      let labelIds = ids
       let delays: [UInt64] = [1_000_000_000, 3_000_000_000]
       for attempt in 0..<(1 + delays.count) {
         if attempt > 0 {
@@ -338,7 +338,7 @@ final class TaskDetailViewModel {
           sectionId: sectionId,
           priority: priority,
           time: time,
-          labels: allLabels.filter { selectedLabelIds.contains($0.id) },
+          labels: LabelIdOrder.resolve(selectedLabelIds, from: allLabels, id: \.id),
           subtasks: subtasks,
           dueDate: dueDate,
           done: false,
@@ -487,7 +487,7 @@ final class TaskDetailViewModel {
       sectionId: sectionId,
       priority: priority,
       time: time,
-      labels: allLabels.filter { selectedLabelIds.contains($0.id) },
+      labels: LabelIdOrder.resolve(selectedLabelIds, from: allLabels, id: \.id),
       subtasks: subtasks,
       dueDate: dueDate,
       deadline: deadline,
@@ -550,7 +550,7 @@ final class TaskDetailViewModel {
   }
 
   var selectedLabels: [TaskLabel] {
-    allLabels.filter { selectedLabelIds.contains($0.id) }
+    LabelIdOrder.resolve(selectedLabelIds, from: allLabels, id: \.id)
   }
 
   private func publishCardSnapshot() {
@@ -565,7 +565,7 @@ final class TaskDetailViewModel {
       sectionId: sectionId,
       priority: priority,
       time: time,
-      labels: availableLabels.filter { selectedLabelIds.contains($0.id) },
+      labels: LabelIdOrder.resolve(selectedLabelIds, from: availableLabels, id: \.id),
       subtasks: subtasks,
       dueDate: dueDate,
       deadline: deadline,

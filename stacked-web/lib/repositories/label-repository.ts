@@ -84,8 +84,13 @@ export class LabelRepository {
       .eq("task_id", taskId)
     if (deleteError) throw deleteError
     if (labelIds.length === 0) return
+    // sort_order 0 = mais recente / primeira no card
     const { error } = await this.client.from("task_labels").insert(
-      labelIds.map((labelId) => ({ task_id: taskId, label_id: labelId })),
+      labelIds.map((labelId, sort_order) => ({
+        task_id: taskId,
+        label_id: labelId,
+        sort_order,
+      })),
     )
     if (error) throw error
   }

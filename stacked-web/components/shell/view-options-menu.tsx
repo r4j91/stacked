@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AppIcon } from "@/components/ui/app-icon";
-import { ArrowRight01Icon, Calendar03Icon, Flag01Icon, TextIcon, ViewIcon, ViewOffIcon } from "@/lib/icons/nav-icons";
+import { ChevronRightIcon, Calendar03Icon, Flag01Icon, TextIcon, ViewIcon, ViewOffIcon } from "@/lib/icons/nav-icons";
 import { AnchoredPopover, anchorFromElement } from "@/components/ui/anchored-popover";
 import { SAVED_FILTER_SORT_LABELS, SAVED_FILTER_SORT_MODES, type SavedFilterSortMode } from "@/lib/utils/saved-filter-sort";
 
@@ -93,7 +93,7 @@ export function ViewOptionsMenu({ showCompleted, onToggleCompleted, extraItems, 
                   {SAVED_FILTER_SORT_LABELS[sort.mode]}
                 </span>
                 <AppIcon
-                  icon={ArrowRight01Icon}
+                  icon={ChevronRightIcon}
                   size={12}
                   className={`shrink-0 text-[var(--color-text-tertiary)] transition-transform ${sortExpanded ? "rotate-90" : ""}`}
                 />

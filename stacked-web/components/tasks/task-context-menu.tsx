@@ -14,12 +14,13 @@ import {
   Delete01Icon,
   Flag01Icon,
   Folder01Icon,
-  ArrowRight01Icon,
+  ChevronRightIcon,
   Tag01Icon,
   InboxIcon,
 } from "@/lib/icons/nav-icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ClientPortal } from "@/components/ui/client-portal";
+import { toggleLabelIdOrder } from "@/lib/utils/label-id-order";
 
 type TaskContextMenuProps = {
   task: Task;
@@ -364,10 +365,9 @@ export function TaskContextMenu({ task, x, y, onClose }: TaskContextMenuProps) {
                     labelColor={l.color}
                     active={selected}
                     onClick={() => {
-                      const current = new Set(task.labelIds ?? []);
-                      if (current.has(l.id)) current.delete(l.id);
-                      else current.add(l.id);
-                      run(() => updateTaskLabels(task.id, [...current]));
+                      run(() =>
+                        updateTaskLabels(task.id, toggleLabelIdOrder(task.labelIds ?? [], l.id)),
+                      );
                     }}
                   />
                 );
@@ -442,7 +442,7 @@ function MenuItem({
       <span className="flex-1 truncate">{label}</span>
       {chevron && (
         <span data-submenu="">
-          <AppIcon icon={ArrowRight01Icon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+          <AppIcon icon={ChevronRightIcon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
         </span>
       )}
     </button>
@@ -505,7 +505,7 @@ function FlyoutItem({
       {loading ? (
         <span className="text-[11px] text-[var(--color-text-tertiary)]">…</span>
       ) : chevron ? (
-        <AppIcon icon={ArrowRight01Icon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+        <AppIcon icon={ChevronRightIcon} size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
       ) : null}
     </button>
   );

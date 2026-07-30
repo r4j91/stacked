@@ -44,6 +44,12 @@ function resolveTaskLabels(task: Task, allLabels: Label[]): ChipLabel[] {
       .map((id) => allLabels.find((l) => l.id === id))
       .filter((l): l is Label => Boolean(l));
 
+  // Se veio `labels` do join sem respeitar labelIds, reordena pela lista de ids.
+  if (task.labelIds?.length && taskLabels.length) {
+    const byId = new Map(taskLabels.map((l) => [l.id, l]));
+    taskLabels = task.labelIds.map((id) => byId.get(id)).filter((l): l is ChipLabel => Boolean(l));
+  }
+
   if (!taskLabels.length && task.tag) {
     const matched = allLabels.find((l) => l.name === task.tag);
     if (matched) taskLabels = [matched];

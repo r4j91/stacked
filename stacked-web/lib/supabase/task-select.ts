@@ -15,6 +15,6 @@ export const TASK_SELECT = `
   section_id,
   projects ( nome ),
   subtasks ( id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids ),
-  task_labels ( labels ( id, nome, cor ) ),
+  task_labels ( sort_order, labels ( id, nome, cor ) ),
   task_comments ( count )
 `;

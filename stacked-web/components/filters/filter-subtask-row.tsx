@@ -6,6 +6,7 @@ import { DoneCircle } from "@/components/ui/done-circle";
 import { SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
+import { SubtaskTitleWithValor } from "@/components/tasks/subtask-title-with-valor";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 import { showsTrailingTime } from "@/lib/theme/task-row-layout";
 
@@ -61,13 +62,12 @@ export function FilterSubtaskRow({
           <div className="task-row-grid__content min-w-0 flex-1">
             <TaskRowEyebrow layout={layout} priority={subtask.priority} />
             <div className="flex items-baseline gap-2">
-              <p
-                className={`min-w-0 flex-1 truncate text-[15.5px] font-semibold leading-snug ${
-                  subtask.done ? "text-[var(--color-text-tertiary)] line-through" : ""
-                }`}
-              >
-                {subtask.name}
-              </p>
+              <SubtaskTitleWithValor
+                name={subtask.name}
+                valor={subtask.valor}
+                done={subtask.done}
+                className="min-w-0 flex-1 text-[15.5px] font-semibold leading-snug"
+              />
               {trailingTime ? <TaskRowTime time={subtask.time} /> : null}
             </div>
             {notes ? (

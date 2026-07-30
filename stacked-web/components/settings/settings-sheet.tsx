@@ -9,7 +9,7 @@ import {
   Tag01Icon,
   Logout01Icon,
   UserIcon,
-  ArrowRight01Icon,
+  ChevronRightIcon,
   KeyboardIcon,
   Calendar03Icon,
 } from "@/lib/icons/nav-icons";
@@ -127,7 +127,7 @@ function SettingsLink({
     >
       <AppIcon icon={icon} size={17} className="shrink-0 opacity-85" />
       <span className="flex-1">{label}</span>
-      {!destructive && <AppIcon icon={ArrowRight01Icon} size={14} className="opacity-35" />}
+      {!destructive && <AppIcon icon={ChevronRightIcon} size={14} className="opacity-35" />}
     </button>
   );
 }

@@ -11,7 +11,9 @@ enum TaskMapper {
     let mappedSubtasks = (row.subtasks ?? []).map { mapSubtask($0, taskId: row.id) }
     let subtasks = sortSubtasksForDisplay(mappedSubtasks)
 
-    let labels: [TaskLabel] = (row.task_labels ?? []).compactMap { tl in
+    let labels: [TaskLabel] = (row.task_labels ?? [])
+      .sorted { ($0.sort_order ?? Int.max) < ($1.sort_order ?? Int.max) }
+      .compactMap { tl in
       guard let label = tl.labels,
             let nome = label.nome, !nome.isEmpty
       else { return nil }

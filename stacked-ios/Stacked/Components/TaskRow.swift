@@ -631,14 +631,15 @@ struct TaskRow: View {
       ? .system(size: 15, weight: .semibold)
       : AppTypography.taskTitle
     return HStack(alignment: .firstTextBaseline, spacing: 6) {
-      Text(task.title)
-        .font(titleFont)
-        .foregroundStyle(displayDone ? c.textTertiary : c.textPrimary)
-        .strikethrough(displayDone, color: c.textTertiary)
-        // PERF_FASEB2_ETAPA3: lineLimit(2) → 1 para altura determinística na List.
-        .lineLimit(1)
-        .truncationMode(.tail)
-        .layoutPriority(1)
+      TitleWithValor(
+        title: task.title,
+        valor: task.valor,
+        titleFont: titleFont,
+        titleColor: displayDone ? c.textTertiary : c.textPrimary,
+        accent: c.accent,
+        done: displayDone,
+        lineLimit: 1
+      )
 
       Spacer(minLength: 4)
 
@@ -765,14 +766,15 @@ struct TaskRow: View {
                     )
                   }
                   HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(sub.title)
-                      .font(taskRowLayout.isDense ? .system(size: 14.5, weight: .semibold) : AppTypography.subtaskRowTitle)
-                      .foregroundStyle(done ? c.textTertiary : c.textPrimary)
-                      .strikethrough(done)
-                      // UIKit expand: 1 linha — títulos longos ("…Cartões / Parcela") com
-                      // lineLimit(2) inchavam o sizeThatFits e abriam vão sob o pai (CC ok).
-                      .lineLimit(stabilizeExpandInSelfSizingCell ? 1 : 2)
-                      .layoutPriority(1)
+                    TitleWithValor(
+                      title: sub.title,
+                      valor: sub.valor,
+                      titleFont: taskRowLayout.isDense ? .system(size: 14.5, weight: .semibold) : AppTypography.subtaskRowTitle,
+                      titleColor: done ? c.textTertiary : c.textPrimary,
+                      accent: c.accent,
+                      done: done,
+                      lineLimit: stabilizeExpandInSelfSizingCell ? 1 : 2
+                    )
                     Spacer(minLength: 4)
                     if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
                       HStack(spacing: 2) {

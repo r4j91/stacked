@@ -22,7 +22,7 @@ struct QuickAddTaskView: View {
   @State private var deadline: Date?
   @State private var selectedProjectId: String?
   @State private var selectedSectionId: String?
-  @State private var selectedLabelIds: Set<String> = []
+  @State private var selectedLabelIds: [String] = []
   @State private var projects: [Project] = []
   @State private var sections: [ProjectSection] = []
   @State private var labels: [TaskLabel] = []
@@ -403,7 +403,7 @@ struct QuickAddTaskView: View {
   }
 
   private var labelPillColor: Color {
-    labels.first(where: { selectedLabelIds.contains($0.id) })?.color ?? theme.colors.accent
+    labels.first(where: { $0.id == selectedLabelIds.first })?.color ?? theme.colors.accent
   }
 
   private func showPriorityMenu(anchor: CGRect) {
@@ -451,11 +451,7 @@ struct QuickAddTaskView: View {
     }
     presentMetadataPopover(anchor: anchor, items: items, allowsToggle: true) { result in
       guard let result else { return }
-      if selectedLabelIds.contains(result) {
-        selectedLabelIds.remove(result)
-      } else {
-        selectedLabelIds.insert(result)
-      }
+      selectedLabelIds = LabelIdOrder.toggle(selectedLabelIds, id: result)
     }
   }
 
@@ -476,10 +472,10 @@ struct QuickAddTaskView: View {
           let secs = (try? await SectionRepository.shared.fetchSections(projectId: project.id)) ?? []
           guard !secs.isEmpty else { return nil }
           var sectionItems = [
-            PopoverMenuItem(id: "section:\(project.id):", icon: Hugeicons.arrowRight02, label: "Sem seção"),
+            PopoverMenuItem(id: "section:\(project.id):", icon: Hugeicons.chevronRight, label: "Sem seção"),
           ]
           sectionItems += secs.map { s in
-            PopoverMenuItem(id: "section:\(project.id):\(s.id)", icon: Hugeicons.arrowRight02, label: s.name)
+            PopoverMenuItem(id: "section:\(project.id):\(s.id)", icon: Hugeicons.chevronRight, label: s.name)
           }
           return sectionItems
         }
@@ -578,7 +574,7 @@ struct QuickAddTaskView: View {
       dueDateISO: dueISO,
       time: hora,
       deadlineISO: deadlineISO,
-      labelIds: Array(selectedLabelIds)
+      labelIds: selectedLabelIds
     )
 
     let clientId = UUID().uuidString.lowercased()
@@ -587,7 +583,7 @@ struct QuickAddTaskView: View {
             let p = projects.first(where: { $0.id == pid }) else { return "Sem projeto" }
       return p.name
     }()
-    let taskLabels = labels.filter { selectedLabelIds.contains($0.id) }
+    let taskLabels = LabelIdOrder.resolve(selectedLabelIds, from: labels, id: \.id)
     var local = Task(
       id: clientId,
       title: trimmed,

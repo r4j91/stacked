@@ -43,7 +43,13 @@ final class LabelRepository {
   func setTaskLabels(taskId: String, labelIds: [String]) async throws {
     try await client.from("task_labels").delete().eq("task_id", value: taskId).execute()
     guard !labelIds.isEmpty else { return }
-    let payload = labelIds.map { ["task_id": taskId, "label_id": $0] }
+    // sort_order 0 = mais recente / primeira no card
+    struct Row: Encodable {
+      let task_id: String
+      let label_id: String
+      let sort_order: Int
+    }
+    let payload = labelIds.enumerated().map { Row(task_id: taskId, label_id: $0.element, sort_order: $0.offset) }
     try await client.from("task_labels").insert(payload).execute()
   }
 

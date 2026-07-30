@@ -1,8 +1,8 @@
 /** Slate theme tokens — paridade lib/theme/app_theme_data.dart */
 export const theme = {
-  background: "#16161A",
-  surface: "#1C1C20",
-  surfaceVariant: "#2C2C32",
+  background: "#1C1C22",
+  surface: "#25252B",
+  surfaceVariant: "#34343B",
   textPrimary: "#F2F2F4",
   textSecondary: "#9A9AA2",
   textTertiary: "#65656D",

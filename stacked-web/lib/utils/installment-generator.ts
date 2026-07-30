@@ -14,11 +14,13 @@ export function parseInstallmentValor(raw: string): number | null {
 
 function addMonths(date: Date, months: number): Date {
   const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
   const totalMonths = date.getMonth() + months;
   const year = date.getFullYear() + Math.floor(totalMonths / 12);
   const month = ((totalMonths % 12) + 12) % 12;
   const lastDay = new Date(year, month + 1, 0).getDate();
-  return new Date(year, month, Math.min(day, lastDay));
+  return new Date(year, month, Math.min(day, lastDay), hours, minutes, 0, 0);
 }
 
 export function generateInstallmentDates(
@@ -43,6 +45,19 @@ export function formatInstallmentDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
   const month = MONTH_ABBREV[date.getMonth()] ?? "";
   return `${day} ${month} ${date.getFullYear()}`;
+}
+
+export function formatInstallmentTime(date: Date): string {
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+export function formatInstallmentValor(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 export const INSTALLMENT_FREQUENCY_OPTIONS: { value: InstallmentFrequency; label: string }[] = [

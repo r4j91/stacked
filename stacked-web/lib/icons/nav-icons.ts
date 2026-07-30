@@ -18,6 +18,7 @@ export {
   Sun01Icon,
   ArrowRight01Icon,
   ArrowDown01Icon,
+  ChevronRightIcon,
   Cancel01Icon,
   Notification01Icon,
   Logout01Icon,

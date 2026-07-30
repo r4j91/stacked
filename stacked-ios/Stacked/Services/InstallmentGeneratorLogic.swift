@@ -47,10 +47,31 @@ enum InstallmentGeneratorLogic {
     return String(format: "%02d %@ %d", day, monthLabel, year)
   }
 
+  /// Data civil local `yyyy-MM-dd` (coluna `data_vencimento`).
   static func isoDueDate(_ date: Date) -> String {
+    TaskMapper.dateString(date)
+  }
+
+  /// `HH:mm` a partir do horário escolhido; `nil` se não houver hora.
+  static func timeString(from time: Date?) -> String? {
+    guard let time else { return nil }
     let cal = Calendar.current
-    let start = cal.startOfDay(for: date)
-    return ISO8601DateFormatter().string(from: start)
+    let h = cal.component(.hour, from: time)
+    let m = cal.component(.minute, from: time)
+    return String(format: "%02d:%02d", h, m)
+  }
+
+  static func formatTime(_ time: Date) -> String {
+    timeString(from: time) ?? ""
+  }
+
+  /// Combina dia civil + hora (ou início do dia se `time` for nil).
+  static func combine(date: Date, time: Date?) -> Date {
+    let cal = Calendar.current
+    guard let time else { return cal.startOfDay(for: date) }
+    let h = cal.component(.hour, from: time)
+    let m = cal.component(.minute, from: time)
+    return cal.date(bySettingHour: h, minute: m, second: 0, of: date) ?? date
   }
 
   static func parseValor(_ raw: String) -> Double? {
@@ -62,6 +83,8 @@ enum InstallmentGeneratorLogic {
 
   private static func addMonths(_ date: Date, months: Int, calendar: Calendar) -> Date {
     let day = calendar.component(.day, from: date)
+    let hour = calendar.component(.hour, from: date)
+    let minute = calendar.component(.minute, from: date)
     let totalMonths = calendar.component(.month, from: date) - 1 + months
     let year = calendar.component(.year, from: date) + totalMonths / 12
     let month = totalMonths % 12 + 1
@@ -73,6 +96,9 @@ enum InstallmentGeneratorLogic {
     let range = calendar.range(of: .day, in: .month, for: firstOfMonth)
     let lastDay = range?.count ?? 28
     comps.day = min(day, lastDay)
+    comps.hour = hour
+    comps.minute = minute
+    comps.second = 0
     return calendar.date(from: comps) ?? date
   }
 }

@@ -31,6 +31,7 @@ function mapSubtask(row: DbRow): Subtask {
     time,
     priority: parsePriority(row.prioridade),
     labelIds: labelIds?.length ? labelIds : undefined,
+    valor: row.valor != null && Number.isFinite(Number(row.valor)) ? Number(row.valor) : null,
   };
 }
 
@@ -46,7 +47,9 @@ export function mapTaskRow(row: DbRow): Task {
     ((row.subtasks as DbRow[] | null) ?? []).map(mapSubtask),
   );
 
-  const taskLabels = ((row.task_labels as DbRow[] | null) ?? []);
+  const taskLabels = ((row.task_labels as DbRow[] | null) ?? [])
+    .slice()
+    .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
   const labelMeta = taskLabels
     .map((tl) => {
       const label = tl.labels as DbRow | null;

@@ -25,8 +25,8 @@ final class TaskContextMenuModel {
   var needsAnchorReader = false
   var anchorFrame: CGRect = .zero
   var anchorCaptureGeneration = 0
-  /// Seleção de etiquetas acumulada durante a sessão do submenu "Etiquetas" (multi-toggle).
-  var pendingLabelSelection: Set<String>?
+  /// Seleção de etiquetas na sessão do submenu (ordem MRU: última tocada primeiro).
+  var pendingLabelIds: [String]?
 
   var isLifted: Bool { liftPhase != .normal }
 }
@@ -204,14 +204,15 @@ struct TaskContextMenu: ViewModifier {
   private func loadLabelItems() async -> [PopoverMenuItem]? {
     let labels = await LabelCatalogCache.labels()
     guard !labels.isEmpty else { return nil }
-    let current = Set(task.labels.map(\.id))
-    model.pendingLabelSelection = current
+    let current = task.labels.map(\.id)
+    model.pendingLabelIds = current
+    let selected = Set(current)
     return labels.map { label in
       PopoverMenuItem(
         id: "label:\(label.id)",
         icon: Hugeicons.tag01,
         label: label.name,
-        selected: current.contains(label.id),
+        selected: selected.contains(label.id),
         iconColor: label.color
       )
     }
@@ -240,16 +241,11 @@ struct TaskContextMenu: ViewModifier {
     }
     if result.hasPrefix("label:") {
       let labelId = String(result.dropFirst("label:".count))
-      var current = model.pendingLabelSelection ?? Set(task.labels.map(\.id))
-      if current.contains(labelId) {
-        current.remove(labelId)
-      } else {
-        current.insert(labelId)
-      }
-      model.pendingLabelSelection = current
-      let ids = Array(current)
+      let current = model.pendingLabelIds ?? task.labels.map(\.id)
+      let next = LabelIdOrder.toggle(current, id: labelId)
+      model.pendingLabelIds = next
       _Concurrency.Task {
-        try? await LabelRepository.shared.setTaskLabels(taskId: task.id, labelIds: ids)
+        try? await LabelRepository.shared.setTaskLabels(taskId: task.id, labelIds: next)
         onRefresh()
       }
       return

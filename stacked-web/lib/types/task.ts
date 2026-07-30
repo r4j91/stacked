@@ -14,6 +14,8 @@ export type Subtask = {
   priority?: Priority;
   project?: string | null;
   labelIds?: string[];
+  /** Valor monetário (parcelas). */
+  valor?: number | null;
 };
 
 export type Task = {

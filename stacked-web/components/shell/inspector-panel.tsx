@@ -37,6 +37,8 @@ import { DoneCircle } from "@/components/ui/done-circle";
 import { anchorFromElement, type AnchorRect } from "@/components/ui/anchored-popover";
 import { SubtaskMetaLine } from "@/components/tasks/task-meta-line";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
+import { SubtaskTitleWithValor } from "@/components/tasks/subtask-title-with-valor";
+import { formatInstallmentValor } from "@/lib/utils/installment-generator";
 import { priorityLabel, priorityColor } from "@/lib/utils/priority";
 import { parseRecurrence, recurrenceLabel } from "@/lib/utils/recurrence";
 import { createClient } from "@/lib/supabase/client";
@@ -44,6 +46,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CommentRepository, type Comment } from "@/lib/repositories/comment-repository";
 import { WhatsAppCopyPreviewSheet } from "@/components/tasks/whatsapp-copy-preview-sheet";
 import { AttachmentsSection } from "@/components/tasks/attachments-section";
+import { resolveLabelsByIds } from "@/lib/utils/label-id-order";
 import {
   composeWhatsAppRoutineMessage,
 } from "@/lib/utils/whatsapp-routine-message";
@@ -92,11 +95,8 @@ function MetaCard({
   const labelIds = item.labelIds ?? [];
   const recurrenceRaw = item.recurrence;
   const recurrence = parseRecurrence(recurrenceRaw);
-  const labelNames = labels
-    .filter((l) => labelIds.includes(l.id))
-    .map((l) => l.name)
-    .join(", ");
-  const selectedLabels = labels.filter((l) => labelIds.includes(l.id));
+  const selectedLabels = resolveLabelsByIds(labelIds, labels);
+  const labelNames = selectedLabels.map((l) => l.name).join(", ");
   const tagLabel = tag ? labels.find((l) => l.name === tag) : undefined;
   const labelColor =
     selectedLabels.length === 1
@@ -230,11 +230,8 @@ function SubtaskMetaCard({
   }
 
   const labelIds = sub.labelIds ?? [];
-  const labelNames = labels
-    .filter((l) => labelIds.includes(l.id))
-    .map((l) => l.name)
-    .join(", ");
-  const selectedLabels = labels.filter((l) => labelIds.includes(l.id));
+  const selectedLabels = resolveLabelsByIds(labelIds, labels);
+  const labelNames = selectedLabels.map((l) => l.name).join(", ");
   const labelColor = selectedLabels.length > 0 ? selectedLabels[0].color : undefined;
   const dueLabel = formatDueDateTimeLabel(sub.dueDate, sub.time);
   const overdue = isOverdueDate(parseDueDate(sub.dueDate), Boolean(sub.done));
@@ -496,13 +493,12 @@ function SubtasksCard({ task }: { task: Task }) {
               className="min-w-0 flex-1 text-left"
             >
               <div className="flex items-start gap-2">
-                <span
-                  className={`min-w-0 flex-1 text-sm font-medium leading-snug ${
-                    s.done ? "text-[var(--color-text-tertiary)] line-through" : ""
-                  }`}
-                >
-                  {s.name}
-                </span>
+                <SubtaskTitleWithValor
+                  name={s.name}
+                  valor={s.valor}
+                  done={s.done}
+                  className="min-w-0 flex-1 text-sm font-medium leading-snug"
+                />
                 <TaskRowTime time={s.time} className="mt-0.5 shrink-0" />
               </div>
               {notesPreview ? (
@@ -753,14 +749,21 @@ export function InspectorPanel() {
                   label={subCtx.sub.done ? "Marcar pendente" : "Marcar concluída"}
                   onClick={() => toggleSubtaskDone(selectedSubtaskKey!)}
                 />
-                <AutosaveTextarea
-                  className="min-h-[36px] flex-1 resize-none bg-transparent text-lg font-bold leading-tight outline-none"
-                  aria-label="Título da subtarefa"
-                  rows={1}
-                  value={title}
-                  onChange={setTitle}
-                  onSave={(v) => autosaveSubtaskTitle(selectedSubtaskKey, v)}
-                />
+                <div className="min-w-0 flex-1">
+                  <AutosaveTextarea
+                    className="min-h-[36px] w-full resize-none bg-transparent text-lg font-bold leading-tight outline-none"
+                    aria-label="Título da subtarefa"
+                    rows={1}
+                    value={title}
+                    onChange={setTitle}
+                    onSave={(v) => autosaveSubtaskTitle(selectedSubtaskKey, v)}
+                  />
+                  {subCtx.sub.valor != null ? (
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--color-accent)]">
+                      {formatInstallmentValor(subCtx.sub.valor)}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <AutosaveTextarea
                 className="input-focus mb-4 w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-[var(--color-surface-variant)] px-3 py-2.5 text-sm text-[var(--color-text-secondary)] outline-none placeholder:text-[var(--color-text-tertiary)]"

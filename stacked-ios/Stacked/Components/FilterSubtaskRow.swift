@@ -67,7 +67,8 @@ struct FilterSubtaskRow: View {
       whatsappRoutine: false,
       subtasksDoneCount: 0,
       subtasksTotalCount: 0,
-      subtasksCounterLabel: nil
+      subtasksCounterLabel: nil,
+      valor: subtask.valor
     )
   }
 }

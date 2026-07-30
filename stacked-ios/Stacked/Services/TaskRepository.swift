@@ -174,7 +174,14 @@ final class TaskRepository {
     ).select("id").single().execute().value
 
     if !task.labels.isEmpty {
-      let links = task.labels.map { ["task_id": row.id, "label_id": $0.id] }
+      struct Link: Encodable {
+        let task_id: String
+        let label_id: String
+        let sort_order: Int
+      }
+      let links = task.labels.enumerated().map {
+        Link(task_id: row.id, label_id: $0.element.id, sort_order: $0.offset)
+      }
       try await client.from("task_labels").insert(links).execute()
     }
 
@@ -709,7 +716,14 @@ final class TaskRepository {
     if !input.labelIds.isEmpty {
       // NET_FASEC_ETAPA2 — labels no caminho legado ainda throw (installment).
       try await NetLog.timed("task_labels.insert_legacy", step: .insertLabels) {
-        let links = input.labelIds.map { ["task_id": row.id, "label_id": $0] }
+        struct Link: Encodable {
+          let task_id: String
+          let label_id: String
+          let sort_order: Int
+        }
+        let links = input.labelIds.enumerated().map {
+          Link(task_id: row.id, label_id: $0.element, sort_order: $0.offset)
+        }
         try await client.from("task_labels").insert(links).execute()
       }
     }
