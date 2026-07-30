@@ -28,6 +28,15 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case basaltGold
     case basaltJade
     case basaltViolet
+    case hematiteAzurite
+    case hematiteMalachite
+    case hematiteLarimar
+    case onyxAzurite
+    case onyxMalachite
+    case onyxLarimar
+    case sodaliteAzurite
+    case sodaliteMalachite
+    case sodaliteLarimar
 
     var id: String { rawValue }
 
@@ -71,8 +80,16 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltGold: "Basalt Gold"
         case .basaltJade: "Basalt Jade"
         case .basaltViolet: "Basalt Violet"
-        }
-    }
+        case .hematiteAzurite: "Hematite Azurite"
+        case .hematiteMalachite: "Hematite Malachite"
+        case .hematiteLarimar: "Hematite Larimar"
+        case .onyxAzurite: "Onyx Azurite"
+        case .onyxMalachite: "Onyx Malachite"
+        case .onyxLarimar: "Onyx Larimar"
+        case .sodaliteAzurite: "Sodalite Azurite"
+        case .sodaliteMalachite: "Sodalite Malachite"
+        case .sodaliteLarimar: "Sodalite Larimar"
+        }    }
 
     var subtitle: String {
         switch self {
@@ -102,8 +119,16 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltGold: "Things · champagne"
         case .basaltJade: "Things · jade"
         case .basaltViolet: "Things · ametista"
-        }
-    }
+        case .hematiteAzurite: "Marrom · aço"
+        case .hematiteMalachite: "Marrom · verde"
+        case .hematiteLarimar: "Marrom · ciano"
+        case .onyxAzurite: "Preto · aço"
+        case .onyxMalachite: "Preto · verde"
+        case .onyxLarimar: "Preto · ciano"
+        case .sodaliteAzurite: "Carvão · aço"
+        case .sodaliteMalachite: "Carvão · verde"
+        case .sodaliteLarimar: "Carvão · ciano"
+        }    }
 
     /// Preview do seletor (3 retângulos). Temas novos usam hex de mockup; demais = tokens reais.
     var previewSwatch: (background: Color, surface: Color, accent: Color) {
@@ -154,6 +179,24 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0xD5D8DE), Color(hex: 0xE0E3E9), Color(hex: 0x86ABB0))
         case .moonstone:
             return (Color(hex: 0xEEF1F6), Color(hex: 0xF5F7FA), Color(hex: 0x3F6F96))
+        case .hematiteAzurite:
+            return (Color(hex: 0x1B1918), Color(hex: 0x232120), Color(hex: 0x3A5468))
+        case .hematiteMalachite:
+            return (Color(hex: 0x1B1918), Color(hex: 0x232120), Color(hex: 0x2F5450))
+        case .hematiteLarimar:
+            return (Color(hex: 0x1B1918), Color(hex: 0x232120), Color(hex: 0x2C6B78))
+        case .onyxAzurite:
+            return (Color(hex: 0x131313), Color(hex: 0x1C1C1C), Color(hex: 0x3A5468))
+        case .onyxMalachite:
+            return (Color(hex: 0x131313), Color(hex: 0x1C1C1C), Color(hex: 0x2F5450))
+        case .onyxLarimar:
+            return (Color(hex: 0x131313), Color(hex: 0x1C1C1C), Color(hex: 0x2C6B78))
+        case .sodaliteAzurite:
+            return (Color(hex: 0x15171B), Color(hex: 0x1D2025), Color(hex: 0x3A5468))
+        case .sodaliteMalachite:
+            return (Color(hex: 0x15171B), Color(hex: 0x1D2025), Color(hex: 0x2F5450))
+        case .sodaliteLarimar:
+            return (Color(hex: 0x15171B), Color(hex: 0x1D2025), Color(hex: 0x2C6B78))
         default:
             let c = colors
             return (c.background, c.surface, c.accent)
@@ -188,6 +231,15 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .basaltGold: .basaltGold
         case .basaltJade: .basaltJade
         case .basaltViolet: .basaltViolet
+        case .hematiteAzurite: .hematiteAzurite
+        case .hematiteMalachite: .hematiteMalachite
+        case .hematiteLarimar: .hematiteLarimar
+        case .onyxAzurite: .onyxAzurite
+        case .onyxMalachite: .onyxMalachite
+        case .onyxLarimar: .onyxLarimar
+        case .sodaliteAzurite: .sodaliteAzurite
+        case .sodaliteMalachite: .sodaliteMalachite
+        case .sodaliteLarimar: .sodaliteLarimar
         }
     }
 }
@@ -765,6 +817,117 @@ struct AppThemeColors: Equatable {
         navBar: Color(hex: 0x282E3A),
         isDark: true
     )
+
+    // MARK: Hematite / Onyx / Sodalite × Azurite / Malachite / Larimar
+    // Mesmo padrão Basalt Ember / Slate Moonstone: accent UI = actionAccent.
+
+    /// Hematite Azurite — marrom pedra + aço.
+    static let hematiteAzurite = mineralActionVariant(
+        background: 0x1B1918, surface: 0x232120, surfaceVariant: 0x2B2827, hairline: 0x2B2928,
+        textPrimary: 0xF2EEEA, textSecondary: 0x9C9690, textTertiary: 0x6E6864, textQuaternary: 0x5A5552,
+        accent: 0x3A5468, onAccent: 0xE9EEF2,
+        fabGradientStart: 0x617686, fabGradientEnd: 0x314758
+    )
+
+    /// Hematite Malachite — marrom pedra + verde.
+    static let hematiteMalachite = mineralActionVariant(
+        background: 0x1B1918, surface: 0x232120, surfaceVariant: 0x2B2827, hairline: 0x2B2928,
+        textPrimary: 0xF2EEEA, textSecondary: 0x9C9690, textTertiary: 0x6E6864, textQuaternary: 0x5A5552,
+        accent: 0x2F5450, onAccent: 0xE8F0EE,
+        fabGradientStart: 0x587673, fabGradientEnd: 0x274744
+    )
+
+    /// Hematite Larimar — marrom pedra + ciano aço.
+    static let hematiteLarimar = mineralActionVariant(
+        background: 0x1B1918, surface: 0x232120, surfaceVariant: 0x2B2827, hairline: 0x2B2928,
+        textPrimary: 0xF2EEEA, textSecondary: 0x9C9690, textTertiary: 0x6E6864, textQuaternary: 0x5A5552,
+        accent: 0x2C6B78, onAccent: 0xE7F2F4,
+        fabGradientStart: 0x568893, fabGradientEnd: 0x255A66
+    )
+
+    /// Onyx Azurite — preto profundo + aço.
+    static let onyxAzurite = mineralActionVariant(
+        background: 0x131313, surface: 0x1C1C1C, surfaceVariant: 0x242424, hairline: 0x212121,
+        textPrimary: 0xEDEDED, textSecondary: 0x8F8F8F, textTertiary: 0x616161, textQuaternary: 0x4E4E4E,
+        accent: 0x3A5468, onAccent: 0xE9EEF2,
+        fabGradientStart: 0x617686, fabGradientEnd: 0x314758
+    )
+
+    /// Onyx Malachite — preto profundo + verde.
+    static let onyxMalachite = mineralActionVariant(
+        background: 0x131313, surface: 0x1C1C1C, surfaceVariant: 0x242424, hairline: 0x212121,
+        textPrimary: 0xEDEDED, textSecondary: 0x8F8F8F, textTertiary: 0x616161, textQuaternary: 0x4E4E4E,
+        accent: 0x2F5450, onAccent: 0xE8F0EE,
+        fabGradientStart: 0x587673, fabGradientEnd: 0x274744
+    )
+
+    /// Onyx Larimar — preto profundo + ciano aço.
+    static let onyxLarimar = mineralActionVariant(
+        background: 0x131313, surface: 0x1C1C1C, surfaceVariant: 0x242424, hairline: 0x212121,
+        textPrimary: 0xEDEDED, textSecondary: 0x8F8F8F, textTertiary: 0x616161, textQuaternary: 0x4E4E4E,
+        accent: 0x2C6B78, onAccent: 0xE7F2F4,
+        fabGradientStart: 0x568893, fabGradientEnd: 0x255A66
+    )
+
+    /// Sodalite Azurite — azul carvão + aço.
+    static let sodaliteAzurite = mineralActionVariant(
+        background: 0x15171B, surface: 0x1D2025, surfaceVariant: 0x262A30, hairline: 0x25272B,
+        textPrimary: 0xE8EAED, textSecondary: 0x8B92A0, textTertiary: 0x5E6470, textQuaternary: 0x4A505A,
+        accent: 0x3A5468, onAccent: 0xE9EEF2,
+        fabGradientStart: 0x617686, fabGradientEnd: 0x314758
+    )
+
+    /// Sodalite Malachite — azul carvão + verde.
+    static let sodaliteMalachite = mineralActionVariant(
+        background: 0x15171B, surface: 0x1D2025, surfaceVariant: 0x262A30, hairline: 0x25272B,
+        textPrimary: 0xE8EAED, textSecondary: 0x8B92A0, textTertiary: 0x5E6470, textQuaternary: 0x4A505A,
+        accent: 0x2F5450, onAccent: 0xE8F0EE,
+        fabGradientStart: 0x587673, fabGradientEnd: 0x274744
+    )
+
+    /// Sodalite Larimar — azul carvão + ciano aço.
+    static let sodaliteLarimar = mineralActionVariant(
+        background: 0x15171B, surface: 0x1D2025, surfaceVariant: 0x262A30, hairline: 0x25272B,
+        textPrimary: 0xE8EAED, textSecondary: 0x8B92A0, textTertiary: 0x5E6470, textQuaternary: 0x4A505A,
+        accent: 0x2C6B78, onAccent: 0xE7F2F4,
+        fabGradientStart: 0x568893, fabGradientEnd: 0x255A66
+    )
+
+    /// Fundo mineral + accent unificado (UI = ação), como Basalt Ember.
+    private static func mineralActionVariant(
+        background: UInt32,
+        surface: UInt32,
+        surfaceVariant: UInt32,
+        hairline: UInt32,
+        textPrimary: UInt32,
+        textSecondary: UInt32,
+        textTertiary: UInt32,
+        textQuaternary: UInt32,
+        accent: UInt32,
+        onAccent: UInt32,
+        fabGradientStart: UInt32,
+        fabGradientEnd: UInt32
+    ) -> AppThemeColors {
+        AppThemeColors(
+            background: Color(hex: background),
+            surface: Color(hex: surface),
+            surfaceVariant: Color(hex: surfaceVariant),
+            textPrimary: Color(hex: textPrimary),
+            textSecondary: Color(hex: textSecondary),
+            textTertiary: Color(hex: textTertiary),
+            textQuaternary: Color(hex: textQuaternary),
+            hairline: Color(hex: hairline),
+            accent: Color(hex: accent),
+            onAccent: Color(hex: onAccent),
+            actionAccent: Color(hex: accent),
+            onActionAccent: Color(hex: onAccent),
+            fabGradientStart: Color(hex: fabGradientStart),
+            fabGradientEnd: Color(hex: fabGradientEnd),
+            folderTint: Color(hex: accent),
+            navBar: Color(hex: surface),
+            isDark: true
+        )
+    }
 }
 
 // MARK: - Theme manager

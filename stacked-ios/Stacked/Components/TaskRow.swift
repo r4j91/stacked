@@ -889,22 +889,14 @@ struct TaskRow: View {
     if flatSubtaskQueue { return .clear }
     guard style.isCardFamily else { return .clear }
 
-    // Halo: painel mais escuro (menos lift claro no celular).
+    // Halo: casca clara; painel expandido 1 degrau sólido (surfaceVariant), sem wash fumê.
     if style == .cardLight {
       let fillAlpha = TaskExpandDividerStyle.cardLightFillAlpha
-      if c.isDark {
-        if !stabilizeExpandInSelfSizingCell {
-          return c.background.opacity(0.38)
-        }
-        let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: fillAlpha)
-        return Self.opaqueBlend(src: c.background, dst: cardBase, alpha: 0.42)
-      }
-      // Claro: meio-termo — visível vs card, sem ficar pesado (antes 0.92/0.88).
-      if !stabilizeExpandInSelfSizingCell {
-        return c.surfaceVariant.opacity(0.58)
-      }
       let cardBase = Self.opaqueBlend(src: c.surface, dst: c.background, alpha: fillAlpha)
-      return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.55)
+      if stabilizeExpandInSelfSizingCell {
+        return Self.opaqueBlend(src: c.surfaceVariant, dst: cardBase, alpha: 0.38)
+      }
+      return c.surfaceVariant.opacity(c.isDark ? 0.72 : 0.55)
     }
 
     // Balões

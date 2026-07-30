@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stacked — Halo: diferenciar pai × subtarefas</title>
+  <style>
+    :root {
+      --bg: #131313;
+      --card: #1f1f1f;
+      --panel-step: #262626;
+      --text: #EDEDED;
+      --text2: #8F8F8F;
+      --text3: #616161;
+      --hair: rgba(237, 237, 237, 0.055);
+      --hair-strong: rgba(237, 237, 237, 0.14);
+      --tag-a: #6BB5BA;
+      --tag-b: #B18CF5;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: #0c0c0c;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.3;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 72px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    .lede {
+      color: var(--text2);
+      font-size: 14px;
+      margin: 0 0 28px;
+      max-width: 52ch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .opt {
+      background: #161616;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 14px 14px 16px;
+    }
+
+    .opt-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #9DC2C7;
+      background: rgba(157, 194, 199, 0.12);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .opt-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .opt-note {
+      font-size: 12px;
+      color: var(--text3);
+      margin: 0 0 12px;
+      min-height: 2.6em;
+    }
+
+    /* Phone frame */
+    .phone {
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 12px 10px 14px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .sec {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text3);
+      margin: 0 0 8px 4px;
+    }
+
+    .halo {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--hair);
+      overflow: hidden;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      padding: 10px 12px 10px 10px;
+      align-items: flex-start;
+    }
+    .row.parent.strong .title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text3);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .body { flex: 1; min-width: 0; }
+    .title-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .count {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text3);
+      border: 1px solid var(--text3);
+      border-radius: 999px;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+    }
+    .meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text2);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      align-items: center;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag.a { color: var(--tag-a); }
+    .tag.b { color: var(--tag-b); }
+    .time {
+      margin-left: auto;
+      color: var(--text3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .div {
+      height: 1px;
+      background: var(--hair);
+      margin-left: 42px;
+    }
+    .div.strong {
+      background: var(--hair-strong);
+      margin-left: 12px;
+    }
+
+    .subs.indent .row {
+      padding-left: 28px;
+    }
+    .subs.indent .div {
+      margin-left: 60px;
+    }
+    .subs.panel-step {
+      background: var(--panel-step);
+    }
+
+    .branch {
+      position: relative;
+    }
+    .branch::before {
+      content: "";
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 8px;
+      width: 2px;
+      background: rgba(237,237,237,0.12);
+      border-radius: 1px;
+    }
+
+    .pick {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .pick strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Halo — diferenciar tarefa pai × subtarefas</h1>
+    <p class="lede">
+      Depois da opção 1 (painel sólido), tudo ficou no mesmo tom.
+      Compare as alternativas abaixo e diga qual aplicar (ou combinação).
+    </p>
+
+    <div class="grid">
+
+      <!-- Atual -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Agora</span>
+          <h2 class="opt-title">Painel = card (plano)</h2>
+        </div>
+        <p class="opt-note">Referência: pai e filhos no mesmo fundo, sem indent, hairline fraco.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div"></div>
+            <div class="subs">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span><span class="tag b">Agosto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 1 -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Opção 1</span>
+          <h2 class="opt-title">Indentação</h2>
+        </div>
+        <p class="opt-note">Subtarefas recuadas (~16–18px). Pai alinhado à esquerda do card.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div"></div>
+            <div class="subs indent">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2 -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Opção 2</span>
+          <h2 class="opt-title">Hairline pai → filho</h2>
+        </div>
+        <p class="opt-note">Só a linha sob o pai fica mais visível; entre subtarefas continua fina.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div strong"></div>
+            <div class="subs">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3 -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Opção 3</span>
+          <h2 class="opt-title">Painel sólido 1 degrau</h2>
+        </div>
+        <p class="opt-note">Miolo um pouco mais escuro (sólido), sem o wash fumê antigo.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div"></div>
+            <div class="subs panel-step">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4 -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Opção 4</span>
+          <h2 class="opt-title">Tipografia do pai</h2>
+        </div>
+        <p class="opt-note">Título do pai um pouco maior/mais bold; filhos iguais aos de agora.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent strong">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div"></div>
+            <div class="subs">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5 -->
+      <article class="opt">
+        <div class="opt-head">
+          <span class="badge">Opção 5</span>
+          <h2 class="opt-title">Indent + hairline (combo)</h2>
+        </div>
+        <p class="opt-note">Recuo das subtarefas + linha mais clara só sob o pai. Preferência Quiet Control Room.</p>
+        <div class="phone">
+          <div class="sec">DESPESAS FIXAS</div>
+          <div class="halo">
+            <div class="row parent">
+              <div class="circle"></div>
+              <div class="body">
+                <div class="title-line">
+                  <span class="title">Agosto 2026</span>
+                  <span class="count">0</span>
+                </div>
+              </div>
+            </div>
+            <div class="div strong"></div>
+            <div class="subs indent">
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Fatura Vivo</span><span class="time">13:00</span></div>
+                  <div class="meta"><span>1 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+              <div class="div"></div>
+              <div class="row">
+                <div class="circle"></div>
+                <div class="body">
+                  <div class="title-line"><span class="title">Bressanone Condomínio</span><span class="time">14:00</span></div>
+                  <div class="meta"><span>15 ago</span><span class="tag a">Pendente Pgto</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="pick"><strong>Sugestão:</strong> começar por esta se gostar no olho.</p>
+      </article>
+
+    </div>
+  </div>
+</body>
+</html>

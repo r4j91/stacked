@@ -541,7 +541,12 @@ textarea:focus:not(:focus-visible) {
 }
 
 .task-halo-balloon__panel[data-open="true"] > div {
-  background: color-mix(in srgb, var(--color-background) 42%, transparent);
+  /* Opção 3: degrau sólido (surfaceVariant), sem wash fumê do bg. */
+  background: color-mix(
+    in srgb,
+    var(--color-surface-variant) 38%,
+    color-mix(in srgb, var(--color-surface) 86%, var(--color-background))
+  );
 }
 
 .task-row-rail {
