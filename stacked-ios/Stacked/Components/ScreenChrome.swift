@@ -79,13 +79,16 @@ struct TaskListSkeleton: View {
 /// Section label para headers de `List` (sem padding extra).
 struct ListSectionHeader: View {
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   let text: String
 
   var body: some View {
-    Text(ListSectionHeaderDisplay.softened(text))
-      .font(AppTypography.sectionLabel)
-      .foregroundStyle(theme.colors.textTertiary)
-      .tracking(0.2)
+    let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
+    Text(t.headerCase.apply(to: text))
+      .font(t.headerFont)
+      .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textTertiary)
+      .tracking(t.headerTracking)
+      .textCase(nil)
       .padding(.leading, AppSpacing.xs)
   }
 }
@@ -93,30 +96,21 @@ struct ListSectionHeader: View {
 /// Section header com ação à direita — mesmo alinhamento que `ListSectionHeader`.
 struct ListSectionHeaderWithTrailing<Trailing: View>: View {
   @Environment(ThemeManager.self) private var theme
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   let text: String
   @ViewBuilder var trailing: () -> Trailing
 
   var body: some View {
+    let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
     HStack(alignment: .center, spacing: 8) {
-      Text(ListSectionHeaderDisplay.softened(text))
-        .font(AppTypography.sectionLabel)
-        .foregroundStyle(theme.colors.textTertiary)
-        .tracking(0.2)
+      Text(t.headerCase.apply(to: text))
+        .font(t.headerFont)
+        .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textTertiary)
+        .tracking(t.headerTracking)
+        .textCase(nil)
       Spacer(minLength: 0)
       trailing()
     }
-  }
-}
-
-private enum ListSectionHeaderDisplay {
-  /// Callers may still pass ALL CAPS — soften to title case for Quiet Control Room.
-  static func softened(_ text: String) -> String {
-    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty,
-          trimmed == trimmed.uppercased(with: .current),
-          trimmed.contains(where: \.isLetter)
-    else { return text }
-    return trimmed.capitalized(with: .current)
   }
 }
 

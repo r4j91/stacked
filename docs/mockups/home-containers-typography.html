@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stacked — Home em containers + escala tipográfica</title>
+<style>
+  :root {
+    /* Slate (tema atual) */
+    --bg: #18181E;
+    --surface: #212127;
+    --surface2: #2F2F36;
+    --text: #F2F2F4;
+    --text2: #9A9AA2;
+    --text3: #65656D;
+    --accent: #5FD3DC;
+    --hair: rgba(242,242,244,0.07);
+    --hair-strong: rgba(242,242,244,0.12);
+    --green: #8FD46B;
+    --purple: #B18CF5;
+    --amber: #F5A623;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #0d0d11;
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 32px 20px 96px; }
+
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .lede { color: var(--text2); font-size: 14.5px; max-width: 68ch; margin: 0 0 32px; }
+
+  h2.block-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text3); margin: 40px 0 16px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  /* ---------- diagnóstico tipográfico ---------- */
+  .type-audit {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px; margin-bottom: 12px;
+  }
+  .type-card {
+    background: #16161b; border: 1px solid var(--hair); border-radius: 14px; padding: 16px 18px;
+  }
+  .type-card .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 12px;
+  }
+  .type-row { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; }
+  .type-row + .type-row { border-top: 1px dashed rgba(242,242,244,0.06); }
+  .type-spec { margin-left: auto; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .now  { color: var(--text3); }
+  .next { color: var(--accent); }
+
+  .s-11-bold  { font-size: 11px;   font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+  .s-13-semi  { font-size: 13px;   font-weight: 600; }
+  .s-15-semi  { font-size: 15px;   font-weight: 600; }
+  .s-16-med   { font-size: 16px;   font-weight: 500; }
+  .s-17-semi  { font-size: 17px;   font-weight: 600; }
+  .s-145-med  { font-size: 14.5px; font-weight: 500; }
+
+  /* ---------- grid de telas ---------- */
+  .screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 22px; }
+
+  .opt { display: flex; flex-direction: column; }
+  .opt-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+  .badge {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+    color: var(--accent); background: rgba(95,211,220,0.13);
+  }
+  .badge.ref { color: var(--text3); background: rgba(242,242,244,0.07); }
+  .opt-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .opt-note { font-size: 12.5px; color: var(--text2); margin: 0 0 12px; min-height: 3.2em; }
+
+  .phone {
+    background: var(--bg); border-radius: 26px; padding: 16px 12px 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* header comum */
+  .top { display: flex; align-items: center; gap: 10px; padding: 0 6px 14px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(140deg,#B18CF5,#7A6B98); }
+  .top-actions { margin-left: auto; display: flex; gap: 8px; }
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--surface2);
+    display: grid; place-items: center; font-size: 14px; color: var(--text2);
+  }
+  .greeting { padding: 0 6px 14px; }
+  .greeting .hi { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+  .greeting .hi span { font-weight: 400; color: var(--text2); }
+  .greeting .sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+  /* ===== headers de seção — variações ===== */
+  .sec-old {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--text3);
+    padding: 0 10px; margin: 6px 0 6px;
+  }
+  .sec-old .edit { float: right; color: var(--accent); font-size: 11px; font-weight: 700; }
+
+  .sec-new {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 8px; margin: 18px 0 9px;
+  }
+  .sec-new .t { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .sec-new .chev { color: var(--text3); font-size: 13px; }
+  .sec-new .spacer { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .sec-new .act {
+    width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+    color: var(--text2); font-size: 16px;
+  }
+  .sec-new .edit-link { font-size: 14px; font-weight: 600; color: var(--accent); padding: 0 4px; }
+
+  .sec-mid {
+    display: flex; align-items: center; padding: 0 10px; margin: 16px 0 8px;
+  }
+  .sec-mid .t { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text3); }
+  .sec-mid .edit-link { margin-left: auto; font-size: 13.5px; font-weight: 600; color: var(--accent); }
+
+  /* ===== containers ===== */
+  .card {
+    background: var(--surface); border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--hair);
+  }
+  .card.flat { border-color: transparent; }
+
+  .row { display: flex; align-items: center; gap: 13px; padding: 12px 14px; }
+  .row .ico { width: 24px; text-align: center; font-size: 17px; flex-shrink: 0; }
+  .row .name { font-size: 16px; font-weight: 500; }
+  .row .cnt { margin-left: auto; font-size: 14.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+  .row .arrow { color: var(--text3); font-size: 13px; margin-left: 8px; }
+  .row + .row { box-shadow: inset 0 1px 0 var(--hair); }
+
+  /* tipografia ampliada dentro das rows */
+  .big .row .name { font-size: 16.5px; font-weight: 600; }
+  .big .row .cnt  { font-size: 15px; }
+  .big .row { padding: 13px 14px; }
+
+  /* cápsulas */
+  .caps { display: flex; flex-direction: column; gap: 8px; }
+  .caps .row {
+    background: var(--surface); border-radius: 14px; border: 1px solid var(--hair);
+    box-shadow: none !important;
+  }
+
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 14px;
+    padding: 13px 12px 12px; display: flex; flex-direction: column; gap: 7px;
+  }
+  .tile .ico { font-size: 18px; }
+  .tile .n { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: 13px; font-weight: 600; color: var(--text2); }
+
+  .tile.wide { flex-direction: row; align-items: center; gap: 11px; }
+  .tile.wide .n { margin-left: auto; font-size: 17px; }
+
+  .hint { font-size: 11.5px; color: var(--text3); margin: 10px 4px 0; }
+  .hint b { color: var(--text2); font-weight: 600; }
+
+  .pill-note {
+    margin-top: 10px; font-size: 12px; color: var(--text2);
+    background: rgba(95,211,220,0.07); border: 1px solid rgba(95,211,220,0.16);
+    border-radius: 10px; padding: 8px 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Home em containers + tipografia maior</h1>
+  <p class="lede">
+    Duas coisas juntas: agrupar Visão Geral e Projetos em containers (estilo Todoist)
+    e subir a tipografia que hoje fica miúda no iPhone. Cada tela abaixo combina as duas
+    de um jeito diferente — o header de seção muda junto com o container.
+  </p>
+
+  <!-- ============ AUDITORIA TIPOGRÁFICA ============ -->
+  <h2 class="block-title">Onde está pequeno hoje</h2>
+  <div class="type-audit">
+
+    <div class="type-card">
+      <div class="label">Hoje no app</div>
+      <div class="type-row"><span class="s-11-bold now">Visão Geral</span><span class="type-spec">11 · bold · caps</span></div>
+      <div class="type-row"><span class="s-11-bold now">Projetos</span><span class="type-spec">11 · bold · caps</span></div>
+      <div class="type-row"><span class="s-11-bold now" style="color:var(--accent)">Editar</span><span class="type-spec">11 · bold</span></div>
+      <div class="type-row"><span class="s-16-med">Inbox</span><span class="type-spec">16 · medium</span></div>
+      <div class="type-row"><span class="s-145-med" style="color:var(--text3)">19</span><span class="type-spec">14.5 · medium</span></div>
+    </div>
+
+    <div class="type-card">
+      <div class="label">Proposta A — título grande (Todoist)</div>
+      <div class="type-row"><span class="s-17-semi next">Visão geral</span><span class="type-spec">17 · bold</span></div>
+      <div class="type-row"><span class="s-17-semi next">Projetos</span><span class="type-spec">17 · bold</span></div>
+      <div class="type-row"><span class="s-15-semi" style="color:var(--accent)">Editar</span><span class="type-spec">15 · semibold</span></div>
+      <div class="type-row"><span class="s-17-semi">Inbox</span><span class="type-spec">16.5 · semibold</span></div>
+      <div class="type-row"><span class="s-15-semi" style="color:var(--text3)">19</span><span class="type-spec">15 · medium</span></div>
+    </div>
+
+    <div class="type-card">
+      <div class="label">Proposta B — eyebrow legível (conservadora)</div>
+      <div class="type-row"><span class="s-13-semi next" style="text-transform:uppercase;letter-spacing:.04em">Visão Geral</span><span class="type-spec">13 · bold · caps</span></div>
+      <div class="type-row"><span class="s-13-semi next" style="text-transform:uppercase;letter-spacing:.04em">Projetos</span><span class="type-spec">13 · bold · caps</span></div>
+      <div class="type-row"><span class="s-13-semi" style="color:var(--accent)">Editar</span><span class="type-spec">13.5 · semibold</span></div>
+      <div class="type-row"><span class="s-16-med">Inbox</span><span class="type-spec">16 · medium (igual)</span></div>
+      <div class="type-row"><span class="s-145-med" style="color:var(--text3)">19</span><span class="type-spec">14.5 (igual)</span></div>
+    </div>
+
+  </div>
+  <p class="hint">
+    <b>Nota:</b> hoje o salto entre eyebrow (11) e título de linha (16) é grande demais — o eyebrow
+    “some” e a Home parece só uma lista solta. Subir o eyebrow resolve a leitura mesmo sem container.
+  </p>
+
+  <!-- ============ TELAS ============ -->
+  <h2 class="block-title">Layouts</h2>
+  <div class="screens">
+
+    <!-- ATUAL -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge ref">Atual</span><h3 class="opt-title">Lista solta</h3></div>
+      <p class="opt-note">Sem container. Eyebrow 11 bold caps, linhas 16 medium, sem fundo por trás dos grupos.</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-old">VISÃO GERAL</div>
+        <div>
+          <div class="row"><span class="ico">📥</span><span class="name">Inbox</span><span class="cnt">0</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📅</span><span class="name">Hoje</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🗓</span><span class="name">Em breve</span><span class="cnt">8</span><span class="arrow">›</span></div>
+        </div>
+
+        <div class="sec-old">PROJETOS <span class="edit">Editar</span></div>
+        <div>
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- A -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge">Opção A</span><h3 class="opt-title">Container + título grande</h3></div>
+      <p class="opt-note">O Todoist puro: grupo dentro de um card arredondado, header fora dele em 17 bold com ações à direita (+ / colapsar).</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-new">
+          <span class="t">Visão geral</span>
+          <span class="spacer"><span class="act">⌄</span></span>
+        </div>
+        <div class="card big">
+          <div class="row"><span class="ico">📥</span><span class="name">Inbox</span><span class="cnt">0</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📅</span><span class="name">Hoje</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🗓</span><span class="name">Em breve</span><span class="cnt">8</span><span class="arrow">›</span></div>
+        </div>
+
+        <div class="sec-new">
+          <span class="t">Projetos</span><span class="chev">›</span>
+          <span class="spacer"><span class="act">＋</span><span class="act">⌄</span></span>
+        </div>
+        <div class="card big">
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🛠</span><span class="name" style="color:var(--text2)">Gerenciar projetos</span></div>
+        </div>
+        <div class="pill-note">“Editar” vira ícone (＋ e ⌄) como no Todoist — some o link miúdo.</div>
+      </div>
+    </article>
+
+    <!-- B -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge">Opção B</span><h3 class="opt-title">Cápsulas individuais</h3></div>
+      <p class="opt-note">Cada linha é uma cápsula própria, com respiro entre elas. Mais “Things 3”; alvo de toque bem claro.</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-mid"><span class="t">Visão Geral</span></div>
+        <div class="caps big">
+          <div class="row"><span class="ico">📥</span><span class="name">Inbox</span><span class="cnt">0</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📅</span><span class="name">Hoje</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🗓</span><span class="name">Em breve</span><span class="cnt">8</span><span class="arrow">›</span></div>
+        </div>
+
+        <div class="sec-mid"><span class="t">Projetos</span><span class="edit-link">Editar</span></div>
+        <div class="caps big">
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+        </div>
+        <div class="pill-note">Custa mais altura: cada cápsula come ~8px de gap. Lista longa rola mais.</div>
+      </div>
+    </article>
+
+    <!-- C -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge">Opção C</span><h3 class="opt-title">Tiles + container</h3></div>
+      <p class="opt-note">Visão Geral vira 3 tiles com número grande (leitura instantânea); Projetos fica em container. Mais dashboard.</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-new"><span class="t">Visão geral</span></div>
+        <div class="tiles">
+          <div class="tile"><span class="ico">📥</span><span class="n">0</span><span class="l">Inbox</span></div>
+          <div class="tile"><span class="ico">📅</span><span class="n">1</span><span class="l">Hoje</span></div>
+          <div class="tile"><span class="ico">🗓</span><span class="n">8</span><span class="l">Em breve</span></div>
+        </div>
+
+        <div class="sec-new">
+          <span class="t">Projetos</span>
+          <span class="spacer"><span class="act">＋</span><span class="act">⌄</span></span>
+        </div>
+        <div class="card big">
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+        </div>
+        <div class="pill-note">Tiles duplicam o que o hero já diz (“1 para hoje”). Ver se não fica redundante.</div>
+      </div>
+    </article>
+
+    <!-- D -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge">Opção D</span><h3 class="opt-title">Só tipografia</h3></div>
+      <p class="opt-note">Zero container. Eyebrow 13 caps, “Editar” 13.5 semibold, linhas 16.5 semibold. Mudança mais barata e reversível.</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-mid"><span class="t">Visão Geral</span></div>
+        <div class="big">
+          <div class="row"><span class="ico">📥</span><span class="name">Inbox</span><span class="cnt">0</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📅</span><span class="name">Hoje</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🗓</span><span class="name">Em breve</span><span class="cnt">8</span><span class="arrow">›</span></div>
+        </div>
+
+        <div class="sec-mid"><span class="t">Projetos</span><span class="edit-link">Editar</span></div>
+        <div class="big">
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+        </div>
+        <div class="pill-note">Mantém a densidade atual. Se quiser testar rápido, começa por aqui.</div>
+      </div>
+    </article>
+
+    <!-- E -->
+    <article class="opt">
+      <div class="opt-head"><span class="badge">Opção E</span><h3 class="opt-title">Container sem borda (quieto)</h3></div>
+      <p class="opt-note">Container com fundo mas sem contorno, divisores internos finos e header 15 semibold em caixa alta e baixa. Meio-termo entre A e D.</p>
+      <div class="phone">
+        <div class="top">
+          <div class="avatar"></div>
+          <div class="top-actions"><div class="icon-btn">🔔</div><div class="icon-btn">⚙</div></div>
+        </div>
+        <div class="greeting">
+          <div class="hi"><span>Boa noite,</span> Rodrigo.</div>
+          <div class="sub">1 para hoje · Nada atrasado</div>
+        </div>
+
+        <div class="sec-new" style="margin-bottom:7px">
+          <span class="t" style="font-size:15px">Visão geral</span>
+        </div>
+        <div class="card flat big">
+          <div class="row"><span class="ico">📥</span><span class="name">Inbox</span><span class="cnt">0</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📅</span><span class="name">Hoje</span><span class="cnt">1</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">🗓</span><span class="name">Em breve</span><span class="cnt">8</span><span class="arrow">›</span></div>
+        </div>
+
+        <div class="sec-new" style="margin-bottom:7px">
+          <span class="t" style="font-size:15px">Projetos</span>
+          <span class="spacer"><span class="edit-link">Editar</span></span>
+        </div>
+        <div class="card flat big">
+          <div class="row"><span class="ico">✏️</span><span class="name">Dev</span><span class="cnt">3</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">💵</span><span class="name">Financeiro</span><span class="cnt">19</span><span class="arrow">›</span></div>
+          <div class="row"><span class="ico">📁</span><span class="name">Rodrigo</span><span class="cnt">1</span><span class="arrow">›</span></div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <p class="hint" style="margin-top:28px">
+    <b>Ponto de atenção:</b> a Home é uma <code>List</code> com <code>Section</code>. Containers (A, C, E)
+    pedem trocar <code>listRowBackground</code> por um bloco só com cantos arredondados — mexe no
+    modo de edição/reordenar de projetos. Cápsulas (B) e tipografia (D) não mexem nessa estrutura.
+  </p>
+
+</div>
+</body>
+</html>

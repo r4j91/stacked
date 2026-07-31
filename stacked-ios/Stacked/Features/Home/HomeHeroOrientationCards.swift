@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Âncoras de orientação (A1–A3): uma âncora, sem card genérico / ilustração.
+// Âncoras de orientação: uma âncora, sem card genérico / ilustração.
 
-// MARK: - A1 Masthead
+// MARK: - Manchete
 
 struct HomeHeroMastheadCard: View {
   @Environment(ThemeManager.self) private var theme
@@ -10,6 +10,8 @@ struct HomeHeroMastheadCard: View {
   let store: HomeStore
   let metrics: HomeHeroMetrics
   let isOverdue: Bool
+  /// Some quando o hero está dentro de um card — a linha viraria um risco solto na base.
+  var showsBaseDivider: Bool = true
   var onOpenFilter: (TaskFilterKind) -> Void
 
   var body: some View {
@@ -17,12 +19,12 @@ struct HomeHeroMastheadCard: View {
     let content = VStack(alignment: .leading, spacing: 0) {
       HStack(alignment: .firstTextBaseline) {
         Text(store.formattedDateline)
-          .font(.system(size: 11, weight: .semibold))
+          .font(.system(size: metrics.metaSize, weight: .semibold))
           .tracking(0.6)
           .foregroundStyle(c.textTertiary)
         Spacer(minLength: 8)
         Text(store.weatherCompactLabel)
-          .font(.system(size: 11.5, weight: .medium))
+          .font(.system(size: metrics.weatherSize, weight: .medium))
           .foregroundStyle(c.textTertiary)
           .monospacedDigit()
       }
@@ -44,10 +46,12 @@ struct HomeHeroMastheadCard: View {
       )
       .padding(.top, 8)
 
-      Rectangle()
-        .fill(c.textPrimary.opacity(c.isDark ? 0.07 : 0.06))
-        .frame(height: 1)
-        .padding(.top, metrics.dividerTopPadding)
+      if showsBaseDivider {
+        Rectangle()
+          .fill(c.textPrimary.opacity(c.isDark ? 0.07 : 0.06))
+          .frame(height: 1)
+          .padding(.top, metrics.dividerTopPadding)
+      }
     }
     .padding(.vertical, metrics.openVerticalPadding)
 
@@ -74,181 +78,7 @@ struct HomeHeroMastheadCard: View {
   }
 }
 
-// MARK: - A2 Horizonte tonal
-
-struct HomeHeroHorizonToneCard: View {
-  @Environment(ThemeManager.self) private var theme
-
-  let store: HomeStore
-  let metrics: HomeHeroMetrics
-  let isOverdue: Bool
-  var onOpenFilter: (TaskFilterKind) -> Void
-
-  var body: some View {
-    let c = theme.colors
-    let wash = horizonWashColor(colors: c)
-
-    let content = VStack(alignment: .leading, spacing: 0) {
-      orientationGreetingInline(
-        phrase: store.greetingPhrase,
-        name: store.firstName,
-        nameSize: metrics.nameSize - 1,
-        colors: c
-      )
-
-      HStack(spacing: 6) {
-        Text(store.formattedClock)
-          .font(.system(size: 12.5, weight: .semibold))
-          .foregroundStyle(c.textSecondary)
-          .monospacedDigit()
-        metaSep(colors: c)
-        Text(store.formattedMediumDate)
-          .font(.system(size: 12.5, weight: .medium))
-          .foregroundStyle(c.textTertiary)
-          .lineLimit(1)
-        metaSep(colors: c)
-        Text(store.weatherDegreeLabel)
-          .font(.system(size: 12.5, weight: .medium))
-          .foregroundStyle(c.textTertiary)
-          .monospacedDigit()
-      }
-      .padding(.top, 6)
-
-      HomeHeroOrientationStatusLine(
-        isOverdue: isOverdue,
-        label: store.orientationStatusLabel(overdueCount: store.overdueCount),
-        fontSize: metrics.statusSize,
-        emphasizeCount: !isOverdue
-      )
-      .padding(.top, 9)
-    }
-    .padding(.vertical, metrics.openVerticalPadding + 2)
-    .padding(.horizontal, 2)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background {
-      LinearGradient(
-        colors: [
-          wash.opacity(c.isDark ? 0.09 : 0.07),
-          wash.opacity(c.isDark ? 0.03 : 0.025),
-          .clear,
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-      .padding(.horizontal, -AppSpacing.xl)
-      .padding(.top, -10)
-      .allowsHitTesting(false)
-    }
-
-    if isOverdue {
-      Button {
-        HapticService.selection()
-        onOpenFilter(.overdue)
-      } label: { content }
-        .buttonStyle(.plain)
-        .accessibilityLabel(store.orientationStatusLabel(overdueCount: store.overdueCount))
-        .accessibilityHint("Abre tarefas atrasadas")
-    } else {
-      content
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-          "\(store.greetingPhrase) \(store.firstName). \(store.formattedClock). \(store.orientationStatusLabel(overdueCount: store.overdueCount))"
-        )
-    }
-  }
-
-  private func metaSep(colors c: AppThemeColors) -> some View {
-    Text("·")
-      .font(.system(size: 12.5, weight: .medium))
-      .foregroundStyle(c.textTertiary.opacity(0.55))
-  }
-
-  private func horizonWashColor(colors c: AppThemeColors) -> Color {
-    if isOverdue { return AppColors.overdue }
-    switch store.timeOfDay {
-    case .morning:
-      return Color(red: 0.92, green: 0.72, blue: 0.38)
-    case .afternoon:
-      return c.accent
-    case .night:
-      return Color(red: 0.48, green: 0.42, blue: 0.82)
-    }
-  }
-}
-
-// MARK: - A3 Régua do dia
-
-struct HomeHeroDayRulerCard: View {
-  @Environment(ThemeManager.self) private var theme
-
-  let store: HomeStore
-  let metrics: HomeHeroMetrics
-  let isOverdue: Bool
-  var onOpenFilter: (TaskFilterKind) -> Void
-
-  var body: some View {
-    let c = theme.colors
-    let now = store.currentHour
-
-    let content = VStack(alignment: .leading, spacing: 0) {
-      orientationGreetingInline(
-        phrase: store.greetingPhrase,
-        name: store.firstName,
-        nameSize: metrics.nameSize - 2,
-        colors: c
-      )
-
-      DayRulerView(
-        currentHour: now,
-        accent: isOverdue ? AppColors.overdue : c.accent,
-        tickColor: c.textPrimary
-      )
-      .padding(.top, 12)
-      .accessibilityHidden(true)
-
-      HStack(alignment: .firstTextBaseline) {
-        Text(store.formattedClock)
-          .font(.system(size: 13, weight: .bold))
-          .foregroundStyle(c.textPrimary)
-          .monospacedDigit()
-        Spacer(minLength: 8)
-        Text("\(store.formattedMediumDate) · \(store.weatherDegreeLabel)")
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(c.textTertiary)
-          .lineLimit(1)
-          .minimumScaleFactor(0.85)
-      }
-      .padding(.top, 8)
-
-      HomeHeroOrientationStatusLine(
-        isOverdue: isOverdue,
-        label: store.orientationStatusLabel(overdueCount: store.overdueCount),
-        fontSize: metrics.statusSize,
-        emphasizeCount: !isOverdue
-      )
-      .padding(.top, 6)
-    }
-    .padding(.vertical, metrics.openVerticalPadding)
-
-    if isOverdue {
-      Button {
-        HapticService.selection()
-        onOpenFilter(.overdue)
-      } label: { content }
-        .buttonStyle(.plain)
-        .accessibilityLabel(store.orientationStatusLabel(overdueCount: store.overdueCount))
-        .accessibilityHint("Abre tarefas atrasadas")
-    } else {
-      content
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-          "\(store.greetingPhrase) \(store.firstName). \(store.formattedClock). \(store.orientationStatusLabel(overdueCount: store.overdueCount))"
-        )
-    }
-  }
-}
-
-// MARK: - A3b Trilho do dia (variante compacta)
+// MARK: - Trilho do dia
 
 struct HomeHeroDayRailCard: View {
   @Environment(ThemeManager.self) private var theme
@@ -271,6 +101,7 @@ struct HomeHeroDayRailCard: View {
         phrase: store.greetingPhrase,
         name: store.firstName,
         nameSize: metrics.nameSize - 3,
+        phraseSize: metrics.phraseSize,
         colors: c
       )
 
@@ -283,7 +114,7 @@ struct HomeHeroDayRailCard: View {
         .accessibilityHidden(true)
 
         Text(store.formattedClock)
-          .font(.system(size: 12.5, weight: .bold))
+          .font(.system(size: metrics.clockSize, weight: .bold))
           .foregroundStyle(c.textPrimary)
           .monospacedDigit()
           .fixedSize()
@@ -299,7 +130,7 @@ struct HomeHeroDayRailCard: View {
         )
         Spacer(minLength: 6)
         Text("\(store.formattedDateline) · \(store.weatherDegreeLabel)")
-          .font(.system(size: 11, weight: .medium))
+          .font(.system(size: metrics.metaSize, weight: .medium))
           .tracking(0.2)
           .foregroundStyle(c.textTertiary)
           .lineLimit(1)
@@ -373,32 +204,6 @@ private struct HomeHeroOrientationStatusLine: View {
   private func splitLeadingNumber(_ text: String) -> (number: String, rest: String)? {
     guard let match = text.range(of: #"^\d+"#, options: .regularExpression) else { return nil }
     return (String(text[match]), String(text[match.upperBound...]))
-  }
-}
-
-private struct DayRulerView: View {
-  let currentHour: Int
-  let accent: Color
-  let tickColor: Color
-
-  var body: some View {
-    HStack(alignment: .bottom, spacing: 0) {
-      ForEach(0..<24, id: \.self) { hour in
-        let isNow = hour == currentHour
-        let isPast = hour < currentHour
-        Capsule(style: .continuous)
-          .fill(tickFill(isNow: isNow, isPast: isPast))
-          .frame(width: isNow ? 2.5 : 1.5, height: isNow ? 15 : 7)
-          .frame(maxWidth: .infinity)
-      }
-    }
-    .frame(height: 16)
-  }
-
-  private func tickFill(isNow: Bool, isPast: Bool) -> Color {
-    if isNow { return accent }
-    if isPast { return tickColor.opacity(0.34) }
-    return tickColor.opacity(0.10)
   }
 }
 
@@ -484,12 +289,13 @@ private func orientationGreetingInline(
   phrase: String,
   name: String,
   nameSize: CGFloat,
+  phraseSize: CGFloat,
   colors c: AppThemeColors
 ) -> some View {
   let displayName = name.isEmpty ? "" : (name.hasSuffix(".") ? name : "\(name).")
   return HStack(alignment: .firstTextBaseline, spacing: 5) {
     Text(phrase)
-      .font(.system(size: max(13, nameSize * 0.48), weight: .medium))
+      .font(.system(size: phraseSize, weight: .medium))
       .foregroundStyle(c.textSecondary)
     if !displayName.isEmpty {
       Text(displayName)

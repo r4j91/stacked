@@ -170,6 +170,7 @@ private enum ExpandedNavMetrics {
 private struct ExpandedNavItem: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   let tab: NavTab
   let selected: Bool
   let slotWidth: CGFloat
@@ -217,11 +218,18 @@ private struct ExpandedNavItem: View {
   private func iconView(accent: Bool) -> some View {
     StackedIcons.icon(
       tab.stackedIcon,
-      size: tab.navIconSize,
+      size: tab.navIconSize + typeScaleMetrics.navIconDelta,
       color: accent ? colors.accent : colors.textSecondary
     )
-    .frame(width: ExpandedNavMetrics.iconBoxSize, height: ExpandedNavMetrics.iconBoxSize)
+    .frame(
+      width: ExpandedNavMetrics.iconBoxSize + typeScaleMetrics.navIconBoxDelta,
+      height: ExpandedNavMetrics.iconBoxSize + typeScaleMetrics.navIconBoxDelta
+    )
     .scaleEffect(bounceScale)
+  }
+
+  private var typeScaleMetrics: AppTypeScaleMetrics {
+    AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
   }
 
   private func syncLabelOpacity(animated: Bool) {

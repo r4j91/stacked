@@ -6,7 +6,12 @@ struct IslandNavBar: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @Binding var selectedTab: NavTab
+
+  private var typeScale: AppTypeScaleMetrics {
+    AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
+  }
 
   private let tabs = NavTab.allCases
 
@@ -89,12 +94,14 @@ struct IslandNavBar: View {
   }
 
   private func collapsedSummary(colors: AppThemeColors, tab: NavTab) -> some View {
-    HStack(spacing: 8) {
-      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize, color: colors.accent)
-        .frame(width: IslandNavMetrics.iconBoxSize, height: IslandNavMetrics.iconBoxSize)
+    let t = typeScale
+    let iconBox = IslandNavMetrics.iconBoxSize + t.navIconBoxDelta
+    return HStack(spacing: 8) {
+      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize + t.navIconDelta, color: colors.accent)
+        .frame(width: iconBox, height: iconBox)
 
       Text(tab.label)
-        .font(.system(size: IslandNavMetrics.collapsedLabelSize, weight: .semibold))
+        .font(.system(size: t.collapsedNavLabelSize, weight: .semibold))
         .foregroundStyle(colors.textPrimary)
         .lineLimit(1)
         .minimumScaleFactor(0.85)
@@ -209,6 +216,7 @@ private struct IslandNavGlassShell: View {
 private struct IslandNavExpandedItem: View {
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   let tab: NavTab
   let selected: Bool
   let colors: AppThemeColors
@@ -218,10 +226,12 @@ private struct IslandNavExpandedItem: View {
   var body: some View {
     let labelHeight = AppTypography.navLabelSize * 1.1
     let iconColor = selected ? colors.accent : colors.textSecondary
+    let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
+    let iconBox = IslandNavMetrics.iconBoxSize + t.navIconBoxDelta
 
-    VStack(spacing: 2) {
-      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize, color: iconColor)
-        .frame(width: IslandNavMetrics.iconBoxSize, height: IslandNavMetrics.iconBoxSize)
+    return VStack(spacing: 2) {
+      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize + t.navIconDelta, color: iconColor)
+        .frame(width: iconBox, height: iconBox)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
         .foregroundStyle(selected ? colors.accent : colors.textSecondary)

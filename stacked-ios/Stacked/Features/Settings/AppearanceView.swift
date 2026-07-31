@@ -10,6 +10,10 @@ struct AppearanceView: View {
   @AppStorage(NavBarStyleStorage.key) private var navBarStyleRaw = NavBarStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
   @AppStorage(HomeHeroStyleStorage.hiddenKey) private var homeHeroStyleHiddenRaw = ""
+  @AppStorage(HomeTopCardStorage.key) private var homeTopCardEnabled = HomeTopCardStorage.defaultEnabled
+  @AppStorage(HomeHeroFrameStorage.key) private var homeHeroFrameRaw = HomeHeroFrameStorage.defaultRawValue
+  @AppStorage(HomeSectionStyleStorage.key) private var homeSectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
+  @AppStorage(AppTypeScaleStorage.key) private var appTypeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
   @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
@@ -40,6 +44,18 @@ struct AppearanceView: View {
 
   private var homeHeroStyle: HomeHeroStyle {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
+  }
+
+  private var homeHeroFrame: HomeHeroFrame {
+    HomeHeroFrameStorage.frame(from: homeHeroFrameRaw)
+  }
+
+  private var homeSectionStyle: HomeSectionStyle {
+    HomeSectionStyleStorage.style(from: homeSectionStyleRaw)
+  }
+
+  private var appTypeScale: AppTypeScale {
+    AppTypeScaleStorage.scale(from: appTypeScaleRaw)
   }
 
   private var labelChipStyle: LabelChipStyle {
@@ -74,7 +90,7 @@ struct AppearanceView: View {
     let moreThemes = AppThemeId.allCases.filter { !recommendedThemes.contains($0) }
     let icons = AppIconId.allCases
     let navStyles = NavBarStyle.allCases
-    let heroGroups = HomeHeroStyleGroup.pickerGroups
+    let heroStyles = HomeHeroStyle.pickerStyles
     let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
     let visibleDisplayModes = showMoreDisplayModes
       ? Self.primaryDisplayModes + moreDisplayModes
@@ -177,30 +193,58 @@ struct AppearanceView: View {
         appearancePanel(
           id: .homeHero,
           title: "Topo da Home",
-          summary: homeHeroStyle.displayName,
-          footer: "Trilho, Manchete, Horizonte e Clássico. Use ⋯ para ocultar."
+          summary: homeTopCardEnabled
+            ? "\(homeHeroStyle.displayName) · \(homeHeroFrame.displayName)"
+            : "Sem card · Utilidades",
+          footer: homeTopCardEnabled
+            ? "Aberto é o formato de sempre. Seguir a Home usa o agrupamento das seções."
+            : "Sem o card, o topo vira Buscar, Relatórios, Filtros e Etiquetas, no mesmo estilo das seções."
         ) {
-          appearanceGroupHeader("Recomendados")
-          ForEach(Array(heroGroups.enumerated()), id: \.element) { groupIndex, group in
-            let styles = HomeHeroStyle.styles(in: group)
-            if !styles.isEmpty {
-              if group == .recommended {
-                Color.clear.frame(height: 2)
-              } else {
-                Text(group.displayName)
-                  .font(AppTypography.metaSmall.weight(.semibold))
-                  .foregroundStyle(c.textTertiary)
-                  .frame(maxWidth: .infinity, alignment: .leading)
-                  .padding(.horizontal, SettingsChrome.rowPaddingH)
-                  .padding(.top, groupIndex == 0 ? 8 : 14)
-                  .padding(.bottom, 2)
+          homeTopCardRow()
+
+          if homeTopCardEnabled {
+            appearanceGroupHeader("Estilo")
+            ForEach(Array(heroStyles.enumerated()), id: \.element) { index, style in
+              homeHeroStyleRow(style)
+              if index < heroStyles.count - 1 {
+                SettingsCardDivider(leadingPadding: 82)
               }
-              ForEach(Array(styles.enumerated()), id: \.element) { index, style in
-                homeHeroStyleRow(style)
-                if index < styles.count - 1 {
-                  SettingsCardDivider(leadingPadding: 82)
-                }
+            }
+
+            appearanceGroupHeader("Moldura")
+            ForEach(Array(HomeHeroFrame.allCases.enumerated()), id: \.element) { index, frame in
+              homeHeroFrameRow(frame)
+              if index < HomeHeroFrame.allCases.count - 1 {
+                SettingsCardDivider(leadingPadding: 82)
               }
+            }
+          }
+        }
+
+        appearancePanel(
+          id: .homeSections,
+          title: "Agrupamento das listas",
+          summary: homeSectionStyle.displayName,
+          footer: "Vale para Navegar e Filtros. As telas de tarefas seguem o Chrome da lista."
+        ) {
+          ForEach(Array(HomeSectionStyle.allCases.enumerated()), id: \.element) { index, style in
+            homeSectionStyleRow(style)
+            if index < HomeSectionStyle.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 82)
+            }
+          }
+        }
+
+        appearancePanel(
+          id: .typeScale,
+          title: "Tamanho dos títulos",
+          summary: appTypeScale.displayName,
+          footer: "Aplica em todos os títulos de seção do app — Navegar, Filtros, Hoje, Em breve e Busca."
+        ) {
+          ForEach(Array(AppTypeScale.allCases.enumerated()), id: \.element) { index, scale in
+            appTypeScaleRow(scale)
+            if index < AppTypeScale.allCases.count - 1 {
+              SettingsCardDivider(leadingPadding: 82)
             }
           }
         }
@@ -393,6 +437,10 @@ struct AppearanceView: View {
     hasher.combine(showMoreThemes)
     hasher.combine(showMoreDisplayModes)
     hasher.combine(homeHeroStyleHiddenRaw)
+    hasher.combine(homeTopCardEnabled)
+    hasher.combine(homeHeroFrameRaw)
+    hasher.combine(homeSectionStyleRaw)
+    hasher.combine(appTypeScaleRaw)
     hasher.combine(labelChipStyleRaw)
     hasher.combine(dueDateChipStyleRaw)
     hasher.combine(taskRowLayoutRaw)
@@ -867,6 +915,132 @@ struct AppearanceView: View {
     }
   }
 
+  private func homeHeroFrameRow(_ frame: HomeHeroFrame) -> some View {
+    let c = theme.colors
+    let isSelected = homeHeroFrame == frame
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      homeHeroFrameRaw = frame.rawValue
+    } label: {
+      HStack(spacing: 12) {
+        HomeHeroFramePreview(frame: frame, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(frame.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(frame.subtitle)
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func homeTopCardRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Card de saudação")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Desligado, o topo vira Buscar, Relatórios, Filtros e Etiquetas.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $homeTopCardEnabled, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: homeTopCardEnabled) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func homeSectionStyleRow(_ style: HomeSectionStyle) -> some View {
+    let c = theme.colors
+    let isSelected = homeSectionStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      homeSectionStyleRaw = style.rawValue
+    } label: {
+      HStack(spacing: 12) {
+        HomeSectionStylePreview(style: style, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(style.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(style.subtitle)
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func appTypeScaleRow(_ scale: AppTypeScale) -> some View {
+    let c = theme.colors
+    let isSelected = appTypeScale == scale
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      appTypeScaleRaw = scale.rawValue
+    } label: {
+      HStack(spacing: 12) {
+        AppTypeScalePreview(scale: scale, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(scale.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(scale.subtitle)
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
   private func homeHeroStyleRow(_ style: HomeHeroStyle) -> some View {
     let c = theme.colors
     let isSelected = homeHeroStyle == style
@@ -1074,6 +1248,8 @@ private enum AppearanceSectionID: String, Hashable {
   case displayMode
   case taskRowLayout
   case homeHero
+  case homeSections
+  case typeScale
   case appIcon
   case cardCustomize
   case advanced
@@ -1085,6 +1261,8 @@ private enum AppearanceSectionID: String, Hashable {
     case .displayMode: .list
     case .taskRowLayout: .list
     case .homeHero: .sun
+    case .homeSections: .grid
+    case .typeScale: .text
     case .appIcon: .checkCircle
     case .cardCustomize: .tag
     case .advanced: .productivity

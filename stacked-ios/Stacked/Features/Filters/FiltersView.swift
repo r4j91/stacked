@@ -27,6 +27,16 @@ struct FiltersView: View {
   @State private var showBuilder = false
   @State private var editingFilter: SavedFilter?
   @State private var showNewProject = false
+  @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+
+  private var sectionStyle: HomeSectionStyle {
+    HomeSectionStyleStorage.style(from: sectionStyleRaw)
+  }
+
+  private var typeScale: AppTypeScale {
+    AppTypeScaleStorage.scale(from: typeScaleRaw)
+  }
 
   var body: some View {
     NavigationStack {
@@ -160,7 +170,7 @@ struct FiltersView: View {
   }
 
   private var filtersListRowInsets: EdgeInsets {
-    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+    sectionStyle.metrics.rowInsets
   }
 
   private var dashboardView: some View {
@@ -188,33 +198,37 @@ struct FiltersView: View {
             label: "Atrasadas",
             count: store.counts.overdue,
             tint: AppColors.priorityHigh,
-            kind: .overdue
+            kind: .overdue,
+            position: .first
           )
           presetNavRow(
             icon: .navToday,
             label: "Hoje",
             count: store.counts.today,
             tint: nil,
-            kind: .today
+            kind: .today,
+            position: .middle
           )
           presetNavRow(
             icon: .navUpcoming,
             label: "Próximos 7 dias",
             count: store.counts.week,
             tint: nil,
-            kind: .week
+            kind: .week,
+            position: .middle
           )
           presetNavRow(
             icon: .check,
             label: "Concluídas hoje",
             count: store.counts.completedToday,
             tint: nil,
-            kind: .completedToday
+            kind: .completedToday,
+            position: .last
           )
         }
 
         Section {
-          ForEach(store.savedFilters) { item in
+          ForEach(Array(store.savedFilters.enumerated()), id: \.element.id) { index, item in
             Button {
               openSavedFilter(item.filter)
             } label: {
@@ -223,11 +237,18 @@ struct FiltersView: View {
             .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
             .listRowInsets(filtersListRowInsets)
             .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
+            .listRowBackground(
+              HomeSectionRowBackground(
+                style: sectionStyle,
+                position: .at(index: index, count: store.savedFilters.count),
+                colors: c
+              )
+            )
           }
         } header: {
           savedFiltersHeader
             .textCase(nil)
+            .homeSectionHeaderInsets(sectionStyle)
         }
 
         Section {
@@ -240,7 +261,7 @@ struct FiltersView: View {
             }
             .stackedListEmptyStateRow()
           } else {
-            ForEach(store.projects) { project in
+            ForEach(Array(store.projects.enumerated()), id: \.element.id) { index, project in
               Button {
                 HapticService.selection()
                 let projectId = project.id
@@ -256,12 +277,19 @@ struct FiltersView: View {
               .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
               .listRowInsets(filtersListRowInsets)
               .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
+              .listRowBackground(
+                HomeSectionRowBackground(
+                  style: sectionStyle,
+                  position: .at(index: index, count: store.projects.count),
+                  colors: c
+                )
+              )
             }
           }
         } header: {
           projectsHeader
             .textCase(nil)
+            .homeSectionHeaderInsets(sectionStyle)
         }
       }
 
@@ -289,39 +317,43 @@ struct FiltersView: View {
     label: String,
     count: Int,
     tint: Color?,
-    kind: TaskFilterKind
+    kind: TaskFilterKind,
+    position: HomeSectionRowPosition
   ) -> some View {
     let c = theme.colors
+    let t = typeScale.metrics
     let iconColor = tint ?? c.textSecondary
     return Button {
       openPresetFilter(kind)
     } label: {
-      HStack(spacing: AppSpacing.md + 2) {
+      HStack(spacing: HomeSectionRowLayout.iconSpacing) {
         StackedIcons.image(icon)
           .font(.system(size: 20))
           .foregroundStyle(iconColor)
-          .frame(width: 28)
+          .frame(width: HomeSectionRowLayout.iconWidth)
         Text(label)
-          .font(AppTypography.navRowTitle)
+          .font(t.rowTitleFont)
           .foregroundStyle(c.textPrimary)
         Spacer()
         Text("\(count)")
-          .font(AppTypography.navRowCount)
+          .font(t.rowCountFont)
           .foregroundStyle(tint ?? c.textTertiary)
         DisclosureChevron(color: c.textTertiary.opacity(0.7))
       }
-      .padding(.vertical, AppSpacing.sm + 2)
+      .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     }
     .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
     .listRowInsets(filtersListRowInsets)
     .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
+    .listRowBackground(
+      HomeSectionRowBackground(style: sectionStyle, position: position, colors: c)
+    )
   }
 
   private var savedFiltersHeader: some View {
     let c = theme.colors
     return VStack(alignment: .leading, spacing: 6) {
-      ListSectionHeaderWithTrailing(text: "Meus filtros") {
+      HomeSectionHeader(text: "Meus filtros", style: sectionStyle, scale: typeScale) {
         Button {
           HapticService.selection()
           editingFilter = nil
@@ -346,16 +378,17 @@ struct FiltersView: View {
 
   private func savedFilterRow(_ item: SavedFilterWithCount) -> some View {
     let c = theme.colors
+    let t = typeScale.metrics
     let tint = AppColors.parseHex(item.filter.colorHex, fallback: c.accent)
-    return HStack(spacing: AppSpacing.md + 2) {
+    return HStack(spacing: HomeSectionRowLayout.iconSpacing) {
       StackedIcons.image(.navFilters)
         .font(.system(size: 20))
         .foregroundStyle(tint)
-        .frame(width: 28)
+        .frame(width: HomeSectionRowLayout.iconWidth)
 
       VStack(alignment: .leading, spacing: 2) {
         Text(item.filter.name)
-          .font(AppTypography.navRowTitle)
+          .font(t.rowTitleFont)
           .foregroundStyle(c.textPrimary)
           .lineLimit(1)
         Text(FilterCriteriaSummary.text(item.filter.criteria, labels: store.pickerLabels, projects: store.pickerProjects))
@@ -365,18 +398,18 @@ struct FiltersView: View {
       }
       Spacer(minLength: 8)
       Text("\(item.pendingCount)")
-        .font(AppTypography.navRowCount)
+        .font(t.rowCountFont)
         .foregroundStyle(c.textTertiary)
       DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
-    .padding(.vertical, AppSpacing.sm + 2)
+    .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     .contentShape(Rectangle())
   }
 
   private var projectsHeader: some View {
     let c = theme.colors
     return VStack(alignment: .leading, spacing: 6) {
-      ListSectionHeader(text: "Projetos")
+      HomeSectionHeader(text: "Projetos", style: sectionStyle, scale: typeScale)
 
       if store.projects.isEmpty {
         Text("Crie projetos na aba Navegar para acompanhar o progresso aqui.")
@@ -402,19 +435,20 @@ struct FiltersView: View {
 
   private func projectRow(_ project: ProjectTaskStats) -> some View {
     let c = theme.colors
+    let t = typeScale.metrics
     let color = AppColors.parseHex(project.colorHex, fallback: c.folderTint)
     let done = project.total - project.pending
     let progress = project.total > 0 ? Double(done) / Double(project.total) : 0
 
-    return HStack(spacing: AppSpacing.md + 2) {
+    return HStack(spacing: HomeSectionRowLayout.iconSpacing) {
       StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
         .font(.system(size: 20))
         .foregroundStyle(color)
-        .frame(width: 28)
+        .frame(width: HomeSectionRowLayout.iconWidth)
 
       VStack(alignment: .leading, spacing: 5) {
         Text(project.name)
-          .font(AppTypography.navRowTitle)
+          .font(t.rowTitleFont)
           .foregroundStyle(c.textPrimary)
           .lineLimit(1)
 
@@ -431,12 +465,12 @@ struct FiltersView: View {
       Spacer(minLength: 8)
 
       Text("\(project.pending)")
-        .font(AppTypography.navRowCount)
+        .font(t.rowCountFont)
         .foregroundStyle(project.pending > 0 ? c.textSecondary : c.textTertiary)
 
       DisclosureChevron(color: c.textTertiary.opacity(0.7))
     }
-    .padding(.vertical, AppSpacing.sm + 2)
+    .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     .contentShape(Rectangle())
   }
 

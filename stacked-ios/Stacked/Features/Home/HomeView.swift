@@ -14,9 +14,12 @@ struct HomeView: View {
   @State private var showSettings = false
   @State private var showProductivity = false
   @State private var showNotifications = false
+  @State private var showSearch = false
+  @State private var showLabels = false
   @State private var projectOptions: ProjectRoute?
   @State private var projectsEditMode: EditMode = .inactive
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
+  @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
 
   private var homeHeroStyle: HomeHeroStyle {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
@@ -27,12 +30,21 @@ struct HomeView: View {
 
     NavigationStack {
       List {
-        HomeHeroSection(
-          style: homeHeroStyle,
-          store: store,
-          onOpenFilter: onOpenFilter,
-          onRetry: { _Concurrency.Task { await store.load() } }
-        )
+        if topCardEnabled {
+          HomeHeroSection(
+            style: homeHeroStyle,
+            store: store,
+            onOpenFilter: onOpenFilter,
+            onRetry: { _Concurrency.Task { await store.load() } }
+          )
+        } else {
+          HomeUtilitySection(
+            onOpenSearch: { showSearch = true },
+            onOpenReports: { showProductivity = true },
+            onOpenFilters: { onNavigateToTab(.filters) },
+            onOpenLabels: { showLabels = true }
+          )
+        }
         HomeOverviewSection(onNavigateToTab: onNavigateToTab)
         HomeProjectsSection(
           selectedProject: $selectedProject,
@@ -89,6 +101,9 @@ struct HomeView: View {
         )
         .environment(ThemeManager.shared)
       }
+      .navigationDestination(isPresented: $showLabels) {
+        LabelsManagementView().environment(ThemeManager.shared)
+      }
     }
     .toolbarBackground(.hidden, for: .navigationBar)
     .background(c.background.ignoresSafeArea(.all))
@@ -103,6 +118,9 @@ struct HomeView: View {
       ProductivityView().environment(ThemeManager.shared)
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+    }
+    .sheet(isPresented: $showSearch) {
+      SearchView().environment(ThemeManager.shared)
     }
     .sheet(isPresented: $showNotifications) {
       NotificationsPreviewSheet().environment(ThemeManager.shared)
@@ -150,37 +168,68 @@ private struct HomeOverviewSection: View {
   @Environment(ThemeManager.self) private var theme
   @State private var store = HomeStore.shared
   var onNavigateToTab: (NavTab) -> Void
+  @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
 
-  private var homeListRowInsets: EdgeInsets {
-    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+  private var sectionStyle: HomeSectionStyle {
+    HomeSectionStyleStorage.style(from: sectionStyleRaw)
+  }
+
+  private var typeScale: AppTypeScale {
+    AppTypeScaleStorage.scale(from: typeScaleRaw)
+  }
+
+  private struct OverviewEntry {
+    let icon: StackedIconKey
+    let label: String
+    let count: Int
+    let tab: NavTab
+  }
+
+  private var entries: [OverviewEntry] {
+    [
+      OverviewEntry(icon: .navInbox, label: "Inbox", count: store.inboxCount, tab: .inbox),
+      OverviewEntry(icon: .navToday, label: "Hoje", count: store.todayPending, tab: .today),
+      OverviewEntry(icon: .navUpcoming, label: "Em breve", count: store.upcomingCount, tab: .upcoming),
+    ]
   }
 
   var body: some View {
+    let rows = entries
+
     Section {
-      navRow(icon: .navInbox, label: "Inbox", count: store.inboxCount, tab: .inbox)
-      navRow(icon: .navToday, label: "Hoje", count: store.todayPending, tab: .today)
-      navRow(icon: .navUpcoming, label: "Em breve", count: store.upcomingCount, tab: .upcoming)
+      ForEach(Array(rows.enumerated()), id: \.element.label) { index, entry in
+        navRow(entry, position: .at(index: index, count: rows.count))
+      }
     } header: {
-      ListSectionHeader(text: "VISÃO GERAL")
+      HomeSectionHeader(text: "VISÃO GERAL", style: sectionStyle, scale: typeScale)
+        .homeSectionHeaderInsets(sectionStyle)
     }
   }
 
-  private func navRow(icon: StackedIconKey, label: String, count: Int, tab: NavTab) -> some View {
+  private func navRow(_ entry: OverviewEntry, position: HomeSectionRowPosition) -> some View {
     let c = theme.colors
-    return Button { onNavigateToTab(tab) } label: {
-      HStack(spacing: AppSpacing.md + 2) {
-        StackedIcons.image(icon).font(.system(size: 20)).foregroundStyle(c.textSecondary).frame(width: 28)
-        Text(label).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
+    let t = typeScale.metrics
+    let m = sectionStyle.metrics
+    return Button { onNavigateToTab(entry.tab) } label: {
+      HStack(spacing: HomeSectionRowLayout.iconSpacing) {
+        StackedIcons.image(entry.icon)
+          .font(.system(size: 20))
+          .foregroundStyle(c.textSecondary)
+          .frame(width: HomeSectionRowLayout.iconWidth)
+        Text(entry.label).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
         Spacer()
-        Text("\(count)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
+        Text("\(entry.count)").font(t.rowCountFont).foregroundStyle(c.textTertiary)
         DisclosureChevron(color: c.textTertiary.opacity(0.7))
       }
-      .padding(.vertical, AppSpacing.sm + 2)
+      .padding(.vertical, m.rowPaddingV)
     }
     .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
-    .listRowInsets(homeListRowInsets)
+    .listRowInsets(m.rowInsets)
     .listRowSeparator(.hidden)
-    .listRowBackground(Color.clear)
+    .listRowBackground(
+      HomeSectionRowBackground(style: sectionStyle, position: position, colors: c)
+    )
   }
 }
 
@@ -193,14 +242,21 @@ private struct HomeProjectsSection: View {
   @Binding var showNewProject: Bool
   @Binding var projectOptions: ProjectRoute?
   @Binding var projectsEditMode: EditMode
+  @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
 
-  private var homeListRowInsets: EdgeInsets {
-    EdgeInsets(top: AppSpacing.xs, leading: AppSpacing.xl, bottom: AppSpacing.xs, trailing: AppSpacing.xl)
+  private var sectionStyle: HomeSectionStyle {
+    HomeSectionStyleStorage.style(from: sectionStyleRaw)
+  }
+
+  private var typeScale: AppTypeScale {
+    AppTypeScaleStorage.scale(from: typeScaleRaw)
   }
 
   var body: some View {
     let c = theme.colors
     let editing = projectsEditMode == .active
+    let m = sectionStyle.metrics
 
     Section {
       if store.projects.isEmpty {
@@ -212,7 +268,7 @@ private struct HomeProjectsSection: View {
         }
         .stackedListEmptyStateRow()
       } else {
-        ForEach(store.projects) { project in
+        ForEach(Array(store.projects.enumerated()), id: \.element.id) { index, project in
           Group {
             if editing {
               projectRow(project, showChevron: false)
@@ -236,41 +292,51 @@ private struct HomeProjectsSection: View {
               }
             }
           }
-          .listRowInsets(homeListRowInsets)
+          .listRowInsets(m.rowInsets)
           .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
+          .listRowBackground(
+            HomeSectionRowBackground(
+              style: sectionStyle,
+              position: .at(index: index, count: store.projects.count),
+              colors: c
+            )
+          )
         }
         .onMove(perform: store.reorderProjects)
       }
     } header: {
-      ListSectionHeaderWithTrailing(text: "PROJETOS") {
+      HomeSectionHeader(text: "PROJETOS", style: sectionStyle, scale: typeScale) {
         if store.projects.count >= 2 {
           Button(editing ? "Concluir" : "Editar") {
             HapticService.selection()
             projectsEditMode = editing ? .inactive : .active
           }
-          .font(AppTypography.sectionLabel)
+          .font(typeScale.metrics.actionFont)
           .foregroundStyle(c.accent)
           .textCase(nil)
           .buttonStyle(.plain)
         }
       }
+      .homeSectionHeaderInsets(sectionStyle)
     }
   }
 
   private func projectRow(_ project: HomeProject, showChevron: Bool = true) -> some View {
     let c = theme.colors
     let color = AppColors.parseHex(project.colorHex, fallback: theme.colors.folderTint)
-    return HStack(spacing: AppSpacing.md + 2) {
+    let t = typeScale.metrics
+    return HStack(spacing: HomeSectionRowLayout.iconSpacing) {
       StackedIcons.image(ProjectIcons.asset(for: project.iconKey))
-        .font(.system(size: 20)).foregroundStyle(color).frame(width: 28)
-      Text(project.name).font(AppTypography.navRowTitle).foregroundStyle(c.textPrimary)
+        .font(.system(size: 20))
+        .foregroundStyle(color)
+        .frame(width: HomeSectionRowLayout.iconWidth)
+      Text(project.name).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
       Spacer()
-      Text("\(project.taskCount)").font(AppTypography.navRowCount).foregroundStyle(c.textTertiary)
+      Text("\(project.taskCount)").font(t.rowCountFont).foregroundStyle(c.textTertiary)
       if showChevron {
         DisclosureChevron(color: c.textTertiary.opacity(0.7))
       }
     }
-    .padding(.vertical, AppSpacing.sm + 2)
+    .padding(.vertical, sectionStyle.metrics.rowPaddingV)
   }
 }

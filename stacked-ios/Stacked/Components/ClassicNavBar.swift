@@ -189,6 +189,7 @@ private struct ClassicNavPillItem: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(MobileChromeController.self) private var chrome
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   let tab: NavTab
   let selected: Bool
 
@@ -200,10 +201,12 @@ private struct ClassicNavPillItem: View {
     let c = theme.colors
     let labelHeight = ClassicNavPillMetrics.labelSize * ClassicNavPillMetrics.labelLineHeight
     let iconColor = selected ? c.accent : c.textSecondary
+    let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
+    let iconBox = ClassicNavPillMetrics.iconBoxSize + t.navIconBoxDelta
 
-    VStack(spacing: 2) {
-      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize, color: iconColor)
-        .frame(width: ClassicNavPillMetrics.iconBoxSize, height: ClassicNavPillMetrics.iconBoxSize)
+    return VStack(spacing: 2) {
+      StackedIcons.icon(tab.stackedIcon, size: tab.navIconSize + t.navIconDelta, color: iconColor)
+        .frame(width: iconBox, height: iconBox)
         .scaleEffect(bounceScale)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
