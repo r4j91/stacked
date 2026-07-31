@@ -49,19 +49,43 @@ private struct HomeHeaderLeading: View {
   @Environment(ThemeManager.self) private var theme
   @State private var store = HomeStore.shared
   @Binding var showProductivity: Bool
+  @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
+  @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+
+  /// Sem o card de saudação o nome não aparece em lugar nenhum da Home — a pill assume ele.
+  private var pillName: String {
+    guard !topCardEnabled else { return "" }
+    let name = store.firstName
+    guard name.count > 14 else { return name }
+    return String(name.prefix(13)) + "…"
+  }
 
   var body: some View {
     let c = theme.colors
+    let name = pillName
     Button {
       showProductivity = true
     } label: {
       LiquidGlass.headerPill(navBarColor: c.navBar, textPrimary: c.textPrimary) {
-        UserAvatarView(
-          url: store.avatarURL,
-          initials: store.avatarInitials,
-          size: AppLayout.headerAvatarSize
-        )
-        .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
+        HStack(spacing: 6) {
+          UserAvatarView(
+            url: store.avatarURL,
+            initials: store.avatarInitials,
+            size: AppLayout.headerAvatarSize
+          )
+          .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
+
+          if !name.isEmpty {
+            Text(name)
+              .font(AppTypeScaleStorage.scale(from: typeScaleRaw).metrics.rowTitleFont)
+              .foregroundStyle(c.textPrimary)
+              .lineLimit(1)
+              // A toolbar propõe largura apertada e comeria o nome inteiro;
+              // o corte em 14 caracteres acima já garante que a pill não estoure.
+              .fixedSize(horizontal: true, vertical: false)
+              .padding(.trailing, 16)
+          }
+        }
       }
       .modifier(HomeHeaderQuietBorder())
     }

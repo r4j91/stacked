@@ -39,15 +39,13 @@ struct HomeUtilitySection: View {
     let rows = entries
 
     Section {
-      Color.clear
-        .frame(height: 8)
-        .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-
       ForEach(Array(rows.enumerated()), id: \.element.label) { index, entry in
         utilityRow(entry, position: .at(index: index, count: rows.count))
       }
+    } header: {
+      HomeSectionHeader(text: "ATALHOS", style: sectionStyle, scale: typeScale)
+        .padding(.top, 8)
+        .homeSectionHeaderInsets(sectionStyle)
     }
   }
 

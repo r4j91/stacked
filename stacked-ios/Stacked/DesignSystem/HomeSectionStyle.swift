@@ -61,22 +61,22 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
       )
     case .capsule:
       return HomeSectionMetrics(
-        contentInsetH: 26,
-        containerInsetH: 14,
+        contentInsetH: 30,
+        containerInsetH: 18,
         rowSpacingV: 0,
         rowPaddingV: 11,
-        cornerRadius: 14,
+        cornerRadius: 18,
         capsuleGapV: 3,
         headerTopPadding: 6,
         headerBottomPadding: 4
       )
     case .container, .quiet:
       return HomeSectionMetrics(
-        contentInsetH: 26,
-        containerInsetH: 14,
+        contentInsetH: 30,
+        containerInsetH: 18,
         rowSpacingV: 0,
         rowPaddingV: 11,
-        cornerRadius: 14,
+        cornerRadius: 18,
         capsuleGapV: 0,
         headerTopPadding: 6,
         headerBottomPadding: 4

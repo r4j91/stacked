@@ -28,18 +28,20 @@ struct HomeSectionRowBackground: View {
         .padding(.vertical, m.capsuleGapV)
     case .container, .quiet:
       ZStack(alignment: .bottom) {
-        UnevenRoundedRectangle(
-          topLeadingRadius: position.isFirst ? m.cornerRadius : 0,
-          bottomLeadingRadius: position.isLast ? m.cornerRadius : 0,
-          bottomTrailingRadius: position.isLast ? m.cornerRadius : 0,
-          topTrailingRadius: position.isFirst ? m.cornerRadius : 0,
-          style: .continuous
-        )
-        .fill(c.surface)
+        containerShape(position: position, radius: m.cornerRadius)
+          .fill(c.surface)
 
         if style.drawsBorder {
-          HomeContainerBorder(position: position, radius: m.cornerRadius)
-            .stroke(hairline(c), lineWidth: 1)
+          // Mesma forma do fill, esticada além da célula nas emendas e recortada:
+          // o contorno bate exato com a curva e nenhuma costura horizontal aparece.
+          Color.clear
+            .overlay {
+              containerShape(position: position, radius: m.cornerRadius)
+                .strokeBorder(hairline(c), lineWidth: 1)
+                .padding(.top, position.isFirst ? 0 : -2)
+                .padding(.bottom, position.isLast ? 0 : -2)
+            }
+            .clipped()
         }
 
         if style.showsRowDividers, !position.isLast {
@@ -53,6 +55,19 @@ struct HomeSectionRowBackground: View {
     }
   }
 
+  private func containerShape(
+    position: HomeSectionRowPosition,
+    radius: CGFloat
+  ) -> UnevenRoundedRectangle {
+    UnevenRoundedRectangle(
+      topLeadingRadius: position.isFirst ? radius : 0,
+      bottomLeadingRadius: position.isLast ? radius : 0,
+      bottomTrailingRadius: position.isLast ? radius : 0,
+      topTrailingRadius: position.isFirst ? radius : 0,
+      style: .continuous
+    )
+  }
+
   private func hairline(_ c: AppThemeColors) -> Color {
     (c.isDark ? Color.white : Color.black).opacity(c.isDark ? 0.08 : 0.06)
   }
@@ -60,53 +75,6 @@ struct HomeSectionRowBackground: View {
   /// Mesma tinta do divisor entre subtarefas no Halo — `textPrimary` bem fraco.
   private func rowDivider(_ c: AppThemeColors) -> Color {
     c.textPrimary.opacity(TaskExpandDividerStyle.cardLightStrokeAlpha)
-  }
-}
-
-/// Contorno contínuo de um container montado a partir de várias linhas da `List`.
-/// Linhas do meio só desenham as laterais — sem costura horizontal nas emendas.
-struct HomeContainerBorder: Shape {
-  let position: HomeSectionRowPosition
-  let radius: CGFloat
-
-  func path(in rect: CGRect) -> Path {
-    var path = Path()
-    let r = radius
-    let isFirst = position.isFirst
-    let isLast = position.isLast
-
-    path.move(to: CGPoint(x: rect.minX, y: isFirst ? rect.minY + r : rect.minY))
-    path.addLine(to: CGPoint(x: rect.minX, y: isLast ? rect.maxY - r : rect.maxY))
-
-    if isLast {
-      path.addQuadCurve(
-        to: CGPoint(x: rect.minX + r, y: rect.maxY),
-        control: CGPoint(x: rect.minX, y: rect.maxY)
-      )
-      path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.maxY))
-      path.addQuadCurve(
-        to: CGPoint(x: rect.maxX, y: rect.maxY - r),
-        control: CGPoint(x: rect.maxX, y: rect.maxY)
-      )
-    } else {
-      path.move(to: CGPoint(x: rect.maxX, y: rect.maxY))
-    }
-
-    path.addLine(to: CGPoint(x: rect.maxX, y: isFirst ? rect.minY + r : rect.minY))
-
-    if isFirst {
-      path.addQuadCurve(
-        to: CGPoint(x: rect.maxX - r, y: rect.minY),
-        control: CGPoint(x: rect.maxX, y: rect.minY)
-      )
-      path.addLine(to: CGPoint(x: rect.minX + r, y: rect.minY))
-      path.addQuadCurve(
-        to: CGPoint(x: rect.minX, y: rect.minY + r),
-        control: CGPoint(x: rect.minX, y: rect.minY)
-      )
-    }
-
-    return path
   }
 }
 
