@@ -194,15 +194,14 @@ final class SearchStore {
   }
 
   func postpone(_ task: Task) async {
-    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
     let snapshot = task
     let index = allTasks.firstIndex(where: { $0.id == task.id })
-    let iso = TaskMapper.postponedDateISO(for: task)
-    try? await TaskRepository.shared.updateTaskDate(id: task.id, isoDate: iso)
+    let plan = TaskMapper.postponePlan(for: task)
+    try? await TaskRepository.shared.applyPostpone(id: task.id, plan: plan)
     allTasks.removeAll { $0.id == task.id }
     rebuildSearchIndex()
     regroupResults()
-    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+    TaskActionUndo.presentPostponed(taskId: task.id, plan: plan) { [self] in
       if let index {
         allTasks.insert(snapshot, at: min(index, allTasks.count))
       } else {

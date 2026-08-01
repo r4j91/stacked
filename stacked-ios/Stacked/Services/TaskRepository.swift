@@ -197,8 +197,34 @@ final class TaskRepository {
     return row.id
   }
 
-  func updateTaskDate(id: String, isoDate: String) async throws {
-    try await updateTaskDueDate(id: id, isoDate: isoDate)
+  /// Aplica o "Adiar" no campo que o plano escolheu — data de vencimento ou prazo.
+  func applyPostpone(id: String, plan: TaskPostponePlan) async throws {
+    switch plan.field {
+    case .dueDate:
+      try await updateTaskDueDate(id: id, isoDate: plan.nextISO)
+    case .deadline:
+      try await updateTaskDeadline(id: id, isoDate: plan.nextISO)
+    }
+  }
+
+  /// Atualiza ou limpa `deadline` (`nil` = sem prazo).
+  func updateTaskDeadline(id: String, isoDate: String?) async throws {
+    if let isoDate {
+      try await client
+        .from("tasks")
+        .update(["deadline": isoDate])
+        .eq("id", value: id)
+        .execute()
+    } else {
+      try await client
+        .from("tasks")
+        .update(["deadline": Optional<String>.none])
+        .eq("id", value: id)
+        .execute()
+    }
+    if let task = try await fetchTaskById(id) {
+      await NotificationService.shared.syncTaskNotification(task: task)
+    }
   }
 
   /// Atualiza ou limpa `data_vencimento` (`nil` = sem data).

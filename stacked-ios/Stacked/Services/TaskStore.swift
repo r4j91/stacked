@@ -410,14 +410,13 @@ final class TaskStore {
   }
 
   func postponeToday(_ task: Task) async throws {
-    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
     let snapshot = task
     let index = todayPending.firstIndex(where: { $0.id == task.id })
-    let iso = TaskMapper.postponedDateISO(for: task)
-    try await repo.updateTaskDate(id: task.id, isoDate: iso)
+    let plan = TaskMapper.postponePlan(for: task)
+    try await repo.applyPostpone(id: task.id, plan: plan)
     todayPending.removeAll { $0.id == task.id }
     rebuildTodayDerived()
-    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+    TaskActionUndo.presentPostponed(taskId: task.id, plan: plan) { [self] in
       if let index {
         todayPending.insert(snapshot, at: min(index, todayPending.count))
       } else {
@@ -430,13 +429,12 @@ final class TaskStore {
   }
 
   func postponeInbox(_ task: Task) async throws {
-    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
     let snapshot = task
     let index = inboxPending.firstIndex(where: { $0.id == task.id })
-    let iso = TaskMapper.tomorrowISO()
-    try await repo.updateTaskDate(id: task.id, isoDate: iso)
+    let plan = TaskMapper.postponePlan(for: task)
+    try await repo.applyPostpone(id: task.id, plan: plan)
     inboxPending.removeAll { $0.id == task.id }
-    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+    TaskActionUndo.presentPostponed(taskId: task.id, plan: plan) { [self] in
       if let index {
         inboxPending.insert(snapshot, at: min(index, inboxPending.count))
       } else {

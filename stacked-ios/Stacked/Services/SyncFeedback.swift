@@ -198,13 +198,19 @@ enum TaskActionUndo {
 
   static func presentPostponed(
     taskId: String,
-    previousDueISO: String?,
+    plan: TaskPostponePlan,
     restore: @escaping () -> Void
   ) {
     SyncFeedback.shared.showUndo(message: "Tarefa adiada") {
       restore()
       _Concurrency.Task {
-        try? await TaskRepository.shared.updateTaskDueDate(id: taskId, isoDate: previousDueISO)
+        let repo = TaskRepository.shared
+        switch plan.field {
+        case .dueDate:
+          try? await repo.updateTaskDueDate(id: taskId, isoDate: plan.previousISO)
+        case .deadline:
+          try? await repo.updateTaskDeadline(id: taskId, isoDate: plan.previousISO)
+        }
         GlobalDataRefresh.afterTaskMutation()
       }
     }

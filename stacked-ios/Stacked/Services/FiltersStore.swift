@@ -789,11 +789,10 @@ final class FiltersStore {
   }
 
   func postpone(_ task: Task) async {
-    let previousDueISO = task.dueDate.map { TaskMapper.dateString($0) }
     let snapshot = task
-    let iso = TaskMapper.postponedDateISO(for: task)
-    try? await taskRepo.updateTaskDate(id: task.id, isoDate: iso)
-    TaskActionUndo.presentPostponed(taskId: task.id, previousDueISO: previousDueISO) { [self] in
+    let plan = TaskMapper.postponePlan(for: task)
+    try? await taskRepo.applyPostpone(id: task.id, plan: plan)
+    TaskActionUndo.presentPostponed(taskId: task.id, plan: plan) { [self] in
       _Concurrency.Task {
         switch self.mode {
         case .presetFilter(let kind):

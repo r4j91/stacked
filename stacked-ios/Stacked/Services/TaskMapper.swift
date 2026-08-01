@@ -252,17 +252,32 @@ enum TaskMapper {
     return dateString(tomorrow)
   }
 
-  static func postponedDateISO(for task: Task, now: Date = Date()) -> String {
+  /// Vencida ou de hoje vai para amanhã; futura anda um dia.
+  static func postponedDateISO(from date: Date?, now: Date = Date()) -> String {
+    guard let date else { return tomorrowISO(from: now) }
     let today = Calendar.current.startOfDay(for: now)
-    guard let current = task.dueDate else {
-      return tomorrowISO(from: now)
+    let start = Calendar.current.startOfDay(for: date)
+    if start <= today { return tomorrowISO(from: now) }
+    return dateString(Calendar.current.date(byAdding: .day, value: 1, to: start)!)
+  }
+
+  /// Decide qual campo o "Adiar" empurra. Tarefa que só tem prazo move o prazo:
+  /// carimbar uma data de vencimento nela criaria um agendamento que ninguém
+  /// pediu. Com data e prazo juntos, adiar mexe na data de trabalho e deixa o
+  /// prazo de pé, que é o ponto de ter um prazo.
+  static func postponePlan(for task: Task, now: Date = Date()) -> TaskPostponePlan {
+    if task.dueDate == nil, let deadline = task.deadline {
+      return TaskPostponePlan(
+        field: .deadline,
+        previousISO: dateString(deadline),
+        nextISO: postponedDateISO(from: deadline, now: now)
+      )
     }
-    let due = Calendar.current.startOfDay(for: current)
-    if due <= today {
-      return tomorrowISO(from: now)
-    }
-    let next = Calendar.current.date(byAdding: .day, value: 1, to: due)!
-    return dateString(next)
+    return TaskPostponePlan(
+      field: .dueDate,
+      previousISO: task.dueDate.map { dateString($0) },
+      nextISO: postponedDateISO(from: task.dueDate, now: now)
+    )
   }
 
   static func startOfDay(_ date: Date) -> Date {
@@ -552,4 +567,18 @@ enum TaskMapper {
       return a.order < b.order
     }
   }
+}
+
+/// Campo de data que o "Adiar" empurra.
+enum TaskPostponeField {
+  case dueDate
+  case deadline
+}
+
+/// Adiamento resolvido: qual campo muda, o valor novo e o valor antigo para o
+/// desfazer devolver exatamente o que estava lá.
+struct TaskPostponePlan {
+  let field: TaskPostponeField
+  let previousISO: String?
+  let nextISO: String
 }
