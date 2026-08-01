@@ -741,7 +741,9 @@ struct ProjectDetailView: View {
         .taskCompleteRemovalTransition()
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
+        // Opaco de propósito: ao erguer a linha para arrastar, o UIKit pinta o
+        // fundo padrão do sistema (preto no tema escuro) atrás da célula.
+        .listRowBackground(theme.colors.background)
     } else {
       projectTaskRowBody(task)
         .id(task.id)

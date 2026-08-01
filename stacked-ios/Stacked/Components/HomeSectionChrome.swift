@@ -9,6 +9,11 @@ struct HomeSectionRowBackground: View {
   /// Explícito: `listRowBackground` é hospedado pela célula da `List` e não
   /// herda o `ThemeManager` de forma confiável.
   let colors: AppThemeColors
+  /// Modo reordenar. A alça de arrastar do sistema é desenhada sobre a célula
+  /// inteira, ignorando `listRowInsets`, então o card recua para não ficar por
+  /// baixo dela. A célula também ganha fundo opaco: ao erguer a linha o UIKit
+  /// pinta o fundo padrão do sistema (preto no tema escuro) atrás dela.
+  var editing = false
 
   var body: some View {
     let c = colors
@@ -16,7 +21,7 @@ struct HomeSectionRowBackground: View {
 
     switch style {
     case .classic:
-      Color.clear
+      editing ? c.background : Color.clear
     case .capsule:
       RoundedRectangle(cornerRadius: m.cornerRadius, style: .continuous)
         .fill(c.surface)
@@ -24,8 +29,10 @@ struct HomeSectionRowBackground: View {
           RoundedRectangle(cornerRadius: m.cornerRadius, style: .continuous)
             .strokeBorder(hairline(c), lineWidth: 1)
         }
-        .padding(.horizontal, m.containerInsetH)
+        .padding(.leading, m.containerInsetH)
+        .padding(.trailing, m.containerInsetH + reorderInset)
         .padding(.vertical, m.capsuleGapV)
+        .background(editing ? c.background : Color.clear)
     case .container, .quiet:
       ZStack(alignment: .bottom) {
         containerShape(position: position, radius: m.cornerRadius)
@@ -51,8 +58,14 @@ struct HomeSectionRowBackground: View {
             .padding(.leading, m.dividerLeadingInset)
         }
       }
-      .padding(.horizontal, m.containerInsetH)
+      .padding(.leading, m.containerInsetH)
+      .padding(.trailing, m.containerInsetH + reorderInset)
+      .background(editing ? c.background : Color.clear)
     }
+  }
+
+  private var reorderInset: CGFloat {
+    editing ? HomeSectionRowLayout.reorderHandleZone : 0
   }
 
   private func containerShape(

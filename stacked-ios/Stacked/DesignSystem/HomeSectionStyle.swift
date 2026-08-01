@@ -122,6 +122,10 @@ struct HomeSectionMetrics {
 enum HomeSectionRowLayout {
   static let iconWidth: CGFloat = 28
   static let iconSpacing: CGFloat = AppSpacing.md + 2
+  /// Faixa que a alça de arrastar do sistema ocupa na borda direita da célula
+  /// em modo de edição. Ela é desenhada sobre a célula inteira, ignorando os
+  /// insets da linha, então o card recua isso para não passar por baixo dela.
+  static let reorderHandleZone: CGFloat = 28
 }
 
 /// Posição da linha dentro do container — define quais cantos arredondam.

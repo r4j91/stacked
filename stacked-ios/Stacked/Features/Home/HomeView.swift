@@ -416,7 +416,8 @@ private struct HomeProjectsSection: View {
             HomeSectionRowBackground(
               style: sectionStyle,
               position: .at(index: index, count: store.projects.count),
-              colors: c
+              colors: c,
+              editing: editing
             )
           )
         }
