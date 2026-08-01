@@ -337,8 +337,9 @@ struct FiltersView: View {
         Spacer()
         Text("\(count)")
           .font(t.rowCountFont)
-          .foregroundStyle(tint ?? c.textTertiary)
-        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+          .monospacedDigit()
+          .foregroundStyle(tint ?? c.textSecondary)
+        DisclosureChevron(color: c.textSecondary)
       }
       .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     }
@@ -399,8 +400,9 @@ struct FiltersView: View {
       Spacer(minLength: 8)
       Text("\(item.pendingCount)")
         .font(t.rowCountFont)
-        .foregroundStyle(c.textTertiary)
-      DisclosureChevron(color: c.textTertiary.opacity(0.7))
+        .monospacedDigit()
+        .foregroundStyle(c.textSecondary)
+      DisclosureChevron(color: c.textSecondary)
     }
     .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     .contentShape(Rectangle())
@@ -466,9 +468,10 @@ struct FiltersView: View {
 
       Text("\(project.pending)")
         .font(t.rowCountFont)
+        .monospacedDigit()
         .foregroundStyle(project.pending > 0 ? c.textSecondary : c.textTertiary)
 
-      DisclosureChevron(color: c.textTertiary.opacity(0.7))
+      DisclosureChevron(color: c.textSecondary)
     }
     .padding(.vertical, sectionStyle.metrics.rowPaddingV)
     .contentShape(Rectangle())

@@ -210,6 +210,8 @@ private struct ClassicNavPillItem: View {
         .scaleEffect(bounceScale)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
+        // Altura fixa do dock — ver BottomNavPill.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .foregroundStyle(selected ? c.accent : c.textSecondary)
         .contentTransition(.interpolate)
         .lineLimit(1)

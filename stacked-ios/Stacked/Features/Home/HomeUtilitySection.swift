@@ -43,8 +43,7 @@ struct HomeUtilitySection: View {
         utilityRow(entry, position: .at(index: index, count: rows.count))
       }
     } header: {
-      HomeSectionHeader(text: "ATALHOS", style: sectionStyle, scale: typeScale)
-        .padding(.top, 8)
+      HomeSectionHeader(text: "ATALHOS", style: sectionStyle, scale: typeScale, isFirstSection: true)
         .homeSectionHeaderInsets(sectionStyle)
     }
   }
@@ -65,7 +64,7 @@ struct HomeUtilitySection: View {
           .frame(width: HomeSectionRowLayout.iconWidth)
         Text(entry.label).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
         Spacer()
-        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+        DisclosureChevron(color: c.textSecondary)
       }
       .padding(.vertical, m.rowPaddingV)
     }

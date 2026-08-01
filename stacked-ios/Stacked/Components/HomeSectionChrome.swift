@@ -84,6 +84,8 @@ struct HomeSectionHeader<Trailing: View>: View {
   let text: String
   let style: HomeSectionStyle
   let scale: AppTypeScale
+  /// Primeira seção da tela: nasce colada na navbar e precisa do respiro extra.
+  var isFirstSection = false
   @ViewBuilder var trailing: () -> Trailing
 
   var body: some View {
@@ -94,21 +96,21 @@ struct HomeSectionHeader<Trailing: View>: View {
     HStack(alignment: .center, spacing: 8) {
       Text(t.headerCase.apply(to: text))
         .font(t.headerFont)
-        .foregroundStyle(t.headerUsesPrimaryColor ? c.textPrimary : c.textTertiary)
+        .foregroundStyle(t.headerUsesPrimaryColor ? c.textPrimary : c.textSecondary)
         .tracking(t.headerTracking)
         .textCase(nil)
       Spacer(minLength: 0)
       trailing()
     }
     .padding(.leading, style == .classic ? AppSpacing.xs : 0)
-    .padding(.top, m.headerTopPadding)
+    .padding(.top, m.headerTopPadding + (isFirstSection ? m.firstSectionExtraTopPadding : 0))
     .padding(.bottom, m.headerBottomPadding)
   }
 }
 
 extension HomeSectionHeader where Trailing == EmptyView {
-  init(text: String, style: HomeSectionStyle, scale: AppTypeScale) {
-    self.init(text: text, style: style, scale: scale) { EmptyView() }
+  init(text: String, style: HomeSectionStyle, scale: AppTypeScale, isFirstSection: Bool = false) {
+    self.init(text: text, style: style, scale: scale, isFirstSection: isFirstSection) { EmptyView() }
   }
 }
 

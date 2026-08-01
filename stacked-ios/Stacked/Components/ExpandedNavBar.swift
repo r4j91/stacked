@@ -188,6 +188,8 @@ private struct ExpandedNavItem: View {
           iconView(accent: true)
           Text(tab.label)
             .font(.system(size: ExpandedNavMetrics.activeLabelSize, weight: .semibold))
+            // Altura fixa do dock — ver BottomNavPill.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .foregroundStyle(colors.accent)
             .lineLimit(1)
             .minimumScaleFactor(0.85)

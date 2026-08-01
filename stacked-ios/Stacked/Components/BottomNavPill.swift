@@ -150,6 +150,10 @@ private struct NavPillItem: View {
         .scaleEffect(bounceScale)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
+        // Dock de altura fixa, com os alvos de toque posicionados no UIKit:
+        // o rótulo não pode crescer sem teto. Quem quer navbar maior usa a
+        // escala de tipografia do app, que sobe ícone e rótulo junto.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .foregroundStyle(selected ? c.accent : c.textSecondary)
         .contentTransition(.interpolate)
         .lineLimit(1)

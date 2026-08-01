@@ -57,7 +57,8 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
         cornerRadius: 0,
         capsuleGapV: 0,
         headerTopPadding: 0,
-        headerBottomPadding: 0
+        headerBottomPadding: 0,
+        firstSectionExtraTopPadding: 8
       )
     case .capsule:
       return HomeSectionMetrics(
@@ -68,7 +69,8 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
         cornerRadius: 18,
         capsuleGapV: 3,
         headerTopPadding: 6,
-        headerBottomPadding: 4
+        headerBottomPadding: 4,
+        firstSectionExtraTopPadding: 8
       )
     case .container, .quiet:
       return HomeSectionMetrics(
@@ -79,7 +81,8 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
         cornerRadius: 18,
         capsuleGapV: 0,
         headerTopPadding: 6,
-        headerBottomPadding: 4
+        headerBottomPadding: 4,
+        firstSectionExtraTopPadding: 8
       )
     }
   }
@@ -98,6 +101,8 @@ struct HomeSectionMetrics {
   let capsuleGapV: CGFloat
   let headerTopPadding: CGFloat
   let headerBottomPadding: CGFloat
+  /// Respiro extra do primeiro header da tela, que nasce colado na navbar.
+  let firstSectionExtraTopPadding: CGFloat
 
   var rowInsets: EdgeInsets {
     EdgeInsets(

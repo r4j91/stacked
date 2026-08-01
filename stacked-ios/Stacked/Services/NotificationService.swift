@@ -1,10 +1,12 @@
 import Foundation
+import Observation
 import UserNotifications
 import Supabase
 import os
 
 // Paridade lib/services/notification_service.dart
 @MainActor
+@Observable
 final class NotificationService {
   static let shared = NotificationService()
 
@@ -31,6 +33,18 @@ final class NotificationService {
   var cachedPreview: PreviewSnapshot? {
     guard let previewCache, previewCache.isFresh else { return nil }
     return previewCache
+  }
+
+  /// Há lembrete agendado para as próximas 24h que o iOS realmente vai disparar.
+  /// Alimenta um ponto no sino, sem número: a lista é de coisas por vir, não de
+  /// itens não lidos, e um contador aqui prometeria pendência que não existe.
+  /// Ignora o TTL de propósito — o ponto não pode piscar sozinho aos 60s.
+  var hasImminentReminders: Bool {
+    guard let previewCache else { return false }
+    let horizon = Date().addingTimeInterval(24 * 60 * 60)
+    return previewCache.items.contains {
+      $0.isRegisteredWithSystem && $0.scheduledAt <= horizon
+    }
   }
 
   func invalidatePreviewCache() {

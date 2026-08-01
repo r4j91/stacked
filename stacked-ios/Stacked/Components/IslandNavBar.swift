@@ -102,6 +102,8 @@ struct IslandNavBar: View {
 
       Text(tab.label)
         .font(.system(size: t.collapsedNavLabelSize, weight: .semibold))
+        // A ilha recorta o próprio conteúdo; sem teto o rótulo some cortado.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .foregroundStyle(colors.textPrimary)
         .lineLimit(1)
         .minimumScaleFactor(0.85)
@@ -234,6 +236,7 @@ private struct IslandNavExpandedItem: View {
         .frame(width: iconBox, height: iconBox)
       Text(tab.label)
         .font(selected ? AppTypography.navLabelSelected : AppTypography.navLabel)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .foregroundStyle(selected ? colors.accent : colors.textSecondary)
         .lineLimit(1)
         .minimumScaleFactor(0.8)

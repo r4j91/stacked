@@ -86,7 +86,7 @@ struct ListSectionHeader: View {
     let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
     Text(t.headerCase.apply(to: text))
       .font(t.headerFont)
-      .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textTertiary)
+      .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textSecondary)
       .tracking(t.headerTracking)
       .textCase(nil)
       .padding(.leading, AppSpacing.xs)
@@ -105,7 +105,7 @@ struct ListSectionHeaderWithTrailing<Trailing: View>: View {
     HStack(alignment: .center, spacing: 8) {
       Text(t.headerCase.apply(to: text))
         .font(t.headerFont)
-        .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textTertiary)
+        .foregroundStyle(t.headerUsesPrimaryColor ? theme.colors.textPrimary : theme.colors.textSecondary)
         .tracking(t.headerTracking)
         .textCase(nil)
       Spacer(minLength: 0)
@@ -184,7 +184,7 @@ struct SettingsSectionHeader: View {
   var body: some View {
     Text(text.uppercased())
       .font(AppTypography.sectionLabel)
-      .foregroundStyle(theme.colors.textTertiary)
+      .foregroundStyle(theme.colors.textSecondary)
       .tracking(0.2)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.leading, 4)

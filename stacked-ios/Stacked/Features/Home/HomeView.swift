@@ -13,6 +13,7 @@ struct HomeView: View {
   @State private var showNewProject = false
   @State private var showSettings = false
   @State private var showProductivity = false
+  @State private var showProfile = false
   @State private var showNotifications = false
   @State private var showSearch = false
   @State private var showLabels = false
@@ -72,6 +73,7 @@ struct HomeView: View {
       .toolbar {
         HomeHeaderToolbar(
           showProductivity: $showProductivity,
+          showProfile: $showProfile,
           showNotifications: $showNotifications,
           showSettings: $showSettings
         )
@@ -118,6 +120,13 @@ struct HomeView: View {
       ProductivityView().environment(ThemeManager.shared)
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+    }
+    .sheet(isPresented: $showProfile) {
+      NavigationStack {
+        ProfileEditView().environment(ThemeManager.shared)
+      }
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
     }
     .sheet(isPresented: $showSearch) {
       SearchView().environment(ThemeManager.shared)
@@ -229,15 +238,53 @@ private struct HomeOverviewSection: View {
 
   var body: some View {
     let rows = entries
+    let showsError = store.error != nil
+    let offset = showsError ? 1 : 0
+    let total = rows.count + offset
 
     Section {
+      if showsError {
+        errorRow(position: .at(index: 0, count: total))
+      }
       ForEach(Array(rows.enumerated()), id: \.element.label) { index, entry in
-        navRow(entry, position: .at(index: index, count: rows.count))
+        navRow(entry, position: .at(index: index + offset, count: total))
       }
     } header: {
       HomeSectionHeader(text: "VISÃO GERAL", style: sectionStyle, scale: typeScale)
         .homeSectionHeaderInsets(sectionStyle)
     }
+  }
+
+  /// Sync falhou: sem isto a Home mostraria os números velhos como se fossem atuais.
+  private func errorRow(position: HomeSectionRowPosition) -> some View {
+    let c = theme.colors
+    let t = typeScale.metrics
+    let m = sectionStyle.metrics
+    return HStack(spacing: HomeSectionRowLayout.iconSpacing) {
+      StackedIcons.image(.exclamation)
+        .font(.system(size: 20))
+        .foregroundStyle(AppColors.overdue)
+        .frame(width: HomeSectionRowLayout.iconWidth)
+      Text("Não foi possível atualizar")
+        .font(t.rowTitleFont)
+        .foregroundStyle(c.textPrimary)
+        .lineLimit(1)
+        .layoutPriority(1)
+      Spacer(minLength: 8)
+      Button("Tentar de novo") {
+        HapticService.selection()
+        _Concurrency.Task { await store.load() }
+      }
+      .font(t.actionFont)
+      .foregroundStyle(c.accent)
+      .buttonStyle(.plain)
+    }
+    .padding(.vertical, m.rowPaddingV)
+    .listRowInsets(m.rowInsets)
+    .listRowSeparator(.hidden)
+    .listRowBackground(
+      HomeSectionRowBackground(style: sectionStyle, position: position, colors: c)
+    )
   }
 
   private func navRow(_ entry: OverviewEntry, position: HomeSectionRowPosition) -> some View {
@@ -255,14 +302,9 @@ private struct HomeOverviewSection: View {
           .fontWeight(entry.isAlert ? .semibold : nil)
           .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textPrimary)
         Spacer()
-        Text("\(entry.count)")
-          .font(t.rowCountFont)
-          .fontWeight(entry.isAlert ? .semibold : nil)
-          .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textTertiary)
+        countLabel(entry, t: t, c: c)
         DisclosureChevron(
-          color: entry.isAlert
-            ? AppColors.overdue.opacity(0.75)
-            : c.textTertiary.opacity(0.7)
+          color: entry.isAlert ? AppColors.overdue : c.textSecondary
         )
       }
       .padding(.vertical, m.rowPaddingV)
@@ -273,6 +315,25 @@ private struct HomeOverviewSection: View {
     .listRowBackground(
       HomeSectionRowBackground(style: sectionStyle, position: position, colors: c)
     )
+  }
+
+  /// Zero não é informação: a ausência do número já diz que não há nada ali.
+  /// Na carga fria o lugar fica reservado para o número não pular na chegada.
+  @ViewBuilder
+  private func countLabel(_ entry: OverviewEntry, t: AppTypeScaleMetrics, c: AppThemeColors) -> some View {
+    if store.isLoading {
+      Text("00")
+        .font(t.rowCountFont)
+        .monospacedDigit()
+        .foregroundStyle(c.textSecondary)
+        .redacted(reason: .placeholder)
+    } else if entry.count > 0 {
+      Text("\(entry.count)")
+        .font(t.rowCountFont)
+        .monospacedDigit()
+        .fontWeight(entry.isAlert ? .semibold : nil)
+        .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textSecondary)
+    }
   }
 }
 
@@ -302,7 +363,21 @@ private struct HomeProjectsSection: View {
     let m = sectionStyle.metrics
 
     Section {
-      if store.projects.isEmpty {
+      if store.projects.isEmpty, store.isLoading {
+        // Carga fria: sem isto o empty state "Nenhum projeto ainda" pisca antes dos dados.
+        ForEach(Array(Self.skeletonWidths.enumerated()), id: \.offset) { index, placeholder in
+          projectSkeletonRow(placeholder: placeholder)
+            .listRowInsets(m.rowInsets)
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+              HomeSectionRowBackground(
+                style: sectionStyle,
+                position: .at(index: index, count: Self.skeletonWidths.count),
+                colors: c
+              )
+            )
+        }
+      } else if store.projects.isEmpty {
         VStack(spacing: AppSpacing.md) {
           EmptyStateView(illustration: .projectsEmpty, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
           Button("Criar projeto") { showNewProject = true }
@@ -373,13 +448,42 @@ private struct HomeProjectsSection: View {
         .font(.system(size: 20))
         .foregroundStyle(color)
         .frame(width: HomeSectionRowLayout.iconWidth)
-      Text(project.name).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
-      Spacer()
-      Text("\(project.taskCount)").font(t.rowCountFont).foregroundStyle(c.textTertiary)
+      Text(project.name)
+        .font(t.rowTitleFont)
+        .foregroundStyle(c.textPrimary)
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .layoutPriority(1)
+      Spacer(minLength: 8)
+      if project.taskCount > 0 {
+        Text("\(project.taskCount)")
+          .font(t.rowCountFont)
+          .monospacedDigit()
+          .foregroundStyle(c.textSecondary)
+      }
       if showChevron {
-        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+        DisclosureChevron(color: c.textSecondary)
       }
     }
     .padding(.vertical, sectionStyle.metrics.rowPaddingV)
+  }
+
+  /// Larguras diferentes para o esqueleto não virar três barras iguais.
+  private static let skeletonWidths = ["Trabalho", "Casa e rotina", "Estudos"]
+
+  private func projectSkeletonRow(placeholder: String) -> some View {
+    let c = theme.colors
+    let t = typeScale.metrics
+    return HStack(spacing: HomeSectionRowLayout.iconSpacing) {
+      StackedIcons.image(ProjectIcons.asset(for: nil))
+        .font(.system(size: 20))
+        .foregroundStyle(c.textSecondary)
+        .frame(width: HomeSectionRowLayout.iconWidth)
+      Text(placeholder).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
+      Spacer()
+    }
+    .padding(.vertical, sectionStyle.metrics.rowPaddingV)
+    .redacted(reason: .placeholder)
+    .accessibilityHidden(true)
   }
 }
