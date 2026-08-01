@@ -90,28 +90,100 @@ enum StackedIconKey: String {
 enum ProjectIcons {
   static func asset(for key: String?) -> HugeiconsAsset {
     switch key {
-    case "work": Hugeicons.briefcase01
-    case "home": Hugeicons.home01
-    case "school": Hugeicons.mortarboard01
-    case "fitness": Hugeicons.dumbbell01
-    case "shopping": Hugeicons.shoppingCart01
-    case "favorite": Hugeicons.favourite
+    // Marcadores
+    case "hash": Hugeicons.hash
+    // `asterisk` vem dentro de um balão de fala; o solto é o 02.
+    case "asterisk": Hugeicons.asterisk02
     case "star": Hugeicons.star
-    case "rocket": Hugeicons.rocket01
-    case "lightbulb": Hugeicons.idea01
-    case "music": Hugeicons.musicNote01
-    case "travel": Hugeicons.globe02
-    case "money": Hugeicons.money01
-    case "health": Hugeicons.shield01
+    case "favorite": Hugeicons.favourite
+    case "flag": Hugeicons.flag01
+    case "bookmark": Hugeicons.bookmark01
+    case "tag": Hugeicons.tag01
+    case "target": Hugeicons.target01
+    case "inbox": Hugeicons.inbox
+    case "archive": Hugeicons.archive
+    // Trabalho e estudo
+    case "work": Hugeicons.briefcase01
+    case "building": Hugeicons.building03
+    case "chart": Hugeicons.chart01
     case "code": Hugeicons.code
+    case "lightbulb": Hugeicons.idea01
+    case "brain": Hugeicons.brain
+    case "school": Hugeicons.mortarboard01
+    case "book": Hugeicons.book02
+    case "note": Hugeicons.note01
+    case "pen": Hugeicons.pen01
+    // Comunicação e tempo
+    case "mail": Hugeicons.mail01
+    case "chat": Hugeicons.chat
+    case "calendar": Hugeicons.calendar01
+    case "clock": Hugeicons.clock01
+    // Casa e rotina
+    case "home": Hugeicons.home01
+    case "coffee": Hugeicons.coffee01
+    case "food": Hugeicons.restaurant01
+    case "cake": Hugeicons.cake
+    case "plant": Hugeicons.plant01
+    case "leaf": Hugeicons.leaf01
+    case "tree": Hugeicons.tree01
+    // Saúde
+    case "fitness": Hugeicons.dumbbell01
+    case "health": Hugeicons.shield01
+    case "pill": Hugeicons.pill
+    // Compras e finanças
+    case "shopping": Hugeicons.shoppingCart01
+    case "money": Hugeicons.money01
+    case "wallet": Hugeicons.wallet01
+    case "card": Hugeicons.creditCard
+    // Lugares e transporte
+    case "car": Hugeicons.car01
+    case "plane": Hugeicons.airplane01
+    case "bike": Hugeicons.bicycle
+    case "travel": Hugeicons.globe02
+    case "location": Hugeicons.location01
+    case "ticket": Hugeicons.ticket01
+    case "gift": Hugeicons.gift
+    case "key": Hugeicons.key01
+    case "lock": Hugeicons.lock
+    // Mídia e lazer
+    case "music": Hugeicons.musicNote01
+    case "headphones": Hugeicons.headphones
+    case "camera": Hugeicons.camera01
+    case "video": Hugeicons.video01
+    case "image": Hugeicons.image01
+    case "film": Hugeicons.film01
+    case "game": Hugeicons.gamepad
     case "art": Hugeicons.paintBrush01
+    // Tech e utilidades
+    case "rocket": Hugeicons.rocket01
+    case "settings": Hugeicons.settings01
+    case "tools": Hugeicons.wrench01
+    case "bug": Hugeicons.bug01
+    case "cloud": Hugeicons.cloud
+    case "database": Hugeicons.database
+    case "puzzle": Hugeicons.puzzle
+    case "award": Hugeicons.award01
+    case "fire": Hugeicons.fire
+    case "moon": Hugeicons.moon02
     default: Hugeicons.folder01
     }
   }
 
+  /// Ordem do seletor — agrupada por tema, não alfabética, para varrer a grade
+  /// batendo o olho. Chaves antigas continuam válidas; o `default` cobre o resto.
   static let pickerKeys: [String] = [
-    "folder", "work", "home", "school", "fitness", "shopping",
-    "favorite", "star", "rocket", "lightbulb", "music", "travel",
-    "money", "health", "code", "art",
+    "folder", "hash", "asterisk", "star", "favorite", "flag",
+    "bookmark", "tag", "target", "inbox", "archive",
+    "work", "building", "chart", "code", "lightbulb", "brain",
+    "school", "book", "note", "pen",
+    "mail", "chat", "calendar", "clock",
+    "home", "coffee", "food", "cake", "plant", "leaf", "tree",
+    "fitness", "health", "pill",
+    "shopping", "money", "wallet", "card",
+    "car", "plane", "bike", "travel", "location", "ticket",
+    "gift", "key", "lock",
+    "music", "headphones", "camera", "video", "image", "film", "game", "art",
+    "rocket", "settings", "tools", "bug", "cloud", "database",
+    "puzzle", "award", "fire", "moon",
   ]
 }

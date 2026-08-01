@@ -122,7 +122,7 @@ export function ProjectSheet({ open, mode, project, onClose }: ProjectSheetProps
         </label>
 
         <p className="mb-2 text-xs font-medium text-[var(--color-text-tertiary)]">Ícone</p>
-        <div className="mb-4 grid grid-cols-8 gap-1.5">
+        <div className="mb-4 grid max-h-44 grid-cols-8 gap-1.5 overflow-y-auto pr-1">
           {PROJECT_ICON_KEYS.map((key) => (
             <button
               key={key}
