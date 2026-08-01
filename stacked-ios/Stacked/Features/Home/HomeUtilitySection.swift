@@ -11,6 +11,7 @@ struct HomeUtilitySection: View {
 
   @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+  @AppStorage(HomeHeaderStyleStorage.key) private var headerStyleRaw = HomeHeaderStyleStorage.defaultRawValue
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -27,12 +28,15 @@ struct HomeUtilitySection: View {
   }
 
   private var entries: [UtilityEntry] {
-    [
-      UtilityEntry(icon: .search, label: "Buscar", action: onOpenSearch),
-      UtilityEntry(icon: .productivity, label: "Relatórios", action: onOpenReports),
-      UtilityEntry(icon: .navFilters, label: "Filtros", action: onOpenFilters),
-      UtilityEntry(icon: .tag, label: "Etiquetas", action: onOpenLabels),
-    ]
+    // A seção só existe sem o card, então o estilo do header vale sempre aqui.
+    var list: [UtilityEntry] = []
+    if !HomeHeaderStyleStorage.style(from: headerStyleRaw).hidesSearchShortcut {
+      list.append(UtilityEntry(icon: .search, label: "Buscar", action: onOpenSearch))
+    }
+    list.append(UtilityEntry(icon: .productivity, label: "Relatórios", action: onOpenReports))
+    list.append(UtilityEntry(icon: .navFilters, label: "Filtros", action: onOpenFilters))
+    list.append(UtilityEntry(icon: .tag, label: "Etiquetas", action: onOpenLabels))
+    return list
   }
 
   var body: some View {

@@ -1,39 +1,33 @@
 import SwiftUI
 
-// Paridade home_screen.dart _buildHeader + header_liquid_pill.dart
-struct HomeHeaderBar: View {
-  @Environment(ThemeManager.self) private var theme
-  @State private var store = HomeStore.shared
-  @Binding var showProductivity: Bool
-  @Binding var showProfile: Bool
-  @Binding var showNotifications: Bool
-  @Binding var showSettings: Bool
-
-  var body: some View {
-    HStack(spacing: 12) {
-      HomeHeaderLeading(showProductivity: $showProductivity, showProfile: $showProfile)
-      Spacer()
-      HomeHeaderTrailing(
-        showNotifications: $showNotifications,
-        showSettings: $showSettings
-      )
-    }
-    .padding(.horizontal, 20)
-    .padding(.top, 8)
-    .padding(.bottom, 10)
-  }
-}
-
 /// Header na toolbar nativa — pré-estabelece a navbar para push fluido sem padding extra na lista.
 struct HomeHeaderToolbar: ToolbarContent {
   @Binding var showProductivity: Bool
   @Binding var showProfile: Bool
   @Binding var showNotifications: Bool
   @Binding var showSettings: Bool
+  @Binding var showSearch: Bool
+  @AppStorage(HomeHeaderStyleStorage.key) private var headerStyleRaw = HomeHeaderStyleStorage.defaultRawValue
+  @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
+
+  private var style: HomeHeaderStyle {
+    HomeHeaderStyleStorage.resolved(rawValue: headerStyleRaw, topCardEnabled: topCardEnabled)
+  }
 
   var body: some ToolbarContent {
     ToolbarItem(id: "stacked-home-leading", placement: .topBarLeading) {
-      HomeHeaderLeading(showProductivity: $showProductivity, showProfile: $showProfile)
+      HomeHeaderLeading(
+        style: style,
+        showProductivity: $showProductivity,
+        showProfile: $showProfile
+      )
+    }
+    .sharedBackgroundVisibility(.hidden)
+
+    ToolbarItem(id: "stacked-home-principal", placement: .principal) {
+      if style == .search {
+        HomeHeaderSearchField(showSearch: $showSearch)
+      }
     }
     .sharedBackgroundVisibility(.hidden)
 
@@ -50,22 +44,51 @@ struct HomeHeaderToolbar: ToolbarContent {
 private struct HomeHeaderLeading: View {
   @Environment(ThemeManager.self) private var theme
   @State private var store = HomeStore.shared
+  let style: HomeHeaderStyle
   @Binding var showProductivity: Bool
   @Binding var showProfile: Bool
   @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+  @AppStorage(HomeDailyGoalStorage.key) private var dailyGoalStored = HomeDailyGoalStorage.defaultGoal
 
   /// Sem o card de saudação o nome não aparece em lugar nenhum da Home — a pill assume ele.
   private var pillName: String {
     guard !topCardEnabled else { return "" }
-    let name = store.firstName
-    guard name.count > 14 else { return name }
-    return String(name.prefix(13)) + "…"
+    return Self.clipped(store.firstName, at: 14)
+  }
+
+  private var dailyGoal: Int {
+    HomeDailyGoalStorage.goal(from: dailyGoalStored)
+  }
+
+  /// Quanto da meta do dia já foi cumprido. Passar da meta mantém o anel cheio.
+  private var dayProgress: Double {
+    min(1, Double(store.completedToday) / Double(max(1, dailyGoal)))
+  }
+
+  private var dayFraction: String {
+    "\(store.completedToday)/\(dailyGoal)"
+  }
+
+  private var greetingLine: String {
+    Self.clipped(store.greeting, at: 22)
+  }
+
+  private var metaLine: String {
+    let degree = store.weatherDegreeLabel
+    let date = store.formattedMediumDate
+    return degree.isEmpty ? date : "\(date) · \(degree)"
+  }
+
+  /// A toolbar propõe largura apertada e os textos usam `fixedSize` para não sumir;
+  /// o corte por contagem de caracteres é o que impede a pill de estourar.
+  private static func clipped(_ text: String, at limit: Int) -> String {
+    guard text.count > limit else { return text }
+    return String(text.prefix(limit - 1)) + "…"
   }
 
   var body: some View {
     let c = theme.colors
-    let name = pillName
     Button {
       // Sem o card, Relatórios já está exposto nos atalhos — a pill fica livre
       // para o perfil, que é o que o avatar sugere. Com o card, ela é o único
@@ -78,29 +101,139 @@ private struct HomeHeaderLeading: View {
     } label: {
       LiquidGlass.headerPill(navBarColor: c.navBar, textPrimary: c.textPrimary) {
         HStack(spacing: 6) {
-          UserAvatarView(
-            url: store.avatarURL,
-            initials: store.avatarInitials,
-            size: AppLayout.headerAvatarSize
-          )
-          .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
-
-          if !name.isEmpty {
-            Text(name)
-              .font(AppTypeScaleStorage.scale(from: typeScaleRaw).metrics.rowTitleFont)
-              .foregroundStyle(c.textPrimary)
-              .lineLimit(1)
-              // A toolbar propõe largura apertada e comeria o nome inteiro;
-              // o corte em 14 caracteres acima já garante que a pill não estoure.
-              .fixedSize(horizontal: true, vertical: false)
-              .padding(.trailing, 16)
-          }
+          avatar(c)
+          trailingContent(c)
         }
       }
       .modifier(HomeHeaderQuietBorder())
     }
     .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
     .accessibilityLabel(topCardEnabled ? "Relatório de produtividade" : "Perfil")
+    .accessibilityValue(accessibilityValue)
+  }
+
+  private var accessibilityValue: String {
+    guard style.showsProgressRing else { return "" }
+    return "\(store.completedToday) de \(dailyGoal) concluídas hoje"
+  }
+
+  private func avatar(_ c: AppThemeColors) -> some View {
+    UserAvatarView(
+      url: store.avatarURL,
+      initials: store.avatarInitials,
+      size: AppLayout.headerAvatarSize
+    )
+    .frame(width: AppLayout.headerControlSize, height: AppLayout.headerControlSize)
+    .overlay {
+      if style.showsProgressRing {
+        HomeHeaderProgressRing(progress: dayProgress, colors: c)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func trailingContent(_ c: AppThemeColors) -> some View {
+    let t = AppTypeScaleStorage.scale(from: typeScaleRaw).metrics
+
+    switch style {
+    case .search:
+      EmptyView()
+
+    case .classic:
+      if !pillName.isEmpty {
+        Text(pillName)
+          .font(t.rowTitleFont)
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
+          .fixedSize(horizontal: true, vertical: false)
+          .padding(.trailing, 16)
+      }
+
+    case .progressRing:
+      if !pillName.isEmpty {
+        HStack(spacing: 7) {
+          Text(pillName)
+            .font(t.rowTitleFont)
+            .foregroundStyle(c.textPrimary)
+          Text(dayFraction)
+            .font(.system(size: 13.5, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(dayProgress >= 1 ? c.accent : c.textTertiary)
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .padding(.trailing, 16)
+      }
+
+    case .greeting:
+      VStack(alignment: .leading, spacing: 1) {
+        Text(greetingLine)
+          .font(.system(size: 15.5, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+        Text(metaLine)
+          .font(.system(size: 11.5))
+          .foregroundStyle(c.textTertiary)
+      }
+      .lineLimit(1)
+      .fixedSize(horizontal: true, vertical: false)
+      .padding(.trailing, 16)
+    }
+  }
+}
+
+/// Anel de progresso do dia em volta do avatar.
+private struct HomeHeaderProgressRing: View {
+  let progress: Double
+  let colors: AppThemeColors
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .strokeBorder(colors.textPrimary.opacity(0.13), lineWidth: 2.5)
+      Circle()
+        .trim(from: 0, to: max(0.02, progress))
+        .stroke(colors.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        .rotationEffect(.degrees(-90))
+        .padding(1.25)
+    }
+    .padding(1)
+    .allowsHitTesting(false)
+  }
+}
+
+/// Campo de busca no vão entre as pills. Largura fixa: dentro da toolbar não há
+/// proposta de largura para expandir contra.
+private struct HomeHeaderSearchField: View {
+  @Environment(ThemeManager.self) private var theme
+  @Binding var showSearch: Bool
+
+  var body: some View {
+    let c = theme.colors
+    Button {
+      HapticService.selection()
+      showSearch = true
+    } label: {
+      LiquidGlass.headerPill(navBarColor: c.navBar, textPrimary: c.textPrimary) {
+        HStack(spacing: 8) {
+          StackedIcons.image(.search)
+            .font(.system(size: 17, weight: .medium))
+            .foregroundStyle(c.textSecondary)
+          Text("Buscar")
+            .font(.system(size: 15))
+            .foregroundStyle(c.textTertiary)
+            .lineLimit(1)
+          Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 15)
+        .frame(
+          width: HomeHeaderMetrics.searchFieldWidth,
+          height: AppLayout.headerControlSize
+        )
+      }
+      .modifier(HomeHeaderQuietBorder())
+    }
+    .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
+    .accessibilityLabel("Buscar")
   }
 }
 

@@ -12,6 +12,8 @@ struct AppearanceView: View {
   @AppStorage(HomeHeroStyleStorage.hiddenKey) private var homeHeroStyleHiddenRaw = ""
   @AppStorage(HomeTopCardStorage.key) private var homeTopCardEnabled = HomeTopCardStorage.defaultEnabled
   @AppStorage(HomeHeroFrameStorage.key) private var homeHeroFrameRaw = HomeHeroFrameStorage.defaultRawValue
+  @AppStorage(HomeHeaderStyleStorage.key) private var homeHeaderStyleRaw = HomeHeaderStyleStorage.defaultRawValue
+  @AppStorage(HomeDailyGoalStorage.key) private var homeDailyGoalStored = HomeDailyGoalStorage.defaultGoal
   @AppStorage(HomeSectionStyleStorage.key) private var homeSectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var appTypeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
@@ -48,6 +50,14 @@ struct AppearanceView: View {
 
   private var homeHeroFrame: HomeHeroFrame {
     HomeHeroFrameStorage.frame(from: homeHeroFrameRaw)
+  }
+
+  private var homeHeaderStyle: HomeHeaderStyle {
+    HomeHeaderStyleStorage.style(from: homeHeaderStyleRaw)
+  }
+
+  private var homeDailyGoal: Int {
+    HomeDailyGoalStorage.goal(from: homeDailyGoalStored)
   }
 
   private var homeSectionStyle: HomeSectionStyle {
@@ -195,12 +205,27 @@ struct AppearanceView: View {
           title: "Topo da Home",
           summary: homeTopCardEnabled
             ? "\(homeHeroStyle.displayName) · \(homeHeroFrame.displayName)"
-            : "Sem card · Utilidades",
+            : "Sem card · \(homeHeaderStyle.displayName)",
           footer: homeTopCardEnabled
             ? "Aberto é o formato de sempre. Seguir a Home usa o agrupamento das seções."
-            : "Sem o card, o topo vira Buscar, Relatórios, Filtros e Etiquetas, no mesmo estilo das seções."
+            : "Sem o card, o topo vira Relatórios, Filtros e Etiquetas. Com Busca no topo, o campo sai dos atalhos para não duplicar."
         ) {
           homeTopCardRow()
+
+          if !homeTopCardEnabled {
+            appearanceGroupHeader("Barra do topo")
+            ForEach(Array(HomeHeaderStyle.allCases.enumerated()), id: \.element) { index, style in
+              homeHeaderStyleRow(style)
+              if index < HomeHeaderStyle.allCases.count - 1 {
+                SettingsCardDivider(leadingPadding: 82)
+              }
+            }
+
+            if homeHeaderStyle.showsProgressRing {
+              appearanceGroupHeader("Meta diária")
+              homeDailyGoalRow()
+            }
+          }
 
           if homeTopCardEnabled {
             appearanceGroupHeader("Estilo")
@@ -947,6 +972,81 @@ struct AppearanceView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  private func homeHeaderStyleRow(_ style: HomeHeaderStyle) -> some View {
+    let c = theme.colors
+    let isSelected = homeHeaderStyle == style
+
+    return Button {
+      guard !isSelected else { return }
+      HapticService.selection()
+      homeHeaderStyleRaw = style.rawValue
+    } label: {
+      HStack(spacing: 12) {
+        HomeHeaderStylePreview(style: style, colors: c, selected: isSelected)
+        VStack(alignment: .leading, spacing: 3) {
+          Text(style.displayName)
+            .font(AppTypography.settingsTitle)
+            .foregroundStyle(c.textPrimary)
+          Text(style.subtitle)
+            .font(AppTypography.meta)
+            .foregroundStyle(c.textSecondary)
+            .lineLimit(2)
+        }
+        Spacer(minLength: 8)
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(c.accent)
+        }
+      }
+      .frame(minHeight: 44)
+      .padding(.horizontal, SettingsChrome.rowPaddingH)
+      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func homeDailyGoalRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Concluir por dia")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("O anel enche conforme você conclui tarefas e subtarefas hoje.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      HStack(spacing: 6) {
+        ForEach(HomeDailyGoalStorage.options, id: \.self) { option in
+          let isSelected = homeDailyGoal == option
+          Button {
+            guard !isSelected else { return }
+            HapticService.selection()
+            homeDailyGoalStored = option
+          } label: {
+            Text("\(option)")
+              .font(.system(size: 14, weight: .semibold))
+              .monospacedDigit()
+              .foregroundStyle(isSelected ? c.background : c.textSecondary)
+              .frame(width: 32, height: 30)
+              .background {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                  .fill(isSelected ? c.accent : c.surfaceVariant)
+              }
+          }
+          .buttonStyle(.plain)
+        }
+      }
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
   }
 
   private func homeTopCardRow() -> some View {

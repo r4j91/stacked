@@ -5,6 +5,9 @@ struct HomeTaskSummary {
   let todayDone: Int
   let todayPending: Int
   let overdueCount: Int
+  /// Tarefas e subtarefas concluídas hoje, independente de quando venciam —
+  /// é o que a meta diária mede.
+  let completedToday: Int
 }
 
 struct HomeProject: Identifiable, Equatable, Codable {
@@ -21,6 +24,8 @@ struct HomeDashboardSnapshot: Codable, Equatable {
   var todayPending: Int
   var todayDone: Int
   var todayTotal: Int
+  /// Opcional: snapshots gravados antes da meta diária não têm este campo.
+  var completedToday: Int?
   var inboxCount: Int
   var upcomingCount: Int
   var projects: [HomeProject]

@@ -10,6 +10,7 @@ final class HomeStore {
   private(set) var todayPending = 0
   private(set) var todayDone = 0
   private(set) var todayTotal = 0
+  private(set) var completedToday = 0
   private(set) var inboxCount = 0
   private(set) var upcomingCount = 0
   private(set) var projects: [HomeProject] = []
@@ -78,6 +79,7 @@ final class HomeStore {
     todayPending = 0
     todayDone = 0
     todayTotal = 0
+    completedToday = 0
     inboxCount = 0
     upcomingCount = 0
     projects = []
@@ -102,6 +104,7 @@ final class HomeStore {
     todayPending = snap.todayPending
     todayDone = snap.todayDone
     todayTotal = snap.todayTotal
+    completedToday = snap.completedToday ?? 0
     inboxCount = snap.inboxCount
     upcomingCount = snap.upcomingCount
     projects = snap.projects
@@ -126,6 +129,7 @@ final class HomeStore {
       todayPending: todayPending,
       todayDone: todayDone,
       todayTotal: todayTotal,
+      completedToday: completedToday,
       inboxCount: inboxCount,
       upcomingCount: upcomingCount,
       projects: projects,
@@ -336,6 +340,7 @@ final class HomeStore {
       todayPending = summary.todayPending
       todayDone = summary.todayDone
       todayTotal = summary.todayTotal
+      completedToday = summary.completedToday
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count
@@ -387,6 +392,7 @@ final class HomeStore {
       todayPending = summary.todayPending
       todayDone = summary.todayDone
       todayTotal = summary.todayTotal
+      completedToday = summary.completedToday
       projects = try await projectsReq
       upcomingCount = try await upcomingReq
       inboxCount = try await pendingReq.filter { $0 == nil }.count

@@ -278,20 +278,39 @@ final class TaskRepository {
       .execute()
       .value
 
+    async let completedTasksReq: [IdRow] = {
+      let bounds = TaskMapper.completionDayBounds(
+        for: TaskMapper.parseDueDate(todayStr) ?? Date()
+      )
+      return try await client
+        .from("tasks")
+        .select("id")
+        .eq("user_id", value: userId)
+        .eq("concluida", value: true)
+        .gte("data_conclusao", value: bounds.start)
+        .lt("data_conclusao", value: bounds.end)
+        .execute()
+        .value
+    }()
+
     async let overdueSubtasksReq = SubtaskRepository.shared.countOverdueScheduleEntries(todayStr: todayStr)
     async let todaySubtasksPendingReq = SubtaskRepository.shared.countDueTodayPending(todayStr: todayStr)
+    async let completedSubtasksReq = SubtaskRepository.shared.countCompletedToday(todayStr: todayStr)
 
     let today = try await todayRows
     let overdue = try await overdueRows
     let overdueSubtasks = try await overdueSubtasksReq
     let todaySubtasksPending = try await todaySubtasksPendingReq
+    let completedTasks = try await completedTasksReq
+    let completedSubtasks = try await completedSubtasksReq
     let mapped = TaskMapper.mapList(today)
     let taskTodayPending = mapped.filter { !$0.done }.count
     return HomeTaskSummary(
       todayTotal: mapped.count,
       todayDone: mapped.filter(\.done).count,
       todayPending: taskTodayPending + todaySubtasksPending,
-      overdueCount: overdue.count + overdueSubtasks
+      overdueCount: overdue.count + overdueSubtasks,
+      completedToday: completedTasks.count + completedSubtasks
     )
   }
 

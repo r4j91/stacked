@@ -328,6 +328,24 @@ final class SubtaskRepository {
     return rows.count
   }
 
+  /// Subtarefas concluídas dentro do dia de hoje — entra na meta diária junto
+  /// com as tarefas.
+  func countCompletedToday(todayStr: String) async throws -> Int {
+    struct IdRow: Decodable { let id: String }
+    let bounds = TaskMapper.completionDayBounds(
+      for: TaskMapper.parseDueDate(todayStr) ?? Date()
+    )
+    let rows: [IdRow] = try await client
+      .from("subtasks")
+      .select("id")
+      .eq("concluida", value: true)
+      .gte("data_conclusao", value: bounds.start)
+      .lt("data_conclusao", value: bounds.end)
+      .execute()
+      .value
+    return rows.count
+  }
+
   func countDueInWeekPending(todayStr: String, weekStr: String) async throws -> Int {
     struct IdRow: Decodable { let id: String }
     let rows: [IdRow] = try await client

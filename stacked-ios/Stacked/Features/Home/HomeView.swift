@@ -75,7 +75,8 @@ struct HomeView: View {
           showProductivity: $showProductivity,
           showProfile: $showProfile,
           showNotifications: $showNotifications,
-          showSettings: $showSettings
+          showSettings: $showSettings,
+          showSearch: $showSearch
         )
       }
       .refreshable { await store.load() }
