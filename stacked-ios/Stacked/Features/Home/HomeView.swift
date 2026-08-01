@@ -261,7 +261,7 @@ private struct HomeProjectsSection: View {
     Section {
       if store.projects.isEmpty {
         VStack(spacing: AppSpacing.md) {
-          EmptyStateView(icon: .folder, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
+          EmptyStateView(illustration: .projectsEmpty, title: "Nenhum projeto ainda", subtitle: "Organize suas tarefas por contexto")
           Button("Criar projeto") { showNewProject = true }
             .font(AppTypography.bodySemibold)
             .foregroundStyle(c.accent)

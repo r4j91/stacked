@@ -97,14 +97,21 @@ struct ProjectDetailView: View {
 
   private var taskReorderMode: Bool { editMode == .active }
 
-  /// UIKit só com conteúdo real; ordenar / skeleton / erro ficam no SwiftUI List.
+  /// Nenhuma linha de tarefa à vista. Seções vazias não contam: elas continuam
+  /// com cabeçalho e o estado vazio entra abaixo delas. Concluídas só contam
+  /// quando estão sendo exibidas — senão o projeto fica sem lista e sem arte.
+  private var showsEmptyState: Bool {
+    pending.isEmpty && (!showCompleted || completed.isEmpty)
+  }
+
+  /// UIKit só com conteúdo real; ordenar / skeleton / erro / vazio ficam no SwiftUI List.
   private var prefersUIKitList: Bool {
     useUIKitTaskList
       && revealListContent
       && !isLoading
       && loadError == nil
       && !taskReorderMode
-      && (!pending.isEmpty || (showCompleted && !completed.isEmpty) || !sections.isEmpty)
+      && !showsEmptyState
   }
 
   var body: some View {
@@ -574,7 +581,7 @@ struct ProjectDetailView: View {
             )
           }
 
-          if pending.isEmpty && completed.isEmpty && sections.isEmpty {
+          if showsEmptyState {
             Section {
               EmptyStateView(
                 illustration: .projectClear,

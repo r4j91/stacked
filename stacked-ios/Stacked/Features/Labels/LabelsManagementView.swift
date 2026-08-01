@@ -16,7 +16,7 @@ struct LabelsManagementView: View {
         if loading {
           ProgressView().tint(c.accent)
         } else if labels.isEmpty {
-          EmptyStateView(icon: .tag, title: "Nenhuma etiqueta ainda", subtitle: "Toque em + para criar sua primeira etiqueta.")
+          EmptyStateView(illustration: .labelsEmpty, title: "Nenhuma etiqueta ainda", subtitle: "Toque em + para criar sua primeira etiqueta.")
             .stackedStandaloneEmptyState()
         } else {
           List {

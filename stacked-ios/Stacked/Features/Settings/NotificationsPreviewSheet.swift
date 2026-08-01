@@ -33,7 +33,7 @@ struct NotificationsPreviewSheet: View {
             .frame(maxWidth: .infinity, minHeight: 220)
         } else if items.isEmpty {
           EmptyStateView(
-            icon: .notifications,
+            illustration: .notificationsEmpty,
             title: "Nenhuma notificação agendada",
             subtitle: "Tarefas e subtarefas com data e hora futuras aparecem aqui"
           )

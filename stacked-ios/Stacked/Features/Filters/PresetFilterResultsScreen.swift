@@ -112,7 +112,7 @@ struct PresetFilterResultsScreen: View {
     List {
       Section {
         EmptyStateView(
-          illustration: .inboxZero,
+          illustration: .filterClear,
           title: "Tudo limpo por aqui",
           subtitle: "Nenhum item corresponde a este filtro no momento."
         )

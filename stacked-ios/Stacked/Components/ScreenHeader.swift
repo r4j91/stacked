@@ -30,44 +30,14 @@ struct SectionLabel: View {
 
 struct EmptyStateView: View {
   @Environment(ThemeManager.self) private var theme
-  var illustration: EmptyStateIllustrationKind?
-  var icon: StackedIconKey?
+  let illustration: EmptyStateIllustrationKind
   let title: String
   let subtitle: String
 
-  init(
-    illustration: EmptyStateIllustrationKind,
-    title: String,
-    subtitle: String
-  ) {
-    self.illustration = illustration
-    self.icon = nil
-    self.title = title
-    self.subtitle = subtitle
-  }
-
-  init(icon: StackedIconKey, title: String, subtitle: String) {
-    self.illustration = nil
-    self.icon = icon
-    self.title = title
-    self.subtitle = subtitle
-  }
-
   var body: some View {
     let c = theme.colors
-    VStack(spacing: illustration != nil ? 18 : 10) {
-      if let illustration {
-        EmptyStateIllustration(kind: illustration)
-      } else if let icon {
-        ZStack {
-          Circle()
-            .fill(c.surfaceVariant.opacity(c.isDark ? 0.55 : 0.85))
-            .frame(width: 80, height: 80)
-          StackedIcons.image(icon)
-            .font(.system(size: 32, weight: .regular))
-            .foregroundStyle(c.textTertiary.opacity(0.85))
-        }
-      }
+    VStack(spacing: 18) {
+      EmptyStateIllustration(kind: illustration)
 
       VStack(spacing: 6) {
         Text(title)
@@ -98,7 +68,8 @@ extension View {
       .listRowBackground(Color.clear)
       .frame(maxWidth: .infinity, alignment: .center)
       .containerRelativeFrame(.vertical) { length, _ in
-        max(length * 0.50, 280)
+        // O emblema tem 172pt; abaixo disso título e legenda encostariam nele.
+        max(length * 0.50, 330)
       }
   }
 

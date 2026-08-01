@@ -39,7 +39,7 @@ struct SearchView: View {
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.groupedResults.isEmpty {
-          EmptyStateView(icon: .search, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
+          EmptyStateView(illustration: .searchEmpty, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
             .stackedStandaloneEmptyState()
         } else if useUIKitTaskList {
           uikitSearchBody(colors: c)

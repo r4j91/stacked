@@ -32,7 +32,7 @@ struct LogbookView: View {
         ProgressView().tint(c.accent)
       } else if tasks.isEmpty {
         EmptyStateView(
-          icon: .logbook,
+          illustration: .logbookEmpty,
           title: "Nenhuma tarefa concluída",
           subtitle: "As tarefas concluídas aparecerão aqui"
         )

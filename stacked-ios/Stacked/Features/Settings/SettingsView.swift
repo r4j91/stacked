@@ -102,6 +102,10 @@ struct SettingsView: View {
           .buttonStyle(.plain)
           .settingsListCardRow(top: 28, bottom: 24)
         }
+
+        Section {
+          creditsFooter
+        }
       }
       .settingsDrillDownList(background: c.background)
       .listSectionSpacing(20)
@@ -169,6 +173,18 @@ struct SettingsView: View {
       RoundedRectangle(cornerRadius: 12)
         .stroke(AppColors.priorityHigh, lineWidth: 1)
     )
+  }
+
+  /// As ilustrações de lista vazia usam o Solar Icon Set, sob CC BY 4.0,
+  /// que exige crédito visível.
+  private var creditsFooter: some View {
+    Text("Ilustrações com Solar Icon Set (CC BY 4.0)")
+      .font(AppTypography.metaSmall)
+      .foregroundStyle(theme.colors.textTertiary)
+      .frame(maxWidth: .infinity, alignment: .center)
+      .listRowBackground(Color.clear)
+      .listRowSeparator(.hidden)
+      .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 24, trailing: 0))
   }
 
   private func settingsRow(icon: StackedIconKey, label: String, subtitle: String) -> some View {

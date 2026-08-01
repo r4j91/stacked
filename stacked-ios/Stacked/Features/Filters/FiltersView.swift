@@ -254,7 +254,7 @@ struct FiltersView: View {
         Section {
           if store.projects.isEmpty {
             VStack(spacing: AppSpacing.md) {
-              EmptyStateView(icon: .folder, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
+              EmptyStateView(illustration: .projectsEmpty, title: "Nenhum projeto", subtitle: "Organize suas tarefas por contexto")
               Button("Criar projeto") { showNewProject = true }
                 .font(AppTypography.bodySemibold)
                 .foregroundStyle(theme.colors.accent)
