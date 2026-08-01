@@ -41,13 +41,19 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case abyss
     /// Mesma atmosfera em cinza neutro — gradiente sem matiz azul.
     case abyssAsh
+    /// Abismo com fundo mais claro — menos “preto OLED”, ainda petrol-noite.
+    case abyssSoft
+    /// Abismo Cinza com fundo mais claro.
+    case abyssAshSoft
 
     var id: String { rawValue }
 
     /// Curadoria principal do seletor. Os demais continuam em “Mais temas”.
     static let recommended: [AppThemeId] = [
         .abyss,
+        .abyssSoft,
         .abyssAsh,
+        .abyssAshSoft,
         .slate,
         .slateEmber,
         .graphite,
@@ -79,6 +85,29 @@ enum AppThemeId: String, CaseIterable, Identifiable {
                     Color(hex: 0x141518),
                     Color(hex: 0x181A1E),
                     Color(hex: 0x1C1E22),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .abyssSoft:
+            // ~1 tom acima do Abismo — ainda escuro, mas o fundo não some no OLED.
+            return LinearGradient(
+                colors: [
+                    Color(hex: 0x151C22),
+                    Color(hex: 0x1A232A),
+                    Color(hex: 0x1E2830),
+                    Color(hex: 0x233038),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .abyssAshSoft:
+            return LinearGradient(
+                colors: [
+                    Color(hex: 0x181A1E),
+                    Color(hex: 0x1D2025),
+                    Color(hex: 0x22262C),
+                    Color(hex: 0x282C33),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -129,6 +158,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: "Sodalite Larimar"
         case .abyss: "Abismo"
         case .abyssAsh: "Abismo Cinza"
+        case .abyssSoft: "Abismo Suave"
+        case .abyssAshSoft: "Abismo Cinza Suave"
         }    }
 
     var subtitle: String {
@@ -170,6 +201,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: "Carvão · ciano"
         case .abyss: "Petróleo-noite · mint"
         case .abyssAsh: "Noite neutra · cinza"
+        case .abyssSoft: "Petróleo mais claro · mint"
+        case .abyssAshSoft: "Cinza mais claro"
         }    }
 
     /// Preview do seletor (3 retângulos). Temas novos usam hex de mockup; demais = tokens reais.
@@ -179,6 +212,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x0E1418), Color(hex: 0x172026), Color(hex: 0x6ED4C8))
         case .abyssAsh:
             return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0xA8B0BC))
+        case .abyssSoft:
+            return (Color(hex: 0x1A232A), Color(hex: 0x243038), Color(hex: 0x6ED4C8))
+        case .abyssAshSoft:
+            return (Color(hex: 0x1D2025), Color(hex: 0x282C33), Color(hex: 0xA8B0BC))
         case .titanium:
             return (Color(hex: 0x0A0C10), Color(hex: 0x171B21), Color(hex: 0x8FA8C7))
         case .amazonite:
@@ -288,6 +325,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: .sodaliteLarimar
         case .abyss: .abyss
         case .abyssAsh: .abyssAsh
+        case .abyssSoft: .abyssSoft
+        case .abyssAshSoft: .abyssAshSoft
         }
     }
 }
@@ -737,6 +776,48 @@ struct AppThemeColors: Equatable {
         fabGradientEnd: Color(hex: 0x8A93A2),
         folderTint: Color(hex: 0xA8B0BC),
         navBar: Color(hex: 0x1C1E22),
+        isDark: true
+    )
+
+    /// Abismo Suave — mesmos accents do Abismo, fundo ~1 tom mais claro.
+    static let abyssSoft = AppThemeColors(
+        background: Color(hex: 0x1A232A),
+        surface: Color(hex: 0x243038),
+        surfaceVariant: Color(hex: 0x2C3A44),
+        textPrimary: Color(hex: 0xE8EEF1),
+        textSecondary: Color(hex: 0x8FA3AD),
+        textTertiary: Color(hex: 0x667A84),
+        textQuaternary: Color(hex: 0x556870),
+        hairline: Color(hex: 0x34444E),
+        accent: Color(hex: 0x6ED4C8),
+        onAccent: Color(hex: 0x0A1214),
+        actionAccent: Color(hex: 0x6ED4C8),
+        onActionAccent: Color(hex: 0x0A1214),
+        fabGradientStart: Color(hex: 0x8FE0D6),
+        fabGradientEnd: Color(hex: 0x4FB8AC),
+        folderTint: Color(hex: 0x6ED4C8),
+        navBar: Color(hex: 0x243038),
+        isDark: true
+    )
+
+    /// Abismo Cinza Suave — mesmos accents do Abismo Cinza, fundo mais claro.
+    static let abyssAshSoft = AppThemeColors(
+        background: Color(hex: 0x1D2025),
+        surface: Color(hex: 0x282C33),
+        surfaceVariant: Color(hex: 0x323740),
+        textPrimary: Color(hex: 0xE8ECF0),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x5A6270),
+        hairline: Color(hex: 0x3A404A),
+        accent: Color(hex: 0xA8B0BC),
+        onAccent: Color(hex: 0x12161E),
+        actionAccent: Color(hex: 0xA8B0BC),
+        onActionAccent: Color(hex: 0x12161E),
+        fabGradientStart: Color(hex: 0xBCC4D0),
+        fabGradientEnd: Color(hex: 0x8A93A2),
+        folderTint: Color(hex: 0xA8B0BC),
+        navBar: Color(hex: 0x282C33),
         isDark: true
     )
 

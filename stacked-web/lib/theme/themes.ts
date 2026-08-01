@@ -28,6 +28,8 @@ export type AppThemeId =
   | "basaltViolet"
   | "abyss"
   | "abyssAsh"
+  | "abyssSoft"
+  | "abyssAshSoft"
 
 export type AppThemeColors = {
   background: string
@@ -734,12 +736,64 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Abismo com fundo ~1 tom mais claro — paridade iOS Abismo Suave. */
+  abyssSoft: {
+    id: "abyssSoft",
+    name: "Abismo Suave",
+    subtitle: "Petróleo mais claro · mint",
+    previewSwatch: {
+      background: "#1A232A",
+      surface: "#243038",
+      accent: "#6ED4C8",
+    },
+    colors: {
+      background: "#1A232A",
+      surface: "#243038",
+      surfaceVariant: "#2C3A44",
+      textPrimary: "#E8EEF1",
+      textSecondary: "#8FA3AD",
+      textTertiary: "#667A84",
+      textQuaternary: "#556870",
+      hairline: "#34444E",
+      accent: "#6ED4C8",
+      accentText: "#0A1214",
+      navBar: "#243038",
+      isDark: true,
+    },
+  },
+  /** Abismo Cinza com fundo mais claro — paridade iOS Abismo Cinza Suave. */
+  abyssAshSoft: {
+    id: "abyssAshSoft",
+    name: "Abismo Cinza Suave",
+    subtitle: "Cinza mais claro",
+    previewSwatch: {
+      background: "#1D2025",
+      surface: "#282C33",
+      accent: "#A8B0BC",
+    },
+    colors: {
+      background: "#1D2025",
+      surface: "#282C33",
+      surfaceVariant: "#323740",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#3A404A",
+      accent: "#A8B0BC",
+      accentText: "#12161E",
+      navBar: "#282C33",
+      isDark: true,
+    },
+  },
 }
 
 /** Paridade iOS AppThemeId.recommended */
 export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "abyss",
+  "abyssSoft",
   "abyssAsh",
+  "abyssAshSoft",
   "slate",
   "slateEmber",
   "graphite",
