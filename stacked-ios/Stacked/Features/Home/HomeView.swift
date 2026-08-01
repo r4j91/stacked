@@ -45,7 +45,7 @@ struct HomeView: View {
             onOpenLabels: { showLabels = true }
           )
         }
-        HomeOverviewSection(onNavigateToTab: onNavigateToTab)
+        HomeOverviewSection(onNavigateToTab: onNavigateToTab, onOpenFilter: onOpenFilter)
         HomeProjectsSection(
           selectedProject: $selectedProject,
           showNewProject: $showNewProject,
@@ -168,8 +168,10 @@ private struct HomeOverviewSection: View {
   @Environment(ThemeManager.self) private var theme
   @State private var store = HomeStore.shared
   var onNavigateToTab: (NavTab) -> Void
+  var onOpenFilter: (TaskFilterKind) -> Void
   @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+  @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -183,15 +185,46 @@ private struct HomeOverviewSection: View {
     let icon: StackedIconKey
     let label: String
     let count: Int
-    let tab: NavTab
+    /// Atrasadas puxam a cor de alerta; as demais ficam no cinza de sempre.
+    var isAlert: Bool = false
+    let action: () -> Void
+  }
+
+  /// Com o card de saudação ligado é ele quem avisa das atrasadas — aqui a linha
+  /// só entra quando o card está desligado, senão o aviso apareceria duas vezes.
+  private var showsOverdue: Bool {
+    !topCardEnabled && store.overdueCount > 0
   }
 
   private var entries: [OverviewEntry] {
-    [
-      OverviewEntry(icon: .navInbox, label: "Inbox", count: store.inboxCount, tab: .inbox),
-      OverviewEntry(icon: .navToday, label: "Hoje", count: store.todayPending, tab: .today),
-      OverviewEntry(icon: .navUpcoming, label: "Em breve", count: store.upcomingCount, tab: .upcoming),
-    ]
+    var rows: [OverviewEntry] = []
+    if showsOverdue {
+      rows.append(
+        OverviewEntry(
+          icon: .clock,
+          label: "Atrasadas",
+          count: store.overdueCount,
+          isAlert: true,
+          action: { onOpenFilter(.overdue) }
+        )
+      )
+    }
+    rows.append(
+      OverviewEntry(icon: .navInbox, label: "Inbox", count: store.inboxCount) {
+        onNavigateToTab(.inbox)
+      }
+    )
+    rows.append(
+      OverviewEntry(icon: .navToday, label: "Hoje", count: store.todayPending) {
+        onNavigateToTab(.today)
+      }
+    )
+    rows.append(
+      OverviewEntry(icon: .navUpcoming, label: "Em breve", count: store.upcomingCount) {
+        onNavigateToTab(.upcoming)
+      }
+    )
+    return rows
   }
 
   var body: some View {
@@ -211,16 +244,26 @@ private struct HomeOverviewSection: View {
     let c = theme.colors
     let t = typeScale.metrics
     let m = sectionStyle.metrics
-    return Button { onNavigateToTab(entry.tab) } label: {
+    return Button(action: entry.action) {
       HStack(spacing: HomeSectionRowLayout.iconSpacing) {
         StackedIcons.image(entry.icon)
           .font(.system(size: 20))
-          .foregroundStyle(c.textSecondary)
+          .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textSecondary)
           .frame(width: HomeSectionRowLayout.iconWidth)
-        Text(entry.label).font(t.rowTitleFont).foregroundStyle(c.textPrimary)
+        Text(entry.label)
+          .font(t.rowTitleFont)
+          .fontWeight(entry.isAlert ? .semibold : nil)
+          .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textPrimary)
         Spacer()
-        Text("\(entry.count)").font(t.rowCountFont).foregroundStyle(c.textTertiary)
-        DisclosureChevron(color: c.textTertiary.opacity(0.7))
+        Text("\(entry.count)")
+          .font(t.rowCountFont)
+          .fontWeight(entry.isAlert ? .semibold : nil)
+          .foregroundStyle(entry.isAlert ? AppColors.overdue : c.textTertiary)
+        DisclosureChevron(
+          color: entry.isAlert
+            ? AppColors.overdue.opacity(0.75)
+            : c.textTertiary.opacity(0.7)
+        )
       }
       .padding(.vertical, m.rowPaddingV)
     }
