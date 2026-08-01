@@ -32,7 +32,7 @@ struct InboxView: View {
       taskDetailZoom: taskDetailZoom
     )
     .stackedTabletCentered()
-    .background(c.background)
+    .stackedListCanvasBackground(theme)
     .stackedListRowWorkGate($allowRowHeavyWork)
     .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
       _Concurrency.Task {
@@ -154,7 +154,7 @@ private struct InboxUIKitListContent: View {
       style: displayMode.taskRowStyle,
       flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: cardInsets,
-      background: colors.background,
+      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
       leadingChrome: {
         AnyView(
           TaskListScreenHeader(

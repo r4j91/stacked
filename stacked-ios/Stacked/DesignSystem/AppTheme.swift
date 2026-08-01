@@ -37,11 +37,17 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case sodaliteAzurite
     case sodaliteMalachite
     case sodaliteLarimar
+    /// Petróleo-noite com accent mint e fundo em gradiente.
+    case abyss
+    /// Mesma atmosfera em cinza neutro — gradiente sem matiz azul.
+    case abyssAsh
 
     var id: String { rawValue }
 
     /// Curadoria principal do seletor. Os demais continuam em “Mais temas”.
     static let recommended: [AppThemeId] = [
+        .abyss,
+        .abyssAsh,
         .slate,
         .slateEmber,
         .graphite,
@@ -51,6 +57,38 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         .basaltEmber,
         .basaltGold,
     ]
+
+    /// Gradiente de atmosfera. `nil` = fundo sólido (`colors.background`).
+    var atmosphericGradient: LinearGradient? {
+        switch self {
+        case .abyss:
+            return LinearGradient(
+                colors: [
+                    Color(hex: 0x0B1115),
+                    Color(hex: 0x0E1418),
+                    Color(hex: 0x121C22),
+                    Color(hex: 0x152028),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .abyssAsh:
+            return LinearGradient(
+                colors: [
+                    Color(hex: 0x0C0D0F),
+                    Color(hex: 0x141518),
+                    Color(hex: 0x181A1E),
+                    Color(hex: 0x1C1E22),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        default:
+            return nil
+        }
+    }
+
+    var usesAtmosphericBackground: Bool { atmosphericGradient != nil }
 
     var displayName: String {
         switch self {
@@ -89,6 +127,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteAzurite: "Sodalite Azurite"
         case .sodaliteMalachite: "Sodalite Malachite"
         case .sodaliteLarimar: "Sodalite Larimar"
+        case .abyss: "Abismo"
+        case .abyssAsh: "Abismo Cinza"
         }    }
 
     var subtitle: String {
@@ -128,11 +168,17 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteAzurite: "Carvão · aço"
         case .sodaliteMalachite: "Carvão · verde"
         case .sodaliteLarimar: "Carvão · ciano"
+        case .abyss: "Petróleo-noite · mint"
+        case .abyssAsh: "Noite neutra · cinza"
         }    }
 
     /// Preview do seletor (3 retângulos). Temas novos usam hex de mockup; demais = tokens reais.
     var previewSwatch: (background: Color, surface: Color, accent: Color) {
         switch self {
+        case .abyss:
+            return (Color(hex: 0x0E1418), Color(hex: 0x172026), Color(hex: 0x6ED4C8))
+        case .abyssAsh:
+            return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0xA8B0BC))
         case .titanium:
             return (Color(hex: 0x0A0C10), Color(hex: 0x171B21), Color(hex: 0x8FA8C7))
         case .amazonite:
@@ -240,6 +286,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteAzurite: .sodaliteAzurite
         case .sodaliteMalachite: .sodaliteMalachite
         case .sodaliteLarimar: .sodaliteLarimar
+        case .abyss: .abyss
+        case .abyssAsh: .abyssAsh
         }
     }
 }
@@ -650,6 +698,48 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
+    /// Abismo — petrol-noite com accent mint. Fundo usa gradiente em `atmosphericGradient`.
+    static let abyss = AppThemeColors(
+        background: Color(hex: 0x0E1418),
+        surface: Color(hex: 0x172026),
+        surfaceVariant: Color(hex: 0x1E2A31),
+        textPrimary: Color(hex: 0xE8EEF1),
+        textSecondary: Color(hex: 0x8FA3AD),
+        textTertiary: Color(hex: 0x667A84),
+        textQuaternary: Color(hex: 0x556870),
+        hairline: Color(hex: 0x2A3840),
+        accent: Color(hex: 0x6ED4C8),
+        onAccent: Color(hex: 0x0A1214),
+        actionAccent: Color(hex: 0x6ED4C8),
+        onActionAccent: Color(hex: 0x0A1214),
+        fabGradientStart: Color(hex: 0x8FE0D6),
+        fabGradientEnd: Color(hex: 0x4FB8AC),
+        folderTint: Color(hex: 0x6ED4C8),
+        navBar: Color(hex: 0x172026),
+        isDark: true
+    )
+
+    /// Abismo Cinza — mesma atmosfera sem matiz azul; accent cinza Things.
+    static let abyssAsh = AppThemeColors(
+        background: Color(hex: 0x141518),
+        surface: Color(hex: 0x1C1E22),
+        surfaceVariant: Color(hex: 0x25282E),
+        textPrimary: Color(hex: 0xE8ECF0),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x5A6270),
+        hairline: Color(hex: 0x2E323A),
+        accent: Color(hex: 0xA8B0BC),
+        onAccent: Color(hex: 0x12161E),
+        actionAccent: Color(hex: 0xA8B0BC),
+        onActionAccent: Color(hex: 0x12161E),
+        fabGradientStart: Color(hex: 0xBCC4D0),
+        fabGradientEnd: Color(hex: 0x8A93A2),
+        folderTint: Color(hex: 0xA8B0BC),
+        navBar: Color(hex: 0x1C1E22),
+        isDark: true
+    )
+
     /// Basalt — fundo cinza Things (#1C222D); accent cinza nos botões.
     static let basalt = AppThemeColors(
         background: Color(hex: 0x1C222D),
@@ -945,6 +1035,8 @@ final class ThemeManager {
 
   var colors: AppThemeColors { currentId.colors }
 
+  var usesAtmosphericBackground: Bool { currentId.usesAtmosphericBackground }
+
   private init() {
     if let raw = UserDefaults.standard.string(forKey: Self.storageKey),
        let saved = AppThemeId(rawValue: raw) {
@@ -954,6 +1046,25 @@ final class ThemeManager {
 
   func setTheme(_ id: AppThemeId) {
     currentId = id
+  }
+}
+
+extension View {
+  /// Fundo da tela: gradiente nos temas Abismo, sólido nos demais.
+  /// Em listas com `.scrollContentBackground(.hidden)`, use isto no shell e
+  /// `Color.clear` na lista para o gradiente aparecer atrás do conteúdo.
+  @ViewBuilder
+  func stackedThemeBackground(_ theme: ThemeManager) -> some View {
+    if let gradient = theme.currentId.atmosphericGradient {
+      background(gradient.ignoresSafeArea())
+    } else {
+      background(theme.colors.background.ignoresSafeArea())
+    }
+  }
+
+  /// Cor de fundo de lista/scroll: transparente com atmosfera, senão o sólido do tema.
+  func stackedListCanvasBackground(_ theme: ThemeManager) -> some View {
+    background(theme.usesAtmosphericBackground ? Color.clear : theme.colors.background)
   }
 }
 

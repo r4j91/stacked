@@ -30,7 +30,7 @@ struct UpcomingView: View {
       taskDetailZoom: taskDetailZoom
     )
     .stackedTabletCentered()
-    .background(c.background)
+    .stackedListCanvasBackground(theme)
     .refreshable { await store.load() }
     .stackedListRowWorkGate($allowRowHeavyWork)
     .taskDetailCover(item: $detailRoute, namespace: taskDetailZoom, onDismiss: {
@@ -222,7 +222,7 @@ private struct UpcomingUIKitListContent: View {
       style: displayMode.taskRowStyle,
       flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
-      background: colors.background,
+      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
       leadingChrome: {
         AnyView(
           VStack(alignment: .leading, spacing: AppSpacing.sm) {

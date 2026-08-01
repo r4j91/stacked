@@ -29,15 +29,12 @@ struct SearchView: View {
             _Concurrency.Task { await store.load() }
           }
         } else if store.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-          VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-              .font(.system(size: 36))
-              .foregroundStyle(c.textTertiary)
-            Text("Buscar tarefas")
-              .font(.system(size: 16, weight: .semibold))
-              .foregroundStyle(c.textSecondary)
-          }
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          EmptyStateView(
+            illustration: .searchEmpty,
+            title: "Nada por aqui ainda",
+            subtitle: "Digite para achar tarefas, projetos e etiquetas"
+          )
+          .stackedStandaloneEmptyState()
         } else if store.groupedResults.isEmpty {
           EmptyStateView(illustration: .searchEmpty, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
             .stackedStandaloneEmptyState()
@@ -61,7 +58,7 @@ struct SearchView: View {
         }
       }
       .stackedTabletCentered()
-      .background(c.background)
+      .stackedThemeBackground(theme)
       .navigationTitle("Buscar")
       .navigationBarTitleDisplayMode(.inline)
       .searchable(text: $store.query, prompt: "Título, projeto ou etiqueta")

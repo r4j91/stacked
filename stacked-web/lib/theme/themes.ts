@@ -26,6 +26,8 @@ export type AppThemeId =
   | "basaltGold"
   | "basaltJade"
   | "basaltViolet"
+  | "abyss"
+  | "abyssAsh"
 
 export type AppThemeColors = {
   background: string
@@ -682,10 +684,62 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Petróleo-noite com accent mint — paridade iOS Abismo. */
+  abyss: {
+    id: "abyss",
+    name: "Abismo",
+    subtitle: "Petróleo-noite · mint",
+    previewSwatch: {
+      background: "#0E1418",
+      surface: "#172026",
+      accent: "#6ED4C8",
+    },
+    colors: {
+      background: "#0E1418",
+      surface: "#172026",
+      surfaceVariant: "#1E2A31",
+      textPrimary: "#E8EEF1",
+      textSecondary: "#8FA3AD",
+      textTertiary: "#667A84",
+      textQuaternary: "#556870",
+      hairline: "#2A3840",
+      accent: "#6ED4C8",
+      accentText: "#0A1214",
+      navBar: "#172026",
+      isDark: true,
+    },
+  },
+  /** Mesma atmosfera em cinza neutro — paridade iOS Abismo Cinza. */
+  abyssAsh: {
+    id: "abyssAsh",
+    name: "Abismo Cinza",
+    subtitle: "Noite neutra · cinza",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#A8B0BC",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#A8B0BC",
+      accentText: "#12161E",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
 }
 
 /** Paridade iOS AppThemeId.recommended */
 export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
+  "abyss",
+  "abyssAsh",
   "slate",
   "slateEmber",
   "graphite",

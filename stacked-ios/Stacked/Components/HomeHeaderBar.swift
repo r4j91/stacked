@@ -106,14 +106,25 @@ private struct HomeHeaderLeading: View {
         }
       }
       .modifier(HomeHeaderQuietBorder())
+      .overlay {
+        if style.showsProgressRing, dayProgress >= 1 {
+          Capsule()
+            .strokeBorder(c.accent.opacity(0.35), lineWidth: 1)
+        }
+      }
     }
     .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
     .accessibilityLabel(topCardEnabled ? "Relatório de produtividade" : "Perfil")
     .accessibilityValue(accessibilityValue)
   }
 
+  private var goalMet: Bool { dayProgress >= 1 }
+
   private var accessibilityValue: String {
     guard style.showsProgressRing else { return "" }
+    if goalMet {
+      return "Meta diária concluída · \(store.completedToday) de \(dailyGoal)"
+    }
     return "\(store.completedToday) de \(dailyGoal) concluídas hoje"
   }
 
@@ -155,10 +166,16 @@ private struct HomeHeaderLeading: View {
           Text(pillName)
             .font(t.rowTitleFont)
             .foregroundStyle(c.textPrimary)
+          if goalMet {
+            Image(systemName: "checkmark.circle.fill")
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(c.accent)
+              .accessibilityHidden(true)
+          }
           Text(dayFraction)
             .font(.system(size: 13.5, weight: .semibold))
             .monospacedDigit()
-            .foregroundStyle(dayProgress >= 1 ? c.accent : c.textTertiary)
+            .foregroundStyle(goalMet ? c.accent : c.textTertiary)
         }
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
@@ -166,13 +183,21 @@ private struct HomeHeaderLeading: View {
       }
 
     case .greeting:
-      VStack(alignment: .leading, spacing: 1) {
-        Text(greetingLine)
-          .font(.system(size: 15.5, weight: .semibold))
-          .foregroundStyle(c.textPrimary)
-        Text(metaLine)
-          .font(.system(size: 11.5))
-          .foregroundStyle(c.textTertiary)
+      HStack(spacing: 7) {
+        VStack(alignment: .leading, spacing: 1) {
+          Text(greetingLine)
+            .font(.system(size: 15.5, weight: .semibold))
+            .foregroundStyle(c.textPrimary)
+          Text(metaLine)
+            .font(.system(size: 11.5))
+            .foregroundStyle(c.textTertiary)
+        }
+        if goalMet {
+          Image(systemName: "checkmark.circle.fill")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(c.accent)
+            .accessibilityHidden(true)
+        }
       }
       .lineLimit(1)
       .fixedSize(horizontal: true, vertical: false)
@@ -186,15 +211,23 @@ private struct HomeHeaderProgressRing: View {
   let progress: Double
   let colors: AppThemeColors
 
+  private var complete: Bool { progress >= 1 }
+
   var body: some View {
     ZStack {
       Circle()
-        .strokeBorder(colors.textPrimary.opacity(0.13), lineWidth: 2.5)
+        .strokeBorder(colors.textPrimary.opacity(complete ? 0.08 : 0.13), lineWidth: 2.5)
       Circle()
-        .trim(from: 0, to: max(0.02, progress))
-        .stroke(colors.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        .trim(from: 0, to: max(0.02, min(1, progress)))
+        .stroke(colors.accent, style: StrokeStyle(lineWidth: complete ? 3 : 2.5, lineCap: .round))
         .rotationEffect(.degrees(-90))
         .padding(1.25)
+      if complete {
+        Circle()
+          .strokeBorder(colors.accent.opacity(0.22), lineWidth: 4)
+          .padding(-1.5)
+          .blur(radius: 0.2)
+      }
     }
     .padding(1)
     .allowsHitTesting(false)

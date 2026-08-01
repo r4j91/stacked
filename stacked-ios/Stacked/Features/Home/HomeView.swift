@@ -65,7 +65,7 @@ struct HomeView: View {
       .scrollContentBackground(.hidden)
       .stackedDashboardListChrome()
       .stackedTabletCentered()
-      .background(c.background)
+      .stackedListCanvasBackground(theme)
       .environment(\.editMode, $projectsEditMode)
       .navigationTitle("")
       .navigationBarTitleDisplayMode(.inline)

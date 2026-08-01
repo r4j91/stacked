@@ -76,7 +76,7 @@ struct FiltersView: View {
         }
     }
     .tint(theme.colors.textSecondary)
-    .background(theme.colors.background.ignoresSafeArea(.all))
+    .stackedThemeBackground(theme)
     .newProjectFloating(isPresented: $showNewProject) {
       _Concurrency.Task { await store.loadDashboard() }
     }
@@ -177,6 +177,13 @@ struct FiltersView: View {
     let c = theme.colors
 
     return List {
+      Section {
+        ScreenHeader(title: "Filtros", subtitle: NavTab.filters.subtitle)
+          .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+
       if store.dashboardLoading {
         Section {
           ProgressView()
@@ -225,6 +232,10 @@ struct FiltersView: View {
             kind: .completedToday,
             position: .last
           )
+        } header: {
+          HomeSectionHeader(text: "VISÃO RÁPIDA", style: sectionStyle, scale: typeScale)
+            .textCase(nil)
+            .homeSectionHeaderInsets(sectionStyle)
         }
 
         Section {
@@ -304,8 +315,8 @@ struct FiltersView: View {
     .scrollContentBackground(.hidden)
     .stackedDashboardListChrome()
     .stackedTabletCentered()
-    .background(c.background)
-    .navigationTitle("Filtros")
+    .stackedListCanvasBackground(theme)
+    .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(.hidden, for: .navigationBar)
     .refreshable { await store.loadDashboard() }

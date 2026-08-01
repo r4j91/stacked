@@ -240,7 +240,7 @@ struct RootTabContent: View {
       preservedTab(.upcoming) { UpcomingView() }
       preservedTab(.filters) { FiltersView() }
     }
-    .background(theme.colors.background.ignoresSafeArea())
+    .stackedThemeBackground(theme)
   }
 
   private func preservedTab<Content: View>(

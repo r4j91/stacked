@@ -39,7 +39,7 @@ struct TodayView: View {
       taskDetailZoom: taskDetailZoom
     )
     .stackedTabletCentered()
-    .background(c.background)
+    .stackedListCanvasBackground(theme)
     .stackedListRowWorkGate($allowRowHeavyWork)
     .onAppear {
       ScrollHitchProbe.noteScreen("Hoje")
@@ -192,7 +192,7 @@ private struct TodayUIKitListContent: View {
       style: displayMode.taskRowStyle,
       flatSubtaskQueue: displayMode.flatSubtaskQueue,
       rowInsets: rowInsets,
-      background: colors.background,
+      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
       leadingChrome: {
         AnyView(
           TaskListScreenHeader(
