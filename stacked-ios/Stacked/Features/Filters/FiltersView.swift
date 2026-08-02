@@ -315,7 +315,7 @@ struct FiltersView: View {
     .scrollContentBackground(.hidden)
     .stackedDashboardListChrome()
     .stackedTabletCentered()
-    .stackedListCanvasBackground(theme)
+    .stackedThemeBackground(theme)
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(.hidden, for: .navigationBar)

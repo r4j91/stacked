@@ -65,7 +65,7 @@ struct HomeView: View {
       .scrollContentBackground(.hidden)
       .stackedDashboardListChrome()
       .stackedTabletCentered()
-      .stackedListCanvasBackground(theme)
+      .stackedThemeBackground(theme)
       .environment(\.editMode, $projectsEditMode)
       .navigationTitle("")
       .navigationBarTitleDisplayMode(.inline)
@@ -109,7 +109,7 @@ struct HomeView: View {
       }
     }
     .toolbarBackground(.hidden, for: .navigationBar)
-    .background(c.background.ignoresSafeArea(.all))
+    .stackedThemeBackground(theme)
     .newProjectFloating(isPresented: $showNewProject) {
       _Concurrency.Task { await store.load() }
     }

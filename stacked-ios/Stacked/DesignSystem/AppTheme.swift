@@ -70,8 +70,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyss:
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x0B1115),
                     Color(hex: 0x0E1418),
+                    Color(hex: 0x10181E),
                     Color(hex: 0x121C22),
                     Color(hex: 0x152028),
                 ],
@@ -81,8 +81,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAsh:
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x0C0D0F),
                     Color(hex: 0x141518),
+                    Color(hex: 0x16171A),
                     Color(hex: 0x181A1E),
                     Color(hex: 0x1C1E22),
                 ],
@@ -93,8 +93,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             // Canvas bem mais claro que o Abismo; surface dos cards fica no normal.
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x171F26),
                     Color(hex: 0x1A232A),
+                    Color(hex: 0x1B242C),
                     Color(hex: 0x1C262E),
                     Color(hex: 0x1E2932),
                 ],
@@ -104,8 +104,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAshSoft:
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x1A1C20),
                     Color(hex: 0x1D2025),
+                    Color(hex: 0x1E2126),
                     Color(hex: 0x202328),
                     Color(hex: 0x22252A),
                 ],

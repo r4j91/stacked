@@ -18,8 +18,7 @@ private struct AppRootView: View {
 
   var body: some View {
     ZStack {
-      themeManager.colors.background
-        .ignoresSafeArea(.all)
+      rootBackdrop
 
       AuthGateView()
         .environment(themeManager)
@@ -71,5 +70,14 @@ private struct AppRootView: View {
       }
     }
     .onOpenURL { AppNavigationRouter.shared.handle(url: $0) }
+  }
+
+  @ViewBuilder
+  private var rootBackdrop: some View {
+    if let gradient = themeManager.currentId.atmosphericGradient {
+      gradient.ignoresSafeArea(.all)
+    } else {
+      themeManager.colors.background.ignoresSafeArea(.all)
+    }
   }
 }

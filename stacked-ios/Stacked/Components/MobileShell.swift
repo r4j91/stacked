@@ -98,7 +98,7 @@ struct MobileShell<Content: View>: View {
     // Animação do FAB restrita ao overlay — evita invalidar conteúdo e navbar.
     // REMOVIDO_A1_ETAPA2 — .animation(AppMotion.islandNavMorph(reduceMotion: reduceMotion), value: chrome.islandNavExpanded)
     .ignoresSafeArea(edges: .bottom)
-    .background(c.background.ignoresSafeArea(.all))
+    .stackedThemeBackground(theme)
   }
 }
 

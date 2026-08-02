@@ -812,7 +812,15 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       return
     }
 
-    let fill = config?.background ?? .clear
+    let fill: UIColor
+    if let configured = config?.background, configured.cgColor.alpha >= 0.99 {
+      fill = configured
+    } else if ThemeManager.shared.usesAtmosphericBackground {
+      // Semi-opaco: deixa o gradiente transparecer sem bleed das rows no sticky.
+      fill = UIColor(ThemeManager.shared.colors.background).withAlphaComponent(0.92)
+    } else {
+      fill = UIColor(ThemeManager.shared.colors.background)
+    }
     UIView.performWithoutAnimation {
       var clearBg = UIBackgroundConfiguration.clear()
       clearBg.backgroundColor = .clear
@@ -917,11 +925,18 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
 
     view.backgroundColor = configuration.background
     collectionView.backgroundColor = configuration.background
-    // Garante que o UIColor sólido fica (fallback se Color→UIColor vier transparente).
+    // Color.clear → UIColor às vezes chega com alpha < 1. Em temas Abismo o
+    // canvas precisa ficar transparente pro gradiente do shell aparecer; nos
+    // demais, cai no sólido do tema (evita flash preto do UIKit).
     if configuration.background.cgColor.alpha < 0.99 {
-      let solid = UIColor(ThemeManager.shared.colors.background)
-      view.backgroundColor = solid
-      collectionView.backgroundColor = solid
+      if ThemeManager.shared.usesAtmosphericBackground {
+        view.backgroundColor = .clear
+        collectionView.backgroundColor = .clear
+      } else {
+        let solid = UIColor(ThemeManager.shared.colors.background)
+        view.backgroundColor = solid
+        collectionView.backgroundColor = solid
+      }
     }
 
     let presentationKey = Self.presentationKey(configuration)
