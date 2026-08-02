@@ -33,7 +33,7 @@ struct HomeSectionRowBackground: View {
         .padding(.trailing, m.containerInsetH + reorderInset)
         .padding(.vertical, m.capsuleGapV)
         .background(editing ? c.background : Color.clear)
-    case .container, .quiet:
+    case .container, .quiet, .quietEdge:
       ZStack(alignment: .bottom) {
         containerShape(position: position, radius: m.cornerRadius)
           .fill(c.surface)
@@ -49,6 +49,19 @@ struct HomeSectionRowBackground: View {
                 .padding(.bottom, position.isLast ? 0 : -2)
             }
             .clipped()
+        }
+
+        if style.drawsAccentEdge {
+          // Filete inset na borda esquerda — a máscara corta a forma do card,
+          // então o accent acompanha o raio do canto superior/inferior.
+          containerShape(position: position, radius: m.cornerRadius)
+            .fill(c.accent)
+            .mask(alignment: .leading) {
+              HStack(spacing: 0) {
+                Color.white.frame(width: HomeSectionRowLayout.accentEdgeWidth)
+                Color.clear
+              }
+            }
         }
 
         if style.showsRowDividers, !position.isLast {

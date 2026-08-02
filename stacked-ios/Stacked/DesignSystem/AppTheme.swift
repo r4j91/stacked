@@ -90,13 +90,13 @@ enum AppThemeId: String, CaseIterable, Identifiable {
                 endPoint: .bottom
             )
         case .abyssSoft:
-            // ~1 tom acima do Abismo — ainda escuro, mas o fundo não some no OLED.
+            // Canvas bem mais claro que o Abismo; surface dos cards fica no normal.
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x151C22),
+                    Color(hex: 0x171F26),
                     Color(hex: 0x1A232A),
-                    Color(hex: 0x1E2830),
-                    Color(hex: 0x233038),
+                    Color(hex: 0x1C262E),
+                    Color(hex: 0x1E2932),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -104,10 +104,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAshSoft:
             return LinearGradient(
                 colors: [
-                    Color(hex: 0x181A1E),
+                    Color(hex: 0x1A1C20),
                     Color(hex: 0x1D2025),
-                    Color(hex: 0x22262C),
-                    Color(hex: 0x282C33),
+                    Color(hex: 0x202328),
+                    Color(hex: 0x22252A),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -213,9 +213,9 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAsh:
             return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0xA8B0BC))
         case .abyssSoft:
-            return (Color(hex: 0x1A232A), Color(hex: 0x243038), Color(hex: 0x6ED4C8))
+            return (Color(hex: 0x1A232A), Color(hex: 0x172026), Color(hex: 0x6ED4C8))
         case .abyssAshSoft:
-            return (Color(hex: 0x1D2025), Color(hex: 0x282C33), Color(hex: 0xA8B0BC))
+            return (Color(hex: 0x1D2025), Color(hex: 0x1C1E22), Color(hex: 0xA8B0BC))
         case .titanium:
             return (Color(hex: 0x0A0C10), Color(hex: 0x171B21), Color(hex: 0x8FA8C7))
         case .amazonite:
@@ -779,16 +779,16 @@ struct AppThemeColors: Equatable {
         isDark: true
     )
 
-    /// Abismo Suave — mesmos accents do Abismo, fundo ~1 tom mais claro.
+    /// Abismo Suave — cards iguais ao Abismo; canvas bem mais claro.
     static let abyssSoft = AppThemeColors(
         background: Color(hex: 0x1A232A),
-        surface: Color(hex: 0x243038),
-        surfaceVariant: Color(hex: 0x2C3A44),
+        surface: Color(hex: 0x172026),
+        surfaceVariant: Color(hex: 0x1E2A31),
         textPrimary: Color(hex: 0xE8EEF1),
         textSecondary: Color(hex: 0x8FA3AD),
         textTertiary: Color(hex: 0x667A84),
         textQuaternary: Color(hex: 0x556870),
-        hairline: Color(hex: 0x34444E),
+        hairline: Color(hex: 0x2A3840),
         accent: Color(hex: 0x6ED4C8),
         onAccent: Color(hex: 0x0A1214),
         actionAccent: Color(hex: 0x6ED4C8),
@@ -796,20 +796,20 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0x8FE0D6),
         fabGradientEnd: Color(hex: 0x4FB8AC),
         folderTint: Color(hex: 0x6ED4C8),
-        navBar: Color(hex: 0x243038),
+        navBar: Color(hex: 0x172026),
         isDark: true
     )
 
-    /// Abismo Cinza Suave — mesmos accents do Abismo Cinza, fundo mais claro.
+    /// Abismo Cinza Suave — cards iguais ao Abismo Cinza; canvas bem mais claro.
     static let abyssAshSoft = AppThemeColors(
         background: Color(hex: 0x1D2025),
-        surface: Color(hex: 0x282C33),
-        surfaceVariant: Color(hex: 0x323740),
+        surface: Color(hex: 0x1C1E22),
+        surfaceVariant: Color(hex: 0x25282E),
         textPrimary: Color(hex: 0xE8ECF0),
         textSecondary: Color(hex: 0x9AA3B0),
         textTertiary: Color(hex: 0x6B7382),
         textQuaternary: Color(hex: 0x5A6270),
-        hairline: Color(hex: 0x3A404A),
+        hairline: Color(hex: 0x2E323A),
         accent: Color(hex: 0xA8B0BC),
         onAccent: Color(hex: 0x12161E),
         actionAccent: Color(hex: 0xA8B0BC),
@@ -817,7 +817,7 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xBCC4D0),
         fabGradientEnd: Color(hex: 0x8A93A2),
         folderTint: Color(hex: 0xA8B0BC),
-        navBar: Color(hex: 0x282C33),
+        navBar: Color(hex: 0x1C1E22),
         isDark: true
     )
 

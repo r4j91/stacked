@@ -42,7 +42,7 @@ struct HomeSectionStylePreview: View {
               .frame(height: 5)
           }
         }
-      case .container, .quiet:
+      case .container, .quiet, .quietEdge:
         VStack(spacing: 0) {
           ForEach(0..<3, id: \.self) { index in
             ZStack(alignment: .bottom) {
@@ -57,6 +57,19 @@ struct HomeSectionStylePreview: View {
           }
         }
         .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+        .overlay(alignment: .leading) {
+          if style.drawsAccentEdge {
+            UnevenRoundedRectangle(
+              topLeadingRadius: 3,
+              bottomLeadingRadius: 3,
+              bottomTrailingRadius: 0,
+              topTrailingRadius: 0,
+              style: .continuous
+            )
+            .fill(colors.accent)
+            .frame(width: 2)
+          }
+        }
         .overlay {
           if style.drawsBorder {
             RoundedRectangle(cornerRadius: 3, style: .continuous)

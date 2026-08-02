@@ -7,6 +7,8 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
   case container
   case capsule
   case quiet
+  /// Quieto + filete accent na borda esquerda (segue o raio do card).
+  case quietEdge
 
   var id: String { rawValue }
 
@@ -16,6 +18,7 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
     case .container: "Container"
     case .capsule: "Cápsulas"
     case .quiet: "Container quieto"
+    case .quietEdge: "Quieto com filete"
     }
   }
 
@@ -25,21 +28,27 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
     case .capsule: "Cada linha em sua própria cápsula"
     case .container: "Grupo em card único, com contorno"
     case .quiet: "Card sem contorno, divisores finos"
+    case .quietEdge: "Quieto com barra accent à esquerda"
     }
   }
 
-  /// Linhas coladas formando um bloco só (A e E).
+  /// Linhas coladas formando um bloco só.
   var isGroupedContainer: Bool {
-    self == .container || self == .quiet
+    self == .container || self == .quiet || self == .quietEdge
   }
 
   var hasSurface: Bool {
     self != .classic
   }
 
-  /// Só o Container (A) desenha contorno — é o que separa A de E.
+  /// Só o Container desenha contorno hairline — quiet / quietEdge não.
   var drawsBorder: Bool {
     self == .container
+  }
+
+  /// Filete accent na borda esquerda do card (só `quietEdge`).
+  var drawsAccentEdge: Bool {
+    self == .quietEdge
   }
 
   var showsRowDividers: Bool {
@@ -72,7 +81,7 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
         headerBottomPadding: 4,
         firstSectionExtraTopPadding: 8
       )
-    case .container, .quiet:
+    case .container, .quiet, .quietEdge:
       return HomeSectionMetrics(
         contentInsetH: 30,
         containerInsetH: 18,
@@ -126,6 +135,8 @@ enum HomeSectionRowLayout {
   /// em modo de edição. Ela é desenhada sobre a célula inteira, ignorando os
   /// insets da linha, então o card recua isso para não passar por baixo dela.
   static let reorderHandleZone: CGFloat = 28
+  /// Largura do filete accent em `quietEdge` (inset na borda esquerda do card).
+  static let accentEdgeWidth: CGFloat = 3
 }
 
 /// Posição da linha dentro do container — define quais cantos arredondam.

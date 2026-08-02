@@ -77,7 +77,7 @@ enum HomeHeroFrame: String, CaseIterable, Identifiable {
       switch sectionStyle {
       case .classic: return .open
       case .container, .capsule: return .card(bordered: true)
-      case .quiet: return .card(bordered: false)
+      case .quiet, .quietEdge: return .card(bordered: false)
       }
     }
   }
