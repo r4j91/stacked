@@ -33,7 +33,9 @@ struct HomeSectionRowBackground: View {
         .padding(.trailing, m.containerInsetH + reorderInset)
         .padding(.vertical, m.capsuleGapV)
         .background(editing ? c.background : Color.clear)
-    case .container, .quiet, .quietEdge:
+    case .quietNested:
+      nestedTray(colors: c, metrics: m)
+    case .container, .quiet, .quietEdge, .quietPill:
       ZStack(alignment: .bottom) {
         containerShape(position: position, radius: m.cornerRadius)
           .fill(c.surface)
@@ -77,6 +79,25 @@ struct HomeSectionRowBackground: View {
     }
   }
 
+  /// Bandeja quieta + caixa inset por linha (mockup 7).
+  private func nestedTray(colors c: AppThemeColors, metrics m: HomeSectionMetrics) -> some View {
+    let gap = HomeSectionRowLayout.nestedInnerGapV
+    let trayPad = HomeSectionRowLayout.nestedTrayPaddingV
+    return ZStack {
+      containerShape(position: position, radius: m.cornerRadius)
+        .fill(c.surface)
+
+      RoundedRectangle(cornerRadius: HomeSectionRowLayout.nestedInnerRadius, style: .continuous)
+        .fill(nestedInnerFill(c))
+        .padding(.horizontal, HomeSectionRowLayout.nestedInnerInsetH)
+        .padding(.top, (position.isFirst ? trayPad : 0) + gap)
+        .padding(.bottom, (position.isLast ? trayPad : 0) + gap)
+    }
+    .padding(.leading, m.containerInsetH)
+    .padding(.trailing, m.containerInsetH + reorderInset)
+    .background(editing ? c.background : Color.clear)
+  }
+
   private var reorderInset: CGFloat {
     editing ? HomeSectionRowLayout.reorderHandleZone : 0
   }
@@ -102,6 +123,11 @@ struct HomeSectionRowBackground: View {
   private func rowDivider(_ c: AppThemeColors) -> Color {
     c.textPrimary.opacity(TaskExpandDividerStyle.cardLightStrokeAlpha)
   }
+
+  /// Poço inset — mais escuro que a bandeja no escuro (mockup `rgba(0,0,0,.18)`).
+  private func nestedInnerFill(_ c: AppThemeColors) -> Color {
+    c.isDark ? Color.black.opacity(0.22) : Color.black.opacity(0.05)
+  }
 }
 
 /// Header de seção da Home. Reproduz o `ListSectionHeader` quando a escala é `classic`.
@@ -120,17 +146,35 @@ struct HomeSectionHeader<Trailing: View>: View {
     let m = style.metrics
 
     HStack(alignment: .center, spacing: 8) {
-      Text(t.headerCase.apply(to: text))
-        .font(t.headerFont)
-        .foregroundStyle(t.headerUsesPrimaryColor ? c.textPrimary : c.textSecondary)
-        .tracking(t.headerTracking)
-        .textCase(nil)
+      if style.usesPillHeader {
+        Text(t.headerCase.apply(to: text))
+          .font(t.headerFont)
+          .foregroundStyle(t.headerUsesPrimaryColor ? c.textPrimary : c.textSecondary)
+          .tracking(t.headerTracking)
+          .textCase(nil)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 5)
+          .background(
+            Capsule(style: .continuous)
+              .fill(pillFill(c))
+          )
+      } else {
+        Text(t.headerCase.apply(to: text))
+          .font(t.headerFont)
+          .foregroundStyle(t.headerUsesPrimaryColor ? c.textPrimary : c.textSecondary)
+          .tracking(t.headerTracking)
+          .textCase(nil)
+      }
       Spacer(minLength: 0)
       trailing()
     }
     .padding(.leading, style == .classic ? AppSpacing.xs : 0)
     .padding(.top, m.headerTopPadding + (isFirstSection ? m.firstSectionExtraTopPadding : 0))
     .padding(.bottom, m.headerBottomPadding)
+  }
+
+  private func pillFill(_ c: AppThemeColors) -> Color {
+    c.isDark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)
   }
 }
 
@@ -152,4 +196,3 @@ extension View {
     }
   }
 }
-

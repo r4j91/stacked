@@ -42,7 +42,20 @@ struct HomeSectionStylePreview: View {
               .frame(height: 5)
           }
         }
-      case .container, .quiet, .quietEdge:
+      case .quietNested:
+        VStack(spacing: 1.5) {
+          ForEach(0..<3, id: \.self) { _ in
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+              .fill(Color.black.opacity(colors.isDark ? 0.28 : 0.08))
+              .frame(height: 4.5)
+          }
+        }
+        .padding(2)
+        .background(
+          RoundedRectangle(cornerRadius: 3, style: .continuous)
+            .fill(colors.surface)
+        )
+      case .container, .quiet, .quietEdge, .quietPill:
         VStack(spacing: 0) {
           ForEach(0..<3, id: \.self) { index in
             ZStack(alignment: .bottom) {
@@ -81,10 +94,17 @@ struct HomeSectionStylePreview: View {
     }
   }
 
+  @ViewBuilder
   private var headerBar: some View {
-    RoundedRectangle(cornerRadius: 1)
-      .fill(colors.textTertiary.opacity(0.75))
-      .frame(width: 16, height: 2.5)
+    if style.usesPillHeader {
+      Capsule(style: .continuous)
+        .fill(colors.isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
+        .frame(width: 18, height: 4)
+    } else {
+      RoundedRectangle(cornerRadius: 1)
+        .fill(colors.textTertiary.opacity(0.75))
+        .frame(width: 16, height: 2.5)
+    }
   }
 
   private var looseRow: some View {

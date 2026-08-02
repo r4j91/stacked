@@ -9,6 +9,10 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
   case quiet
   /// Quieto + filete accent na borda esquerda (segue o raio do card).
   case quietEdge
+  /// Quieto + header em pílula (sem borda na chip nem no card).
+  case quietPill
+  /// Bandeja quieta com cada linha em caixa inset (sem borda externa).
+  case quietNested
 
   var id: String { rawValue }
 
@@ -19,6 +23,8 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
     case .capsule: "Cápsulas"
     case .quiet: "Container quieto"
     case .quietEdge: "Quieto com filete"
+    case .quietPill: "Label em pílula"
+    case .quietNested: "Caixas internas"
     }
   }
 
@@ -29,19 +35,26 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
     case .container: "Grupo em card único, com contorno"
     case .quiet: "Card sem contorno, divisores finos"
     case .quietEdge: "Quieto com barra accent à esquerda"
+    case .quietPill: "Quieto com título em chip, sem bordas"
+    case .quietNested: "Bandeja quieta com linhas em caixas"
     }
   }
 
-  /// Linhas coladas formando um bloco só.
+  /// Linhas coladas formando um bloco só (inclui bandeja nested).
   var isGroupedContainer: Bool {
-    self == .container || self == .quiet || self == .quietEdge
+    switch self {
+    case .container, .quiet, .quietEdge, .quietPill, .quietNested:
+      true
+    case .classic, .capsule:
+      false
+    }
   }
 
   var hasSurface: Bool {
     self != .classic
   }
 
-  /// Só o Container desenha contorno hairline — quiet / quietEdge não.
+  /// Só o Container desenha contorno hairline.
   var drawsBorder: Bool {
     self == .container
   }
@@ -51,8 +64,18 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
     self == .quietEdge
   }
 
+  /// Header da seção vira chip flutuante.
+  var usesPillHeader: Bool {
+    self == .quietPill
+  }
+
+  /// Bandeja externa + caixas inset por linha.
+  var usesNestedRows: Bool {
+    self == .quietNested
+  }
+
   var showsRowDividers: Bool {
-    isGroupedContainer
+    isGroupedContainer && !usesNestedRows
   }
 
   var metrics: HomeSectionMetrics {
@@ -77,6 +100,30 @@ enum HomeSectionStyle: String, CaseIterable, Identifiable {
         rowPaddingV: 11,
         cornerRadius: 18,
         capsuleGapV: 3,
+        headerTopPadding: 6,
+        headerBottomPadding: 4,
+        firstSectionExtraTopPadding: 8
+      )
+    case .quietPill:
+      return HomeSectionMetrics(
+        contentInsetH: 30,
+        containerInsetH: 18,
+        rowSpacingV: 0,
+        rowPaddingV: 11,
+        cornerRadius: 18,
+        capsuleGapV: 0,
+        headerTopPadding: 6,
+        headerBottomPadding: 8,
+        firstSectionExtraTopPadding: 8
+      )
+    case .quietNested:
+      return HomeSectionMetrics(
+        contentInsetH: 30,
+        containerInsetH: 18,
+        rowSpacingV: 0,
+        rowPaddingV: 11,
+        cornerRadius: 18,
+        capsuleGapV: 0,
         headerTopPadding: 6,
         headerBottomPadding: 4,
         firstSectionExtraTopPadding: 8
@@ -137,6 +184,14 @@ enum HomeSectionRowLayout {
   static let reorderHandleZone: CGFloat = 28
   /// Largura do filete accent em `quietEdge` (inset na borda esquerda do card).
   static let accentEdgeWidth: CGFloat = 3
+  /// Raio das caixas internas em `quietNested`.
+  static let nestedInnerRadius: CGFloat = 12
+  /// Inset horizontal da caixa interna em relação à bandeja.
+  static let nestedInnerInsetH: CGFloat = 6
+  /// Gap vertical entre caixas internas (metade em cada célula).
+  static let nestedInnerGapV: CGFloat = 3
+  /// Padding extra no topo/base da bandeja nested.
+  static let nestedTrayPaddingV: CGFloat = 4
 }
 
 /// Posição da linha dentro do container — define quais cantos arredondam.
@@ -176,4 +231,3 @@ enum HomeTopCardStorage {
   static let key = "homeTopCardEnabled"
   static let defaultEnabled = true
 }
-
