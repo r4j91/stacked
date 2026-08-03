@@ -127,15 +127,18 @@ struct SavedFilterBuilderView: View {
       .navigationTitle(existing == nil ? "Novo filtro" : "Editar filtro")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Cancelar") { dismiss() }
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+        ToolbarItem(id: "stacked-filter-builder-cancel", placement: .cancellationAction) {
+          StackedToolbarTextButton(title: "Cancelar") { dismiss() }
         }
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Salvar") {
+        .stackedToolbarGlassIsolation(isolate)
+
+        ToolbarItem(id: "stacked-filter-builder-save", placement: .confirmationAction) {
+          StackedToolbarTextButton(title: "Salvar", accent: true, enabled: canSave) {
             _Concurrency.Task { await save() }
           }
-          .disabled(!canSave)
         }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .task { await loadPickers() }
       .onAppear {

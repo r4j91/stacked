@@ -66,6 +66,7 @@ struct EditingSettingsView: View {
     .settingsDrillDownList(background: c.background)
     .navigationTitle("Edição")
     .navigationBarTitleDisplayMode(.inline)
+    .stackedAdaptiveDrillDownBack()
   }
 
   private func settingsLabel(icon: String, title: String, subtitle: String? = nil) -> some View {

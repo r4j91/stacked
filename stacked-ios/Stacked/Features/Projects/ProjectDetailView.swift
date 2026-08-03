@@ -97,6 +97,19 @@ struct ProjectDetailView: View {
 
   private var taskReorderMode: Bool { editMode == .active }
 
+  private func projectDisplayModeLabel(accent: Color) -> some View {
+    HStack(spacing: 5) {
+      StackedIcons.image(displayModeEnum.menuIcon)
+        .resizable()
+        .scaledToFit()
+        .frame(width: 16, height: 16)
+        .foregroundStyle(accent)
+      Text(displayModeEnum.label)
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(accent)
+    }
+  }
+
   /// Nenhuma linha de tarefa à vista. Seções vazias não contam: elas continuam
   /// com cabeçalho e o estado vazio entra abaixo delas. Concluídas só contam
   /// quando estão sendo exibidas — senão o projeto fica sem lista e sem arte.
@@ -133,9 +146,9 @@ struct ProjectDetailView: View {
     .background(c.background.ignoresSafeArea(.all))
     // Título vazio no chrome — centralizado no .principal entre voltar e trailing.
     .stackedDrillDownNavChrome(title: "", background: c.background)
-    .stackedDrillDownGlassBackButton()
+    .stackedAdaptiveDrillDownBack()
     .toolbar {
-      DrillDownBackToolbarItem()
+      let isolate = GlassChromePreference.prefersStaticToolbarPills()
 
       ToolbarItem(id: "stacked-project-title", placement: .principal) {
         Text(projectName)
@@ -145,30 +158,25 @@ struct ProjectDetailView: View {
           .minimumScaleFactor(0.85)
           .accessibilityAddTraits(.isHeader)
       }
-      .sharedBackgroundVisibility(.hidden)
+      .stackedToolbarGlassIsolation(isolate)
 
       ToolbarItem(id: "stacked-project-toolbar", placement: .topBarTrailing) {
         HStack(spacing: 6) {
           if taskReorderMode {
-            Button("Concluir") {
+            StackedToolbarTextButton(title: "Concluir", accent: true) {
               HapticService.selection()
               editMode = .inactive
             }
-            .font(AppTypography.body)
-            .foregroundStyle(c.accent)
           }
 
           if !taskReorderMode {
-            LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
-              HStack(spacing: 5) {
-                StackedIcons.image(displayModeEnum.menuIcon)
-                  .resizable()
-                  .scaledToFit()
-                  .frame(width: 16, height: 16)
-                  .foregroundStyle(c.accent)
-                Text(displayModeEnum.label)
-                  .font(.system(size: 12, weight: .semibold))
-                  .foregroundStyle(c.accent)
+            Group {
+              if isolate {
+                LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+                  projectDisplayModeLabel(accent: c.accent)
+                }
+              } else {
+                projectDisplayModeLabel(accent: c.accent)
               }
             }
             .allowsHitTesting(false)
@@ -178,7 +186,13 @@ struct ProjectDetailView: View {
             AnchoredTapButton { rect in
               openToolbarMenu(anchor: rect)
             } label: {
-              LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+              if isolate {
+                LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+                  StackedIcons.image(.more)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(c.textPrimary)
+                }
+              } else {
                 StackedIcons.image(.more)
                   .font(.system(size: 16, weight: .medium))
                   .foregroundStyle(c.textPrimary)
@@ -188,7 +202,7 @@ struct ProjectDetailView: View {
           }
         }
       }
-      .sharedBackgroundVisibility(.hidden)
+      .stackedToolbarGlassIsolation(isolate)
     }
     .refreshable { await store.load() }
     .task(id: store.projectId) {

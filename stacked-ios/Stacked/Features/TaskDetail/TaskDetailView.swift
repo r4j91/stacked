@@ -63,22 +63,25 @@ struct TaskDetailView: View {
       .background(c.background.ignoresSafeArea())
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Fechar") {
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+        ToolbarItem(id: "stacked-task-close", placement: .cancellationAction) {
+          StackedToolbarTextButton(title: "Fechar") {
             close()
           }
         }
-        ToolbarItem(placement: .confirmationAction) {
+        .stackedToolbarGlassIsolation(isolate)
+
+        ToolbarItem(id: "stacked-task-save", placement: .confirmationAction) {
           HStack(spacing: 10) {
             if vm.showsWhatsAppAction {
               whatsAppToolbarButton
             }
-            Button("Salvar") {
+            StackedToolbarTextButton(title: "Salvar", accent: true) {
               close(playSaveHaptic: true)
             }
-            .foregroundStyle(c.accent)
           }
         }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,

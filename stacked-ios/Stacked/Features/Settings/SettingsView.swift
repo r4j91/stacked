@@ -113,9 +113,11 @@ struct SettingsView: View {
       .navigationTitle("Configurações")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Fechar") { dismiss() }.foregroundStyle(c.accent)
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+        ToolbarItem(id: "stacked-settings-close", placement: .confirmationAction) {
+          StackedToolbarTextButton(title: "Fechar", accent: true) { dismiss() }
         }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .sheet(isPresented: $showNetLog) {
         NavigationStack {

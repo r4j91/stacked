@@ -48,6 +48,7 @@ struct LogbookView: View {
     .background(c.background)
     .navigationTitle("Registro")
     .navigationBarTitleDisplayMode(.large)
+    .stackedAdaptiveDrillDownBack()
     .refreshable { await load() }
     .stackedListRowWorkGate($allowRowHeavyWork)
     .task {

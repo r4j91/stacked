@@ -142,6 +142,7 @@ struct CalendarSettingsView: View {
     .background(c.background)
     .navigationTitle("Calendário")
     .navigationBarTitleDisplayMode(.inline)
+    .stackedAdaptiveDrillDownBack()
     .task { await load() }
     .onChange(of: importEnabled) { _, newValue in
       guard togglesReady else { return }

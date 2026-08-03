@@ -101,4 +101,9 @@ enum GlassChromePreference {
     let m = mode ?? ChromeGlassModeStorage.current
     return m != .live
   }
+
+  /// Fosco (e quieto/opaco): pills estáticas custom. Ao vivo: glass nativo com morph.
+  static func prefersStaticToolbarPills(mode: ChromeGlassMode? = nil) -> Bool {
+    prefersFrosted(mode: mode)
+  }
 }

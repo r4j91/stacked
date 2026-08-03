@@ -150,24 +150,26 @@ struct SubtaskDetailView: View {
       .navigationTitle("Subtarefa")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Fechar") {
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+        ToolbarItem(id: "stacked-subtask-close", placement: .cancellationAction) {
+          StackedToolbarTextButton(title: "Fechar") {
             _Concurrency.Task {
               await flushPending(playSaveHaptic: true)
               dismiss()
             }
           }
         }
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Salvar") {
+        .stackedToolbarGlassIsolation(isolate)
+
+        ToolbarItem(id: "stacked-subtask-save", placement: .confirmationAction) {
+          StackedToolbarTextButton(title: "Salvar", accent: true, enabled: !saving) {
             _Concurrency.Task {
               await flushPending(playSaveHaptic: true)
               if saveError == nil { dismiss() }
             }
           }
-          .disabled(saving)
-          .foregroundStyle(c.accent)
         }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .popoverHostScope()
       .overlay {

@@ -106,15 +106,20 @@ struct SavedFilterResultsScreen: View {
     }
     .background(c.background.ignoresSafeArea(.all))
     .stackedDrillDownNavChrome(title: filter.name, background: c.background)
-    .stackedDrillDownGlassBackButton()
+    .stackedAdaptiveDrillDownBack()
     .toolbar {
-      DrillDownBackToolbarItem()
-
+      let isolate = GlassChromePreference.prefersStaticToolbarPills()
       ToolbarItem(id: "stacked-filter-toolbar", placement: .topBarTrailing) {
         AnchoredTapButton { rect in
           openOptions(anchor: rect)
         } label: {
-          LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+          if isolate {
+            LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+              StackedIcons.image(.more)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(c.textPrimary)
+            }
+          } else {
             StackedIcons.image(.more)
               .font(.system(size: 16, weight: .medium))
               .foregroundStyle(c.textPrimary)
@@ -122,7 +127,7 @@ struct SavedFilterResultsScreen: View {
         }
         .buttonStyle(PressableStyle(cornerRadius: 20))
       }
-      .sharedBackgroundVisibility(.hidden)
+      .stackedToolbarGlassIsolation(isolate)
     }
     .refreshable {
       await store.openSavedFilter(filter)

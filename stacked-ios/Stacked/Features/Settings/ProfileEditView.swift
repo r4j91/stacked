@@ -53,14 +53,19 @@ struct ProfileEditView: View {
       .background(c.background)
       .navigationTitle("Perfil")
       .navigationBarTitleDisplayMode(.inline)
+      .stackedAdaptiveDrillDownBack()
       .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Salvar") {
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+        ToolbarItem(id: "stacked-profile-save", placement: .confirmationAction) {
+          StackedToolbarTextButton(
+            title: "Salvar",
+            accent: true,
+            enabled: !(saving || loading)
+          ) {
             _Concurrency.Task { await save() }
           }
-          .disabled(saving || loading)
-          .foregroundStyle(c.accent)
         }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .task { await load() }
       .alert("Erro", isPresented: $showError) {

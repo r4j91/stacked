@@ -54,10 +54,7 @@ struct PresetFilterResultsScreen: View {
     }
     .background(c.background.ignoresSafeArea(.all))
     .stackedDrillDownNavChrome(title: kind.title, background: c.background)
-    .stackedDrillDownGlassBackButton()
-    .toolbar {
-      DrillDownBackToolbarItem()
-    }
+    .stackedAdaptiveDrillDownBack()
     .refreshable {
       await store.openFilter(kind)
       await store.loadDashboard()

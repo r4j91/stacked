@@ -357,6 +357,7 @@ struct AppearanceView: View {
     .background(c.background)
     .navigationTitle("Aparência")
     .navigationBarTitleDisplayMode(.inline)
+    .stackedAdaptiveDrillDownBack()
     .onAppear {
       iconManager.syncFromSystem()
       if !AppThemeId.recommended.contains(theme.currentId) {

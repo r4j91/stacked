@@ -441,6 +441,7 @@ private struct ToolbarGlassPill<Content: View>: View {
     let padded = content
       .padding(.horizontal, 14)
       .padding(.vertical, 7)
+      .fixedSize(horizontal: true, vertical: false)
 
     Group {
       if useSolid {
@@ -456,6 +457,7 @@ private struct ToolbarGlassPill<Content: View>: View {
         )
       }
     }
+    .fixedSize(horizontal: true, vertical: false)
     .overlay {
       if isLight {
         Capsule()

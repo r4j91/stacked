@@ -48,26 +48,29 @@ struct LabelsManagementView: View {
       .background(c.background)
       .navigationTitle("Gerenciar Etiquetas")
       .navigationBarTitleDisplayMode(.inline)
+      .stackedAdaptiveDrillDownBack()
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          HStack(spacing: 16) {
-            if !labels.isEmpty {
-              Button(editMode == .active ? "Concluir" : "Ordenar") {
-                HapticService.selection()
-                editMode = editMode == .active ? .inactive : .active
-              }
-              .font(AppTypography.body)
-              .foregroundStyle(c.accent)
-            }
-            Button {
-              openEditor(nil)
-            } label: {
-              StackedIcons.image(.plus)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(c.accent)
+        let isolate = GlassChromePreference.prefersStaticToolbarPills()
+
+        if !labels.isEmpty {
+          ToolbarItem(id: "stacked-labels-sort", placement: .topBarTrailing) {
+            StackedToolbarTextButton(
+              title: editMode == .active ? "Concluir" : "Ordenar",
+              accent: true
+            ) {
+              HapticService.selection()
+              editMode = editMode == .active ? .inactive : .active
             }
           }
+          .stackedToolbarGlassIsolation(isolate)
         }
+
+        ToolbarItem(id: "stacked-labels-add", placement: .topBarTrailing) {
+          StackedToolbarIconButton(icon: .plus, accessibilityLabel: "Nova etiqueta", accent: true) {
+            openEditor(nil)
+          }
+        }
+        .stackedToolbarGlassIsolation(isolate)
       }
       .refreshable { await load() }
       .task { await load() }
@@ -157,7 +160,13 @@ struct LabelsManagementView: View {
   private func load() async {
     loading = labels.isEmpty
     defer { loading = false }
-    labels = (try? await LabelRepository.shared.fetchLabels(force: true)) ?? []
+    let fetched = (try? await LabelRepository.shared.fetchLabels(force: true)) ?? []
+    // Sem animação no insert do "Ordenar" — evita jump do + na toolbar.
+    var transaction = Transaction()
+    transaction.disablesAnimations = true
+    withTransaction(transaction) {
+      labels = fetched
+    }
   }
 
   private func deleteLabel(_ label: TaskLabel) async {

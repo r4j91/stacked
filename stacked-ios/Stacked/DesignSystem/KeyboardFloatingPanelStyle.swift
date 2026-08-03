@@ -11,11 +11,19 @@ enum KeyboardFloatingPanelStyle {
     cornerRadius: CGFloat = defaultCornerRadius
   ) -> some View {
     let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    // Abismo: `background` no overlay escurecia demais o painel e os chips
+    // (surfaceVariant@opacity) viravam bolhas mais escuras que a barra.
+    let dimOpacity: Double = {
+      if ThemeManager.shared.usesAtmosphericBackground {
+        return colors.isDark ? 0.10 : 0.05
+      }
+      return colors.isDark ? 0.28 : 0.05
+    }()
 
     shape
       .fill(colors.surface)
       .overlay {
-        shape.fill(colors.background.opacity(colors.isDark ? 0.28 : 0.05))
+        shape.fill(colors.background.opacity(dimOpacity))
       }
       .overlay {
         shape.fill(
@@ -37,7 +45,12 @@ enum KeyboardFloatingPanelStyle {
 
   /// Chips / linhas internas sobre o painel.
   static func chipBackground(_ colors: AppThemeColors) -> Color {
-    colors.isDark
+    // Abismo: surfaceVariant compostado no painel vira círculo mais escuro.
+    // Lift branco sutil — mesmo contraste relativo dos outros temas.
+    if ThemeManager.shared.usesAtmosphericBackground {
+      return colors.textPrimary.opacity(colors.isDark ? 0.07 : 0.05)
+    }
+    return colors.isDark
       ? colors.surfaceVariant.opacity(0.42)
       : colors.surfaceVariant.opacity(0.72)
   }

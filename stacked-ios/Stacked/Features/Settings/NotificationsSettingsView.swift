@@ -79,6 +79,7 @@ struct NotificationsSettingsView: View {
     .background(c.background)
     .navigationTitle("Notificações")
     .navigationBarTitleDisplayMode(.inline)
+    .stackedAdaptiveDrillDownBack()
     .task { await load() }
     .onChange(of: enabled) { _, newValue in
       guard togglesReady else { return }

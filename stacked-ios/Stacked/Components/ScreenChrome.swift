@@ -130,6 +130,110 @@ enum ModalChrome {
   }
 }
 
+// MARK: - Toolbar pills (Fosco) vs glass nativo (Ao vivo)
+
+/// Texto na toolbar (Fechar / Salvar / Ordenar).
+/// Fosco: pill estática com label completo. Ao vivo: botão glass nativo.
+struct StackedToolbarTextButton: View {
+  @Environment(ThemeManager.self) private var theme
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  let title: String
+  var accent: Bool = false
+  var enabled: Bool = true
+  let action: () -> Void
+
+  private var useStaticPill: Bool {
+    GlassChromePreference.prefersStaticToolbarPills(
+      mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+    )
+  }
+
+  var body: some View {
+    let c = theme.colors
+    let labelColor = accent ? c.accent : c.textPrimary
+    if useStaticPill {
+      Button(action: action) {
+        // Capsule própria (não LiquidGlass.toolbarPill): a toolbar iOS 26
+        // espremia cancellationAction e "Fechar" virava "F" numa bolha.
+        Text(title)
+          .font(AppTypography.body)
+          .foregroundStyle(labelColor)
+          .lineLimit(1)
+          .fixedSize(horizontal: true, vertical: false)
+          .padding(.horizontal, 14)
+          .padding(.vertical, 7)
+          .background {
+            LiquidGlass.frostedFill(
+              shape: Capsule(),
+              tint: c.isDark ? c.surfaceVariant : c.surface
+            )
+          }
+      }
+      .buttonStyle(PressableStyle(cornerRadius: 20))
+      .disabled(!enabled)
+      .fixedSize(horizontal: true, vertical: false)
+    } else {
+      Button(title, action: action)
+        .font(AppTypography.body)
+        .foregroundStyle(labelColor)
+        .disabled(!enabled)
+    }
+  }
+}
+
+/// Ícone na toolbar — mesmo split Fosco/Ao vivo que `StackedToolbarTextButton`.
+struct StackedToolbarIconButton: View {
+  @Environment(ThemeManager.self) private var theme
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  let icon: StackedIconKey
+  var accessibilityLabel: String
+  var accent: Bool = false
+  let action: () -> Void
+
+  private var useStaticPill: Bool {
+    GlassChromePreference.prefersStaticToolbarPills(
+      mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+    )
+  }
+
+  var body: some View {
+    let c = theme.colors
+    let tint = accent ? c.accent : c.textPrimary
+    if useStaticPill {
+      Button(action: action) {
+        LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
+          StackedIcons.image(icon)
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(tint)
+        }
+      }
+      .buttonStyle(PressableStyle(cornerRadius: 20))
+      .accessibilityLabel(accessibilityLabel)
+    } else {
+      Button(action: action) {
+        StackedIcons.image(icon)
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundStyle(tint)
+      }
+      .accessibilityLabel(accessibilityLabel)
+    }
+  }
+}
+
+extension ToolbarContent {
+  /// No Fosco isola o item do morph glass compartilhado; no Ao vivo deixa o sistema cuidar.
+  @ToolbarContentBuilder
+  func stackedToolbarGlassIsolation(_ isolate: Bool) -> some ToolbarContent {
+    if isolate {
+      self.sharedBackgroundVisibility(.hidden)
+    } else {
+      self
+    }
+  }
+}
+
 // MARK: - Form / editor sheets (handle + presentation)
 
 struct SheetDragHandle: View {
@@ -331,6 +435,31 @@ extension View {
   func stackedDrillDownGlassBackButton() -> some View {
     navigationBarBackButtonHidden(true)
       .background(InteractivePopGestureEnabler())
+  }
+
+  /// Fosco: volta custom (pill). Ao vivo: volta nativo com morph glass.
+  func stackedAdaptiveDrillDownBack() -> some View {
+    modifier(StackedAdaptiveDrillDownBackModifier())
+  }
+}
+
+private struct StackedAdaptiveDrillDownBackModifier: ViewModifier {
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  private var useStaticPill: Bool {
+    GlassChromePreference.prefersStaticToolbarPills(
+      mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+    )
+  }
+
+  func body(content: Content) -> some View {
+    if useStaticPill {
+      content
+        .stackedDrillDownGlassBackButton()
+        .toolbar { DrillDownBackToolbarItem() }
+    } else {
+      content
+    }
   }
 }
 
