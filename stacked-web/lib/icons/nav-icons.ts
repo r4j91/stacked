@@ -35,4 +35,5 @@ export {
   Target01Icon,
   Attachment01Icon,
   TextIcon,
+  Note01Icon,
 } from "@hugeicons/core-free-icons"

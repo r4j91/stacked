@@ -13,6 +13,7 @@ struct FabActionMenuOverlay: View {
   var onNewTask: () -> Void
   var onNewProject: () -> Void
   var onSearch: () -> Void
+  var onNewNote: () -> Void
 
   @State private var revealedStagger = -1
 
@@ -58,6 +59,7 @@ struct FabActionMenuOverlay: View {
   private var menuEntries: [(String, StackedIconKey, () -> Void)] {
     [
       ("Buscar", .search, { closeMenu(); onSearch() }),
+      ("Nova nota", .note, { closeMenu(); onNewNote() }),
       ("Novo projeto", .newProject, { closeMenu(); onNewProject() }),
       ("Nova tarefa", .newTask, { closeMenu(); onNewTask() }),
     ]

@@ -208,7 +208,7 @@ struct AppearanceView: View {
             : "Sem card · \(homeHeaderStyle.displayName)",
           footer: homeTopCardEnabled
             ? "Aberto é o formato de sempre. Seguir a Home usa o agrupamento das seções."
-            : "Sem o card, o topo vira Relatórios, Filtros e Etiquetas. Com Busca no topo, o campo sai dos atalhos para não duplicar."
+            : "Sem o card, o topo vira Relatórios, Filtros, Etiquetas e Notas. Com Busca no topo, o campo sai dos atalhos para não duplicar."
         ) {
           homeTopCardRow()
 
@@ -1058,7 +1058,7 @@ struct AppearanceView: View {
         Text("Card de saudação")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Desligado, o topo vira Buscar, Relatórios, Filtros e Etiquetas.")
+        Text("Desligado, o topo vira Buscar, Relatórios, Filtros, Etiquetas e Notas.")
           .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)

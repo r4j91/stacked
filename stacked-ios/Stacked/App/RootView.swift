@@ -8,6 +8,7 @@ struct RootView: View {
   @State private var showSearch = false
   @State private var showQuickAdd = false
   @State private var showNewProject = false
+  @State private var noteEditorRoute: NoteEditorRoute?
   @State private var router = AppNavigationRouter.shared
   /// Abas já no render tree (opacity 0 quando inativas).
   @State private var mountedTabs: Set<NavTab> = [.home]
@@ -25,7 +26,8 @@ struct RootView: View {
     MobileShell(
       onNewTask: { openQuickAdd() },
       onSearch: { showSearch = true },
-      onNewProject: { openNewProject() }
+      onNewProject: { openNewProject() },
+      onNewNote: { openNewNote() }
     ) {
       RootTabContent(mountedTabs: mountedTabs, displayedTab: displayedTab)
     }
@@ -93,6 +95,21 @@ struct RootView: View {
         await FiltersStore.shared.loadDashboard()
       }
     }
+    .sheet(item: $noteEditorRoute) { route in
+      NoteEditorSheet(
+        route: route,
+        autofocusBody: true,
+        onSaved: {
+          AppNavigationRouter.shared.openNotes()
+        },
+        onConvertedToTask: {
+          AppNavigationRouter.shared.openNotes()
+        }
+      )
+      .environment(ThemeManager.shared)
+      .presentationDetents([.large])
+      .stackedEditableSheetPresentation(background: ThemeManager.shared.colors.background)
+    }
   }
 
   private func openNewProject() {
@@ -105,6 +122,12 @@ struct RootView: View {
     chrome.closeFabMenu()
     PopoverPresenter.shared.dismiss()
     showQuickAdd = true
+  }
+
+  private func openNewNote() {
+    chrome.closeFabMenu()
+    PopoverPresenter.shared.dismiss()
+    noteEditorRoute = .create
   }
 
   /// Troca o conteúdo visível. No colapso da ilha, espera o snappy terminar

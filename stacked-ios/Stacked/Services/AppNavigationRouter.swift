@@ -7,6 +7,7 @@ final class AppNavigationRouter {
 
   var pendingTab: NavTab?
   var pendingOpenSearch = false
+  var pendingOpenNotes = false
   var pendingTaskId: String?
 
   private init() {}
@@ -17,6 +18,12 @@ final class AppNavigationRouter {
 
   func openSearch() {
     pendingOpenSearch = true
+  }
+
+  /// Home → push da tela de Notas (ex.: após criar nota pelo FAB).
+  func openNotes() {
+    pendingOpenNotes = true
+    open(tab: .home)
   }
 
   func openTask(id: String) {
@@ -37,6 +44,7 @@ final class AppNavigationRouter {
     case "filters": open(tab: .filters)
     case "home", "navigate": open(tab: .home)
     case "search": openSearch()
+    case "notes": openNotes()
     case "task":
       let id = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
       if TaskIdentity.isValidUUID(id) {
@@ -56,6 +64,11 @@ final class AppNavigationRouter {
   func consumeSearch() -> Bool {
     defer { pendingOpenSearch = false }
     return pendingOpenSearch
+  }
+
+  func consumeNotes() -> Bool {
+    defer { pendingOpenNotes = false }
+    return pendingOpenNotes
   }
 
   func consumeTaskId() -> String? {

@@ -16,6 +16,7 @@ import {
   Sun01Icon,
   ChevronRightIcon,
   Notification01Icon,
+  Note01Icon,
 } from "@/lib/icons/nav-icons";
 
 export function HomeCanvas() {
@@ -89,6 +90,11 @@ export function HomeCanvas() {
                 href="/done"
                 icon={TaskDone01Icon}
                 label="Concluídas"
+              />
+              <QuickLink
+                href="/notes"
+                icon={Note01Icon}
+                label="Notas"
               />
             </ul>
           </section>

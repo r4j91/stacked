@@ -17,8 +17,10 @@ struct HomeView: View {
   @State private var showNotifications = false
   @State private var showSearch = false
   @State private var showLabels = false
+  @State private var showNotes = false
   @State private var projectOptions: ProjectRoute?
   @State private var projectsEditMode: EditMode = .inactive
+  @State private var router = AppNavigationRouter.shared
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
   @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
 
@@ -43,7 +45,8 @@ struct HomeView: View {
             onOpenSearch: { showSearch = true },
             onOpenReports: { showProductivity = true },
             onOpenFilters: { onNavigateToTab(.filters) },
-            onOpenLabels: { showLabels = true }
+            onOpenLabels: { showLabels = true },
+            onOpenNotes: { showNotes = true }
           )
         }
         HomeOverviewSection(onNavigateToTab: onNavigateToTab, onOpenFilter: onOpenFilter)
@@ -95,6 +98,16 @@ struct HomeView: View {
         // Contagens já vão pelo RootView; aqui só o “agora” do hero.
         store.refreshTemporal()
       }
+      .onChange(of: router.pendingOpenNotes) { _, open in
+        guard open else { return }
+        showNotes = true
+        _ = router.consumeNotes()
+      }
+      .onAppear {
+        if router.consumeNotes() {
+          showNotes = true
+        }
+      }
       .navigationDestination(item: $selectedProject) { route in
         ProjectDetailView(
           projectId: route.id,
@@ -106,6 +119,9 @@ struct HomeView: View {
       }
       .navigationDestination(isPresented: $showLabels) {
         LabelsManagementView().environment(ThemeManager.shared)
+      }
+      .navigationDestination(isPresented: $showNotes) {
+        NotesBoardView().environment(ThemeManager.shared)
       }
     }
     .toolbarBackground(.hidden, for: .navigationBar)

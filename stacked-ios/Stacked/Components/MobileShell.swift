@@ -11,6 +11,7 @@ struct MobileShell<Content: View>: View {
   var onNewTask: () -> Void = {}
   var onSearch: () -> Void = {}
   var onNewProject: () -> Void = {}
+  var onNewNote: () -> Void = {}
   @ViewBuilder var content: () -> Content
 
   init(
@@ -18,12 +19,14 @@ struct MobileShell<Content: View>: View {
     onNewTask: @escaping () -> Void = {},
     onSearch: @escaping () -> Void = {},
     onNewProject: @escaping () -> Void = {},
+    onNewNote: @escaping () -> Void = {},
     @ViewBuilder content: @escaping () -> Content
   ) {
     self.hideBottomChrome = hideBottomChrome
     self.onNewTask = onNewTask
     self.onSearch = onSearch
     self.onNewProject = onNewProject
+    self.onNewNote = onNewNote
     self.content = content
   }
 
@@ -84,7 +87,8 @@ struct MobileShell<Content: View>: View {
               isOpen: $chrome.fabOpen,
               onNewTask: onNewTask,
               onNewProject: onNewProject,
-              onSearch: onSearch
+              onSearch: onSearch,
+              onNewNote: onNewNote
             )
             .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomTrailing)
             .transition(.opacity)

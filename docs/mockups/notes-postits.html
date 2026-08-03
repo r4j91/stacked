@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacked — Notas / post-its (exploração)</title>
+<style>
+  :root{
+    --bg:#0E1418; --surface:#172026; --surfaceVar:#1E2A31; --pill:#1A242A;
+    --t1:#E8EEF1; --t2:#8FA3AD; --t3:#667A84;
+    --accent:#6ED4C8; --high:#EF5A5F; --med:#F5A623; --low:#4D9FEC; --idea:#B18CF5;
+    --hair:rgba(232,238,241,.055); --stroke:rgba(232,238,241,.10);
+    --stick-mint:#1F3A36; --stick-mint-ink:#C8F0EA;
+    --stick-ash:#2A2E36; --stick-ash-ink:#E4E8EE;
+    --stick-amber:#3A2E1A; --stick-amber-ink:#F5E0B8;
+    --stick-violet:#2C2438; --stick-violet-ink:#E4D4F8;
+    --stick-rose:#3A2226; --stick-rose-ink:#F5C8CE;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:48px 36px 100px;background:#080C0E;color:var(--t1);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .lead{color:var(--t2);max-width:860px;margin:0 0 6px;font-size:14.5px}
+  .lead b{color:var(--t1);font-weight:600}
+  .verdict{
+    margin:20px 0 0;padding:16px 18px;border-radius:14px;max-width:860px;
+    background:linear-gradient(135deg,rgba(110,212,200,.12),rgba(110,212,200,.03));
+    border:1px solid rgba(110,212,200,.22);
+  }
+  .verdict strong{color:var(--accent);font-weight:700}
+  .verdict p{margin:6px 0 0;color:var(--t2);font-size:13.5px}
+  .section{margin-top:56px}
+  .section > h2{
+    font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px;
+  }
+  .section > .desc{color:var(--t3);font-size:13.5px;margin:0 0 22px;max-width:820px}
+  .pair{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+    gap:28px 24px;
+  }
+  .trio{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:22px 20px;
+  }
+  .col h3{
+    font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--t2);margin:0 0 10px;
+  }
+  .col h3 .tag{color:var(--accent);font-weight:700}
+  .note{margin-top:10px;font-size:12.5px;color:var(--t3);max-width:360px}
+  .note b{color:var(--t2);font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{
+    font-size:12px;padding:6px 10px;border-radius:999px;
+    background:var(--surface);border:1px solid var(--hair);color:var(--t2);
+  }
+  .chip.on{border-color:rgba(110,212,200,.35);color:var(--accent);background:rgba(110,212,200,.08)}
+
+  .phone{
+    width:360px;background:var(--bg);border-radius:36px;
+    border:1px solid rgba(255,255,255,.07);overflow:hidden;position:relative;
+  }
+  .phone.tall{min-height:720px}
+  .status{
+    height:44px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 26px 2px;position:relative;
+  }
+  .status .clock{font-size:14px;font-weight:600}
+  .status .island{
+    position:absolute;left:50%;transform:translateX(-50%);top:7px;
+    width:100px;height:28px;border-radius:18px;background:#000;
+  }
+  .pad{padding:0 16px}
+  .title30{font-size:30px;font-weight:800;letter-spacing:-.02em;padding:10px 16px 4px}
+  .sub{font-size:12.5px;color:var(--t3);padding:0 16px 10px}
+  .sech{
+    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--t2);margin:8px 2px 10px;
+  }
+
+  /* placement rows */
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:18px;overflow:hidden}
+  .row{
+    display:flex;align-items:center;gap:12px;padding:13px 14px;
+    font-size:15.5px;font-weight:600;
+  }
+  .row + .row{box-shadow:inset 0 1px 0 var(--hair)}
+  .row .ic{width:26px;display:grid;place-items:center;color:var(--accent);flex:none;font-size:18px}
+  .row .ch{margin-left:auto;color:var(--t2)}
+  .row .badge{
+    margin-left:auto;font-size:12px;font-weight:600;color:var(--t3);
+    background:var(--pill);padding:3px 8px;border-radius:8px;
+  }
+
+  /* post-it board */
+  .board{
+    padding:4px 14px 88px;display:grid;
+    grid-template-columns:1fr 1fr;gap:10px;align-items:start;
+  }
+  .stick{
+    border-radius:14px;padding:12px 12px 14px;min-height:108px;
+    box-shadow:0 8px 20px rgba(0,0,0,.28);
+    position:relative;
+  }
+  .stick .pin{
+    position:absolute;top:8px;right:10px;width:8px;height:8px;border-radius:50%;
+    background:rgba(255,255,255,.18);
+  }
+  .stick .body{
+    font-size:13.5px;font-weight:550;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .stick .meta{
+    margin-top:10px;font-size:11px;opacity:.55;font-weight:500;
+  }
+  .stick.mint{background:var(--stick-mint);color:var(--stick-mint-ink);transform:rotate(-1.2deg)}
+  .stick.ash{background:var(--stick-ash);color:var(--stick-ash-ink);transform:rotate(1deg)}
+  .stick.amber{background:var(--stick-amber);color:var(--stick-amber-ink);transform:rotate(.8deg)}
+  .stick.violet{background:var(--stick-violet);color:var(--stick-violet-ink);transform:rotate(-.6deg)}
+  .stick.rose{background:var(--stick-rose);color:var(--stick-rose-ink);transform:rotate(1.4deg)}
+  .stick.tall{min-height:148px}
+  .stick.span{grid-column:1 / -1;transform:rotate(-.3deg);min-height:88px}
+
+  /* kanban */
+  .kanban{
+    display:flex;gap:10px;padding:4px 14px 88px;overflow:hidden;
+  }
+  .col-k{
+    flex:0 0 148px;background:rgba(255,255,255,.03);border-radius:16px;
+    padding:10px 8px 12px;border:1px solid var(--hair);
+  }
+  .col-k .lab{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--t3);padding:0 4px 8px;
+  }
+  .col-k .stick{transform:none;margin-bottom:8px;min-height:92px;box-shadow:0 4px 12px rgba(0,0,0,.22)}
+
+  /* list quiet */
+  .quiet-list{padding:0 14px 88px}
+  .quiet-note{
+    background:var(--surface);border:1px solid var(--hair);border-radius:14px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  .quiet-note .t{font-size:15px;font-weight:650;margin:0 0 4px}
+  .quiet-note .p{font-size:12.5px;color:var(--t3);margin:0;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .quiet-note .m{font-size:11px;color:var(--t3);margin-top:8px;opacity:.8}
+
+  /* fab + dock hint */
+  .fab{
+    position:absolute;right:22px;bottom:86px;width:52px;height:52px;border-radius:26px;
+    background:var(--accent);color:#0A1214;display:grid;place-items:center;
+    font-size:26px;font-weight:500;box-shadow:0 8px 24px rgba(110,212,200,.25);
+  }
+  .dock{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:14px;
+    width:280px;height:54px;border-radius:28px;background:rgba(23,32,38,.92);
+    border:1px solid var(--hair);display:flex;align-items:center;justify-content:space-around;
+    padding:0 10px;color:var(--t3);font-size:10px;
+  }
+  .dock span.on{color:var(--accent)}
+
+  .seg{
+    display:flex;gap:6px;padding:0 16px 10px;
+  }
+  .seg button{
+    border:0;background:var(--pill);color:var(--t2);font:600 12px/1 inherit;
+    padding:8px 12px;border-radius:999px;border:1px solid var(--hair);
+  }
+  .seg button.on{color:var(--t1);background:var(--surfaceVar);border-color:var(--stroke)}
+
+  .table{
+    width:100%;max-width:900px;border-collapse:collapse;font-size:13.5px;
+  }
+  .table th,.table td{
+    text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);
+    vertical-align:top;
+  }
+  .table th{color:var(--t3);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+  .table td{color:var(--t2)}
+  .table td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
+  .ok{color:var(--accent)}
+  .mid{color:var(--med)}
+  .no{color:var(--t3)}
+</style>
+</head>
+<body>
+
+<h1>Notas no Stacked</h1>
+<p class="lead">
+  Exploração só de produto/UI: um espaço <b>só de anotações</b> (não tarefas),
+  no espírito do Notas do iOS, mas com leitura visual de <b>post-its / quadro</b>.
+  Nada disso está implementado no app.
+</p>
+
+<div class="verdict">
+  <strong>Combo fechado</strong>
+  <p>
+    <b>1.</b> Entrada nos <b>Atalhos da Home</b>, ícone Hugeicons (<code>note01</code> / nota).<br>
+    <b>2.</b> MVP = <b>mural post-it</b> + toggle <b>Lista</b> opcional (sem kanban).<br>
+    <b>3.</b> Ação <b>Virar tarefa</b> no editor (cria task; nota some ou arquiva).
+  </p>
+  <p style="margin-top:10px">
+    Nada implementado no app ainda — este HTML é só o contrato visual/produto.
+  </p>
+</div>
+
+<!-- PLACEMENT -->
+<section class="section">
+  <h2>1 · Onde colocar</h2>
+  <p class="desc">
+    Não vale uma 6ª aba no dock (já está cheio). O natural é um destino “secundário”,
+    como Etiquetas e Relatórios: acessível, mas fora do fluxo diário de tarefas.
+  </p>
+  <div class="pair">
+    <div class="col">
+      <h3><span class="tag">A · Preferida</span> · Atalhos na Home</h3>
+      <div class="phone">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30" style="font-size:22px;padding-top:6px">Boa noite</div>
+        <div class="sub">Atalhos · card desligado</div>
+        <div class="pad">
+          <div class="sech">ATALHOS</div>
+          <div class="card">
+            <div class="row"><span class="ic">⌕</span>Buscar<span class="ch">›</span></div>
+            <div class="row"><span class="ic">◉</span>Relatórios<span class="ch">›</span></div>
+            <div class="row"><span class="ic">▥</span>Filtros<span class="ch">›</span></div>
+            <div class="row"><span class="ic">🏷</span>Etiquetas<span class="ch">›</span></div>
+            <div class="row" style="background:rgba(110,212,200,.06)"><span class="ic">📝</span>Notas<span class="badge">Hugeicons note01</span></div>
+          </div>
+        </div>
+        <div style="height:28px"></div>
+      </div>
+      <p class="note"><b>Por quê:</b> mesmo padrão de “gerenciar coisas”. Zero pressão no dock. Web: link nos atalhos do canvas.</p>
+    </div>
+    <div class="col">
+      <h3><span class="tag">B</span> · Dentro de Filtros</h3>
+      <div class="phone">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30">Filtros</div>
+        <div class="sub">Visão geral das suas tarefas</div>
+        <div class="pad">
+          <div class="sech">VISÃO RÁPIDA</div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="row"><span class="ic">!</span>Atrasadas<span class="ch">3</span></div>
+            <div class="row"><span class="ic">○</span>Hoje<span class="ch">5</span></div>
+          </div>
+          <div class="sech">MAIS</div>
+          <div class="card">
+            <div class="row" style="background:rgba(110,212,200,.06)"><span class="ic">✎</span>Quadro de notas<span class="ch">›</span></div>
+            <div class="row"><span class="ic">📁</span>Projetos<span class="ch">›</span></div>
+          </div>
+        </div>
+        <div style="height:28px"></div>
+      </div>
+      <p class="note"><b>Por quê não:</b> Filtros é sobre tarefas. Notas ali misturam conceitos.</p>
+    </div>
+    <div class="col">
+      <h3><span class="tag">C</span> · Só em Ajustes</h3>
+      <div class="phone">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30" style="font-size:17px;text-align:center;font-weight:600;padding:12px">Configurações</div>
+        <div class="pad">
+          <div class="sech">ORGANIZAÇÃO</div>
+          <div class="card">
+            <div class="row"><span class="ic">🏷</span>Etiquetas<span class="ch">Gerenciar</span></div>
+            <div class="row" style="background:rgba(110,212,200,.06)"><span class="ic">✎</span>Notas<span class="ch">Quadro</span></div>
+            <div class="row"><span class="ic">📒</span>Registro<span class="ch">›</span></div>
+          </div>
+        </div>
+        <div style="height:80px"></div>
+      </div>
+      <p class="note"><b>Por quê não como único caminho:</b> notas são de uso frequente; Settings é “configurar”, não “escrever”.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VISUAL DIRECTIONS -->
+<section class="section">
+  <h2>2 · Como poderia parecer</h2>
+  <p class="desc">
+    Três leituras possíveis. A do meio (post-its) é a que mais casa com “notas rápidas tipo descrição”,
+    sem virar board de projeto (kanban) cedo demais.
+  </p>
+
+  <div class="pair">
+    <!-- A postits -->
+    <div class="col">
+      <h3><span class="tag">A · Recomendada</span> · Post-its / mural</h3>
+      <div class="phone tall">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30">Notas</div>
+        <div class="sub">Rápidas, soltas — não são tarefas</div>
+        <div class="seg">
+          <button class="on">Mural</button>
+          <button>Lista</button>
+        </div>
+        <div class="board">
+          <div class="stick mint">
+            <div class="pin"></div>
+            <div class="body">Ideias pro onboarding: menos passos, mostrar um projeto de exemplo no primeiro open.</div>
+            <div class="meta">hoje · 14:22</div>
+          </div>
+          <div class="stick amber tall">
+            <div class="pin"></div>
+            <div class="body">Ligar pra clínica amanhã cedo. Pedir 2ª via do recibo.</div>
+            <div class="meta">ontem</div>
+          </div>
+          <div class="stick violet">
+            <div class="pin"></div>
+            <div class="body">Exercism · treinar strings + maps antes do review.</div>
+            <div class="meta">seg</div>
+          </div>
+          <div class="stick ash">
+            <div class="pin"></div>
+            <div class="body">Presente aniversário — loja X fecha 18h.</div>
+            <div class="meta">seg</div>
+          </div>
+          <div class="stick rose span">
+            <div class="pin"></div>
+            <div class="body">Texto curto pro site: “Stacked — o que importa hoje, sem barulho.”</div>
+            <div class="meta">dom</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="dock"><span>Home</span><span>Inbox</span><span>Hoje</span><span>Em breve</span><span>Filtros</span></div>
+      </div>
+      <p class="note">
+        <b>Sensação:</b> papel solto, cores leves, rotação mínima.
+        Toque abre editor fullscreen (tipo Notas). Long-press: cor, pin, excluir, “virar tarefa”.
+      </p>
+    </div>
+
+    <!-- B kanban -->
+    <div class="col">
+      <h3><span class="tag">B</span> · Kanban leve</h3>
+      <div class="phone tall">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30">Notas</div>
+        <div class="sub">Colunas simples — não é projeto</div>
+        <div class="seg">
+          <button>Mural</button>
+          <button class="on">Colunas</button>
+        </div>
+        <div class="kanban">
+          <div class="col-k">
+            <div class="lab">Soltas</div>
+            <div class="stick mint"><div class="body">Ideias onboarding…</div><div class="meta">hoje</div></div>
+            <div class="stick ash"><div class="body">Presente aniversário</div><div class="meta">seg</div></div>
+          </div>
+          <div class="col-k">
+            <div class="lab">Olhando</div>
+            <div class="stick amber"><div class="body">Ligar clínica</div><div class="meta">ontem</div></div>
+            <div class="stick violet"><div class="body">Exercism strings</div><div class="meta">seg</div></div>
+          </div>
+          <div class="col-k">
+            <div class="lab">Arquivo</div>
+            <div class="stick rose"><div class="body">Copy do site</div><div class="meta">dom</div></div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="dock"><span>Home</span><span>Inbox</span><span>Hoje</span><span>Em breve</span><span>Filtros</span></div>
+      </div>
+      <p class="note">
+        <b>Cuidado:</b> kanban compete com projetos/tarefas. Só vale se a dor for “organizar notas”,
+        não só “aninhar ideias”. MVP melhor sem colunas.
+      </p>
+    </div>
+
+    <!-- C list -->
+    <div class="col">
+      <h3><span class="tag">C</span> · Lista quieta</h3>
+      <div class="phone tall">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div class="title30">Notas</div>
+        <div class="sub">Mesmo conteúdo, leitura densa</div>
+        <div class="seg">
+          <button>Mural</button>
+          <button class="on">Lista</button>
+        </div>
+        <div class="quiet-list">
+          <div class="quiet-note">
+            <div class="t">Onboarding</div>
+            <p class="p">Ideias: menos passos, projeto de exemplo no primeiro open.</p>
+            <div class="m">hoje · 14:22</div>
+          </div>
+          <div class="quiet-note">
+            <div class="t">Clínica</div>
+            <p class="p">Ligar amanhã cedo. Pedir 2ª via do recibo.</p>
+            <div class="m">ontem</div>
+          </div>
+          <div class="quiet-note">
+            <div class="t">Exercism</div>
+            <p class="p">Treinar strings + maps antes do review.</p>
+            <div class="m">seg</div>
+          </div>
+          <div class="quiet-note">
+            <div class="t">Presente</div>
+            <p class="p">Loja X fecha 18h.</p>
+            <div class="m">seg</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="dock"><span>Home</span><span>Inbox</span><span>Hoje</span><span>Em breve</span><span>Filtros</span></div>
+      </div>
+      <p class="note">
+        <b>Útil como toggle:</b> quem tem 80 notas precisa de lista. O mural é a cara; a lista é o utilitário.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- DETAIL -->
+<section class="section">
+  <h2>3 · Abrir uma nota</h2>
+  <p class="desc">Editor simples — título opcional + corpo. Sem checklist de tarefa, sem prioridade, sem projeto obrigatório.</p>
+  <div class="pair">
+    <div class="col">
+      <h3>Editor (sheet / push)</h3>
+      <div class="phone" style="min-height:560px">
+        <div class="status"><span class="clock">21:48</span><div class="island"></div><span></span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 16px;align-items:center">
+          <span style="color:var(--t2);font-weight:600">Fechar</span>
+          <span style="color:var(--accent);font-weight:600">Pronto</span>
+        </div>
+        <div style="padding:8px 18px 0">
+          <input placeholder="Título (opcional)" style="width:100%;background:transparent;border:0;color:var(--t1);font:700 22px/1.2 inherit;outline:none;margin-bottom:12px" value="Onboarding">
+          <textarea style="width:100%;min-height:280px;background:transparent;border:0;color:var(--t1);font:400 16px/1.45 inherit;outline:none;resize:none">Ideias pro onboarding:
+• menos passos
+• mostrar um projeto de exemplo no primeiro open
+• não pedir tema logo de cara</textarea>
+        </div>
+        <div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip on">mint</span>
+          <span class="chip">âmbar</span>
+          <span class="chip">violeta</span>
+          <span class="chip">cinza</span>
+          <span class="chip">rosa</span>
+        </div>
+        <div style="padding:4px 16px 20px;display:flex;gap:8px">
+          <span class="chip">Virar tarefa</span>
+          <span class="chip">Excluir</span>
+        </div>
+      </div>
+      <p class="note"><b>Bridge com Stacked:</b> “Virar tarefa” cria uma task com o texto como título/descrição e pergunta o projeto. A nota pode sumir ou ficar linkada.</p>
+    </div>
+    <div class="col">
+      <h3>O que NÃO é</h3>
+      <div class="chips" style="margin:0 0 14px">
+        <span class="chip">≠ descrição de tarefa</span>
+        <span class="chip">≠ subtarefa</span>
+        <span class="chip">≠ comentário</span>
+        <span class="chip">≠ projeto kanban</span>
+      </div>
+      <p class="note" style="max-width:420px">
+        Hoje a “nota rápida” vive dentro da tarefa (campo descrição). Isso continua.
+        Este quadro é para ideias <b>sem dono de tarefa ainda</b> — o papel solto na mesa,
+        não o post-it colado no card do Kanban de projeto.
+      </p>
+      <div class="note" style="max-width:420px;margin-top:16px">
+        <b>Modelo mental:</b><br>
+        Tarefa = compromisso com ação.<br>
+        Nota = pensamento capturado.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="section">
+  <h2>4 · Como faríamos (quando for a hora)</h2>
+  <p class="desc">Só o esboço técnico — sem código agora.</p>
+  <table class="table">
+    <thead>
+      <tr><th>Camada</th><th>Ideia</th><th>Esforço</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dados</td>
+        <td>Tabela <code>notes</code> no Supabase: id, user_id, title?, body, color, pinned, created_at, updated_at. Sem project_id no MVP.</td>
+        <td class="ok">baixo</td>
+      </tr>
+      <tr>
+        <td>iOS</td>
+        <td>Tela <code>NotesBoardView</code> (grid 2 colunas) + editor sheet. Entrada em HomeUtilitySection.</td>
+        <td class="mid">médio</td>
+      </tr>
+      <tr>
+        <td>Web</td>
+        <td>Mesma rota /notes, grid responsivo; atalho no home canvas.</td>
+        <td class="mid">médio</td>
+      </tr>
+      <tr>
+        <td>Kanban</td>
+        <td>Colunas = enum status ou tags livres. Adiar para v2.</td>
+        <td class="no">depois</td>
+      </tr>
+      <tr>
+        <td>Virar tarefa</td>
+        <td>Cria task + opcionalmente arquiva/deleta a nota. Uma ação, alto valor.</td>
+        <td class="ok">baixo+</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<section class="section">
+  <h2>5 · Decisões (travadas)</h2>
+  <p class="desc">Confirmado — pronto para plano de implementação quando você pedir.</p>
+  <div class="chips">
+    <span class="chip on">✓ Atalhos Home + Hugeicons note01</span>
+    <span class="chip on">✓ Mural + lista opcional</span>
+    <span class="chip on">✓ Virar tarefa no MVP</span>
+    <span class="chip">Kanban = depois</span>
+  </div>
+  <p class="note" style="max-width:640px;margin-top:18px">
+    Arquivo: <b>docs/mockups/notes-postits.html</b>.
+    Próximo passo (só quando pedir): migration Supabase → iOS NotesBoard → web /notes → atalho Home.
+  </p>
+</section>
+
+</body>
+</html>
