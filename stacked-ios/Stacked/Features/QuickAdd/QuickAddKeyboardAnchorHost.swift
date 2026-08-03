@@ -120,7 +120,11 @@ struct QuickAddKeyboardAnchorHost: UIViewControllerRepresentable {
         fill.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         fill.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         fill.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        fill.topAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -18),
+        // Cobre cantos arredondados da cápsula (~22pt) sem depender do gap.
+        fill.topAnchor.constraint(
+          equalTo: view.keyboardLayoutGuide.topAnchor,
+          constant: -KeyboardFloatingPanelStyle.defaultCornerRadius
+        ),
       ])
 
       keyboardZoneFill = fill

@@ -54,4 +54,10 @@ enum KeyboardFloatingPanelStyle {
       ? colors.surfaceVariant.opacity(0.42)
       : colors.surfaceVariant.opacity(0.72)
   }
+
+  /// Cor atrás da cápsula / entre ela e o teclado — mesma base do chrome do painel.
+  /// Usar `background` (Home Abismo) abria uma faixa preta entre painel e teclado.
+  static func keyboardZoneFill(_ colors: AppThemeColors) -> Color {
+    colors.surface
+  }
 }

@@ -9,8 +9,8 @@ struct QuickAddFloatingPresentation: ViewModifier {
   var onSaved: (QuickAddSaveSummary) -> Void
 
   private let horizontalInset: CGFloat = 12
-  /// Folga entre a borda inferior da cápsula e o topo do teclado.
-  private let gapAboveKeyboard: CGFloat = 4
+  /// Cápsula encostada no teclado — folga >0 + `background` Abismo abria faixa escura na Home.
+  private let gapAboveKeyboard: CGFloat = 0
 
   func body(content: Content) -> some View {
     content
@@ -27,7 +27,7 @@ struct QuickAddFloatingPresentation: ViewModifier {
       .overlay {
         if isPresented {
           QuickAddKeyboardAnchorHost(
-            backdropColor: theme.colors.background,
+            backdropColor: KeyboardFloatingPanelStyle.keyboardZoneFill(theme.colors),
             gapAboveKeyboard: gapAboveKeyboard,
             horizontalInset: horizontalInset,
             content: AnyView(

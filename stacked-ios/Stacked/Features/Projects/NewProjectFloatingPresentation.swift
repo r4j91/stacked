@@ -7,7 +7,7 @@ struct NewProjectFloatingPresentation: ViewModifier {
   var onCreated: () -> Void
 
   private let horizontalInset: CGFloat = 12
-  private let gapAboveKeyboard: CGFloat = 4
+  private let gapAboveKeyboard: CGFloat = 0
 
   func body(content: Content) -> some View {
     content
@@ -24,7 +24,7 @@ struct NewProjectFloatingPresentation: ViewModifier {
       .overlay {
         if isPresented {
           QuickAddKeyboardAnchorHost(
-            backdropColor: theme.colors.background,
+            backdropColor: KeyboardFloatingPanelStyle.keyboardZoneFill(theme.colors),
             gapAboveKeyboard: gapAboveKeyboard,
             horizontalInset: horizontalInset,
             content: AnyView(
