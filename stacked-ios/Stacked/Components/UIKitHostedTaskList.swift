@@ -1,6 +1,33 @@
 import SwiftUI
 import UIKit
 
+/// Amostragem do degradê de atmosfera no header fixo do Em breve — ver
+/// `UIKitHostedTaskListController.atmosphericHeaderFill`.
+private extension UIColor {
+  convenience init(rgbHex: UInt32) {
+    self.init(
+      red: CGFloat((rgbHex >> 16) & 0xFF) / 255,
+      green: CGFloat((rgbHex >> 8) & 0xFF) / 255,
+      blue: CGFloat(rgbHex & 0xFF) / 255,
+      alpha: 1
+    )
+  }
+
+  func blended(with other: UIColor, fraction: CGFloat) -> UIColor {
+    let f = min(1, max(0, fraction))
+    var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+    var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+    getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+    other.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+    return UIColor(
+      red: r1 + (r2 - r1) * f,
+      green: g1 + (g2 - g1) * f,
+      blue: b1 + (b2 - b1) * f,
+      alpha: a1 + (a2 - a1) * f
+    )
+  }
+}
+
 /// Tipo de cabeçalho de seção — paridade com `List` / `CollapsibleSectionHeader`.
 enum UIKitTaskSectionHeader: Equatable {
   case plain(String)
@@ -297,6 +324,22 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   }
 }
 
+/// FADE_TOPO_FALSO: view cujo layer É um CAGradientLayer — cor sólida (topo)
+/// → transparente, decorativo, sem reamostrar nada (diferente do scrollEdgeEffect
+/// nativo que hitchava nessa lista). Não intercepta toque (ver isUserInteractionEnabled).
+final class TopFadeOverlayView: UIView {
+  override class var layerClass: AnyClass { CAGradientLayer.self }
+
+  private var gradientLayer: CAGradientLayer { layer as! CAGradientLayer }
+
+  func configure(topColor: UIColor) {
+    gradientLayer.colors = [topColor.cgColor, topColor.withAlphaComponent(0).cgColor]
+    gradientLayer.locations = [0, 1]
+    gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+    gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+  }
+}
+
 /// Cell com altura travada no layout — evita jump 0→full quando o recycle remonta o SwiftUI.
 final class UIKitSizedTaskCell: UICollectionViewListCell {
   /// Preferida pelo layout da collection (antes do sizeThatFits do hosting).
@@ -418,6 +461,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   private var pendingThemeRefresh = false
   /// Continuidade do trilho por ItemID (só com timelineRailEnabled).
   private var timelineRailEdges: [ItemID: (up: Bool, down: Bool)] = [:]
+  /// FADE_TOPO_FALSO — ver comentário no viewDidLoad.
+  private let topFadeOverlay = TopFadeOverlayView()
+  private static let topFadeHeight: CGFloat = 28
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -437,6 +483,20 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     disableScrollEdgeEffects(on: collectionView)
     view.addSubview(collectionView)
     refreshBottomInset()
+
+    // FADE_TOPO_FALSO: sem o soft edge nativo (hitchava), um degradê estático
+    // cor→transparente por cima do topo — decorativo, não reamostra nada por
+    // frame, então não tem o custo que tirou o soft edge de verdade.
+    topFadeOverlay.isUserInteractionEnabled = false
+    topFadeOverlay.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(topFadeOverlay)
+    NSLayoutConstraint.activate([
+      topFadeOverlay.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+      topFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      topFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      topFadeOverlay.heightAnchor.constraint(equalToConstant: Self.topFadeHeight),
+    ])
+    refreshTopFadeOverlay()
 
     let refresh = UIRefreshControl()
     refresh.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
@@ -815,9 +875,15 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     let fill: UIColor
     if let configured = config?.background, configured.cgColor.alpha >= 0.99 {
       fill = configured
-    } else if ThemeManager.shared.usesAtmosphericBackground {
+    } else if let sampled = atmosphericHeaderFill() {
       // Semi-opaco: deixa o gradiente transparecer sem bleed das rows no sticky.
-      fill = UIColor(ThemeManager.shared.colors.background).withAlphaComponent(0.92)
+      // BUG_TARJA_ABISMO: usava sempre a cor do TOPO do degradê (colors.background).
+      // 1ª correção amostrava o frame do CELL no configure — mas nesse momento o
+      // header ainda não tinha assentado na posição pinada (dequeue acontece antes
+      // do layout aplicar o pin), então a cor ficava presa na posição errada.
+      // Como todo header pinado gruda sempre no MESMO Y (logo abaixo da safe area),
+      // não precisa do frame do cell — só a posição fixa onde ele fica preso.
+      fill = sampled.withAlphaComponent(0.92)
     } else {
       fill = UIColor(ThemeManager.shared.colors.background)
     }
@@ -844,6 +910,31 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
       .margins(.all, 0)
       .minSize(height: 1)
     }
+  }
+
+  /// Cor do degradê de atmosfera (Abismo) na posição onde o header fixo REALMENTE
+  /// gruda na tela — sempre a mesma (logo abaixo da safe area), então não depende
+  /// do frame do cell no momento do configure. Degradê cobre a tela toda
+  /// (`ignoresSafeArea`), então a fração usa a altura da janela.
+  private func atmosphericHeaderFill() -> UIColor? {
+    guard let stops = ThemeManager.shared.currentId.atmosphericGradientStops, stops.count > 1 else {
+      return nil
+    }
+    let screenHeight = max(view.window?.bounds.height ?? ScreenMetrics.bounds.height, 1)
+    let pinnedY = collectionView.adjustedContentInset.top + 20
+    let t = min(1, max(0, pinnedY / screenHeight))
+    return Self.interpolatedColor(stops: stops, t: t)
+  }
+
+  /// Interpola linearmente entre os stops do hex — mesma distribuição uniforme
+  /// que o `LinearGradient(colors:)` do SwiftUI usa quando não passa `.locations`.
+  private static func interpolatedColor(stops: [UInt32], t: CGFloat) -> UIColor {
+    guard stops.count > 1 else { return UIColor(rgbHex: stops.first ?? 0x000000) }
+    let segmentCount = stops.count - 1
+    let segment = 1 / CGFloat(segmentCount)
+    let index = min(segmentCount - 1, max(0, Int(t / segment)))
+    let localT = min(1, max(0, (t - CGFloat(index) * segment) / segment))
+    return UIColor(rgbHex: stops[index]).blended(with: UIColor(rgbHex: stops[index + 1]), fraction: localT)
   }
 
   /// Soft top = blur variável (stutter). Hard bottom = tarja opaca (print do projeto).
@@ -883,6 +974,14 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     guard abs(collectionView.contentInset.bottom - inset) > 0.5 else { return }
     collectionView.contentInset.bottom = inset
     collectionView.verticalScrollIndicatorInsets.bottom = inset
+  }
+
+  /// FADE_TOPO_FALSO: cor do topo do tema atual — pro degradê Abismo é exatamente
+  /// o 1º stop (a view fica colada no topo da tela, sem precisar interpolar).
+  private func refreshTopFadeOverlay() {
+    guard topFadeOverlay.superview != nil else { return }
+    let colors = ThemeManager.shared.colors
+    topFadeOverlay.configure(topColor: UIColor(colors.background))
   }
 
   func apply(configuration: Configuration) {
@@ -938,6 +1037,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
         collectionView.backgroundColor = solid
       }
     }
+    refreshTopFadeOverlay()
 
     let presentationKey = Self.presentationKey(configuration)
     let presentationChanged = presentationKey != lastPresentationKey

@@ -74,6 +74,46 @@ stacked/
 ### Hero animations em listas de tarefas
 Testado e causou problemas visuais nas listas. **Nunca usar Hero animations** neste projeto.
 
+### Botão voltar "acende" sozinho em Ao vivo (drill-downs)
+Em modo "Ao vivo", `stackedAdaptiveDrillDownBack()` deixava o voltar nativo
+(UIKit) ativo em vez do pill custom. Esse voltar nativo divide o slot
+`.topBarLeading` com o leading item da Home (avatar), e o sistema aplica um
+morph/"materialize" de glass automático nele: uns ~300ms depois do push,
+sem nenhum toque, o botão vai ficando mais claro/brilhante sozinho — some só
+quando volta pra Home. Corrigido usando o pill custom (`DrillDownGlassIconButton`
+/ `ToolbarGlassPill`, que já tem branch de `.glassEffect` real pro modo Ao
+vivo) em todos os 4 modos, não só Fosco — ver `StackedAdaptiveDrillDownBackModifier`
+em `ScreenChrome.swift`. Fora da máquina de morph nativa do voltar do UIKit,
+não herda o artefato.
+
+De quebra, `UserAvatarView` ganhou cache de imagem em memória entre instâncias
+(`AvatarImageCache`) — evita um flash real (menor) do `AsyncImage` reiniciando
+em `.empty` toda vez que a Home reaparece após um pop.
+
+### Tarja escura nos headers fixos do Em breve (Abismo)
+`UIKitHostedTaskList.configurePinnedPlainHeader` preenchia o header fixo
+("AMANHÃ", datas...) com um fill opaco (pra não vazar as rows passando por
+baixo do sticky). Duas tentativas de calcular a cor certa do degradê Abismo
+pra esse fill (cor do topo sempre; depois amostrando a posição real do header)
+não bateram direito — a posição pinada não é exatamente previsível e sempre
+sobrava alguma tarja. Solução final: tirar o pin, mas só nos temas Abismo. Em
+`UpcomingView.swift`, `pinPlainSectionHeaders: !ThemeManager.shared.usesAtmosphericBackground`
+— nos temas de fundo sólido o header continua grudando no topo (nunca teve
+tarja ali); só nos Abismo (fundo em degradê) a data rola junto com o conteúdo
+em vez de fixar. `atmosphericHeaderFill`/`interpolatedColor` em
+`UIKitHostedTaskList.swift` continuam existindo (infra de
+`pinPlainSectionHeaders`), mas não são mais usados por nenhuma tela — não usar
+essa abordagem de novo pra headers fixos sobre fundo em degradê.
+
+### Fade falso no topo das listas UIKit (Em breve, Projetos)
+`.scrollEdgeEffectStyle` nativo (iOS 26) foi tentado no `UICollectionView` e
+revertido: `.soft` engasgava o scroll, `.hard` virava tarja opaca — por isso
+`disableScrollEdgeEffects` desliga os dois. Como as telas SwiftUI (Home,
+Filtros) têm o fade de verdade e ficam mais bonitas, adicionamos um
+`TopFadeOverlayView` (CAGradientLayer cor→transparente, estático, sem
+reamostrar nada) por cima do topo da lista — visual parecido, sem o custo que
+tirou o soft edge nativo. Não é blur de verdade, só um degradê decorativo.
+
 ### Coluna descricao na tabela subtasks
 A coluna `descricao text` precisa existir no Supabase antes de incluí-la em queries. Migration: `ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS descricao text;`. Sem ela, qualquer SELECT que inclua `descricao` retorna erro e a tela fica em branco.
 

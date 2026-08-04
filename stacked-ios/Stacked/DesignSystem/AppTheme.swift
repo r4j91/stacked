@@ -64,57 +64,33 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         .basaltGold,
     ]
 
-    /// Gradiente de atmosfera. `nil` = fundo sólido (`colors.background`).
-    var atmosphericGradient: LinearGradient? {
+    /// Stops do degradê de atmosfera (hex, topo → base) — fonte única pro
+    /// `LinearGradient` do SwiftUI e pra amostragem pontual em UIKit (header
+    /// fixo do Em breve: `UIKitHostedTaskList.atmosphericHeaderFill`).
+    var atmosphericGradientStops: [UInt32]? {
         switch self {
         case .abyss:
-            return LinearGradient(
-                colors: [
-                    Color(hex: 0x0E1418),
-                    Color(hex: 0x10181E),
-                    Color(hex: 0x121C22),
-                    Color(hex: 0x152028),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            return [0x0E1418, 0x10181E, 0x121C22, 0x152028]
         case .abyssAsh:
-            return LinearGradient(
-                colors: [
-                    Color(hex: 0x141518),
-                    Color(hex: 0x16171A),
-                    Color(hex: 0x181A1E),
-                    Color(hex: 0x1C1E22),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            return [0x141518, 0x16171A, 0x181A1E, 0x1C1E22]
         case .abyssSoft:
             // Canvas bem mais claro que o Abismo; surface dos cards fica no normal.
-            return LinearGradient(
-                colors: [
-                    Color(hex: 0x1A232A),
-                    Color(hex: 0x1B242C),
-                    Color(hex: 0x1C262E),
-                    Color(hex: 0x1E2932),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            return [0x1A232A, 0x1B242C, 0x1C262E, 0x1E2932]
         case .abyssAshSoft:
-            return LinearGradient(
-                colors: [
-                    Color(hex: 0x1D2025),
-                    Color(hex: 0x1E2126),
-                    Color(hex: 0x202328),
-                    Color(hex: 0x22252A),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            return [0x1D2025, 0x1E2126, 0x202328, 0x22252A]
         default:
             return nil
         }
+    }
+
+    /// Gradiente de atmosfera. `nil` = fundo sólido (`colors.background`).
+    var atmosphericGradient: LinearGradient? {
+        guard let stops = atmosphericGradientStops else { return nil }
+        return LinearGradient(
+            colors: stops.map { Color(hex: $0) },
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     var usesAtmosphericBackground: Bool { atmosphericGradient != nil }

@@ -256,7 +256,12 @@ private struct UpcomingUIKitListContent: View {
         subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
       },
       onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) },
-      pinPlainSectionHeaders: true
+      // BUG_TARJA_ABISMO: só nos temas Abismo (fundo em degradê) o header fixo
+      // precisava de um fill opaco pra não vazar as rows por baixo, e nenhuma
+      // cor calculada bateu direito com o degradê (posição pinada imprevisível).
+      // Nesses temas a data rola junto com o conteúdo em vez de grudar no topo.
+      // Nos demais (fundo sólido) o pin continua — nunca teve tarja ali.
+      pinPlainSectionHeaders: !ThemeManager.shared.usesAtmosphericBackground
     )
     .stackedScrollEdgeChrome()
   }

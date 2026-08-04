@@ -437,31 +437,43 @@ extension View {
       .background(InteractivePopGestureEnabler())
   }
 
-  /// Fosco: volta custom (pill). Ao vivo: volta nativo com morph glass.
+  /// SEMPRE volta custom (pill) — nos 4 modos, inclusive Ao vivo.
+  /// BUG_GHOST_VOLTAR: em Ao vivo, o voltar nativo (UIKit) e o leading item da
+  /// Home (avatar) dividem o mesmo slot `.topBarLeading`; o sistema aplica um
+  /// "materialize"/morph de glass automático no botão voltar nativo assim que
+  /// a tela assenta, que ainda brilha sozinho (sem toque) uns ~300ms depois
+  /// do push — some só ao voltar. O pill custom (`ToolbarGlassPill`) já usa
+  /// `.glassEffect` real em Ao vivo, mas por fora da máquina nativa de morph
+  /// do botão voltar, então não herda esse artefato.
   func stackedAdaptiveDrillDownBack() -> some View {
     modifier(StackedAdaptiveDrillDownBackModifier())
   }
 }
 
 private struct StackedAdaptiveDrillDownBackModifier: ViewModifier {
-  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
-
-  private var useStaticPill: Bool {
-    GlassChromePreference.prefersStaticToolbarPills(
-      mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
-    )
-  }
-
   func body(content: Content) -> some View {
-    if useStaticPill {
-      content
-        .stackedDrillDownGlassBackButton()
-        .toolbar { DrillDownBackToolbarItem() }
-    } else {
-      content
-    }
+    content
+      .stackedDrillDownGlassBackButton()
+      .toolbar { DrillDownBackToolbarItem() }
   }
 }
+
+// SUBSTITUIDO_BUG_GHOST_VOLTAR — gating por modo (Fosco: pill custom; Ao vivo:
+// nativo com morph glass). Nativo em Ao vivo tinha o glow espontâneo:
+//
+// private struct StackedAdaptiveDrillDownBackModifier: ViewModifier {
+//   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+//   private var useStaticPill: Bool {
+//     GlassChromePreference.prefersStaticToolbarPills(mode: ChromeGlassModeStorage.mode(from: chromeGlassModeRaw))
+//   }
+//   func body(content: Content) -> some View {
+//     if useStaticPill {
+//       content.stackedDrillDownGlassBackButton().toolbar { DrillDownBackToolbarItem() }
+//     } else {
+//       content
+//     }
+//   }
+// }
 
 // MARK: - Drill-down toolbar (glass back — padrão projeto/filtros)
 
