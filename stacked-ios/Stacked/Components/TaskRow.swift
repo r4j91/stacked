@@ -1204,14 +1204,26 @@ struct TaskRow: View {
   private func syncSubtasks() {
     let sorted = TaskMapper.sortSubtasksForDisplay(task.subtasks)
     if rowSubtaskSortHoldId != nil, !rowDisplaySubtasks.isEmpty {
-      rowDisplaySubtasks = rowDisplaySubtasks.map { local in
-        sorted.first(where: { subtaskHoldKey($0) == subtaskHoldKey(local) }) ?? local
-      }
-      rowSubtasksDone = rowDisplaySubtasks.map(\.done)
+      assignDisplaySubtasks(
+        rowDisplaySubtasks.map { local in
+          sorted.first(where: { subtaskHoldKey($0) == subtaskHoldKey(local) }) ?? local
+        }
+      )
       return
     }
-    rowDisplaySubtasks = sorted
-    rowSubtasksDone = sorted.map(\.done)
+    assignDisplaySubtasks(sorted)
+  }
+
+  /// Escrita idempotente: reatribuir o mesmo array invalida o corpo da linha à toa, e
+  /// o expand dispara um sync redundante bem no início da animação de abertura.
+  private func assignDisplaySubtasks(_ subs: [Subtask]) {
+    if rowDisplaySubtasks != subs {
+      rowDisplaySubtasks = subs
+    }
+    let done = subs.map(\.done)
+    if rowSubtasksDone != done {
+      rowSubtasksDone = done
+    }
   }
 
   private func subtaskHoldKey(_ sub: Subtask) -> String {

@@ -168,14 +168,20 @@ final class SubtaskExpandContainerView: UIView {
     scheduleRemeasure(hosting: hosting, width: width, animated: animateOpen)
   }
 
-  /// Largura para sizeThatFits — bounds reais; cold = estimativa de tela (não 320 fixo).
+  /// Largura para sizeThatFits — só medidas reais. 0 = ainda não dá pra medir.
+  ///
+  /// SUBSTITUIDO_LARGURA_ESTIMADA: havia um fallback `DisplayScreen.bounds.width - 40`.
+  /// Na `List` do SwiftUI o painel nasce no toque com pai de largura zero, então o
+  /// chute era sempre usado — e `sizeThatFits` não é medição passiva, ele diagrama o
+  /// conteúdo naquela largura. O texto das subtarefas assentava na largura errada e
+  /// pulava pra certa no layout seguinte. O chute também não tinha como acertar: a
+  /// largura real muda com o `listRowInsets` de cada tela e com o trilho da timeline.
+  /// Sem ele, `configure` cai no caminho de largura desconhecida e o `layoutSubviews`
+  /// retoma a abertura com a largura real, preservando a animação.
   func resolvedMeasureWidth(fallback: CGFloat) -> CGFloat {
     if bounds.width > 1 { return bounds.width }
     if let sw = superview?.bounds.width, sw > 1 { return sw }
-    if fallback > 1 { return fallback }
-    // Estimativa: evita medida 0 no mount e permite a animação de abertura começar.
-    let estimated = DisplayScreen.bounds.width - 40
-    return estimated > 1 ? estimated : 0
+    return fallback > 1 ? fallback : 0
   }
 
   /// Fundo do clip = mesma tinta do painel SwiftUI (slack de medida não vira tarja).
@@ -283,6 +289,9 @@ final class SubtaskExpandContainerView: UIView {
       hosting.view.isUserInteractionEnabled = true
       clipView?.isUserInteractionEnabled = true
       isUserInteractionEnabled = true
+      // Este é o caminho normal de abertura na List do SwiftUI — garante o passe de
+      // layout que traz a largura real, senão o painel não abriria.
+      setNeedsLayout()
       return
     }
 
