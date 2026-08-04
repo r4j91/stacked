@@ -1120,41 +1120,20 @@ struct TaskRow: View {
     if !rowRevealActive {
       syncSubtasks()
       setRowRevealActive(true)
-      if stabilizeExpandInSelfSizingCell {
-        // Uma passagem: sem yield/AppMotion no `expanded` (isso deslocava o título na cell).
-        // Sem Transaction.disablesAnimations — isso impedia o UIViewRepresentable de aplicar a altura.
-        bumpSubtaskCascade()
-        setRowExpanded(true)
-        bumpSubtaskRevealLayout()
-        ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
-        // Síncrono com o grow — defer quebrava a animação da collection.
-        onSubtaskExpansionChanged?(true)
-        return
-      }
-      setRowExpanded(false)
-      _Concurrency.Task { @MainActor in
-        await _Concurrency.Task.yield()
-        guard rowRevealActive else { return }
-        bumpSubtaskCascade()
-        AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
-          setRowExpanded(true)
-        }
-        ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
-        onSubtaskExpansionChanged?(true)
-      }
+      // Uma passagem (UIKit e SwiftUI List): altura anima só no SubtaskExpandReveal;
+      // chevron gira no `.animation` próprio. Yield/AppMotion no expanded
+      // deixava o SwiftUI List com curva diferente do UIKit.
+      bumpSubtaskCascade()
+      setRowExpanded(true)
+      bumpSubtaskRevealLayout()
+      ProjectDetailPreferences.setSubtaskListExpanded(true, taskId: task.id)
+      onSubtaskExpansionChanged?(true)
       return
     }
     let willExpand = !rowExpanded
-    if stabilizeExpandInSelfSizingCell {
-      if willExpand { bumpSubtaskCascade() }
-      setRowExpanded(willExpand)
-      if willExpand { bumpSubtaskRevealLayout() }
-    } else {
-      if willExpand { bumpSubtaskCascade() }
-      AppMotion.animate(AppMotion.subtaskChevronTurnSpring, reduceMotion: reduceMotion) {
-        setRowExpanded(willExpand)
-      }
-    }
+    if willExpand { bumpSubtaskCascade() }
+    setRowExpanded(willExpand)
+    if willExpand { bumpSubtaskRevealLayout() }
     ProjectDetailPreferences.setSubtaskListExpanded(willExpand, taskId: task.id)
     onSubtaskExpansionChanged?(willExpand)
     if !willExpand {
@@ -1164,13 +1143,8 @@ struct TaskRow: View {
 
   /// Desmonta o UIHostingController após o collapse — evita updateUIView pesado no scroll.
   private func scheduleSubtaskRevealTeardown() {
-    let delayMs: Int
-    if stabilizeExpandInSelfSizingCell {
-      // Depois do slide (220ms) + reâncora (~3 frames) — teardown cedo faz a row pular.
-      delayMs = reduceMotion ? 0 : 380
-    } else {
-      delayMs = reduceMotion ? 0 : 230
-    }
+    // Depois do clip-close (160ms) + folga — teardown cedo faz a row pular.
+    let delayMs = reduceMotion ? 0 : 380
     _Concurrency.Task { @MainActor in
       try? await _Concurrency.Task.sleep(for: .milliseconds(delayMs))
       guard !rowExpanded else { return }
@@ -1206,34 +1180,19 @@ struct TaskRow: View {
       return
     }
     syncSubtasks()
-    // UIKit recycle legado: uma passagem + snap — yield 0→full hitchava no scroll.
-    if stabilizeExpandInSelfSizingCell {
-      var transaction = Transaction()
-      transaction.disablesAnimations = true
-      withTransaction(transaction) {
-        setRowSnapRevealOpen(true)
-        setRowRevealActive(true)
-        setRowExpanded(true)
-      }
-      bumpSubtaskRevealLayout()
-      _Concurrency.Task { @MainActor in
-        try? await _Concurrency.Task.sleep(for: .milliseconds(40))
-        guard rowExpanded else { return }
-        setRowSnapRevealOpen(false)
-      }
-      return
-    }
-    // List SwiftUI: yield evita altura 0 no 1º frame do reveal.
-    setRowRevealActive(true)
-    setRowExpanded(false)
-    _Concurrency.Task { @MainActor in
-      await _Concurrency.Task.yield()
-      guard rowRevealActive,
-            ProjectDetailPreferences.isSubtaskListExpanded(taskId: task.id) else { return }
+    // Remount/appear já expandido: snap (sem 0→full) — UIKit e SwiftUI List.
+    var transaction = Transaction()
+    transaction.disablesAnimations = true
+    withTransaction(transaction) {
+      setRowSnapRevealOpen(true)
+      setRowRevealActive(true)
       setRowExpanded(true)
-      bumpSubtaskRevealLayout()
-      try? await _Concurrency.Task.sleep(for: .milliseconds(50))
-      bumpSubtaskRevealLayout()
+    }
+    bumpSubtaskRevealLayout()
+    _Concurrency.Task { @MainActor in
+      try? await _Concurrency.Task.sleep(for: .milliseconds(40))
+      guard rowExpanded else { return }
+      setRowSnapRevealOpen(false)
     }
   }
 

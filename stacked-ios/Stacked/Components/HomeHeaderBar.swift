@@ -80,8 +80,8 @@ private struct HomeHeaderLeading: View {
     return degree.isEmpty ? date : "\(date) · \(degree)"
   }
 
-  /// A toolbar propõe largura apertada e os textos usam `fixedSize` para não sumir;
-  /// o corte por contagem de caracteres é o que impede a pill de estourar.
+  /// A toolbar propõe largura apertada; o maxWidth da pill + corte por caracteres
+  /// / minimumScaleFactor impedem a saudação de engolir sino e config.
   private static func clipped(_ text: String, at limit: Int) -> String {
     guard text.count > limit else { return text }
     return String(text.prefix(limit - 1)) + "…"
@@ -104,6 +104,8 @@ private struct HomeHeaderLeading: View {
           avatar(c)
           trailingContent(c)
         }
+        // Largura intrínseca, mas limitada — texto não some nem engole o trailing.
+        .fixedSize(horizontal: true, vertical: false)
       }
       .modifier(HomeHeaderQuietBorder())
       .overlay {
@@ -113,6 +115,8 @@ private struct HomeHeaderLeading: View {
         }
       }
     }
+    .frame(maxWidth: HomeHeaderMetrics.leadingPillMaxWidth, alignment: .leading)
+    .clipped()
     .buttonStyle(PressableStyle(cornerRadius: AppLayout.headerControlSize / 2))
     .accessibilityLabel(topCardEnabled ? "Relatório de produtividade" : "Perfil")
     .accessibilityValue(accessibilityValue)
@@ -138,6 +142,18 @@ private struct HomeHeaderLeading: View {
     .overlay {
       if style.showsProgressRing {
         HomeHeaderProgressRing(progress: dayProgress, colors: c)
+      }
+    }
+    // Check da meta no avatar — não disputa largura com a saudação (que
+    // antes sumia ou engolia sino/config quando o check ia inline).
+    .overlay(alignment: .bottomTrailing) {
+      if style.showsProgressRing, goalMet {
+        Image(systemName: "checkmark.circle.fill")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(c.accent)
+          .background(Circle().fill(c.navBar).padding(-1))
+          .offset(x: 1, y: 1)
+          .accessibilityHidden(true)
       }
     }
   }
@@ -166,12 +182,7 @@ private struct HomeHeaderLeading: View {
           Text(pillName)
             .font(t.rowTitleFont)
             .foregroundStyle(c.textPrimary)
-          if goalMet {
-            Image(systemName: "checkmark.circle.fill")
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(c.accent)
-              .accessibilityHidden(true)
-          }
+            .lineLimit(1)
           Text(dayFraction)
             .font(.system(size: 13.5, weight: .semibold))
             .monospacedDigit()
@@ -183,21 +194,13 @@ private struct HomeHeaderLeading: View {
       }
 
     case .greeting:
-      HStack(spacing: 7) {
-        VStack(alignment: .leading, spacing: 1) {
-          Text(greetingLine)
-            .font(.system(size: 15.5, weight: .semibold))
-            .foregroundStyle(c.textPrimary)
-          Text(metaLine)
-            .font(.system(size: 11.5))
-            .foregroundStyle(c.textTertiary)
-        }
-        if goalMet {
-          Image(systemName: "checkmark.circle.fill")
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(c.accent)
-            .accessibilityHidden(true)
-        }
+      VStack(alignment: .leading, spacing: 1) {
+        Text(greetingLine)
+          .font(.system(size: 15.5, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+        Text(metaLine)
+          .font(.system(size: 11.5))
+          .foregroundStyle(c.textTertiary)
       }
       .lineLimit(1)
       .fixedSize(horizontal: true, vertical: false)
@@ -297,6 +300,9 @@ private struct HomeHeaderTrailing: View {
       .padding(.horizontal, 2)
     }
     .modifier(HomeHeaderQuietBorder())
+    // Prioridade alta: nunca cede espaço pra pill da saudação engolir o trailing.
+    .layoutPriority(1)
+    .fixedSize(horizontal: true, vertical: false)
   }
 }
 

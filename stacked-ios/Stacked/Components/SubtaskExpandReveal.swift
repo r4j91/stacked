@@ -246,8 +246,8 @@ final class SubtaskExpandContainerView: UIView {
     attachHostedControllerIfNeeded()
     self.stabilizeSelfSizingParent = stabilizeSelfSizingParent
 
-    // Evita reentrada no meio do close.
-    if isAnimating, !expanded, stabilizeSelfSizingParent {
+    // Evita reentrada no meio do close (UIKit e SwiftUI List).
+    if isAnimating, !expanded {
       return
     }
 
@@ -348,26 +348,20 @@ final class SubtaskExpandContainerView: UIView {
     // snapOpen: recycle já aberto — sem flash 0→full no scroll.
     let shouldAnimate = animated && stateChanged && !snapOpen && !UIAccessibility.isReduceMotionEnabled
 
-    // Fechar em cell self-sizing UIKit: clip encolhe primeiro; lista só zera no fim.
-    if !expanded, stabilizeSelfSizingParent {
-      collapseWithVisualClip(animated: shouldAnimate, reanchorParent: false)
+    // Mesma animação em UIKit e SwiftUI List:
+    // fechar = clip encolhe (conteúdo some pra cima); abrir = grow easeOut 0.22s.
+    // O pin de contentOffset só age quando há UICollectionViewCell (UIKit);
+    // em List o pin é no-op, mas a curva/visual do painel fica igual.
+    if !expanded {
+      collapseWithVisualClip(
+        animated: shouldAnimate,
+        reanchorParent: stabilizeSelfSizingParent
+      )
       return
     }
 
-    // Abrir UIKit: cresce a altura e reâncora o offset — topo do card (chevron) fica parado.
-    // pinParent:false fazia o chevron “descer e voltar” no grow da collection.
-    if expanded, stabilizeSelfSizingParent {
-      pendingAnimatedExpand = false
-      expandWithPinnedParent(height: target, animated: shouldAnimate)
-      return
-    }
-
-    applyVisibleHeight(
-      target,
-      expanded: expanded,
-      animated: shouldAnimate,
-      pinParent: false
-    )
+    pendingAnimatedExpand = false
+    expandWithPinnedParent(height: target, animated: shouldAnimate)
   }
 
   private func scheduleRemeasure(
@@ -458,15 +452,20 @@ final class SubtaskExpandContainerView: UIView {
     fullHeight = measured
     hostHeightConstraint?.constant = measured
     clipHeightConstraint?.constant = measured
-    // Remeasure no open UIKit: mesmo pin do configure (topo/chevron parado).
-    if stabilizeSelfSizingParent, (selfHeightConstraint?.constant ?? 0) <= 0.5, !updateHeightCache {
+    // Remeasure no open: mesma curva do configure (UIKit e SwiftUI List).
+    if (selfHeightConstraint?.constant ?? 0) <= 0.5, !updateHeightCache {
       expandWithPinnedParent(height: measured, animated: animated)
       return
     }
     if let cell = enclosingCell() as? UIKitSizedTaskCell {
       cell.lockedHeight = nil
     }
-    applyVisibleHeight(measured, expanded: true, animated: animated, pinParent: false)
+    applyVisibleHeight(
+      measured,
+      expanded: true,
+      animated: animated,
+      pinParent: stabilizeSelfSizingParent
+    )
     enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
     if let collectionView = enclosingCollectionView() {
       collectionView.performBatchUpdates(nil)

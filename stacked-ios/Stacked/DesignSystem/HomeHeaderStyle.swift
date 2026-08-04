@@ -73,6 +73,15 @@ enum HomeHeaderMetrics {
   /// Sino + divisória + engrenagem.
   static var trailingPillWidth: CGFloat { AppLayout.headerControlSize * 2 + 4 }
 
+  /// Margens da nav + gap — reserva espaço pro trailing (sino/config).
+  private static let barChromeReserve: CGFloat = 48
+
+  /// Largura máxima da pill do avatar — sempre deixa espaço pro trailing.
+  static var leadingPillMaxWidth: CGFloat {
+    let free = ScreenMetrics.bounds.width - trailingPillWidth - barChromeReserve
+    return max(200, free)
+  }
+
   /// Sobra entre a pill do avatar e a de sino/config, já descontadas as margens
   /// da barra de navegação.
   static var searchFieldWidth: CGFloat {

@@ -27,6 +27,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case abyss
     /// Mesma atmosfera em cinza neutro — gradiente sem matiz azul; accent âmbar.
     case abyssAsh
+    /// Abismo Cinza sem degradê — fundo sólido no tom do topo.
+    case abyssAshSolid
+    /// Abismo Cinza Sólido com accent mint do Abismo.
+    case abyssAshSolidMint
     /// Abismo Cinza com fundo mais claro.
     case abyssAshSoft
 
@@ -36,6 +40,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     static let recommended: [AppThemeId] = [
         .abyss,
         .abyssAsh,
+        .abyssAshSolid,
+        .abyssAshSolidMint,
         .abyssAshSoft,
         .slate,
         .slateEmber,
@@ -97,6 +103,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: "Sodalite Larimar"
         case .abyss: "Abismo"
         case .abyssAsh: "Abismo Cinza"
+        case .abyssAshSolid: "Abismo Cinza Sólido"
+        case .abyssAshSolidMint: "Abismo Cinza Mint"
         case .abyssAshSoft: "Abismo Cinza Suave"
         }
     }
@@ -126,6 +134,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: "Carvão · ciano"
         case .abyss: "Petróleo-noite · mint"
         case .abyssAsh: "Noite neutra · âmbar"
+        case .abyssAshSolid: "Fundo sólido · âmbar"
+        case .abyssAshSolidMint: "Fundo sólido · mint"
         case .abyssAshSoft: "Cinza mais claro · âmbar"
         }
     }
@@ -137,6 +147,10 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x0E1418), Color(hex: 0x172026), Color(hex: 0x6ED4C8))
         case .abyssAsh:
             return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0xC9A06E))
+        case .abyssAshSolid:
+            return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0xC9A06E))
+        case .abyssAshSolidMint:
+            return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0x6ED4C8))
         case .abyssAshSoft:
             return (Color(hex: 0x1D2025), Color(hex: 0x1C1E22), Color(hex: 0xC9A06E))
         case .titanium:
@@ -206,6 +220,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .sodaliteLarimar: .sodaliteLarimar
         case .abyss: .abyss
         case .abyssAsh: .abyssAsh
+        case .abyssAshSolid: .abyssAshSolid
+        case .abyssAshSolidMint: .abyssAshSolidMint
         case .abyssAshSoft: .abyssAshSoft
         }
     }
@@ -592,6 +608,49 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xDBB888),
         fabGradientEnd: Color(hex: 0xA88448),
         folderTint: Color(hex: 0xC9A06E),
+        navBar: Color(hex: 0x1C1E22),
+        isDark: true
+    )
+
+    /// Abismo Cinza Sólido — mesmas cores do Abismo Cinza, sem degradê de atmosfera.
+    /// Fundo = tom do topo (#141518); containers = surface dos atalhos (#1C1E22).
+    static let abyssAshSolid = AppThemeColors(
+        background: Color(hex: 0x141518),
+        surface: Color(hex: 0x1C1E22),
+        surfaceVariant: Color(hex: 0x25282E),
+        textPrimary: Color(hex: 0xE8ECF0),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x5A6270),
+        hairline: Color(hex: 0x2E323A),
+        accent: Color(hex: 0xC9A06E),
+        onAccent: Color(hex: 0x16120C),
+        actionAccent: Color(hex: 0xC9A06E),
+        onActionAccent: Color(hex: 0x16120C),
+        fabGradientStart: Color(hex: 0xDBB888),
+        fabGradientEnd: Color(hex: 0xA88448),
+        folderTint: Color(hex: 0xC9A06E),
+        navBar: Color(hex: 0x1C1E22),
+        isDark: true
+    )
+
+    /// Abismo Cinza Mint — canvas sólido do Cinza Sólido + accent mint do Abismo.
+    static let abyssAshSolidMint = AppThemeColors(
+        background: Color(hex: 0x141518),
+        surface: Color(hex: 0x1C1E22),
+        surfaceVariant: Color(hex: 0x25282E),
+        textPrimary: Color(hex: 0xE8ECF0),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x5A6270),
+        hairline: Color(hex: 0x2E323A),
+        accent: Color(hex: 0x6ED4C8),
+        onAccent: Color(hex: 0x0A1214),
+        actionAccent: Color(hex: 0x6ED4C8),
+        onActionAccent: Color(hex: 0x0A1214),
+        fabGradientStart: Color(hex: 0x8FE0D6),
+        fabGradientEnd: Color(hex: 0x4FB8AC),
+        folderTint: Color(hex: 0x6ED4C8),
         navBar: Color(hex: 0x1C1E22),
         isDark: true
     )

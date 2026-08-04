@@ -17,6 +17,8 @@ export type AppThemeId =
   | "amazonite"
   | "abyss"
   | "abyssAsh"
+  | "abyssAshSolid"
+  | "abyssAshSolidMint"
   | "abyssAshSoft"
 
 export type AppThemeColors = {
@@ -451,6 +453,56 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Mesmas cores do Abismo Cinza, sem degradê — fundo sólido #141518. */
+  abyssAshSolid: {
+    id: "abyssAshSolid",
+    name: "Abismo Cinza Sólido",
+    subtitle: "Fundo sólido · âmbar",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#C9A06E",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#C9A06E",
+      accentText: "#16120C",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
+  /** Canvas sólido do Cinza Sólido + accent mint do Abismo. */
+  abyssAshSolidMint: {
+    id: "abyssAshSolidMint",
+    name: "Abismo Cinza Mint",
+    subtitle: "Fundo sólido · mint",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#6ED4C8",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#6ED4C8",
+      accentText: "#0A1214",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
   /** Abismo Cinza Suave — cards iguais ao Abismo Cinza; canvas bem mais claro. */
   abyssAshSoft: {
     id: "abyssAshSoft",
@@ -482,6 +534,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
 export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "abyss",
   "abyssAsh",
+  "abyssAshSolid",
+  "abyssAshSolidMint",
   "abyssAshSoft",
   "slate",
   "slateEmber",
