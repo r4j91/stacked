@@ -320,6 +320,18 @@ struct FiltersView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(.hidden, for: .navigationBar)
     .toolbar { StackedNavBarPrimerToolbar() }
+    // AJUSTADO_FILTROS_NAVBAR: Filtros é a única das 4 abas com List raiz que
+    // embrulha em `NavigationStack` (as outras navegam via `.taskDetailCover`, sem
+    // stack nenhuma). A bar tem que ficar VIVA aqui (não `.hidden`) — é ela que
+    // hospeda os slots do `StackedNavBarPrimerToolbar`, que existem só pra evitar o
+    // BUG_TREMIDA_PUSH (ver ScreenChrome.swift) ao entrar em Projeto/filtro salvo.
+    // `.toolbar(.hidden, for: .navigationBar)` já foi tentado aqui pra fechar o gap
+    // do título vs Inbox/Hoje/Em breve — resolvia o gap mas derrubava a bar junto
+    // com os slots primados, voltando o tremido. Em vez disso, a bar continua
+    // presente (só sem título/fundo) e a `List` sobe por cima dela: -44pt cancela
+    // exatamente a altura padrão da navbar inline, deixando o `ScreenHeader` na
+    // mesma posição das outras abas sem custar a continuidade do push.
+    .contentMargins(.top, -44, for: .scrollContent)
     .refreshable { await store.loadDashboard() }
   }
 
