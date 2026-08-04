@@ -131,6 +131,9 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   var labelCatalog: [TaskLabel] = []
   /// Headers `.plain` como supplementary sticky (Em breve / dias).
   var pinPlainSectionHeaders: Bool = false
+  /// Degradê decorativo no topo (Em breve/Projetos). Filtros sem chrome: off —
+  /// cobria a 1ª tarefa.
+  var showTopFade: Bool = true
 
   private var taskRowLayout: TaskRowLayout {
     TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
@@ -234,7 +237,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     onFilterSubtaskToggle: ((Subtask, Task, Int) -> Void)? = nil,
     onFilterSubtaskTap: ((Subtask, Task) -> Void)? = nil,
     labelCatalog: [TaskLabel] = [],
-    pinPlainSectionHeaders: Bool = false
+    pinPlainSectionHeaders: Bool = false,
+    showTopFade: Bool = true
   ) {
     self.sections = sections
     self.showProject = showProject
@@ -266,6 +270,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
     self.onFilterSubtaskTap = onFilterSubtaskTap
     self.labelCatalog = labelCatalog
     self.pinPlainSectionHeaders = pinPlainSectionHeaders
+    self.showTopFade = showTopFade
   }
 
   func makeUIViewController(context: Context) -> UIKitHostedTaskListController {
@@ -319,7 +324,8 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       onFilterSubtaskToggle: onFilterSubtaskToggle,
       onFilterSubtaskTap: onFilterSubtaskTap,
       labelCatalog: labelCatalog,
-      pinPlainSectionHeaders: pinPlainSectionHeaders
+      pinPlainSectionHeaders: pinPlainSectionHeaders,
+      showTopFade: showTopFade
     )
   }
 }
@@ -407,6 +413,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var onFilterSubtaskTap: ((Subtask, Task) -> Void)?
     var labelCatalog: [TaskLabel]
     var pinPlainSectionHeaders: Bool = false
+    var showTopFade: Bool = true
   }
 
   private enum SectionID: Hashable {
@@ -980,6 +987,9 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
   /// o 1º stop (a view fica colada no topo da tela, sem precisar interpolar).
   private func refreshTopFadeOverlay() {
     guard topFadeOverlay.superview != nil else { return }
+    let enabled = config?.showTopFade ?? true
+    topFadeOverlay.isHidden = !enabled
+    guard enabled else { return }
     let colors = ThemeManager.shared.colors
     topFadeOverlay.configure(topColor: UIColor(colors.background))
   }

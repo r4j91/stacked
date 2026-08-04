@@ -198,7 +198,8 @@ struct PresetFilterResultsScreen: View {
       onFilterSubtaskTap: { sub, parent in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id))
       },
-      labelCatalog: store.pickerLabels
+      labelCatalog: store.pickerLabels,
+      showTopFade: false
     )
     // Full-bleed embaixo — sem faixa do safe area / hard edge atrás do dock.
     .ignoresSafeArea(edges: .bottom)

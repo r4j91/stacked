@@ -13,22 +13,10 @@ export type AppThemeId =
   | "slateAmazonite"
   | "slateEmber"
   | "slateMoonstone"
-  | "slateJade"
-  | "ashCyan"
-  | "ashAmazonite"
   | "titanium"
   | "amazonite"
-  | "basalt"
-  | "basaltAmazonite"
-  | "basaltSky"
-  | "basaltMoonstone"
-  | "basaltEmber"
-  | "basaltGold"
-  | "basaltJade"
-  | "basaltViolet"
   | "abyss"
   | "abyssAsh"
-  | "abyssSoft"
   | "abyssAshSoft"
 
 export type AppThemeColors = {
@@ -365,79 +353,6 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  /** Fundo Slate + sage do Basalt Jade. */
-  slateJade: {
-    id: "slateJade",
-    name: "Slate Jade",
-    subtitle: "Jade",
-    previewSwatch: {
-      background: "#18181E",
-      surface: "#212127",
-      accent: "#7FA89A",
-    },
-    colors: {
-      background: "#18181E",
-      surface: "#212127",
-      surfaceVariant: "#2F2F36",
-      textPrimary: "#F2F2F4",
-      textSecondary: "#9A9AA2",
-      textTertiary: "#65656D",
-      textQuaternary: "#65656D",
-      hairline: "#65656D",
-      accent: "#7FA89A",
-      accentText: "#0C1412",
-      navBar: "#18181E",
-      isDark: true,
-    },
-  },
-  ashCyan: {
-    id: "ashCyan",
-    name: "Ash Cyan",
-    subtitle: "Cinza Things · ciano suave",
-    previewSwatch: {
-      background: "#191D22",
-      surface: "#22272E",
-      accent: "#6BB5BA",
-    },
-    colors: {
-      background: "#191D22",
-      surface: "#22272E",
-      surfaceVariant: "#2C333B",
-      textPrimary: "#E6EBEF",
-      textSecondary: "#96A0AA",
-      textTertiary: "#66707A",
-      textQuaternary: "#66707A",
-      hairline: "#66707A",
-      accent: "#6BB5BA",
-      accentText: "#0C1214",
-      navBar: "#191D22",
-      isDark: true,
-    },
-  },
-  ashAmazonite: {
-    id: "ashAmazonite",
-    name: "Ash Amazonite",
-    subtitle: "Cinza Things · petróleo",
-    previewSwatch: {
-      background: "#191D22",
-      surface: "#22272E",
-      accent: "#9DC2C7",
-    },
-    colors: {
-      background: "#191D22",
-      surface: "#22272E",
-      surfaceVariant: "#2C333B",
-      textPrimary: "#E6EBEF",
-      textSecondary: "#96A0AA",
-      textTertiary: "#66707A",
-      textQuaternary: "#66707A",
-      hairline: "#66707A",
-      accent: "#9DC2C7",
-      accentText: "#0C1416",
-      navBar: "#191D22",
-      isDark: true,
-    },
-  },
   titanium: {
     id: "titanium",
     name: "Titanium",
@@ -486,206 +401,6 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  /** Things 3–like charcoal (#1C222D) — cinza nos botões / accent. */
-  basalt: {
-    id: "basalt",
-    name: "Basalt",
-    subtitle: "Cinza Things",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#A8B0BC",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#A8B0BC",
-      accentText: "#12161E",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Mesmo fundo Basalt + petróleo Amazonite. */
-  basaltAmazonite: {
-    id: "basaltAmazonite",
-    name: "Basalt Amazonite",
-    subtitle: "Things · petróleo",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#86ABB0",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#86ABB0",
-      accentText: "#0A1012",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Mesmo fundo Basalt + petróleo Amazonite (antes azul FAB #5B9FE8). */
-  basaltSky: {
-    id: "basaltSky",
-    name: "Basalt Sky",
-    subtitle: "Things · petróleo",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#86ABB0",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#86ABB0",
-      accentText: "#0A1012",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Fundo Basalt + aço luminoso no escuro. */
-  basaltMoonstone: {
-    id: "basaltMoonstone",
-    name: "Basalt Moonstone",
-    subtitle: "Things · aço",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#4F8BB8",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#4F8BB8",
-      accentText: "#FFFFFF",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Fundo Basalt + mesmo laranja do Slate Ember. */
-  basaltEmber: {
-    id: "basaltEmber",
-    name: "Basalt Ember",
-    subtitle: "Things · laranja",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#F06B2C",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#F06B2C",
-      accentText: "#1A100C",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Fundo Basalt + champagne (luxo discreto). */
-  basaltGold: {
-    id: "basaltGold",
-    name: "Basalt Gold",
-    subtitle: "Things · champagne",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#C2A67A",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#C2A67A",
-      accentText: "#16120C",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Fundo Basalt + sage suave. */
-  basaltJade: {
-    id: "basaltJade",
-    name: "Basalt Jade",
-    subtitle: "Things · jade",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#7FA89A",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#7FA89A",
-      accentText: "#0C1412",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
-  /** Fundo Basalt + ametista suave. */
-  basaltViolet: {
-    id: "basaltViolet",
-    name: "Basalt Violet",
-    subtitle: "Things · ametista",
-    previewSwatch: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      accent: "#9A8BB5",
-    },
-    colors: {
-      background: "#1C222D",
-      surface: "#282E3A",
-      surfaceVariant: "#323946",
-      textPrimary: "#E8ECF2",
-      textSecondary: "#9AA3B0",
-      textTertiary: "#6B7382",
-      textQuaternary: "#6B7382",
-      hairline: "#6B7382",
-      accent: "#9A8BB5",
-      accentText: "#120E18",
-      navBar: "#282E3A",
-      isDark: true,
-    },
-  },
   /** Petróleo-noite com accent mint — paridade iOS Abismo. */
   abyss: {
     id: "abyss",
@@ -711,15 +426,15 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
-  /** Mesma atmosfera em cinza neutro — paridade iOS Abismo Cinza. */
+  /** Atmosfera neutra + accent âmbar — paridade iOS Abismo Cinza. */
   abyssAsh: {
     id: "abyssAsh",
     name: "Abismo Cinza",
-    subtitle: "Noite neutra · cinza",
+    subtitle: "Noite neutra · âmbar",
     previewSwatch: {
       background: "#141518",
       surface: "#1C1E22",
-      accent: "#A8B0BC",
+      accent: "#C9A06E",
     },
     colors: {
       background: "#141518",
@@ -730,34 +445,9 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#6B7382",
       textQuaternary: "#5A6270",
       hairline: "#2E323A",
-      accent: "#A8B0BC",
-      accentText: "#12161E",
+      accent: "#C9A06E",
+      accentText: "#16120C",
       navBar: "#1C1E22",
-      isDark: true,
-    },
-  },
-  /** Abismo Suave — cards iguais ao Abismo; canvas bem mais claro. */
-  abyssSoft: {
-    id: "abyssSoft",
-    name: "Abismo Suave",
-    subtitle: "Petróleo mais claro · mint",
-    previewSwatch: {
-      background: "#1A232A",
-      surface: "#172026",
-      accent: "#6ED4C8",
-    },
-    colors: {
-      background: "#1A232A",
-      surface: "#172026",
-      surfaceVariant: "#1E2A31",
-      textPrimary: "#E8EEF1",
-      textSecondary: "#8FA3AD",
-      textTertiary: "#667A84",
-      textQuaternary: "#556870",
-      hairline: "#2A3840",
-      accent: "#6ED4C8",
-      accentText: "#0A1214",
-      navBar: "#172026",
       isDark: true,
     },
   },
@@ -765,11 +455,11 @@ export const themes: Record<AppThemeId, AppTheme> = {
   abyssAshSoft: {
     id: "abyssAshSoft",
     name: "Abismo Cinza Suave",
-    subtitle: "Cinza mais claro",
+    subtitle: "Cinza mais claro · âmbar",
     previewSwatch: {
       background: "#1D2025",
       surface: "#1C1E22",
-      accent: "#A8B0BC",
+      accent: "#C9A06E",
     },
     colors: {
       background: "#1D2025",
@@ -780,8 +470,8 @@ export const themes: Record<AppThemeId, AppTheme> = {
       textTertiary: "#6B7382",
       textQuaternary: "#5A6270",
       hairline: "#2E323A",
-      accent: "#A8B0BC",
-      accentText: "#12161E",
+      accent: "#C9A06E",
+      accentText: "#16120C",
       navBar: "#1C1E22",
       isDark: true,
     },
@@ -791,7 +481,6 @@ export const themes: Record<AppThemeId, AppTheme> = {
 /** Paridade iOS AppThemeId.recommended */
 export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "abyss",
-  "abyssSoft",
   "abyssAsh",
   "abyssAshSoft",
   "slate",
@@ -799,9 +488,6 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "graphite",
   "moonstone",
   "fog",
-  "basalt",
-  "basaltEmber",
-  "basaltGold",
 ]
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"

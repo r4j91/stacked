@@ -108,26 +108,22 @@ struct SavedFilterResultsScreen: View {
     .stackedDrillDownNavChrome(title: filter.name, background: c.background)
     .stackedAdaptiveDrillDownBack()
     .toolbar {
-      let isolate = GlassChromePreference.prefersStaticToolbarPills()
+      // Sempre pill custom (paridade DrillDownGlassIconButton) — em Ao vivo o
+      // ícone nudo herdava o glass circular grande do sistema no trailing.
       ToolbarItem(id: "stacked-filter-toolbar", placement: .topBarTrailing) {
         AnchoredTapButton { rect in
           openOptions(anchor: rect)
         } label: {
-          if isolate {
-            LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
-              StackedIcons.image(.more)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(c.textPrimary)
-            }
-          } else {
+          LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
             StackedIcons.image(.more)
               .font(.system(size: 16, weight: .medium))
               .foregroundStyle(c.textPrimary)
           }
         }
         .buttonStyle(PressableStyle(cornerRadius: 20))
+        .accessibilityLabel("Opções do filtro")
       }
-      .stackedToolbarGlassIsolation(isolate)
+      .sharedBackgroundVisibility(.hidden)
     }
     .refreshable {
       await store.openSavedFilter(filter)
@@ -325,7 +321,9 @@ struct SavedFilterResultsScreen: View {
       onFilterSubtaskTap: { sub, parent in
         onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id))
       },
-      labelCatalog: store.pickerLabels
+      labelCatalog: store.pickerLabels,
+      // Sem chrome/header no topo: o fade falso cobria a 1ª tarefa.
+      showTopFade: false
     )
     // Full-bleed embaixo — sem faixa do safe area / hard edge atrás do dock.
     .ignoresSafeArea(edges: .bottom)

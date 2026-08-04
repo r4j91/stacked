@@ -186,23 +186,18 @@ struct ProjectDetailView: View {
             AnchoredTapButton { rect in
               openToolbarMenu(anchor: rect)
             } label: {
-              if isolate {
-                LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
-                  StackedIcons.image(.more)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(c.textPrimary)
-                }
-              } else {
+              LiquidGlass.toolbarPill(navBarColor: c.surfaceVariant, textPrimary: c.textPrimary) {
                 StackedIcons.image(.more)
                   .font(.system(size: 16, weight: .medium))
                   .foregroundStyle(c.textPrimary)
               }
             }
             .buttonStyle(PressableStyle(cornerRadius: 20))
+            .accessibilityLabel("Opções do projeto")
           }
         }
       }
-      .stackedToolbarGlassIsolation(isolate)
+      .sharedBackgroundVisibility(.hidden)
     }
     .refreshable { await store.load() }
     .task(id: store.projectId) {
