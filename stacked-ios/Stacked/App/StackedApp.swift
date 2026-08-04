@@ -22,6 +22,8 @@ private struct AppRootView: View {
 
       AuthGateView()
         .environment(themeManager)
+        // Observador único das preferências de linha (ver TaskRowAppearance).
+        .taskRowAppearanceSource()
         .preferredColorScheme(themeManager.colors.isDark ? .dark : .light)
         .overlay {
           if popover.isPresented {

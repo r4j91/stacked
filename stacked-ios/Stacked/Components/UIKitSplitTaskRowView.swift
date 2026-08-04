@@ -233,6 +233,7 @@ final class UIKitSplitTaskRowView: UIView {
     let observesGate = config.configuredWhileScrolling && gate != nil
     // Local — o builder da row é lazy agora; capturar `self.store` reteria a view.
     let sessionStore = store
+    let rowAppearance = TaskRowAppearance.current
 
     let header = UIKitScrollGatedRow(gate: gate, observesGate: observesGate) { deferHeavy in
       TaskRow(
@@ -272,6 +273,8 @@ final class UIKitSplitTaskRowView: UIView {
     }
     .environment(ThemeManager.shared)
     .environment(MobileChromeController.shared)
+    // Cell UIKit monta a árvore do zero e não herda o environment da tela.
+    .environment(\.taskRowAppearance, rowAppearance)
 
     let panel = UIKitScrollGatedRow(gate: gate, observesGate: observesGate) { deferHeavy in
       TaskRow(
@@ -299,6 +302,7 @@ final class UIKitSplitTaskRowView: UIView {
     }
     .environment(ThemeManager.shared)
     .environment(MobileChromeController.shared)
+    .environment(\.taskRowAppearance, rowAppearance)
 
     headerHost?.rootView = AnyView(header)
     panelHost?.rootView = AnyView(panel)

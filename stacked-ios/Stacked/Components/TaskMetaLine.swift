@@ -3,9 +3,8 @@ import SwiftUI
 // Paridade lib/widgets/task_tile.dart TaskMetaLine + TagChip
 struct TaskMetaLine: View {
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
-  @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
-  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
+  // SUBSTITUIDO_PERF_ROW_APPEARANCE: 3 @AppStorage por meta line — ver TaskRowAppearance.
+  @Environment(\.taskRowAppearance) private var rowAppearance
 
   let labels: [TaskLabel]
   var dueDate: Date?
@@ -30,17 +29,9 @@ struct TaskMetaLine: View {
   /// Anel de progresso ativo — omite o contador 0/N da meta (evita duplicar).
   var hideSubtasksCounter: Bool = false
 
-  private var labelChipStyle: LabelChipStyle {
-    LabelChipStyleStorage.style(from: labelChipStyleRaw)
-  }
-
-  private var dueDateChipStyle: DueDateChipStyle {
-    DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
-  }
-
-  private var layout: TaskRowLayout {
-    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
-  }
+  private var labelChipStyle: LabelChipStyle { rowAppearance.labelChipStyle }
+  private var dueDateChipStyle: DueDateChipStyle { rowAppearance.dueDateChipStyle }
+  private var layout: TaskRowLayout { rowAppearance.layout }
 
   private var showsProject: Bool {
     guard let projectName, !projectName.isEmpty else { return false }

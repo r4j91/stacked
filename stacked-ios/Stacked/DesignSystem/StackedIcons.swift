@@ -63,14 +63,11 @@ enum StackedIcons {
 
   @MainActor
   static func icon(_ key: StackedIconKey, size: CGFloat, color: Color) -> some View {
-    let img: Image
-    let navKeys: [StackedIconKey] = [.navHome, .navInbox, .navToday, .navUpcoming, .navFilters]
-    if navKeys.contains(key) {
-      img = IconCache.shared.image(for: key) // AJUSTADO_ICONCACHE
-    } else {
-      img = image(key)
-    }
-    return img
+    // AJUSTADO_ICONCACHE: cache para todas as keys. Antes só as 5 de navegação
+    // passavam pelo cache, e o array literal de comparação era alocado a cada
+    // chamada — as chips de meta (pasta, data, etiqueta, contador) são o caminho
+    // quente das listas e refaziam o lookup do asset a cada body.
+    IconCache.shared.image(for: key)
       .resizable()
       .scaledToFit()
       .frame(width: size, height: size)

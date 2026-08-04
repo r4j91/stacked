@@ -17,9 +17,12 @@ struct ClassicNavBarGlassIndicator: View {
   var glassNamespace: Namespace.ID
 
   var body: some View {
+    // SUBSTITUIDO_PERF_LENTE: `.regular.interactive()`. A camada do indicador leva
+    // `allowsHitTesting(false)` na ClassicNavBar, então a resposta a toque do glass
+    // interativo nunca dispara — só custava trabalho por frame durante o scroll.
     let lens = Capsule()
       .fill(.clear)
-      .glassEffect(.regular.interactive(), in: Capsule())
+      .glassEffect(.regular, in: Capsule())
       .padding(ClassicNavGlassLayout.indicatorInset)
       .matchedGeometryEffect(id: ClassicNavGlassLayout.blobGeometryID, in: blobNamespace)
 

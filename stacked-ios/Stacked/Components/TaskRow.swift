@@ -7,9 +7,10 @@ struct TaskRow: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.openTaskContextMenu) private var openTaskContextMenu
-  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
-  @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
-  @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
+  // SUBSTITUIDO_PERF_ROW_APPEARANCE: 3 @AppStorage aqui + 3 na TaskMetaLine aninhada
+  // instalavam 6 observers de UserDefaults por linha visível, registrados e
+  // cancelados a cada reciclagem de célula no scroll.
+  @Environment(\.taskRowAppearance) private var rowAppearance
 
   let task: Task
   var style: TaskRowStyle = .card
@@ -315,7 +316,11 @@ struct TaskRow: View {
       taskId: task.id,
       taskDone: task.done,
       subtaskCount: task.subtasks.count,
-      subtasksRevision: taskSubtasksRevision,
+      // PERF_ROW_REVISION: só o painel aberto consome esta revisão — `handleSubtasksChanged`
+      // sai no `guard rowExpanded || rowRevealActive`. Com a linha fechada (o caso normal
+      // durante o scroll) o hash de todas as subtarefas era calculado a cada body e
+      // descartado, e qualquer mudança no TaskStore invalidava a seção inteira de uma vez.
+      subtasksRevision: (rowExpanded || rowRevealActive) ? taskSubtasksRevision : 0,
       deferHeavyWork: deferHeavyWork,
       expanded: rowExpanded,
       shouldLoadLabels: task.hasSubtasks && allLabels.isEmpty && rowLabelCatalog.isEmpty,
@@ -349,9 +354,9 @@ struct TaskRow: View {
     return hasher.finalize()
   }
 
-  private var taskRowLayout: TaskRowLayout {
-    TaskRowLayoutStorage.layout(from: taskRowLayoutRaw)
-  }
+  private var taskRowLayout: TaskRowLayout { rowAppearance.layout }
+  private var subtaskProgressRing: Bool { rowAppearance.subtaskProgressRing }
+  private var subtaskBranch: Bool { rowAppearance.subtaskBranch }
 
   private var rowShowsEyebrow: Bool {
     TaskRowLayoutStorage.showsEyebrow(

@@ -700,6 +700,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           .padding(.trailing, insets.right)
           .environment(ThemeManager.shared)
           .environment(MobileChromeController.shared)
+          .environment(\.taskRowAppearance, TaskRowAppearance.current)
         }
         .margins(.all, 0)
         .minSize(height: 1)
@@ -736,6 +737,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
           .padding(.trailing, insets.right)
           .environment(ThemeManager.shared)
           .environment(MobileChromeController.shared)
+          .environment(\.taskRowAppearance, TaskRowAppearance.current)
         }
         .margins(.all, 0)
         .minSize(height: 1)
