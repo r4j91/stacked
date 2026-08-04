@@ -129,6 +129,13 @@ final class SubtaskExpandContainerView: UIView {
   private var contentRemeasureBaseline: CGFloat = 0
   /// Cold open com width 0: preservar animação no remasure do 1º layout.
   private var pendingAnimatedExpand = false
+  /// UIKit list: `apply()` da cell pode reconfigurar por outro motivo (qualquer
+  /// refresh de snapshot) enquanto o grow/collapse já está em voo. Sem isto, esse
+  /// bump de layoutPass/contentRevision caía direto no `expandWithPinnedParent`
+  /// não animado no meio do `UIView.animate` em curso — snap abrupto de altura +
+  /// re-pin do scroll, visto só na lista UIKit (a SwiftUI List não tem esse
+  /// segundo reconfigure independente). Guardado para reaplicar no fim da animação.
+  private var pendingPostAnimationRemeasure = false
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -273,6 +280,16 @@ final class SubtaskExpandContainerView: UIView {
       lastContentRevision = contentRevision
     }
 
+    // Reconfigure chegou no meio de uma animação em voo (mesma transição, não um
+    // novo open/close) — adia em vez de aplicar via expandWithPinnedParent(animated:
+    // false), que causaria o snap abrupto descrito acima do isAnimating.
+    if isAnimating, !stateChanged {
+      if layoutPassChanged || contentChanged {
+        pendingPostAnimationRemeasure = true
+      }
+      return
+    }
+
     // Snap de remount: não zerar fullHeight (já sabemos a altura).
     // Conteúdo novo no reuse/snap (outra task ou lista) — altura velha = buraco preto.
     if stateChanged && expanded {
@@ -371,6 +388,19 @@ final class SubtaskExpandContainerView: UIView {
 
     pendingAnimatedExpand = false
     expandWithPinnedParent(height: target, animated: shouldAnimate)
+  }
+
+  /// Reaplica, sem animar, um bump de layoutPass/contentRevision que chegou
+  /// enquanto o grow estava em voo e foi adiado (ver guard em `configure`).
+  private func consumePendingPostAnimationRemeasure() {
+    guard pendingPostAnimationRemeasure else { return }
+    pendingPostAnimationRemeasure = false
+    guard lastExpanded == true, let hosting = hostedController, lastAppliedWidth > 1 else { return }
+    if let cell = enclosingCell() as? UIKitSizedTaskCell {
+      cell.lockedHeight = nil
+    }
+    contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
+    scheduleContentRemeasure(hosting: hosting, width: lastAppliedWidth)
   }
 
   private func scheduleRemeasure(
@@ -573,6 +603,7 @@ final class SubtaskExpandContainerView: UIView {
       }
     }) { [weak self] _ in
       self?.isAnimating = false
+      self?.consumePendingPostAnimationRemeasure()
     }
   }
 
@@ -641,6 +672,7 @@ final class SubtaskExpandContainerView: UIView {
         self?.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
         pin()
         self?.isAnimating = false
+        self?.consumePendingPostAnimationRemeasure()
       }
     )
   }
@@ -697,6 +729,8 @@ final class SubtaskExpandContainerView: UIView {
       completion: { [weak self] _ in
         finish()
         self?.isAnimating = false
+        // Fechado — nada pra remedir; só limpa a flag pra não vazar pro próximo open.
+        self?.pendingPostAnimationRemeasure = false
       }
     )
   }
