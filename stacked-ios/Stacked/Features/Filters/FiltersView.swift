@@ -319,6 +319,7 @@ struct FiltersView: View {
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(.hidden, for: .navigationBar)
+    .toolbar { StackedNavBarPrimerToolbar() }
     .refreshable { await store.loadDashboard() }
   }
 

@@ -497,6 +497,45 @@ struct DrillDownGlassIconButton: View {
   }
 }
 
+/// Slots vazios de navbar numa tela-raiz que não mostra nada na barra.
+///
+/// BUG_TREMIDA_PUSH: saindo de uma barra sem nenhum item, o push tem que
+/// materializar leading/principal/trailing do drill-down do zero e os itens
+/// entram em passos irregulares (~30fps) enquanto o conteúdo da tela desliza
+/// liso a 60fps. Com os slots já existindo na origem, a barra só translada o
+/// que já está montado. É o mesmo motivo do `HomeHeaderToolbar` ("pré-estabelece
+/// a navbar para push fluido") — lá os itens são reais, aqui são invisíveis.
+struct StackedNavBarPrimerToolbar: ToolbarContent {
+  var body: some ToolbarContent {
+    ToolbarItem(id: "stacked-navbar-primer-leading", placement: .topBarLeading) {
+      NavBarPrimerSlot()
+    }
+    .sharedBackgroundVisibility(.hidden)
+
+    ToolbarItem(id: "stacked-navbar-primer-principal", placement: .principal) {
+      NavBarPrimerSlot()
+    }
+    .sharedBackgroundVisibility(.hidden)
+
+    ToolbarItem(id: "stacked-navbar-primer-trailing", placement: .topBarTrailing) {
+      NavBarPrimerSlot()
+    }
+    .sharedBackgroundVisibility(.hidden)
+  }
+}
+
+private struct NavBarPrimerSlot: View {
+  /// Altura do pill de drill-down (ícone 16pt + 7pt de padding vertical). Abaixo
+  /// dos 44pt da barra inline, então priming não muda a altura da navbar.
+  private static let pillHeight: CGFloat = 34
+
+  var body: some View {
+    Color.clear
+      .frame(width: 1, height: Self.pillHeight)
+      .accessibilityHidden(true)
+  }
+}
+
 struct DrillDownBackToolbarItem: ToolbarContent {
   @Environment(\.dismiss) private var dismiss
 
