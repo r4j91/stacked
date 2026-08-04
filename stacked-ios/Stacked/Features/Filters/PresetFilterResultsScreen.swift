@@ -13,6 +13,8 @@ struct PresetFilterResultsScreen: View {
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @Bindable private var store = FiltersStore.shared
   @State private var allowRowHeavyWork = false
+  /// Só monta UIKit após o push assentar (paridade Projeto / filtro salvo).
+  @State private var revealListContent = false
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
@@ -33,7 +35,7 @@ struct PresetFilterResultsScreen: View {
   }
 
   private var prefersUIKitList: Bool {
-    useUIKitTaskList && !isLoading && !results.isEmpty
+    useUIKitTaskList && revealListContent && !isLoading && !results.isEmpty
   }
 
   var body: some View {
@@ -53,8 +55,23 @@ struct PresetFilterResultsScreen: View {
       }
     }
     .background(c.background.ignoresSafeArea(.all))
-    .stackedDrillDownNavChrome(title: kind.title, background: c.background)
-    .stackedAdaptiveDrillDownBack()
+    // Título no .principal + um único `.toolbar` (voltar + título).
+    .stackedDrillDownNavChrome(title: "", background: c.background)
+    .navigationBarBackButtonHidden(true)
+    .background(InteractivePopGestureEnabler())
+    .toolbar {
+      DrillDownBackToolbarItem()
+
+      ToolbarItem(id: "stacked-preset-filter-title", placement: .principal) {
+        Text(kind.title)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
+          .minimumScaleFactor(0.85)
+          .accessibilityAddTraits(.isHeader)
+      }
+      .sharedBackgroundVisibility(.hidden)
+    }
     .refreshable {
       await store.openFilter(kind)
       await store.loadDashboard()
@@ -65,9 +82,13 @@ struct PresetFilterResultsScreen: View {
       var transaction = Transaction()
       transaction.disablesAnimations = true
       withTransaction(transaction) {
-        allowRowHeavyWork = true
+        allowRowHeavyWork = false
         store.adoptPresetFilterSession(kind)
+        revealListContent = true
       }
+      try? await _Concurrency.Task.sleep(for: .milliseconds(150))
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowRowHeavyWork = true
       await store.openFilter(kind)
     }
   }
@@ -84,7 +105,7 @@ struct PresetFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   private func presetErrorList(_ err: String) -> some View {
@@ -102,7 +123,7 @@ struct PresetFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   private var presetEmptyList: some View {
@@ -124,7 +145,7 @@ struct PresetFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   @ViewBuilder
@@ -144,7 +165,7 @@ struct PresetFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   @ViewBuilder

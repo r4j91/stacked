@@ -91,4 +91,16 @@ extension View {
     .scrollEdgeEffectStyle(.hard, for: .bottom)
     .stackedReportListScrollForDockGlass()
   }
+
+  /// Filtro salvo/preset — **sem** soft no topo.
+  /// O `.soft` no push remexe safe area e “treme” voltar/título/⋯ (SwiftUI List);
+  /// UIKit do filtro já usa `showTopFade: false` pelo mesmo motivo.
+  func stackedFilterResultsListChrome() -> some View {
+    safeAreaPadding(
+      .bottom,
+      AppLayout.fabSize + AppLayout.fabGap + AppLayout.bottomNavPillHeight + AppLayout.bottomNavPillMargin + 8
+    )
+    .scrollEdgeEffectStyle(.hard, for: .bottom)
+    .stackedReportListScrollForDockGlass()
+  }
 }

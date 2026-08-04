@@ -20,6 +20,8 @@ struct SavedFilterResultsScreen: View {
   @AppStorage private var sortRaw: String
   @State private var usesStore = false
   @State private var allowRowHeavyWork = false
+  /// UIKit só após o push assentar (quando a opção estiver ligada).
+  @State private var revealListContent = false
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
   private var sortMode: SavedFilterSortMode {
@@ -84,6 +86,7 @@ struct SavedFilterResultsScreen: View {
 
   private var prefersUIKitList: Bool {
     useUIKitTaskList
+      && revealListContent
       && !isLoading
       && (!displayedPendingResults.isEmpty || (showCompleted && !displayedCompletedResults.isEmpty))
   }
@@ -105,11 +108,25 @@ struct SavedFilterResultsScreen: View {
       }
     }
     .background(c.background.ignoresSafeArea(.all))
-    .stackedDrillDownNavChrome(title: filter.name, background: c.background)
-    .stackedAdaptiveDrillDownBack()
+    // Título no .principal (não no navigationTitle) — morph nativo remexe o chrome.
+    // Um único `.toolbar` (voltar + título + ⋯) evita merge/reflow de dois blocos no push.
+    .stackedDrillDownNavChrome(title: "", background: c.background)
+    .navigationBarBackButtonHidden(true)
+    .background(InteractivePopGestureEnabler())
     .toolbar {
-      // Sempre pill custom (paridade DrillDownGlassIconButton) — em Ao vivo o
-      // ícone nudo herdava o glass circular grande do sistema no trailing.
+      DrillDownBackToolbarItem()
+
+      ToolbarItem(id: "stacked-filter-title", placement: .principal) {
+        Text(filter.name)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(1)
+          .minimumScaleFactor(0.85)
+          .accessibilityAddTraits(.isHeader)
+      }
+      .sharedBackgroundVisibility(.hidden)
+
+      // Pill custom — em Ao vivo o ícone nudo herdava o glass circular grande.
       ToolbarItem(id: "stacked-filter-toolbar", placement: .topBarTrailing) {
         AnchoredTapButton { rect in
           openOptions(anchor: rect)
@@ -136,10 +153,15 @@ struct SavedFilterResultsScreen: View {
       var transaction = Transaction()
       transaction.disablesAnimations = true
       withTransaction(transaction) {
-        allowRowHeavyWork = true
+        // Paridade Projeto: não ligar heavy work no mesmo frame do adopt.
+        allowRowHeavyWork = false
         store.adoptSavedFilterSession(filter, pending: initialPending, completed: initialCompleted)
         usesStore = true
+        revealListContent = true
       }
+      try? await _Concurrency.Task.sleep(for: .milliseconds(150))
+      guard !_Concurrency.Task.isCancelled else { return }
+      allowRowHeavyWork = true
       if initialPending.isEmpty && initialCompleted.isEmpty && !store.hasSavedFilterCache(filter.id) {
         await store.openSavedFilter(filter)
       }
@@ -158,7 +180,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   private func filterErrorList(_ err: String) -> some View {
@@ -176,7 +198,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   private var filterEmptyList: some View {
@@ -198,7 +220,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   @ViewBuilder
@@ -231,7 +253,7 @@ struct SavedFilterResultsScreen: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .stackedDrillDownListChrome()
+    .stackedFilterResultsListChrome()
   }
 
   private var filterUIKitSections: [UIKitTaskSection] {
