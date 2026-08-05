@@ -1,19 +1,25 @@
 import SwiftUI
 import UIKit
 
-/// Variantes em `Assets.xcassets/AppIcon*.appiconset` (fonte: stacked-icons).
+/// Variantes em `Assets.xcassets/AppIcon*.appiconset` (fonte: `assets/icon/abismo_solidos_v1/ia_refinada`).
 ///
 /// Com `INCLUDE_ALL_APPICON_ASSETS`, o build registra cada set como
 /// `CFBundleAlternateIcons["AppIcon-<id>"]` com `CFBundleIconName`.
 /// Por isso `setAlternateIconName` deve receber `AppIcon-<id>` — não só `<id>`.
 ///
-/// Primário (`nil`) = titânio/azul (perfil atual). Amazonite = variante teal.
+/// Primário (`nil`) = `01_refinado_liso_teal`.
 enum AppIconId: String, CaseIterable, Identifiable {
   case `default`
-  case amazonite
-  case cinzaPreto = "cinza_preto"
-  case azulAmarelo = "azul_amarelo"
-  case cinzaLaranja = "cinza_laranja"
+  case abismoCinzaSolidoAmbar = "abismo_cinza_solido_ambar"
+  case abismoCinzaMint = "abismo_cinza_mint"
+  case abismoCinzaTeal = "abismo_cinza_teal"
+  case abismoCinzaLima = "abismo_cinza_lima"
+  case abismoCinzaSuaveAmbar = "abismo_cinza_suave_ambar"
+  case dualCinzaAmbar = "dual_cinza_ambar"
+  case dualCinzaMint = "dual_cinza_mint"
+  case dualCinzaTeal = "dual_cinza_teal"
+  case dualCinzaLima = "dual_cinza_lima"
+  case abismoPetrolMint = "abismo_petrol_mint"
 
   var id: String { rawValue }
 
@@ -28,20 +34,32 @@ enum AppIconId: String, CaseIterable, Identifiable {
   var displayName: String {
     switch self {
     case .default: "Padrão"
-    case .amazonite: "Amazonite"
-    case .cinzaPreto: "Cinza / preto"
-    case .azulAmarelo: "Azul / amarelo"
-    case .cinzaLaranja: "Cinza / laranja"
+    case .abismoCinzaSolidoAmbar: "Abismo Âmbar"
+    case .abismoCinzaMint: "Abismo Mint"
+    case .abismoCinzaTeal: "Abismo Teal"
+    case .abismoCinzaLima: "Abismo Lima"
+    case .abismoCinzaSuaveAmbar: "Abismo Suave"
+    case .dualCinzaAmbar: "Cinza + Âmbar"
+    case .dualCinzaMint: "Cinza + Mint"
+    case .dualCinzaTeal: "Cinza + Teal"
+    case .dualCinzaLima: "Cinza + Lima"
+    case .abismoPetrolMint: "Abismo"
     }
   }
 
   var subtitle: String {
     switch self {
-    case .default: "Titânio / azul"
-    case .amazonite: "Teal original"
-    case .cinzaPreto: "Monocromático"
-    case .azulAmarelo: "Navy e âmbar"
-    case .cinzaLaranja: "Carvão e terracota"
+    case .default: "Teal refinado"
+    case .abismoCinzaSolidoAmbar: "Cinza sólido · âmbar"
+    case .abismoCinzaMint: "Cinza sólido · mint"
+    case .abismoCinzaTeal: "Cinza sólido · teal"
+    case .abismoCinzaLima: "Cinza sólido · lima"
+    case .abismoCinzaSuaveAmbar: "Cinza suave · âmbar"
+    case .dualCinzaAmbar: "Dual cinza e âmbar"
+    case .dualCinzaMint: "Dual cinza e mint"
+    case .dualCinzaTeal: "Dual cinza e teal"
+    case .dualCinzaLima: "Dual cinza e lima"
+    case .abismoPetrolMint: "Petróleo · mint"
     }
   }
 
@@ -55,10 +73,16 @@ enum AppIconId: String, CaseIterable, Identifiable {
 
   static func from(alternateIconName name: String?) -> AppIconId {
     guard let name, !name.isEmpty else { return .default }
-    // Preferência antiga (antes do primário virar titânio).
-    if name == "AppIcon-titanium_azul" || name == "titanium_azul" {
-      return .default
-    }
+    // Preferências antigas (titânio / amazonite / packs anteriores) → padrão novo.
+    let legacy: Set<String> = [
+      "AppIcon-titanium_azul", "titanium_azul",
+      "AppIcon-amazonite", "amazonite",
+      "AppIcon-cinza_preto", "cinza_preto",
+      "AppIcon-azul_amarelo", "azul_amarelo",
+      "AppIcon-cinza_laranja", "cinza_laranja",
+    ]
+    if legacy.contains(name) { return .default }
+
     if let match = AppIconId(rawValue: name) { return match }
     let prefix = "AppIcon-"
     if name.hasPrefix(prefix),
