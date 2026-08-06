@@ -11,6 +11,7 @@ struct TaskRowAppearance: Equatable {
   var layout: TaskRowLayout
   var subtaskProgressRing: Bool
   var subtaskBranch: Bool
+  var installmentProgressOnCard: Bool
   var labelChipStyle: LabelChipStyle
   var dueDateChipStyle: DueDateChipStyle
 
@@ -22,6 +23,7 @@ struct TaskRowAppearance: Equatable {
       layout: TaskRowLayoutStorage.current,
       subtaskProgressRing: SubtaskProgressRingStorage.isEnabled,
       subtaskBranch: SubtaskBranchStorage.isEnabled,
+      installmentProgressOnCard: InstallmentProgressStorage.isEnabled,
       labelChipStyle: LabelChipStyleStorage.current,
       dueDateChipStyle: DueDateChipStyleStorage.current
     )
@@ -45,6 +47,7 @@ private struct TaskRowAppearanceSource: ViewModifier {
   @AppStorage(TaskRowLayoutStorage.key) private var layoutRaw = TaskRowLayoutStorage.defaultRawValue
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
+  @AppStorage(InstallmentProgressStorage.key) private var installmentProgressOnCard = InstallmentProgressStorage.defaultEnabled
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
 
@@ -55,6 +58,7 @@ private struct TaskRowAppearanceSource: ViewModifier {
         layout: TaskRowLayoutStorage.layout(from: layoutRaw),
         subtaskProgressRing: subtaskProgressRing,
         subtaskBranch: subtaskBranch,
+        installmentProgressOnCard: installmentProgressOnCard,
         labelChipStyle: LabelChipStyleStorage.style(from: labelChipStyleRaw),
         dueDateChipStyle: DueDateChipStyleStorage.style(from: dueDateChipStyleRaw)
       )

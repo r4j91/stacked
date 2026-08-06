@@ -96,6 +96,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
   @AppStorage(TimelineRailStorage.key) private var timelineRailPreference = TimelineRailStorage.defaultEnabled
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
+  @AppStorage(InstallmentProgressStorage.key) private var installmentProgressOnCard = InstallmentProgressStorage.defaultEnabled
 
   var sections: [UIKitTaskSection]
   var showProject: Bool = true
@@ -302,6 +303,7 @@ struct UIKitHostedTaskList: UIViewControllerRepresentable {
       timelineRailEnabled: timelineRailEnabled,
       subtaskProgressRing: subtaskProgressRing,
       subtaskBranch: subtaskBranch,
+      installmentProgressOnCard: installmentProgressOnCard,
       leadingChrome: leadingChrome,
       onToggleSection: onToggleSection,
       onRenameSection: onRenameSection,
@@ -390,6 +392,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     var timelineRailEnabled: Bool
     var subtaskProgressRing: Bool
     var subtaskBranch: Bool
+    var installmentProgressOnCard: Bool
     var leadingChrome: (() -> AnyView)?
     var onToggleSection: ((String) -> Void)?
     var onRenameSection: ((ProjectSection) -> Void)?
@@ -1331,6 +1334,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.timelineRailEnabled)
     hasher.combine(configuration.subtaskProgressRing)
     hasher.combine(configuration.subtaskBranch)
+    hasher.combine(configuration.installmentProgressOnCard)
     hasher.combine(configuration.flatSubtaskQueue)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
@@ -1361,6 +1365,7 @@ final class UIKitHostedTaskListController: UIViewController, UICollectionViewDel
     hasher.combine(configuration.timelineRailEnabled)
     hasher.combine(configuration.subtaskProgressRing)
     hasher.combine(configuration.subtaskBranch)
+    hasher.combine(configuration.installmentProgressOnCard)
     hasher.combine(configuration.rowInsets.left)
     hasher.combine(configuration.rowInsets.top)
     hasher.combine(configuration.rowInsets.right)

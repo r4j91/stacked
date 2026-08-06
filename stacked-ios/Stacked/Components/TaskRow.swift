@@ -357,6 +357,7 @@ struct TaskRow: View {
   private var taskRowLayout: TaskRowLayout { rowAppearance.layout }
   private var subtaskProgressRing: Bool { rowAppearance.subtaskProgressRing }
   private var subtaskBranch: Bool { rowAppearance.subtaskBranch }
+  private var installmentProgressOnCard: Bool { rowAppearance.installmentProgressOnCard }
 
   private var rowShowsEyebrow: Bool {
     TaskRowLayoutStorage.showsEyebrow(
@@ -617,6 +618,9 @@ struct TaskRow: View {
         )
         .padding(.top, 4)
       }
+      if let installment = activeInstallmentSnapshot {
+        installmentProgressLine(installment, colors: c)
+      }
       // PERF_FASEC1: não monta TaskMetaLine vazio (mesmo visual — linha só quando há meta).
       if rowShowsMeta {
         TaskMetaLine(
@@ -635,7 +639,7 @@ struct TaskRow: View {
           commentCount: task.commentCount,
           projectName: showProject ? task.project : nil,
           timeDisplay: task.timeDisplay,
-          hideSubtasksCounter: subtaskProgressRing && task.hasSubtasks
+          hideSubtasksCounter: hidesSubtasksFractionCounter
         )
       }
     }
@@ -680,7 +684,7 @@ struct TaskRow: View {
       toggleSubtaskExpansion()
     } label: {
       Group {
-        if subtaskProgressRing {
+        if showsSubtaskProgressRing {
           SubtaskProgressRing(
             done: displayedSubtasksDone,
             total: max(displayedSubtasksTotal, 1)
@@ -1024,6 +1028,60 @@ struct TaskRow: View {
     return "\(displayedSubtasksDone)/\(displayedSubtasksTotal)"
   }
 
+  /// Preferência on + subtarefas no formato do gerador de parcelas.
+  private var activeInstallmentSnapshot: InstallmentProgress.Snapshot? {
+    guard installmentProgressOnCard, task.hasSubtasks else { return nil }
+    return InstallmentProgress.snapshot(from: task.subtasks) { sub in
+      resolvedSubtaskDone(sub)
+    }
+  }
+
+  /// Anel some em parcelas quando a opção nova está ativa — evita dois contadores.
+  private var showsSubtaskProgressRing: Bool {
+    subtaskProgressRing && activeInstallmentSnapshot == nil
+  }
+
+  private var hidesSubtasksFractionCounter: Bool {
+    if activeInstallmentSnapshot != nil { return true }
+    return subtaskProgressRing && task.hasSubtasks
+  }
+
+  private func resolvedSubtaskDone(_ sub: Subtask) -> Bool {
+    guard !rowSubtasksDone.isEmpty else { return sub.done }
+    if let index = rowDisplaySubtasks.firstIndex(where: { $0.idOrFallback == sub.idOrFallback }),
+       index < rowSubtasksDone.count {
+      return rowSubtasksDone[index]
+    }
+    return sub.done
+  }
+
+  @ViewBuilder
+  private func installmentProgressLine(
+    _ snapshot: InstallmentProgress.Snapshot,
+    colors: AppThemeColors
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 5) {
+      Text(snapshot.label)
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(displayDone ? colors.accent.opacity(0.45) : colors.accent)
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
+      GeometryReader { geo in
+        ZStack(alignment: .leading) {
+          Capsule()
+            .fill(colors.hairline.opacity(0.9))
+          Capsule()
+            .fill(displayDone ? colors.accent.opacity(0.45) : colors.accent)
+            .frame(width: max(0, geo.size.width * snapshot.fraction))
+        }
+      }
+      .frame(height: 3)
+    }
+    .padding(.top, 5)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(snapshot.label)
+  }
+
   /// Só muda quando subtarefas / done / meta mudam — evita reassign do UIHostingController no scroll.
   private var subtaskRevealContentRevision: Int {
     var hasher = Hasher()
@@ -1044,6 +1102,7 @@ struct TaskRow: View {
     }
     hasher.combine(subtaskBranch)
     hasher.combine(subtaskProgressRing)
+    hasher.combine(installmentProgressOnCard)
     return hasher.finalize()
   }
 

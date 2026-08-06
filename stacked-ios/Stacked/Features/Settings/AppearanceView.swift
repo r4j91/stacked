@@ -23,6 +23,7 @@ struct AppearanceView: View {
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(SubtaskProgressRingStorage.key) private var subtaskProgressRing = SubtaskProgressRingStorage.defaultEnabled
   @AppStorage(SubtaskBranchStorage.key) private var subtaskBranch = SubtaskBranchStorage.defaultEnabled
+  @AppStorage(InstallmentProgressStorage.key) private var installmentProgressOnCard = InstallmentProgressStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
   @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
@@ -295,10 +296,12 @@ struct AppearanceView: View {
           id: .cardCustomize,
           title: "Personalizar cards",
           summary: cardCustomizeSummary,
-          footer: "Anel e galho nas subtarefas. Prioridade continua suave."
+          footer: "Anel, parcelas e galho nas subtarefas. Prioridade continua suave."
         ) {
           appearanceGroupHeader("Subtarefas")
           subtaskProgressRingRow()
+          SettingsCardDivider(leadingPadding: 56)
+          installmentProgressOnCardRow()
           SettingsCardDivider(leadingPadding: 56)
           subtaskBranchRow()
 
@@ -479,6 +482,7 @@ struct AppearanceView: View {
     hasher.combine(taskRowLayoutRaw)
     hasher.combine(timelineRailEnabled)
     hasher.combine(subtaskProgressRing)
+    hasher.combine(installmentProgressOnCard)
     hasher.combine(subtaskBranch)
     hasher.combine(chromeGlassModeRaw)
     hasher.combine(useUIKitTaskList)
@@ -495,6 +499,7 @@ struct AppearanceView: View {
   private var cardCustomizeSummary: String {
     var parts: [String] = []
     if subtaskProgressRing { parts.append("Anel") }
+    if installmentProgressOnCard { parts.append("Parcelas") }
     if subtaskBranch { parts.append("Galho") }
     parts.append(labelChipStyle.displayName)
     parts.append(dueDateChipStyle.displayName)
@@ -884,6 +889,30 @@ struct AppearanceView: View {
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: subtaskProgressRing) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func installmentProgressOnCardRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Progresso de parcelas")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Nas tarefas parceladas, troca o anel por “3/12 pagas · valor restante”.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $installmentProgressOnCard, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: installmentProgressOnCard) { _, _ in
       HapticService.selection()
     }
   }
