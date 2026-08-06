@@ -35,6 +35,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
     case abyssAshSolidTeal
     /// Abismo Cinza Sólido com accent lima do print (syntax “value”).
     case abyssAshSolidLime
+    /// Abismo Cinza Sólido com accent azul petróleo.
+    case abyssAshSolidPetrol
     /// Abismo Cinza com fundo mais claro.
     case abyssAshSoft
 
@@ -48,6 +50,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         .abyssAshSolidMint,
         .abyssAshSolidTeal,
         .abyssAshSolidLime,
+        .abyssAshSolidPetrol,
         .abyssAshSoft,
         .slate,
         .slateEmber,
@@ -113,6 +116,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAshSolidMint: "Abismo Cinza Mint"
         case .abyssAshSolidTeal: "Abismo Cinza Teal"
         case .abyssAshSolidLime: "Abismo Cinza Lima"
+        case .abyssAshSolidPetrol: "Abismo Cinza Petróleo"
         case .abyssAshSoft: "Abismo Cinza Suave"
         }
     }
@@ -146,6 +150,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAshSolidMint: "Fundo sólido · mint"
         case .abyssAshSolidTeal: "Fundo sólido · teal"
         case .abyssAshSolidLime: "Fundo sólido · lima"
+        case .abyssAshSolidPetrol: "Fundo sólido · petróleo"
         case .abyssAshSoft: "Cinza mais claro · âmbar"
         }
     }
@@ -165,6 +170,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
             return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0x209088))
         case .abyssAshSolidLime:
             return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0x98E878))
+        case .abyssAshSolidPetrol:
+            return (Color(hex: 0x141518), Color(hex: 0x1C1E22), Color(hex: 0x2A7088))
         case .abyssAshSoft:
             return (Color(hex: 0x1D2025), Color(hex: 0x1C1E22), Color(hex: 0xC9A06E))
         case .titanium:
@@ -238,6 +245,7 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         case .abyssAshSolidMint: .abyssAshSolidMint
         case .abyssAshSolidTeal: .abyssAshSolidTeal
         case .abyssAshSolidLime: .abyssAshSolidLime
+        case .abyssAshSolidPetrol: .abyssAshSolidPetrol
         case .abyssAshSoft: .abyssAshSoft
         }
     }
@@ -709,6 +717,27 @@ struct AppThemeColors: Equatable {
         fabGradientStart: Color(hex: 0xB4F090),
         fabGradientEnd: Color(hex: 0x6FC050),
         folderTint: Color(hex: 0x98E878),
+        navBar: Color(hex: 0x1C1E22),
+        isDark: true
+    )
+
+    /// Abismo Cinza Petróleo — canvas sólido + accent azul petróleo escuro.
+    static let abyssAshSolidPetrol = AppThemeColors(
+        background: Color(hex: 0x141518),
+        surface: Color(hex: 0x1C1E22),
+        surfaceVariant: Color(hex: 0x25282E),
+        textPrimary: Color(hex: 0xE8ECF0),
+        textSecondary: Color(hex: 0x9AA3B0),
+        textTertiary: Color(hex: 0x6B7382),
+        textQuaternary: Color(hex: 0x5A6270),
+        hairline: Color(hex: 0x2E323A),
+        accent: Color(hex: 0x2A7088),
+        onAccent: Color(hex: 0x061218),
+        actionAccent: Color(hex: 0x2A7088),
+        onActionAccent: Color(hex: 0x061218),
+        fabGradientStart: Color(hex: 0x3F8FA8),
+        fabGradientEnd: Color(hex: 0x1A5568),
+        folderTint: Color(hex: 0x2A7088),
         navBar: Color(hex: 0x1C1E22),
         isDark: true
     )

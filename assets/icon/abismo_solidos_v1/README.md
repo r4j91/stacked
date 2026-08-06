@@ -24,6 +24,7 @@ reter um pouco de textura — use para comparar estilo, não como fonte final.
 | `06_abismo_cinza_suave_ambar` | Abismo Cinza Suave | `#1D2025` | âmbar |
 | `07–10_dual_cinza_*` | Dual | cinza | traço cinza + accent |
 | `11_abismo_petrol_mint` | Abismo | `#0E1418` | mint |
+| `12_abismo_cinza_petrol` | Abismo Cinza Petróleo | `#141518` | petróleo `#2A7088` |
 | `12–13_dual_*_cinza` | Dual invertido | cinza | accent em cima + cinza embaixo |
 
 `preview_contact_sheet.png` = mosaico de todas as variantes vetoriais.

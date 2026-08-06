@@ -21,6 +21,7 @@ export type AppThemeId =
   | "abyssAshSolidMint"
   | "abyssAshSolidTeal"
   | "abyssAshSolidLime"
+  | "abyssAshSolidPetrol"
   | "abyssAshSoft"
 
 export type AppThemeColors = {
@@ -555,6 +556,31 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Canvas sólido + accent azul petróleo escuro. */
+  abyssAshSolidPetrol: {
+    id: "abyssAshSolidPetrol",
+    name: "Abismo Cinza Petróleo",
+    subtitle: "Fundo sólido · petróleo",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#2A7088",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#2A7088",
+      accentText: "#061218",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
   /** Abismo Cinza Suave — cards iguais ao Abismo Cinza; canvas bem mais claro. */
   abyssAshSoft: {
     id: "abyssAshSoft",
@@ -590,6 +616,7 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "abyssAshSolidMint",
   "abyssAshSolidTeal",
   "abyssAshSolidLime",
+  "abyssAshSolidPetrol",
   "abyssAshSoft",
   "slate",
   "slateEmber",
