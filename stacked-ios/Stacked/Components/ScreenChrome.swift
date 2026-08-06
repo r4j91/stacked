@@ -548,3 +548,24 @@ struct DrillDownBackToolbarItem: ToolbarContent {
     .sharedBackgroundVisibility(.hidden)
   }
 }
+
+/// Título de drill-down com tipografia do projeto (bold + tracking).
+/// Pareie com slots leading/trailing de **mesma largura** — aí o `.principal`
+/// do UIKit cai no centro do vão, sem offset óptico (que o anti-colisão
+/// remarcaria e cortava títulos longos tipo “Financeiro”).
+struct DrillDownProjectNavTitle: View {
+  let title: String
+  var textColor: Color
+  var maxWidth: CGFloat = .infinity
+
+  var body: some View {
+    Text(title)
+      .font(.system(size: 17, weight: .bold))
+      .tracking(-0.3)
+      .foregroundStyle(textColor)
+      .lineLimit(1)
+      .minimumScaleFactor(0.78)
+      .frame(maxWidth: maxWidth)
+      .accessibilityAddTraits(.isHeader)
+  }
+}

@@ -1,5 +1,6 @@
 import SwiftUI
 import Hugeicons
+import UIKit
 
 // Paridade lib/screens/project_detail_screen.dart
 struct ProjectDetailView: View {
@@ -97,6 +98,32 @@ struct ProjectDetailView: View {
 
   private var taskReorderMode: Bool { editMode == .active }
 
+  /// Largura do cluster trailing — slots leading/trailing usam `max(back, isto)`.
+  private var projectTrailingClusterWidth: CGFloat {
+    if taskReorderMode {
+      // Pill "Concluir" (~14pt padding × 2 + texto).
+      return 92
+    }
+    let labelFont = UIFont.systemFont(ofSize: 12, weight: .semibold)
+    let labelW = (displayModeEnum.label as NSString)
+      .size(withAttributes: [.font: labelFont])
+      .width
+    // Mode pill: padding H 14×2 + ícone 16 + spacing 5 + label.
+    let modePill = 28 + 16 + 5 + labelW
+    // More pill: padding H 14×2 + ícone ~16.
+    let morePill: CGFloat = 28 + 16
+    return modePill + 6 + morePill
+  }
+
+  /// Slots simétricos — centro do `.principal` = centro do vão voltar↔chip.
+  private var projectNavSideWidth: CGFloat {
+    max(44, projectTrailingClusterWidth)
+  }
+
+  private var projectNavBarWidth: CGFloat {
+    UIScreen.main.bounds.width
+  }
+
   private func projectDisplayModeLabel(accent: Color) -> some View {
     HStack(spacing: 5) {
       StackedIcons.image(displayModeEnum.menuIcon)
@@ -144,19 +171,31 @@ struct ProjectDetailView: View {
       store.refreshRelativeDateChips()
     }
     .background(c.background.ignoresSafeArea(.all))
-    // Título vazio no chrome — centralizado no .principal entre voltar e trailing.
+    // Um único `.toolbar` com slots leading/trailing da mesma largura —
+    // o `.principal` cai no centro do vão (sem offset que o UIKit remarcaria).
     .stackedDrillDownNavChrome(title: "", background: c.background)
-    .stackedAdaptiveDrillDownBack()
+    .stackedDrillDownGlassBackButton()
     .toolbar {
       let isolate = GlassChromePreference.prefersStaticToolbarPills()
+      let sideW = projectNavSideWidth
+
+      ToolbarItem(id: "stacked-project-back", placement: .topBarLeading) {
+        HStack(spacing: 0) {
+          DrillDownGlassIconButton(icon: .arrowLeft) {
+            dismiss()
+          }
+          Spacer(minLength: 0)
+        }
+        .frame(width: sideW, alignment: .leading)
+      }
+      .sharedBackgroundVisibility(.hidden)
 
       ToolbarItem(id: "stacked-project-title", placement: .principal) {
-        Text(projectName)
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(c.textPrimary)
-          .lineLimit(1)
-          .minimumScaleFactor(0.85)
-          .accessibilityAddTraits(.isHeader)
+        DrillDownProjectNavTitle(
+          title: projectName,
+          textColor: c.textPrimary,
+          maxWidth: max(72, projectNavBarWidth - 2 * sideW - 8)
+        )
       }
       .stackedToolbarGlassIsolation(isolate)
 
@@ -196,6 +235,7 @@ struct ProjectDetailView: View {
             .accessibilityLabel("Opções do projeto")
           }
         }
+        .frame(width: sideW, alignment: .trailing)
       }
       .sharedBackgroundVisibility(.hidden)
     }
