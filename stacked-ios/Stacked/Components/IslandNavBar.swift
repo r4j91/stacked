@@ -46,7 +46,8 @@ struct IslandNavBar: View {
           .frame(width: pillWidth, height: IslandNavMetrics.pillHeight)
         Spacer(minLength: 0)
       }
-      .animation(islandAnimation, value: isExpanded)
+      // Largura expand/collapse: só o withAnimation do MobileChromeController
+      // (evitar .animation duplicado no GeometryReader — hitch no 1º frame do close).
       .animation(islandAnimation, value: fabIntegrated)
     }
     .frame(height: IslandNavMetrics.pillHeight)
@@ -66,15 +67,18 @@ struct IslandNavBar: View {
     pillWidth: CGFloat
   ) -> some View {
     HStack(spacing: 0) {
-      Group {
-        if isExpanded {
-          expandedItems(colors: colors)
-            .opacity(expandedItemsOpacity)
-        } else {
-          collapsedSummary(colors: colors, tab: selectedTab)
-        }
+      // ZStack+opacity (não if/else): evita desmontar árvore no frame 0 do colapso.
+      ZStack {
+        collapsedSummary(colors: colors, tab: selectedTab)
+          .opacity(isExpanded ? 0 : 1)
+          .accessibilityHidden(isExpanded)
+
+        expandedItems(colors: colors)
+          .opacity(expandedItemsOpacity)
+          .accessibilityHidden(!isExpanded)
       }
       .frame(maxWidth: .infinity)
+      // Conteúdo troca de opacity sem herdar o spring da largura.
       .animation(nil, value: isExpanded)
       .opacity(navDimmed ? IslandNavMetrics.fabMenuDimOpacity : 1)
       .animation(AppMotion.smooth(reduceMotion: reduceMotion), value: navDimmed)
