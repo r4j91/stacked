@@ -116,8 +116,10 @@ final class AppIconManager {
   static let shared = AppIconManager()
 
   private static let storageKey = "stacked_app_icon_id"
+  /// Primeiro install / clean build — Abismo Lima (setup atual de desenvolvimento).
+  private static let preferredDefault: AppIconId = .abismoCinzaLima
 
-  private(set) var currentId: AppIconId = .default
+  private(set) var currentId: AppIconId = .abismoCinzaLima
   private(set) var isChanging = false
 
   var isSupported: Bool {
@@ -125,7 +127,12 @@ final class AppIconManager {
   }
 
   private init() {
+    let hadStoredPreference = UserDefaults.standard.object(forKey: Self.storageKey) != nil
     syncFromSystem()
+    // Clean install: sistema volta pro ícone primário; aplica o padrão do produto.
+    if !hadStoredPreference, currentId == .default, Self.preferredDefault != .default {
+      Swift.Task { try? await setIcon(Self.preferredDefault) }
+    }
   }
 
   func syncFromSystem() {

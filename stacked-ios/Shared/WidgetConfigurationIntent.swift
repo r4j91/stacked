@@ -1,7 +1,11 @@
 import AppIntents
 
 /// Modo de exibição do widget — configurável ao adicionar/editar na Home Screen.
-enum WidgetDisplayMode: String, AppEnum {
+///
+/// Só deve ser compilado no target StackedWidgetExtension (não no app host).
+/// AppEnum duplicado em dois módulos faz a Home Screen gravar um tipo e o
+/// widget ler outro — o parâmetro volta pro default e o modo Em breve “não pega”.
+enum WidgetDisplayMode: String, AppEnum, CaseIterable {
   case today
   case upcoming
   case smart
@@ -23,4 +27,16 @@ struct StackedWidgetIntent: WidgetConfigurationIntent {
 
   @Parameter(title: "Mostrar", default: .smart)
   var displayMode: WidgetDisplayMode
+
+  init() {
+    self.displayMode = .smart
+  }
+
+  init(displayMode: WidgetDisplayMode) {
+    self.displayMode = displayMode
+  }
+
+  static var parameterSummary: some ParameterSummary {
+    Summary("Mostrar \(\.$displayMode)")
+  }
 }

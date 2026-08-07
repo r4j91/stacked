@@ -217,7 +217,7 @@ enum HomeSectionRowPosition {
 enum HomeSectionStyleStorage {
   static let key = "homeSectionStyle"
 
-  static var defaultStyle: HomeSectionStyle { .classic }
+  static var defaultStyle: HomeSectionStyle { .quiet }
   static var defaultRawValue: String { defaultStyle.rawValue }
 
   static func style(from rawValue: String) -> HomeSectionStyle {
@@ -229,5 +229,5 @@ enum HomeSectionStyleStorage {
 /// (Buscar / Relatórios / Filtros / Etiquetas) no estilo ativo das seções.
 enum HomeTopCardStorage {
   static let key = "homeTopCardEnabled"
-  static let defaultEnabled = true
+  static let defaultEnabled = false
 }

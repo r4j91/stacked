@@ -19,6 +19,14 @@ struct WidgetTaskItem: Codable, Identifiable, Hashable {
   let dateLabel: String?
 }
 
+/// Contagem de tarefas por dia (próx. 7 dias) para o strip do widget Em breve.
+struct WidgetDayBucket: Codable, Hashable, Identifiable {
+  let dayStart: Date
+  let count: Int
+
+  var id: TimeInterval { dayStart.timeIntervalSince1970 }
+}
+
 struct WidgetSnapshot: Codable, Equatable {
   let isAuthenticated: Bool
   let todayCount: Int
@@ -28,6 +36,8 @@ struct WidgetSnapshot: Codable, Equatable {
   let nextTaskTitle: String?
   let tasks: [WidgetTaskItem]
   let upcomingTasks: [WidgetTaskItem]
+  /// Sempre 7 entradas (hoje → +6), mesmo com count 0.
+  let dayBuckets: [WidgetDayBucket]
   let updatedAt: Date
 
   var pendingTotal: Int { todayCount + overdueCount }
@@ -41,24 +51,41 @@ struct WidgetSnapshot: Codable, Equatable {
     nextTaskTitle: nil,
     tasks: [],
     upcomingTasks: [],
+    dayBuckets: [],
     updatedAt: .distantPast
   )
 
-  static let preview = WidgetSnapshot(
-    isAuthenticated: true,
-    todayCount: 0,
-    overdueCount: 0,
-    completedTodayCount: 2,
-    upcomingCount: 4,
-    nextTaskTitle: "Revisar proposta",
-    tasks: [],
-    upcomingTasks: [
-      WidgetTaskItem(id: "00000000-0000-0000-0000-000000000001", title: "Revisar proposta", isOverdue: false, dateLabel: "Amanhã"),
-      WidgetTaskItem(id: "00000000-0000-0000-0000-000000000002", title: "Ligar para o cliente", isOverdue: false, dateLabel: "Sex, 13 Jul"),
-      WidgetTaskItem(id: "00000000-0000-0000-0000-000000000003", title: "Enviar relatório", isOverdue: false, dateLabel: "Seg, 15 Jul"),
-    ],
-    updatedAt: Date()
-  )
+  static let preview: WidgetSnapshot = {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: Date())
+    let buckets: [WidgetDayBucket] = (0..<7).map { offset in
+      let day = cal.date(byAdding: .day, value: offset, to: today) ?? today
+      let count: Int
+      switch offset {
+      case 1: count = 2
+      case 3: count = 1
+      case 6: count = 1
+      default: count = 0
+      }
+      return WidgetDayBucket(dayStart: day, count: count)
+    }
+    return WidgetSnapshot(
+      isAuthenticated: true,
+      todayCount: 0,
+      overdueCount: 0,
+      completedTodayCount: 2,
+      upcomingCount: 4,
+      nextTaskTitle: "Revisar proposta",
+      tasks: [],
+      upcomingTasks: [
+        WidgetTaskItem(id: "00000000-0000-0000-0000-000000000001", title: "Revisar proposta", isOverdue: false, dateLabel: "Amanhã"),
+        WidgetTaskItem(id: "00000000-0000-0000-0000-000000000002", title: "Ligar para o cliente", isOverdue: false, dateLabel: "Sex, 13 Jul"),
+        WidgetTaskItem(id: "00000000-0000-0000-0000-000000000003", title: "Enviar relatório", isOverdue: false, dateLabel: "Seg, 15 Jul"),
+      ],
+      dayBuckets: buckets,
+      updatedAt: Date()
+    )
+  }()
 
   static let previewToday = WidgetSnapshot(
     isAuthenticated: true,
@@ -72,13 +99,14 @@ struct WidgetSnapshot: Codable, Equatable {
       WidgetTaskItem(id: "00000000-0000-0000-0000-00000000000b", title: "Tarefa de hoje", isOverdue: false, dateLabel: nil),
     ],
     upcomingTasks: preview.upcomingTasks,
+    dayBuckets: preview.dayBuckets,
     updatedAt: Date()
   )
 }
 
 enum WidgetConstants {
   static let appGroupID = "group.com.stacked.app"
-  static let snapshotKey = "widget_snapshot_v3"
+  static let snapshotKey = "widget_snapshot_v4"
 }
 
 enum TaskIdentity {

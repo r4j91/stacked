@@ -859,8 +859,8 @@ final class ThemeManager {
 
   private static let storageKey = "stacked_theme_id"
 
-  /// Primeiro launch → Graphite; quem já escolheu tema mantém a preferência salva.
-  var currentId: AppThemeId = .graphite {
+  /// Primeiro launch → Abismo Cinza Sólido (paridade com o setup atual de desenvolvimento).
+  var currentId: AppThemeId = .abyssAshSolid {
     didSet { UserDefaults.standard.set(currentId.rawValue, forKey: Self.storageKey) }
   }
 

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacked — Widgets · redesign</title>
+<style>
+  :root{
+    --void:#0B0C0D;
+    --app:#1A1B1E;
+    --surface:#242529;
+    --surface2:#2C2D33;
+    --light:#F2F3F5;
+    --dim:#9296A0;
+    --faint:#6B6E76;
+    --accent:#5FD3DC;
+    --overdue:#EF5A5F;
+    --ok:#8FD46B;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;
+    --disp:"SF Pro Display",-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--void);color:var(--light);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+
+  .wrap{max-width:1280px;margin:0 auto;padding:56px 32px 120px}
+
+  .eyebrow{font:600 10.5px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .intro{max-width:720px;margin-bottom:48px}
+  .intro h1{font-family:var(--disp);font-size:48px;font-weight:750;letter-spacing:-.035em;line-height:1.05;margin:16px 0 18px}
+  .intro h1 em{font-style:normal;color:var(--faint)}
+  .intro p{color:var(--dim);margin:0 0 10px;font-size:16px}
+  .intro p b{color:var(--light);font-weight:600}
+
+  .toc{
+    position:sticky;top:0;z-index:20;background:rgba(11,12,13,.92);backdrop-filter:blur(14px);
+    border:1px solid rgba(242,243,245,.08);border-radius:12px;
+    margin-bottom:56px;padding:14px 18px;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .toc a{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);text-decoration:none}
+  .toc a:hover{color:var(--accent)}
+
+  .dir{margin-bottom:88px;scroll-margin-top:24px}
+  .dir-head{display:grid;grid-template-columns:56px 1fr;gap:20px;align-items:start;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(242,243,245,.08)}
+  .dir-head .ix{font:600 12px/1.8 var(--mono);letter-spacing:.14em;color:var(--accent)}
+  .dir-head h2{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-.03em;margin:0 0 8px}
+  .dir-head p{margin:0;color:var(--dim);font-size:14.5px;max-width:560px}
+  .badge{display:inline-block;margin-top:10px;font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:rgba(95,211,220,.12);padding:6px 10px;border-radius:999px}
+
+  .stage{
+    background:linear-gradient(160deg,#121316 0%,#0c1a1b 55%,#101114 100%);
+    border:1px solid rgba(242,243,245,.07);
+    border-radius:28px;
+    padding:36px 32px 40px;
+    display:flex;flex-wrap:wrap;gap:28px 36px;align-items:flex-end;justify-content:center;
+  }
+  .stage.flat{background:var(--app)}
+  .label{width:100%;text-align:center;font:600 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:-8px}
+
+  /* iOS widget chrome */
+  .w{
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow:0 18px 40px rgba(0,0,0,.35), inset 0 0 0 0.5px rgba(255,255,255,.06);
+    color:var(--light);
+    position:relative;
+  }
+  .w-sm{width:168px;height:168px}
+  .w-md{width:360px;height:168px}
+  .w-ls{width:72px;height:72px;border-radius:18px}
+
+  .cap{margin-top:10px;text-align:center;font:500 11px/1.3 var(--mono);color:var(--faint);letter-spacing:.04em}
+  .pair{display:flex;flex-direction:column;align-items:center}
+
+  /* shared widget bits */
+  .pad{padding:14px;height:100%;display:flex;flex-direction:column}
+  .hdr{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .ttl{font:700 15px/1.1 var(--sans);color:var(--accent)}
+  .pill{font:700 10px/1 var(--sans);padding:3px 7px;border-radius:999px;background:rgba(239,90,95,.16);color:var(--overdue)}
+  .num{font:800 36px/1 var(--disp);letter-spacing:-.04em;margin-top:6px}
+  .sub{font:500 12px/1.2 var(--sans);color:var(--dim)}
+  .row{display:flex;align-items:center;gap:6px;margin-top:5px;min-width:0}
+  .dot{width:5px;height:5px;border-radius:50%;flex:none;background:var(--dim);opacity:.55}
+  .dot.bad{background:var(--overdue);opacity:1}
+  .bar{width:3px;height:14px;border-radius:2px;background:rgba(95,211,220,.55);flex:none}
+  .bar.bad{background:var(--overdue)}
+  .rt{font:500 12px/1.2 var(--sans);color:rgba(242,243,245,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rd{font:600 9.5px/1 var(--sans);color:var(--dim);flex:none}
+  .foot{margin-top:auto;font:500 9px/1 var(--sans);color:rgba(146,150,160,.75)}
+  .sec{font:700 9px/1 var(--sans);letter-spacing:.08em;color:var(--dim);margin-bottom:4px}
+  .ok-ico{color:var(--ok);font-size:22px;line-height:1}
+
+  /* A atmospheric */
+  .bg-atm{
+    background:
+      radial-gradient(120% 90% at 0% 100%, rgba(95,211,220,.18), transparent 55%),
+      radial-gradient(90% 80% at 100% 0%, rgba(47,80,90,.35), transparent 50%),
+      linear-gradient(165deg,#1A1B1E 0%, #15181c 45%, #121a1c 100%);
+  }
+  .hero-title{font:700 17px/1.2 var(--disp);letter-spacing:-.02em;margin-top:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .hero-meta{font:600 11px/1.2 var(--sans);color:var(--dim);margin-top:6px}
+  .next-label{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:rgba(95,211,220,.85);margin-bottom:8px}
+
+  /* B dashboard */
+  .bg-flat{background:var(--app)}
+  .prog{height:4px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:10px;overflow:hidden}
+  .prog > i{display:block;height:100%;width:62%;background:linear-gradient(90deg,var(--accent),rgba(95,211,220,.45));border-radius:99px}
+  .stat{display:flex;align-items:baseline;gap:5px;margin-top:6px}
+  .stat strong{font:800 22px/1 var(--disp);letter-spacing:-.03em}
+  .stat span{font:500 11px/1 var(--sans);color:var(--dim)}
+  .split{display:grid;grid-template-columns:1fr 1px 1fr;gap:12px;height:100%;padding:14px}
+  .vline{background:rgba(146,150,160,.14);margin:2px 0}
+
+  /* C lock */
+  .bg-ls{
+    background:linear-gradient(145deg,#1c2224,#15181a);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  .ls-n{font:800 26px/1 var(--disp);letter-spacing:-.04em}
+  .ls-l{font:600 8px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+
+  .notes{
+    margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;
+  }
+  .note{background:rgba(255,255,255,.03);border:1px solid rgba(242,243,245,.06);border-radius:12px;padding:14px 16px}
+  .note h3{margin:0 0 6px;font:600 12px/1.2 var(--sans)}
+  .note p{margin:0;font-size:12.5px;color:var(--dim)}
+
+  .pick{
+    margin-top:64px;padding:28px;border-radius:20px;border:1px solid rgba(95,211,220,.25);
+    background:rgba(95,211,220,.06);
+  }
+  .pick h2{margin:0 0 8px;font-family:var(--disp);font-size:22px;letter-spacing:-.02em}
+  .pick p{margin:0;color:var(--dim);font-size:14.5px}
+
+  @media (max-width:720px){
+    .wrap{padding:36px 16px 80px}
+    .intro h1{font-size:34px}
+    .w-md{width:min(360px,100%)}
+    .stage{padding:24px 16px 28px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="intro">
+    <div class="eyebrow">Stacked · iOS widgets</div>
+    <h1>Redesign <em>visual</em></h1>
+    <p>Mockups fiéis à paleta do app. Compare o atual com 3 direções. A recomendada é a <b>A — Foco + Atmosférico</b>.</p>
+    <p>Abra no browser e role. Depois me diga qual seguir pra implementar.</p>
+  </div>
+
+  <nav class="toc">
+    <a href="#atual">Atual</a>
+    <a href="#a">A · Foco</a>
+    <a href="#b">B · Dashboard</a>
+    <a href="#c">C · Família</a>
+    <a href="#clear">Empty</a>
+  </nav>
+
+  <!-- ATUAL -->
+  <section class="dir" id="atual">
+    <div class="dir-head">
+      <div class="ix">00</div>
+      <div>
+        <h2>Atual</h2>
+        <p>Número grande + lista curta. Fundo flat. Funcional, mas parece “stats app”, não “próxima ação”.</p>
+      </div>
+    </div>
+    <div class="stage flat">
+      <div class="label">Hoje · 3 pendentes · 1 atrasada</div>
+
+      <div class="pair">
+        <div class="w w-sm bg-flat">
+          <div class="pad">
+            <div class="hdr">
+              <div class="ttl">Hoje</div>
+              <div class="pill">1</div>
+            </div>
+            <div class="num">3</div>
+            <div class="sub">pendentes</div>
+            <div class="row"><span class="dot bad"></span><span class="rt">Tarefa atrasada</span></div>
+            <div class="row"><span class="dot"></span><span class="rt">Tarefa de hoje</span></div>
+            <div class="foot">Atualizado agora</div>
+          </div>
+        </div>
+        <div class="cap">Small</div>
+      </div>
+
+      <div class="pair">
+        <div class="w w-md bg-flat">
+          <div class="split">
+            <div style="display:flex;flex-direction:column">
+              <div class="ttl">Hoje</div>
+              <div class="stat"><strong>3</strong><span>pendentes</span></div>
+              <div class="stat"><strong style="color:var(--overdue)">1</strong><span>atrasadas</span></div>
+              <div class="stat"><strong style="color:var(--ok)">1</strong><span>concluídas</span></div>
+              <div class="foot" style="margin-top:auto">Atualizado agora</div>
+            </div>
+            <div class="vline"></div>
+            <div>
+              <div class="sec">TAREFAS</div>
+              <div class="row"><span class="bar bad"></span><span class="rt">Tarefa atrasada</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Tarefa de hoje</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Revisar proposta</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Ligar para o cliente</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Medium</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A -->
+  <section class="dir" id="a">
+    <div class="dir-head">
+      <div class="ix">A</div>
+      <div>
+        <h2>Foco + Atmosférico</h2>
+        <p>A próxima tarefa é o herói. Fundo em degradê sutil (Abismo). Menos números, mais “o que fazer agora”.</p>
+        <span class="badge">Recomendado</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="label">Próxima ação em destaque</div>
+
+      <div class="pair">
+        <div class="w w-sm bg-atm">
+          <div class="pad">
+            <div class="hdr">
+              <div class="ttl">Hoje</div>
+              <div class="pill">1 atrasada</div>
+            </div>
+            <div class="next-label" style="margin-top:14px">Próxima</div>
+            <div class="hero-title">Revisar proposta comercial</div>
+            <div class="hero-meta">+2 outras · toque p/ abrir</div>
+            <div class="foot">Atualizado agora</div>
+          </div>
+        </div>
+        <div class="cap">Small</div>
+      </div>
+
+      <div class="pair">
+        <div class="w w-md bg-atm">
+          <div class="split">
+            <div style="display:flex;flex-direction:column;min-width:0">
+              <div class="hdr">
+                <div class="ttl">Hoje</div>
+                <div class="pill">1</div>
+              </div>
+              <div class="next-label" style="margin-top:12px">Próxima</div>
+              <div class="hero-title" style="font-size:20px;-webkit-line-clamp:2">Revisar proposta comercial</div>
+              <div class="hero-meta" style="margin-top:auto">3 pendentes · 1 concluída</div>
+            </div>
+            <div class="vline"></div>
+            <div style="min-width:0">
+              <div class="sec">DEPOIS</div>
+              <div class="row"><span class="bar bad"></span><div style="min-width:0"><div class="rd" style="color:var(--overdue)">Atrasada</div><div class="rt">Tarefa atrasada</div></div></div>
+              <div class="row" style="margin-top:8px"><span class="bar"></span><div style="min-width:0"><div class="rd">Hoje</div><div class="rt">Tarefa de hoje</div></div></div>
+              <div class="row" style="margin-top:8px"><span class="bar"></span><div style="min-width:0"><div class="rd">Amanhã</div><div class="rt">Ligar para o cliente</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Medium</div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note"><h3>Por quê</h3><p>Olhar a Home Screen e saber a próxima ação sem ler contadores.</p></div>
+      <div class="note"><h3>Visual</h3><p>Gradient teal suave + tipografia maior. Mantém deep links por tarefa.</p></div>
+      <div class="note"><h3>Escopo</h3><p>Só redesign do widget atual (small + medium). Dados já existem no snapshot.</p></div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="dir" id="b">
+    <div class="dir-head">
+      <div class="ix">B</div>
+      <div>
+        <h2>Dashboard compacto</h2>
+        <p>Mais densidade: progresso do dia + stats + lista. Bom pra quem quer overview, pior pra “próxima ação”.</p>
+      </div>
+    </div>
+    <div class="stage flat">
+      <div class="label">Visão do dia em números</div>
+
+      <div class="pair">
+        <div class="w w-sm bg-flat">
+          <div class="pad">
+            <div class="hdr"><div class="ttl">Hoje</div><div class="pill">1</div></div>
+            <div class="num" style="font-size:42px;margin-top:10px">3</div>
+            <div class="sub">pendentes</div>
+            <div class="prog"><i></i></div>
+            <div class="sub" style="margin-top:6px;font-size:10px">1 de 4 feitas</div>
+            <div class="foot">Atualizado agora</div>
+          </div>
+        </div>
+        <div class="cap">Small</div>
+      </div>
+
+      <div class="pair">
+        <div class="w w-md bg-flat">
+          <div class="split">
+            <div>
+              <div class="ttl">Hoje</div>
+              <div class="stat"><strong>3</strong><span>pendentes</span></div>
+              <div class="stat"><strong style="color:var(--overdue)">1</strong><span>atrasadas</span></div>
+              <div class="stat"><strong style="color:var(--ok)">1</strong><span>concluídas</span></div>
+              <div class="prog"><i></i></div>
+              <div class="foot" style="margin-top:10px">62% do dia</div>
+            </div>
+            <div class="vline"></div>
+            <div>
+              <div class="sec">TAREFAS</div>
+              <div class="row"><span class="bar bad"></span><span class="rt">Tarefa atrasada</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Tarefa de hoje</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Revisar proposta</span></div>
+              <div class="row"><span class="bar"></span><span class="rt">Ligar para o cliente</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Medium</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="dir" id="c">
+    <div class="dir-head">
+      <div class="ix">C</div>
+      <div>
+        <h2>Família de widgets</h2>
+        <p>Além do redesign: Lock Screen (contador) + small foco + medium lista. Mais presença, mais escopo.</p>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="label">Home + Lock Screen</div>
+
+      <div class="pair">
+        <div class="w w-ls bg-ls">
+          <div class="ls-n">3</div>
+          <div class="ls-l">Hoje</div>
+        </div>
+        <div class="cap">Lock</div>
+      </div>
+
+      <div class="pair">
+        <div class="w w-sm bg-atm">
+          <div class="pad">
+            <div class="ttl">Próxima</div>
+            <div class="hero-title" style="margin-top:16px;font-size:16px">Revisar proposta comercial</div>
+            <div class="hero-meta">Hoje · alta</div>
+            <div class="foot">Stacked</div>
+          </div>
+        </div>
+        <div class="cap">Small focus</div>
+      </div>
+
+      <div class="pair">
+        <div class="w w-md bg-atm">
+          <div class="pad" style="padding:14px 16px">
+            <div class="hdr"><div class="ttl">Hoje</div><div class="sub">3</div></div>
+            <div style="margin-top:10px">
+              <div class="row"><span class="bar bad"></span><span class="rt">Tarefa atrasada</span></div>
+              <div class="row" style="margin-top:7px"><span class="bar"></span><span class="rt">Revisar proposta comercial</span></div>
+              <div class="row" style="margin-top:7px"><span class="bar"></span><span class="rt">Tarefa de hoje</span></div>
+              <div class="row" style="margin-top:7px"><span class="bar"></span><span class="rt">Ligar para o cliente</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Medium list</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMPTY -->
+  <section class="dir" id="clear">
+    <div class="dir-head">
+      <div class="ix">·</div>
+      <div>
+        <h2>Empty state · “Tudo em dia”</h2>
+        <p>Como cada direção trata o dia limpo (mesmo dado: 2 concluídas hoje).</p>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="pair">
+        <div class="w w-sm bg-flat">
+          <div class="pad">
+            <div class="ttl">Hoje</div>
+            <div style="margin-top:18px" class="ok-ico">✓</div>
+            <div style="font:600 14px/1.2 var(--sans);margin-top:8px">Tudo em dia</div>
+            <div class="sub" style="margin-top:4px">2 concluídas hoje</div>
+          </div>
+        </div>
+        <div class="cap">Atual / B</div>
+      </div>
+      <div class="pair">
+        <div class="w w-sm bg-atm">
+          <div class="pad">
+            <div class="ttl">Hoje</div>
+            <div style="margin-top:22px;font:700 28px/1 var(--disp);letter-spacing:-.03em">Livre</div>
+            <div class="sub" style="margin-top:8px;color:var(--ok)">2 feitas · nada pendente</div>
+            <div class="foot">Próxima: Amanhã</div>
+          </div>
+        </div>
+        <div class="cap">A · mais calmo</div>
+      </div>
+      <div class="pair">
+        <div class="w w-sm bg-atm">
+          <div class="pad">
+            <div class="ttl">Em breve</div>
+            <div class="next-label" style="margin-top:16px">Smart</div>
+            <div class="hero-title" style="font-size:15px">Revisar proposta</div>
+            <div class="hero-meta">Amanhã · Hoje livre ✓</div>
+          </div>
+        </div>
+        <div class="cap">A · modo inteligente</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pick" id="pick">
+    <h2>Próximo passo</h2>
+    <p>Me diga: <b>A</b>, <b>B</b>, <b>C</b>, ou uma mistura (ex: A visual + Lock Screen da C). Aí eu implemento no Swift do widget.</p>
+  </div>
+
+</div>
+</body>
+</html>

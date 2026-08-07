@@ -40,7 +40,7 @@ enum HomeHeaderStyle: String, CaseIterable, Identifiable {
 enum HomeHeaderStyleStorage {
   static let key = "homeHeaderStyle"
 
-  static var defaultStyle: HomeHeaderStyle { .classic }
+  static var defaultStyle: HomeHeaderStyle { .greeting }
   static var defaultRawValue: String { defaultStyle.rawValue }
 
   static func style(from rawValue: String) -> HomeHeaderStyle {

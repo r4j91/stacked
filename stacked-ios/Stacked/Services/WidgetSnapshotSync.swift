@@ -60,25 +60,27 @@ enum WidgetSnapshotSync {
       )
     }
 
-    let upcomingItems = buildUpcomingItems(tasks: upcomingTasks, subtasks: upcomingSubtasks)
+    let upcoming = buildUpcoming(tasks: upcomingTasks, subtasks: upcomingSubtasks)
 
     return WidgetSnapshot(
       isAuthenticated: true,
       todayCount: split.today.count,
       overdueCount: split.overdue.count,
       completedTodayCount: todayCompleted.count,
-      upcomingCount: upcomingItems.count,
-      nextTaskTitle: orderedToday.first?.title ?? upcomingItems.first?.title,
+      upcomingCount: upcoming.totalCount,
+      nextTaskTitle: orderedToday.first?.title ?? upcoming.items.first?.title,
       tasks: Array(todayItems),
-      upcomingTasks: upcomingItems,
+      upcomingTasks: upcoming.items,
+      dayBuckets: upcoming.dayBuckets,
       updatedAt: Date()
     )
   }
 
-  private static func buildUpcomingItems(
+  private static func buildUpcoming(
     tasks: [Task],
     subtasks: [SubtaskScheduleEntry]
-  ) -> [WidgetTaskItem] {
+  ) -> (items: [WidgetTaskItem], dayBuckets: [WidgetDayBucket], totalCount: Int) {
+    let calendar = Calendar.current
     let today = TaskMapper.startOfDay(Date())
 
     struct SortableItem {
@@ -127,13 +129,23 @@ enum WidgetSnapshotSync {
 
     var seen = Set<String>()
     var items: [WidgetTaskItem] = []
+    var countsByDay: [Date: Int] = [:]
     for entry in sortable {
       let key = "\(entry.item.id)|\(entry.item.title)"
       guard seen.insert(key).inserted else { continue }
-      items.append(entry.item)
-      if items.count >= 6 { break }
+      countsByDay[entry.date, default: 0] += 1
+      if items.count < 6 {
+        items.append(entry.item)
+      }
     }
-    return items
+
+    let dayBuckets: [WidgetDayBucket] = (0..<7).compactMap { offset in
+      guard let day = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
+      return WidgetDayBucket(dayStart: day, count: countsByDay[day, default: 0])
+    }
+
+    let totalCount = countsByDay.values.reduce(0, +)
+    return (items, dayBuckets, totalCount)
   }
 
   private static func persist(_ snapshot: WidgetSnapshot) {

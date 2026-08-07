@@ -126,7 +126,7 @@ enum AppSectionHeaderCase {
 enum AppTypeScaleStorage {
   static let key = "homeTypeScale"
 
-  static var defaultScale: AppTypeScale { .classic }
+  static var defaultScale: AppTypeScale { .eyebrow }
   static var defaultRawValue: String { defaultScale.rawValue }
 
   static func scale(from rawValue: String) -> AppTypeScale {

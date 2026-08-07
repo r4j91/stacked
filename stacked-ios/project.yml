@@ -38,7 +38,12 @@ targets:
     platform: iOS
     sources:
       - path: Stacked
+      # Intent/Presentation só na extensão — AppEnum duplicado app+widget
+      # quebra a persistência do modo (sempre cai no default Inteligente → Hoje).
       - path: Shared
+        excludes:
+          - WidgetConfigurationIntent.swift
+          - WidgetPresentation.swift
       - path: Stacked/Resources
     dependencies:
       - package: Supabase

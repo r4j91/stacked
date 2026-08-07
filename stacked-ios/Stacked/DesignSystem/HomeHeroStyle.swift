@@ -153,7 +153,7 @@ enum HomeHeroStyleStorage {
 enum HomeHeroFrameStorage {
   static let key = "homeHeroFrame"
 
-  static var defaultFrame: HomeHeroFrame { .open }
+  static var defaultFrame: HomeHeroFrame { .matchHome }
   static var defaultRawValue: String { defaultFrame.rawValue }
 
   static func frame(from rawValue: String) -> HomeHeroFrame {

@@ -31,7 +31,7 @@ enum ChromeGlassMode: String, CaseIterable, Identifiable {
 
 enum ChromeGlassModeStorage {
   static let key = "chromeGlassMode"
-  static let defaultMode: ChromeGlassMode = .solid
+  static let defaultMode: ChromeGlassMode = .frosted
   static var defaultRawValue: String { defaultMode.rawValue }
 
   /// Migra toggles antigos uma vez; depois só `chromeGlassMode`.

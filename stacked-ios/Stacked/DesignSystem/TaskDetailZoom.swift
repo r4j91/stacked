@@ -19,7 +19,7 @@ enum TaskDetailZoom {
 /// Aparência — detalhe da tarefa como sheet (de baixo), em vez de zoom em tela cheia.
 enum TaskDetailSheetPresentationStorage {
   static let key = "appearance.taskDetailAsSheet"
-  static let defaultEnabled = false
+  static let defaultEnabled = true
 
   static var isEnabled: Bool {
     UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled

@@ -75,6 +75,17 @@ private struct TodayWidgetSmallView: View {
   let snapshot: WidgetSnapshot
 
   var body: some View {
+    Group {
+      if presentation.usesCalendarLayout {
+        UpcomingWidgetSmallView(presentation: presentation, snapshot: snapshot)
+      } else {
+        todayBody
+      }
+    }
+    .widgetURL(presentation.deepLink)
+  }
+
+  private var todayBody: some View {
     VStack(alignment: .leading, spacing: 0) {
       header
 
@@ -89,7 +100,6 @@ private struct TodayWidgetSmallView: View {
       }
     }
     .padding(14)
-    .widgetURL(presentation.deepLink)
   }
 
   private var header: some View {
@@ -183,16 +193,9 @@ private struct TodayWidgetSmallView: View {
   }
 
   private var footer: some View {
-    Text(relativeUpdated)
+    Text(WidgetRelativeTime.string(from: snapshot.updatedAt))
       .font(.system(size: 9, weight: .medium))
       .foregroundStyle(WidgetTheme.textSecondary.opacity(0.75))
-  }
-
-  private var relativeUpdated: String {
-    let formatter = RelativeDateTimeFormatter()
-    formatter.locale = Locale(identifier: "pt_BR")
-    formatter.unitsStyle = .abbreviated
-    return "Atualizado \(formatter.localizedString(for: snapshot.updatedAt, relativeTo: Date()))"
   }
 
   @ViewBuilder
@@ -221,6 +224,57 @@ private struct TodayWidgetSmallView: View {
   }
 }
 
+// MARK: - Small · Em breve (F)
+
+private struct UpcomingWidgetSmallView: View {
+  let presentation: WidgetPresentation
+  let snapshot: WidgetSnapshot
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      Text("Em breve")
+        .font(.system(size: 14, weight: .bold))
+        .foregroundStyle(WidgetTheme.textPrimary)
+
+      Spacer(minLength: 8)
+
+      if presentation.primaryCount == 0 {
+        Text("Nada\nagendado")
+          .font(.system(size: 18, weight: .semibold))
+          .foregroundStyle(WidgetTheme.textPrimary)
+          .lineLimit(2)
+        Spacer(minLength: 0)
+      } else {
+        Text("\(presentation.primaryCount)")
+          .font(.system(size: 40, weight: .heavy))
+          .foregroundStyle(WidgetTheme.textPrimary)
+          .tracking(-1.5)
+
+        Text(presentation.countLabel)
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(WidgetTheme.textSecondary)
+
+        Spacer(minLength: 0)
+
+        if let line = presentation.upcomingFocusLine {
+          Text(line)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(WidgetTheme.textPrimary.opacity(0.9))
+            .lineLimit(1)
+        }
+      }
+
+      if presentation.showsTodayClearHint {
+        Text("Hoje livre")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(WidgetTheme.success.opacity(0.9))
+          .padding(.top, 2)
+      }
+    }
+    .padding(14)
+  }
+}
+
 // MARK: - Medium
 
 private struct TodayWidgetMediumView: View {
@@ -228,6 +282,17 @@ private struct TodayWidgetMediumView: View {
   let snapshot: WidgetSnapshot
 
   var body: some View {
+    Group {
+      if presentation.usesCalendarLayout {
+        UpcomingWidgetMediumView(presentation: presentation, snapshot: snapshot)
+      } else {
+        todayBody
+      }
+    }
+    .widgetURL(presentation.deepLink)
+  }
+
+  private var todayBody: some View {
     HStack(alignment: .top, spacing: 14) {
       leftColumn
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -241,7 +306,6 @@ private struct TodayWidgetMediumView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     .padding(14)
-    .widgetURL(presentation.deepLink)
   }
 
   private var leftColumn: some View {
@@ -286,18 +350,13 @@ private struct TodayWidgetMediumView: View {
           statBlock(value: snapshot.completedTodayCount, label: "concluídas", accent: WidgetTheme.success)
         }
       case .upcoming:
-        statBlock(value: presentation.primaryCount, label: presentation.countLabel, accent: WidgetTheme.textPrimary)
-        if presentation.showsTodayClearHint {
-          Text("Hoje livre")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(WidgetTheme.success.opacity(0.9))
-        }
+        EmptyView()
       }
 
       Spacer(minLength: 0)
 
       if snapshot.isAuthenticated, snapshot.updatedAt != .distantPast {
-        Text(relativeUpdated)
+        Text(WidgetRelativeTime.string(from: snapshot.updatedAt))
           .font(.system(size: 9, weight: .medium))
           .foregroundStyle(WidgetTheme.textSecondary.opacity(0.75))
       }
@@ -307,7 +366,7 @@ private struct TodayWidgetMediumView: View {
   private var rightColumn: some View {
     VStack(alignment: .leading, spacing: 6) {
       if !presentation.displayTasks.isEmpty {
-        Text(presentation.activeSource == .upcoming ? "PRÓXIMAS" : "TAREFAS")
+        Text("TAREFAS")
           .font(.system(size: 9, weight: .bold))
           .foregroundStyle(WidgetTheme.textSecondary)
           .tracking(0.6)
@@ -315,9 +374,6 @@ private struct TodayWidgetMediumView: View {
         ForEach(presentation.displayTasks.prefix(4)) { task in
           mediumTaskRow(task)
         }
-      } else if presentation.activeSource == .allClear, presentation.mode == .smart, !snapshot.upcomingTasks.isEmpty {
-        // Modo hoje puro com dia livre — ainda mostra preview de em breve como dica
-        EmptyView()
       } else {
         Spacer(minLength: 0)
       }
@@ -362,12 +418,102 @@ private struct TodayWidgetMediumView: View {
       row
     }
   }
+}
 
-  private var relativeUpdated: String {
+// MARK: - Medium · Em breve (F)
+
+private struct UpcomingWidgetMediumView: View {
+  let presentation: WidgetPresentation
+  let snapshot: WidgetSnapshot
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        Text("Em breve")
+          .font(.system(size: 14, weight: .bold))
+          .foregroundStyle(WidgetTheme.textPrimary)
+        Spacer(minLength: 0)
+        Text("próx. 7 dias")
+          .font(.system(size: 11, weight: .medium))
+          .foregroundStyle(WidgetTheme.textSecondary)
+      }
+
+      HStack(spacing: 5) {
+        ForEach(presentation.stripDays) { day in
+          stripCell(day)
+        }
+      }
+
+      if let task = presentation.nextUpcomingTask {
+        focusRow(task)
+      } else {
+        Text("Nada agendado nos próximos dias")
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(WidgetTheme.textSecondary)
+      }
+    }
+    .padding(14)
+  }
+
+  private func stripCell(_ day: WidgetPresentation.StripDay) -> some View {
+    VStack(spacing: 4) {
+      Text(day.weekdayShort.uppercased())
+        .font(.system(size: 8, weight: .semibold))
+        .tracking(0.3)
+        .foregroundStyle(day.isToday ? WidgetTheme.accent : WidgetTheme.textSecondary)
+
+      Text("\(day.dayNumber)")
+        .font(.system(size: 14, weight: .bold))
+        .foregroundStyle(day.isToday ? WidgetTheme.accent : WidgetTheme.textPrimary)
+
+      Circle()
+        .fill(day.hasTasks ? (day.isToday ? WidgetTheme.accent : WidgetTheme.textPrimary.opacity(0.55)) : Color.clear)
+        .frame(width: 4, height: 4)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 7)
+    .background(
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(day.isToday ? WidgetTheme.accent.opacity(0.12) : WidgetTheme.textPrimary.opacity(0.04))
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .strokeBorder(day.isToday ? WidgetTheme.accent.opacity(0.45) : Color.clear, lineWidth: 1)
+    )
+  }
+
+  @ViewBuilder
+  private func focusRow(_ task: WidgetTaskItem) -> some View {
+    let row = HStack(alignment: .firstTextBaseline, spacing: 8) {
+      if let label = presentation.upcomingFocusDayLabel {
+        Text(label)
+          .font(.system(size: 10, weight: .bold))
+          .tracking(0.4)
+          .foregroundStyle(WidgetTheme.accent)
+      }
+      Text(task.title)
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(WidgetTheme.textPrimary)
+        .lineLimit(1)
+      Spacer(minLength: 0)
+    }
+
+    if TaskIdentity.isValidUUID(task.id) {
+      Link(destination: WidgetDeepLink.task(task.id)) { row }
+    } else {
+      row
+    }
+  }
+}
+
+// MARK: - Helpers
+
+private enum WidgetRelativeTime {
+  static func string(from date: Date) -> String {
     let formatter = RelativeDateTimeFormatter()
     formatter.locale = Locale(identifier: "pt_BR")
     formatter.unitsStyle = .abbreviated
-    return "Atualizado \(formatter.localizedString(for: snapshot.updatedAt, relativeTo: Date()))"
+    return "Atualizado \(formatter.localizedString(for: date, relativeTo: Date()))"
   }
 }
 
@@ -375,14 +521,16 @@ private struct TodayWidgetMediumView: View {
 #Preview(as: .systemSmall) {
   TodayWidget()
 } timeline: {
-  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .smart)
+  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .upcoming)
   TodayWidgetEntry(date: .now, snapshot: .previewToday, mode: .today)
+  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .smart)
 }
 
 #Preview(as: .systemMedium) {
   TodayWidget()
 } timeline: {
-  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .smart)
+  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .upcoming)
   TodayWidgetEntry(date: .now, snapshot: .previewToday, mode: .today)
+  TodayWidgetEntry(date: .now, snapshot: .preview, mode: .smart)
 }
 #endif
