@@ -59,9 +59,8 @@ enum AppThemeId: String, CaseIterable, Identifiable {
         .fog,
     ]
 
-    /// Stops do degradê de atmosfera (hex, topo → base) — fonte única pro
-    /// `LinearGradient` do SwiftUI e pra amostragem pontual em UIKit (header
-    /// fixo do Em breve: `UIKitHostedTaskList.atmosphericHeaderFill`).
+    /// Stops do degradê de atmosfera (hex, topo → base) — fonte do
+    /// `LinearGradient` de fundo nos temas Abismo.
     var atmosphericGradientStops: [UInt32]? {
         switch self {
         case .abyss:

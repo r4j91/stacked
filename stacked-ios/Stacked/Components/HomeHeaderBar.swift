@@ -306,19 +306,18 @@ private struct HomeHeaderTrailing: View {
   }
 }
 
-/// Contorno igual ao trilho do dock — Quieto / Fosco (sem Liquid Glass ao vivo).
+/// Contorno igual ao trilho do dock — Fosco (sem Liquid Glass ao vivo).
 private struct HomeHeaderQuietBorder: ViewModifier {
   @Environment(ThemeManager.self) private var theme
   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
 
   func body(content: Content) -> some View {
     let c = theme.colors
-    let mode = ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
-    let showQuiet = mode == .quiet || mode == .frosted
+    let showFrosted = ChromeGlassModeStorage.mode(from: chromeGlassModeRaw) == .frosted
     // Temas claros: borda sempre — pills somem no fundo sem contorno.
     let showLightEdge = !c.isDark
     content.overlay {
-      if showQuiet || showLightEdge {
+      if showFrosted || showLightEdge {
         Capsule()
           .strokeBorder(
             c.isDark

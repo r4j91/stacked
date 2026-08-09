@@ -44,7 +44,12 @@ enum HomeHeaderStyleStorage {
   static var defaultRawValue: String { defaultStyle.rawValue }
 
   static func style(from rawValue: String) -> HomeHeaderStyle {
-    HomeHeaderStyle(rawValue: rawValue) ?? defaultStyle
+    if rawValue == "searchTrack" {
+      // Trilho único removido — cai na saudação.
+      UserDefaults.standard.set(defaultRawValue, forKey: key)
+      return defaultStyle
+    }
+    return HomeHeaderStyle(rawValue: rawValue) ?? defaultStyle
   }
 
   static func resolved(rawValue: String, topCardEnabled: Bool) -> HomeHeaderStyle {
@@ -91,4 +96,5 @@ enum HomeHeaderMetrics {
       - 60
     return max(110, free)
   }
+
 }

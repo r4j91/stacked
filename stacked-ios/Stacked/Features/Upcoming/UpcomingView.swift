@@ -4,7 +4,6 @@ import SwiftUI
 struct UpcomingView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = UpcomingStore.shared
@@ -20,7 +19,6 @@ struct UpcomingView: View {
 
     UpcomingScreenBody(
       colors: c,
-      useUIKitTaskList: useUIKitTaskList,
       timelineRailEnabled: timelineRailEnabled,
       displayMode: displayMode,
       reduceMotion: reduceMotion,
@@ -55,10 +53,7 @@ struct UpcomingView: View {
 // MARK: - Screen body (calendar + list gate)
 
 private struct UpcomingScreenBody: View {
-  @State private var store = UpcomingStore.shared
-
   let colors: AppThemeColors
-  let useUIKitTaskList: Bool
   let timelineRailEnabled: Bool
   let displayMode: ProjectDisplayMode
   let reduceMotion: Bool
@@ -67,40 +62,20 @@ private struct UpcomingScreenBody: View {
   @Binding var subtaskDetailRoute: SubtaskDetailRoute?
   var taskDetailZoom: Namespace.ID
 
-  /// UIKit na lista de schedule (inclui subtarefas avulsas e eventos).
-  private var prefersUIKitList: Bool {
-    guard useUIKitTaskList,
-          !store.isLoading,
-          store.error == nil || !store.groupedSchedule.isEmpty,
-          !store.groupedSchedule.isEmpty
-    else { return false }
-    return true
-  }
-
   var body: some View {
     VStack(spacing: 0) {
       UpcomingCalendarChrome(reduceMotion: reduceMotion)
 
-      if prefersUIKitList {
-        UpcomingUIKitListContent(
-          colors: colors,
-          displayMode: displayMode,
-          reduceMotion: reduceMotion,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute
-        )
-      } else {
-        UpcomingSwiftUIListContent(
-          colors: colors,
-          timelineRailEnabled: timelineRailEnabled,
-          displayMode: displayMode,
-          reduceMotion: reduceMotion,
-          allowRowHeavyWork: allowRowHeavyWork,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute,
-          taskDetailZoom: taskDetailZoom
-        )
-      }
+      UpcomingSwiftUIListContent(
+        colors: colors,
+        timelineRailEnabled: timelineRailEnabled,
+        displayMode: displayMode,
+        reduceMotion: reduceMotion,
+        allowRowHeavyWork: allowRowHeavyWork,
+        detailRoute: $detailRoute,
+        subtaskDetailRoute: $subtaskDetailRoute,
+        taskDetailZoom: taskDetailZoom
+      )
     }
   }
 }
@@ -191,82 +166,6 @@ private struct UpcomingModeToggle: View {
   }
 }
 
-// MARK: - UIKit list (groupedSchedule only)
-
-private struct UpcomingUIKitListContent: View {
-  @State private var store = UpcomingStore.shared
-
-  let colors: AppThemeColors
-  let displayMode: ProjectDisplayMode
-  let reduceMotion: Bool
-  @Binding var detailRoute: TaskDetailRoute?
-  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
-
-  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
-
-  private var upcomingUIKitSections: [UIKitTaskSection] {
-    store.groupedSchedule.map { group in
-      UIKitTaskSection(
-        id: String(Int(group.day.timeIntervalSince1970)),
-        header: .plain(TaskMapper.dayLabel(for: group.day).uppercased()),
-        tasks: [],
-        scheduleItems: group.items
-      )
-    }
-  }
-
-  var body: some View {
-    UIKitHostedTaskList(
-      sections: upcomingUIKitSections,
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
-      leadingChrome: {
-        AnyView(
-          VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            ScreenHeader(title: "Em breve", subtitle: NavTab.upcoming.subtitle)
-            UpcomingModeToggle(reduceMotion: reduceMotion)
-              .padding(.horizontal, AppSpacing.lg)
-          }
-        )
-      },
-      supportsTimelineRail: true,
-      onToggle: { store.complete($0) },
-      onTap: { detailRoute = TaskDetailRoute(task: $0) },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: { store.complete($0) },
-      onDuplicate: { task in
-        _Concurrency.Task {
-          _ = try? await TaskRepository.shared.duplicateTask(task)
-          await store.load()
-        }
-      },
-      onDelete: { store.delete($0) },
-      onRefresh: { _Concurrency.Task { await store.load() } },
-      onPostpone: { task in _Concurrency.Task { await store.postpone(task) } },
-      onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
-      onScheduledSubtaskTap: { entry in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
-      },
-      onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) },
-      // BUG_TARJA_ABISMO: só nos temas Abismo (fundo em degradê) o header fixo
-      // precisava de um fill opaco pra não vazar as rows por baixo, e nenhuma
-      // cor calculada bateu direito com o degradê (posição pinada imprevisível).
-      // Nesses temas a data rola junto com o conteúdo em vez de grudar no topo.
-      // Nos demais (fundo sólido) o pin continua — nunca teve tarja ali.
-      pinPlainSectionHeaders: !ThemeManager.shared.usesAtmosphericBackground
-    )
-    .stackedScrollEdgeChrome()
-  }
-}
-
 // MARK: - SwiftUI list shell
 
 private struct UpcomingSwiftUIListContent: View {
@@ -307,7 +206,6 @@ private struct UpcomingSwiftUIListContent: View {
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    // Soft topo só no path SwiftUI (Home) — no UIKit o soft hitcha; sticky usa fill sólido.
     .stackedDashboardListChrome()
   }
 }

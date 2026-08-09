@@ -9,12 +9,9 @@ struct PresetFilterResultsScreen: View {
   let onSubtaskTap: (SubtaskDetailRoute) -> Void
 
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @Bindable private var store = FiltersStore.shared
   @State private var allowRowHeavyWork = false
-  /// Só monta UIKit após o push assentar (paridade Projeto / filtro salvo).
-  @State private var revealListContent = false
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
 
@@ -34,10 +31,6 @@ struct PresetFilterResultsScreen: View {
     !allowRowHeavyWork
   }
 
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList && revealListContent && !isLoading && !results.isEmpty
-  }
-
   var body: some View {
     let c = theme.colors
 
@@ -48,8 +41,6 @@ struct PresetFilterResultsScreen: View {
         presetErrorList(err)
       } else if results.isEmpty {
         presetEmptyList
-      } else if prefersUIKitList {
-        uikitPresetBody(colors: c)
       } else {
         presetResultsList(colors: c)
       }
@@ -84,7 +75,6 @@ struct PresetFilterResultsScreen: View {
       withTransaction(transaction) {
         allowRowHeavyWork = false
         store.adoptPresetFilterSession(kind)
-        revealListContent = true
       }
       try? await _Concurrency.Task.sleep(for: .milliseconds(150))
       guard !_Concurrency.Task.isCancelled else { return }
@@ -166,65 +156,6 @@ struct PresetFilterResultsScreen: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedFilterResultsListChrome()
-  }
-
-  @ViewBuilder
-  private func uikitPresetBody(colors: AppThemeColors) -> some View {
-    UIKitHostedTaskList(
-      sections: [
-        UIKitTaskSection(
-          id: "results",
-          header: nil,
-          tasks: [],
-          filterItems: results
-        ),
-      ],
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: colors.background,
-      onToggle: { store.complete($0) },
-      onTap: { onTaskTap($0) },
-      onSubtaskTap: { task, sub in
-        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in
-        store.removeSubtask(parentId: task.id, subtask: sub)
-        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
-      },
-      onEdit: { onTaskTap($0) },
-      onComplete: { store.complete($0) },
-      onDuplicate: { task in
-        _Concurrency.Task {
-          _ = try? await TaskRepository.shared.duplicateTask(task)
-          await store.openFilter(kind)
-          await store.loadDashboard()
-        }
-      },
-      onDelete: { store.delete($0) },
-      onRefresh: {
-        _Concurrency.Task {
-          await store.openFilter(kind)
-          await store.loadDashboard()
-        }
-      },
-      onPostpone: kind == .completedToday ? nil : { task in
-        _Concurrency.Task { await store.postpone(task) }
-      },
-      onFilterSubtaskToggle: { sub, parent, index in
-        store.completeSubtask(parent: parent, sub: sub, at: index)
-      },
-      onFilterSubtaskTap: { sub, parent in
-        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id))
-      },
-      labelCatalog: store.pickerLabels,
-      showTopFade: false
-    )
-    // Full-bleed embaixo — sem faixa do safe area / hard edge atrás do dock.
-    .ignoresSafeArea(edges: .bottom)
-    .stackedScrollEdgeChrome()
   }
 
   private func loadFilter() {

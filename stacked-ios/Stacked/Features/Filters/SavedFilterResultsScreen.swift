@@ -13,15 +13,12 @@ struct SavedFilterResultsScreen: View {
   let onEditFilter: (SavedFilter) -> Void
 
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @Bindable private var store = FiltersStore.shared
   @AppStorage private var showCompleted: Bool
   @AppStorage private var sortRaw: String
   @State private var usesStore = false
   @State private var allowRowHeavyWork = false
-  /// UIKit só após o push assentar (quando a opção estiver ligada).
-  @State private var revealListContent = false
 
   private var displayMode: ProjectDisplayMode { ProjectDisplayMode.from(displayModeRaw) }
   private var sortMode: SavedFilterSortMode {
@@ -84,13 +81,6 @@ struct SavedFilterResultsScreen: View {
     !allowRowHeavyWork
   }
 
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList
-      && revealListContent
-      && !isLoading
-      && (!displayedPendingResults.isEmpty || (showCompleted && !displayedCompletedResults.isEmpty))
-  }
-
   var body: some View {
     let c = theme.colors
 
@@ -101,8 +91,6 @@ struct SavedFilterResultsScreen: View {
         filterErrorList(err)
       } else if pendingResults.isEmpty && (!showCompleted || completedResults.isEmpty) {
         filterEmptyList
-      } else if prefersUIKitList {
-        uikitFilterBody(colors: c)
       } else {
         filterResultsList(colors: c)
       }
@@ -157,7 +145,6 @@ struct SavedFilterResultsScreen: View {
         allowRowHeavyWork = false
         store.adoptSavedFilterSession(filter, pending: initialPending, completed: initialCompleted)
         usesStore = true
-        revealListContent = true
       }
       try? await _Concurrency.Task.sleep(for: .milliseconds(150))
       guard !_Concurrency.Task.isCancelled else { return }
@@ -254,102 +241,6 @@ struct SavedFilterResultsScreen: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .stackedFilterResultsListChrome()
-  }
-
-  private var filterUIKitSections: [UIKitTaskSection] {
-    var sections: [UIKitTaskSection] = [
-      UIKitTaskSection(
-        id: "pending",
-        header: nil,
-        tasks: [],
-        filterItems: displayedPendingResults
-      ),
-    ]
-    if showCompleted, !displayedCompletedResults.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .plain("Concluídas"),
-          tasks: [],
-          dimmed: true,
-          filterItems: displayedCompletedResults
-        )
-      )
-    }
-    return sections
-  }
-
-  @ViewBuilder
-  private func uikitFilterBody(colors: AppThemeColors) -> some View {
-    UIKitHostedTaskList(
-      sections: filterUIKitSections,
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: colors.background,
-      onToggle: {
-        ensureStoreLinked()
-        store.complete($0)
-      },
-      onTap: { onTaskTap($0) },
-      onSubtaskTap: { task, sub in
-        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: task.id))
-      },
-      onSubtaskChanged: { snapshot in
-        ensureStoreLinked()
-        store.adoptSavedFilterSession(filter, pending: pendingResults, completed: completedResults)
-        store.applySubtaskPatch(snapshot)
-      },
-      onSubtaskDeleted: { task, sub in
-        ensureStoreLinked()
-        store.removeSubtask(parentId: task.id, subtask: sub)
-        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
-      },
-      onEdit: { onTaskTap($0) },
-      onComplete: {
-        ensureStoreLinked()
-        store.complete($0)
-      },
-      onDuplicate: { task in
-        _Concurrency.Task {
-          ensureStoreLinked()
-          _ = try? await TaskRepository.shared.duplicateTask(task)
-          await store.openSavedFilter(filter)
-          await store.loadDashboard()
-        }
-      },
-      onDelete: {
-        ensureStoreLinked()
-        store.delete($0)
-      },
-      onRefresh: {
-        _Concurrency.Task {
-          ensureStoreLinked()
-          await store.openSavedFilter(filter)
-          await store.loadDashboard()
-        }
-      },
-      onPostpone: { task in
-        guard !task.done else { return }
-        ensureStoreLinked()
-        _Concurrency.Task { await store.postpone(task) }
-      },
-      onFilterSubtaskToggle: { sub, parent, index in
-        ensureStoreLinked()
-        store.adoptSavedFilterSession(filter, pending: pendingResults, completed: completedResults)
-        store.completeSubtask(parent: parent, sub: sub, at: index)
-      },
-      onFilterSubtaskTap: { sub, parent in
-        onSubtaskTap(SubtaskDetailRoute(subtask: sub, parentTaskId: parent.id))
-      },
-      labelCatalog: store.pickerLabels,
-      // Sem chrome/header no topo: o fade falso cobria a 1ª tarefa.
-      showTopFade: false
-    )
-    // Full-bleed embaixo — sem faixa do safe area / hard edge atrás do dock.
-    .ignoresSafeArea(edges: .bottom)
-    .stackedScrollEdgeChrome()
   }
 
   private func loadFilter() {

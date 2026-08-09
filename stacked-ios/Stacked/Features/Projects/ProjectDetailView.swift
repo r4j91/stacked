@@ -11,8 +11,6 @@ struct ProjectDetailView: View {
 
   @AppStorage(ProjectDisplayMode.storageKey) private var displayMode = ProjectDisplayMode.defaultRawValue
   @AppStorage private var showCompleted: Bool
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
-  @AppStorage(TaskRowLayoutStorage.key) private var taskRowLayoutRaw = TaskRowLayoutStorage.defaultRawValue
   /// PERF_FASEB3_3A — T2 desligado do path ativo.
   // @AppStorage(ScrollPerfDebugStorage.t2RowsPlaceholderKey) private var t2RowsPlaceholder = false
   private var t2RowsPlaceholder: Bool { ScrollPerfDebugStorage.t2RowsPlaceholder }
@@ -144,26 +142,10 @@ struct ProjectDetailView: View {
     pending.isEmpty && (!showCompleted || completed.isEmpty)
   }
 
-  /// UIKit só com conteúdo real; ordenar / skeleton / erro / vazio ficam no SwiftUI List.
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList
-      && revealListContent
-      && !isLoading
-      && loadError == nil
-      && !taskReorderMode
-      && !showsEmptyState
-  }
-
   var body: some View {
     let c = theme.colors
 
-    Group {
-      if prefersUIKitList {
-        projectUIKitList
-      } else {
-        projectSwiftUIList
-      }
-    }
+    projectSwiftUIList
     .environment(\.editMode, $editMode)
     .onAppear { ScrollHitchProbe.noteScreen("Projeto") }
     .onChange(of: scenePhase) { _, phase in
@@ -463,140 +445,6 @@ struct ProjectDetailView: View {
 
   private var rowInsets: EdgeInsets {
     displayModeEnum.taskListRowInsets
-  }
-
-  private var projectUIKitList: some View {
-    let c = theme.colors
-    let mode = displayModeEnum
-    return UIKitHostedTaskList(
-      sections: projectUIKitSections,
-      showProject: false,
-      style: mode.taskRowStyle,
-      flatSubtaskQueue: mode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: c.background,
-      onToggleSection: handleUIKitSectionToggle,
-      onRenameSection: { section in
-        renameSectionTarget = section
-        renameSectionName = section.name
-      },
-      onDeleteSection: { section in
-        deleteSectionTarget = section
-      },
-      onToggle: toggleProjectTask,
-      onTap: { detailRoute = TaskDetailRoute(task: $0) },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in
-        store.removeSubtask(parentId: task.id, subtask: sub)
-        TaskStore.shared.removeSubtask(parentId: task.id, subtask: sub)
-      },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: toggleProjectTask,
-      onDuplicate: { task in
-        ensureStoreLinked()
-        store.duplicate(task)
-      },
-      onDelete: { task in
-        ensureStoreLinked()
-        store.delete(task)
-      },
-      onRefresh: {
-        ensureStoreLinked()
-        _Concurrency.Task { await store.load() }
-      },
-      onPostpone: { task in
-        guard !task.done else { return }
-        ensureStoreLinked()
-        _Concurrency.Task { await store.postpone(task) }
-      },
-      onWhatsAppCopy: { whatsAppCopyTask = $0 }
-    )
-    // Remonta o host UIKit ao trocar Balões/Lista ou layout dos cards —
-    // senão o diffable reusa cells com o estilo/layout antigo até sair/voltar.
-    .id("\(displayMode)-\(taskRowLayoutRaw)")
-    // Full-bleed embaixo — sem faixa preta do safe area atrás do dock.
-    .ignoresSafeArea(edges: .bottom)
-    .stackedScrollEdgeChrome()
-  }
-
-  private func handleUIKitSectionToggle(_ id: String) {
-    if id == "completed" {
-      AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-        completedExpanded.toggle()
-        ProjectDetailPreferences.setCompletedExpanded(completedExpanded, projectId: projectId)
-      }
-    } else {
-      toggleSection(id)
-    }
-  }
-
-  private func toggleProjectTask(_ task: Task) {
-    ensureStoreLinked()
-    if task.done { store.uncomplete(task) } else { store.complete(task) }
-  }
-
-  private var projectUIKitSections: [UIKitTaskSection] {
-    let buckets = pendingSectionBuckets
-    var result: [UIKitTaskSection] = []
-
-    for section in sections {
-      let tasks = buckets.bySectionId[section.id] ?? []
-      let expanded = isSectionExpanded(section.id)
-      result.append(
-        UIKitTaskSection(
-          id: section.id,
-          header: .collapsible(
-            title: section.name.uppercased(),
-            count: tasks.count,
-            expanded: expanded
-          ),
-          tasks: tasks,
-          projectSection: section
-        )
-      )
-    }
-
-    if !buckets.uncategorized.isEmpty {
-      let id = ProjectSectionCollapse.uncategorizedId
-      let showHeader = !sections.isEmpty
-      if showHeader {
-        result.append(
-          UIKitTaskSection(
-            id: id,
-            header: .collapsible(
-              title: "SEM SEÇÃO",
-              count: buckets.uncategorized.count,
-              expanded: isSectionExpanded(id)
-            ),
-            tasks: buckets.uncategorized
-          )
-        )
-      } else {
-        result.append(
-          UIKitTaskSection(id: id, title: nil, tasks: buckets.uncategorized)
-        )
-      }
-    }
-
-    if showCompleted && !completed.isEmpty {
-      result.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .collapsible(
-            title: "CONCLUÍDAS",
-            count: completed.count,
-            expanded: completedExpanded
-          ),
-          tasks: completed,
-          dimmed: true
-        )
-      )
-    }
-
-    return result
   }
 
   @ViewBuilder

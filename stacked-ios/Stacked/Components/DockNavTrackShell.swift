@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Trilho do dock: glass ao vivo, quieto, fosco ou sólido.
+/// Trilho do dock: glass ao vivo, fosco ou sólido (Reduce Transparency).
 ///
 /// Resolve o modo aqui (não na NavBar pai) — troca de preferência só re-renderiza o shell.
 struct DockNavTrackShell<S: InsettableShape>: View {
@@ -29,11 +29,7 @@ struct DockNavTrackShell<S: InsettableShape>: View {
     case .live:
       liveGlassLayer
     case .frozen:
-      if chromeMode == .frosted {
-        frostedFillLayer
-      } else {
-        frozenFillLayer
-      }
+      frostedFillLayer
     }
   }
 
@@ -55,17 +51,6 @@ struct DockNavTrackShell<S: InsettableShape>: View {
 
   private var frostedFillLayer: some View {
     LiquidGlass.frostedFill(shape: shape, tint: colors.navBar)
-      .overlay {
-        shape.strokeBorder(
-          colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),
-          lineWidth: LiquidGlass.navSelectionStrokeWidth
-        )
-      }
-  }
-
-  private var frozenFillLayer: some View {
-    shape
-      .fill(colors.navBar.opacity(LiquidGlass.frozenTrackOpacity))
       .overlay {
         shape.strokeBorder(
           colors.textPrimary.opacity(LiquidGlass.navSelectionStrokeOpacity),

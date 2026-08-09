@@ -59,7 +59,7 @@ final class MobileChromeController {
     )
   }
 
-  /// Glass ao vivo / quieto / fosco / sólido (sem freeze no scroll).
+  /// Glass ao vivo / fosco; sólido só com Reduce Transparency.
   func dockGlassMode(
     reduceTransparency: Bool,
     mode: ChromeGlassMode? = nil
@@ -75,8 +75,7 @@ final class MobileChromeController {
     if ScrollPerfDebugStorage.t1ChromeStatic { return .live }
     switch chrome {
     case .live: return .live
-    case .quiet, .frosted: return .frozen
-    case .solid: return .solid
+    case .frosted: return .frozen
     }
   }
 

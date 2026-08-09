@@ -26,7 +26,6 @@ struct AppearanceView: View {
   @AppStorage(InstallmentProgressStorage.key) private var installmentProgressOnCard = InstallmentProgressStorage.defaultEnabled
   @AppStorage(FabIntegratedInIslandStorage.key) private var fabIntegratedInIsland = true
   @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(TaskDetailSheetPresentationStorage.key)
   private var taskDetailAsSheet = TaskDetailSheetPresentationStorage.defaultEnabled
   @State private var stylePendingHide: HomeHeroStyle?
@@ -326,9 +325,7 @@ struct AppearanceView: View {
           id: .advanced,
           title: "Opções avançadas",
           summary: advancedSummary,
-          footer: useUIKitTaskList
-            ? chromeGlassMode.subtitle
-            : "Listas em SwiftUI — útil pra comparar o scroll. Religue se travar."
+          footer: chromeGlassMode.subtitle
         ) {
           appearanceGroupHeader("Efeito da barra")
           ForEach(Array(ChromeGlassMode.allCases.enumerated()), id: \.element) { index, mode in
@@ -337,10 +334,6 @@ struct AppearanceView: View {
               SettingsCardDivider(leadingPadding: 56)
             }
           }
-
-          SettingsCardDivider(leadingPadding: 56)
-          appearanceGroupHeader("Listas de tarefas")
-          uikitTaskListRow()
 
           SettingsCardDivider(leadingPadding: 56)
           appearanceGroupHeader("Detalhe da tarefa")
@@ -485,7 +478,6 @@ struct AppearanceView: View {
     hasher.combine(installmentProgressOnCard)
     hasher.combine(subtaskBranch)
     hasher.combine(chromeGlassModeRaw)
-    hasher.combine(useUIKitTaskList)
     hasher.combine(taskDetailAsSheet)
     return hasher.finalize()
   }
@@ -508,7 +500,6 @@ struct AppearanceView: View {
 
   private var advancedSummary: String {
     var parts = [chromeGlassMode.displayName]
-    if !useUIKitTaskList { parts.append("SwiftUI") }
     if taskDetailAsSheet { parts.append("Folha") }
     return parts.joined(separator: " · ")
   }
@@ -643,29 +634,6 @@ struct AppearanceView: View {
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: taskDetailAsSheet) { _, _ in
-      HapticService.selection()
-    }
-  }
-
-  private func uikitTaskListRow() -> some View {
-    let c = theme.colors
-
-    return HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Listas mais fluidas")
-          .font(AppTypography.settingsTitle)
-          .foregroundStyle(c.textPrimary)
-        Text("UIKit por padrão. Desligue para testar as listas em SwiftUI.")
-          .font(AppTypography.meta)
-          .foregroundStyle(c.textSecondary)
-      }
-      Spacer(minLength: 8)
-      SettingsSwitchToggle(isOn: $useUIKitTaskList, tint: c.actionAccent)
-    }
-    .frame(minHeight: 44)
-    .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
-    .onChange(of: useUIKitTaskList) { _, _ in
       HapticService.selection()
     }
   }

@@ -5,7 +5,6 @@ struct InboxView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.inboxKey) private var showCompleted = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = TaskStore.shared
   @State private var completedExpanded = false
@@ -22,7 +21,6 @@ struct InboxView: View {
     InboxScreenBody(
       colors: c,
       showCompleted: showCompleted,
-      useUIKitTaskList: useUIKitTaskList,
       displayMode: displayMode,
       reduceMotion: reduceMotion,
       completedExpanded: $completedExpanded,
@@ -54,14 +52,13 @@ struct InboxView: View {
   }
 }
 
-// MARK: - Screen body (prefersUIKitList + subtitle)
+// MARK: - Screen body
 
 private struct InboxScreenBody: View {
   @State private var store = TaskStore.shared
 
   let colors: AppThemeColors
   let showCompleted: Bool
-  let useUIKitTaskList: Bool
   let displayMode: ProjectDisplayMode
   let reduceMotion: Bool
   @Binding var completedExpanded: Bool
@@ -70,125 +67,24 @@ private struct InboxScreenBody: View {
   @Binding var subtaskDetailRoute: SubtaskDetailRoute?
   var taskDetailZoom: Namespace.ID
 
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList
-      && !store.inboxLoading
-      && store.inboxError == nil
-      && (!store.inboxPending.isEmpty || (showCompleted && !store.inboxCompleted.isEmpty))
-  }
-
   private var subtitle: String {
     let count = store.inboxPending.count
     return "\(count) \(count == 1 ? "tarefa" : "tarefas")"
   }
 
   var body: some View {
-    Group {
-      if prefersUIKitList {
-        InboxUIKitListContent(
-          subtitle: subtitle,
-          colors: colors,
-          showCompleted: showCompleted,
-          displayMode: displayMode,
-          reduceMotion: reduceMotion,
-          completedExpanded: $completedExpanded,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute
-        )
-      } else {
-        InboxSwiftUIListContent(
-          subtitle: subtitle,
-          colors: colors,
-          showCompleted: showCompleted,
-          displayMode: displayMode,
-          reduceMotion: reduceMotion,
-          completedExpanded: $completedExpanded,
-          allowRowHeavyWork: allowRowHeavyWork,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute,
-          taskDetailZoom: taskDetailZoom
-        )
-      }
-    }
-  }
-}
-
-// MARK: - UIKit list (pending/completed arrays only)
-
-private struct InboxUIKitListContent: View {
-  @State private var store = TaskStore.shared
-
-  let subtitle: String
-  let colors: AppThemeColors
-  let showCompleted: Bool
-  let displayMode: ProjectDisplayMode
-  let reduceMotion: Bool
-  @Binding var completedExpanded: Bool
-  @Binding var detailRoute: TaskDetailRoute?
-  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
-
-  private var cardInsets: EdgeInsets { displayMode.taskListRowInsets }
-
-  private var inboxUIKitSections: [UIKitTaskSection] {
-    var sections: [UIKitTaskSection] = []
-    if !store.inboxPending.isEmpty {
-      sections.append(UIKitTaskSection(id: "pending", title: nil, tasks: store.inboxPending))
-    }
-    if showCompleted, !store.inboxCompleted.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .completedToggle(count: store.inboxCompleted.count, expanded: completedExpanded),
-          tasks: store.inboxCompleted,
-          dimmed: true
-        )
-      )
-    }
-    return sections
-  }
-
-  var body: some View {
-    UIKitHostedTaskList(
-      sections: inboxUIKitSections,
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: cardInsets,
-      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
-      leadingChrome: {
-        AnyView(
-          TaskListScreenHeader(
-            title: "Inbox",
-            subtitle: subtitle,
-            showCompletedKey: ShowCompletedPreferences.inboxKey,
-            showCompletedDefault: false
-          )
-          .padding(.top, 4)
-          .padding(.bottom, 8)
-        )
-      },
-      onToggleSection: { id in
-        if id == "completed" {
-          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-            completedExpanded.toggle()
-          }
-        }
-      },
-      onToggle: { store.completeInbox($0) },
-      onTap: { detailRoute = TaskDetailRoute(task: $0) },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: { store.completeInbox($0) },
-      onDuplicate: { store.duplicateInbox($0) },
-      onDelete: { store.deleteInbox($0) },
-      onRefresh: { _Concurrency.Task { await store.loadInbox() } },
-      onPostpone: { task in _Concurrency.Task { try? await store.postponeInbox(task) } }
+    InboxSwiftUIListContent(
+      subtitle: subtitle,
+      colors: colors,
+      showCompleted: showCompleted,
+      displayMode: displayMode,
+      reduceMotion: reduceMotion,
+      completedExpanded: $completedExpanded,
+      allowRowHeavyWork: allowRowHeavyWork,
+      detailRoute: $detailRoute,
+      subtaskDetailRoute: $subtaskDetailRoute,
+      taskDetailZoom: taskDetailZoom
     )
-    .stackedScrollEdgeChrome()
   }
 }
 

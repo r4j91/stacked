@@ -15,9 +15,8 @@ struct TaskRowAppearance: Equatable {
   var labelChipStyle: LabelChipStyle
   var dueDateChipStyle: DueDateChipStyle
 
-  /// Leitura direta do `UserDefaults`. As cells do `UIKitHostedTaskList` montam a
-  /// árvore SwiftUI do zero a cada configure e não herdam o environment da tela,
-  /// então injetam este valor explicitamente (mesmo padrão do `ThemeManager.shared`).
+  /// Leitura direta do `UserDefaults`. `TaskRowAppearance.current` cobre hosts que
+  /// não herdam o environment da tela (mesmo padrão do `ThemeManager.shared`).
   static var current: TaskRowAppearance {
     TaskRowAppearance(
       layout: TaskRowLayoutStorage.current,

@@ -1,30 +1,24 @@
 import Foundation
 
-/// Modo único do chrome translúcido (dock, FAB, headers, pills).
-/// Substitui os toggles quieto / fosco / opaco e remove pausar-ao-rolar / barra-sem-efeito.
+/// Modo do chrome translúcido (dock, FAB, headers, pills).
+/// Só Ao vivo / Fosco — Quieto e Opaco foram removidos (migram para Fosco).
 enum ChromeGlassMode: String, CaseIterable, Identifiable {
   case live
-  case quiet
   case frosted
-  case solid
 
   var id: String { rawValue }
 
   var displayName: String {
     switch self {
     case .live: "Ao vivo"
-    case .quiet: "Quieto"
     case .frosted: "Fosco"
-    case .solid: "Opaco"
     }
   }
 
   var subtitle: String {
     switch self {
     case .live: "Animação na barra"
-    case .quiet: "Translúcido, sem animação"
     case .frosted: "Vidro com desfoque"
-    case .solid: "Sem ver o que passa atrás"
     }
   }
 }
@@ -34,32 +28,49 @@ enum ChromeGlassModeStorage {
   static let defaultMode: ChromeGlassMode = .frosted
   static var defaultRawValue: String { defaultMode.rawValue }
 
-  /// Migra toggles antigos uma vez; depois só `chromeGlassMode`.
+  /// Migra toggles antigos e coerção Quiet/Opaco → Fosco.
   static func migrateIfNeeded() {
     let ud = UserDefaults.standard
-    guard ud.object(forKey: key) == nil else { return }
-
-    let mode: ChromeGlassMode
-    if ud.bool(forKey: DisableAllGlassStorage.legacyKey) {
-      mode = .solid
-    } else if ud.bool(forKey: AlwaysStaticGlassStorage.legacyKey) {
-      mode = .quiet
-    } else if let frosted = ud.object(forKey: StaticFrostedGlassStorage.legacyKey) as? Bool {
-      mode = frosted ? .frosted : .live
-    } else {
-      mode = defaultMode
+    if ud.object(forKey: key) == nil {
+      let mode: ChromeGlassMode
+      if ud.bool(forKey: DisableAllGlassStorage.legacyKey)
+        || ud.bool(forKey: AlwaysStaticGlassStorage.legacyKey)
+      {
+        mode = .frosted
+      } else if let frosted = ud.object(forKey: StaticFrostedGlassStorage.legacyKey) as? Bool {
+        mode = frosted ? .frosted : .live
+      } else {
+        mode = defaultMode
+      }
+      ud.set(mode.rawValue, forKey: key)
+      return
     }
-    ud.set(mode.rawValue, forKey: key)
+
+    coerceRetiredModesIfNeeded()
+  }
+
+  /// Quieto / Opaco gravados em builds antigos → Fosco.
+  static func coerceRetiredModesIfNeeded() {
+    let ud = UserDefaults.standard
+    guard let raw = ud.string(forKey: key) else { return }
+    if raw == "quiet" || raw == "solid" {
+      ud.set(defaultMode.rawValue, forKey: key)
+    }
   }
 
   static var current: ChromeGlassMode {
     migrateIfNeeded()
     let raw = UserDefaults.standard.string(forKey: key) ?? defaultRawValue
-    return ChromeGlassMode(rawValue: raw) ?? defaultMode
+    return mode(from: raw)
   }
 
   static func mode(from rawValue: String) -> ChromeGlassMode {
-    ChromeGlassMode(rawValue: rawValue) ?? defaultMode
+    if let mode = ChromeGlassMode(rawValue: rawValue) { return mode }
+    if rawValue == "quiet" || rawValue == "solid" {
+      UserDefaults.standard.set(defaultMode.rawValue, forKey: key)
+      return defaultMode
+    }
+    return defaultMode
   }
 }
 
@@ -85,12 +96,10 @@ enum GlassChromePreference {
     return ChromeGlassModeStorage.current
   }
 
+  /// Opaco só por acessibilidade (Reduce Transparency) — modo Opaco foi removido.
   static func prefersSolid(reduceTransparency: Bool, mode: ChromeGlassMode? = nil) -> Bool {
-    reduceTransparency || (mode ?? ChromeGlassModeStorage.current) == .solid
-  }
-
-  static func prefersQuiet(mode: ChromeGlassMode? = nil) -> Bool {
-    (mode ?? ChromeGlassModeStorage.current) == .quiet
+    _ = mode
+    return reduceTransparency
   }
 
   static func prefersFrosted(mode: ChromeGlassMode? = nil) -> Bool {
@@ -98,11 +107,10 @@ enum GlassChromePreference {
   }
 
   static func prefersNoLiveGlass(mode: ChromeGlassMode? = nil) -> Bool {
-    let m = mode ?? ChromeGlassModeStorage.current
-    return m != .live
+    (mode ?? ChromeGlassModeStorage.current) != .live
   }
 
-  /// Fosco (e quieto/opaco): pills estáticas custom. Ao vivo: glass nativo com morph.
+  /// Fosco: pills estáticas custom. Ao vivo: glass nativo com morph.
   static func prefersStaticToolbarPills(mode: ChromeGlassMode? = nil) -> Bool {
     prefersFrosted(mode: mode)
   }

@@ -5,7 +5,6 @@ struct TodayView: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AppStorage(ShowCompletedPreferences.todayKey) private var showCompleted = false
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(TimelineRailStorage.key) private var timelineRailEnabled = TimelineRailStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   /// PERF_FASEB3_3A — T2 desligado do path ativo (sempre false via ScrollPerfDebugStorage).
@@ -27,7 +26,6 @@ struct TodayView: View {
     TodayScreenBody(
       colors: c,
       showCompleted: showCompleted,
-      useUIKitTaskList: useUIKitTaskList,
       timelineRailEnabled: timelineRailEnabled,
       displayMode: displayMode,
       t2RowsPlaceholder: t2RowsPlaceholder,
@@ -72,14 +70,11 @@ struct TodayView: View {
   }
 }
 
-// MARK: - Screen body (prefersUIKitList gate — minimal store reads)
+// MARK: - Screen body
 
 private struct TodayScreenBody: View {
-  @State private var store = TaskStore.shared
-
   let colors: AppThemeColors
   let showCompleted: Bool
-  let useUIKitTaskList: Bool
   let timelineRailEnabled: Bool
   let displayMode: ProjectDisplayMode
   let t2RowsPlaceholder: Bool
@@ -90,149 +85,20 @@ private struct TodayScreenBody: View {
   @Binding var subtaskDetailRoute: SubtaskDetailRoute?
   var taskDetailZoom: Namespace.ID
 
-  /// UIKit quando há conteúdo (inclui subtarefas avulsas e eventos de calendário).
-  private var prefersUIKitList: Bool {
-    guard useUIKitTaskList,
-          !store.todayLoading || !store.todayTimeline.isEmpty || !store.todayOverdueItems.isEmpty,
-          store.todayError == nil
-    else { return false }
-    return !store.todayOverdueItems.isEmpty
-      || !store.todayTimeline.isEmpty
-      || (showCompleted && !store.todayCompleted.isEmpty)
-  }
-
   var body: some View {
-    Group {
-      if prefersUIKitList {
-        TodayUIKitListContent(
-          colors: colors,
-          showCompleted: showCompleted,
-          timelineRailEnabled: timelineRailEnabled,
-          displayMode: displayMode,
-          reduceMotion: reduceMotion,
-          completedExpanded: $completedExpanded,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute
-        )
-      } else {
-        TodaySwiftUIListContent(
-          colors: colors,
-          showCompleted: showCompleted,
-          timelineRailEnabled: timelineRailEnabled,
-          displayMode: displayMode,
-          t2RowsPlaceholder: t2RowsPlaceholder,
-          reduceMotion: reduceMotion,
-          completedExpanded: $completedExpanded,
-          allowRowHeavyWork: allowRowHeavyWork,
-          detailRoute: $detailRoute,
-          subtaskDetailRoute: $subtaskDetailRoute,
-          taskDetailZoom: taskDetailZoom
-        )
-      }
-    }
-  }
-}
-
-// MARK: - UIKit list (timeline arrays only)
-
-private struct TodayUIKitListContent: View {
-  @State private var store = TaskStore.shared
-
-  let colors: AppThemeColors
-  let showCompleted: Bool
-  let timelineRailEnabled: Bool
-  let displayMode: ProjectDisplayMode
-  let reduceMotion: Bool
-  @Binding var completedExpanded: Bool
-  @Binding var detailRoute: TaskDetailRoute?
-  @Binding var subtaskDetailRoute: SubtaskDetailRoute?
-
-  private var rowInsets: EdgeInsets { displayMode.taskListRowInsets }
-
-  private var todayUIKitSections: [UIKitTaskSection] {
-    var sections: [UIKitTaskSection] = []
-
-    if !store.todayOverdueItems.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "overdue",
-          header: .plain("ATRASADAS"),
-          tasks: [],
-          scheduleItems: store.todayOverdueItems
-        )
-      )
-    }
-    if !store.todayTimeline.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "today",
-          header: store.todayOverdueItems.isEmpty ? nil : .plain("HOJE"),
-          tasks: [],
-          scheduleItems: store.todayTimeline
-        )
-      )
-    }
-    if showCompleted, !store.todayCompleted.isEmpty {
-      sections.append(
-        UIKitTaskSection(
-          id: "completed",
-          header: .completedToggle(count: store.todayCompleted.count, expanded: completedExpanded),
-          tasks: store.todayCompleted,
-          dimmed: true
-        )
-      )
-    }
-    return sections
-  }
-
-  var body: some View {
-    UIKitHostedTaskList(
-      sections: todayUIKitSections,
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: ThemeManager.shared.usesAtmosphericBackground ? .clear : colors.background,
-      leadingChrome: {
-        AnyView(
-          TaskListScreenHeader(
-            title: "Hoje",
-            subtitle: NavTab.today.subtitle,
-            showCompletedKey: ShowCompletedPreferences.todayKey,
-            showCompletedDefault: false
-          )
-          .padding(.top, 4)
-          .padding(.bottom, 8)
-        )
-      },
-      supportsTimelineRail: true,
-      onToggleSection: { id in
-        if id == "completed" {
-          AppMotion.animate(AppMotion.snappy, reduceMotion: reduceMotion) {
-            completedExpanded.toggle()
-          }
-        }
-      },
-      onToggle: { store.completeToday($0) },
-      onTap: { detailRoute = TaskDetailRoute(task: $0) },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in store.removeSubtask(parentId: task.id, subtask: sub) },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: { store.completeToday($0) },
-      onDuplicate: { store.duplicateToday($0) },
-      onDelete: { store.deleteToday($0) },
-      onRefresh: { _Concurrency.Task { await store.loadToday() } },
-      onPostpone: { task in _Concurrency.Task { try? await store.postponeToday(task) } },
-      onScheduledSubtaskToggle: { store.completeScheduledSubtask($0) },
-      onScheduledSubtaskTap: { entry in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: entry.subtask, parentTaskId: entry.parent.id)
-      },
-      onCalendarEventTap: { EventKitCalendarService.shared.openInCalendar($0) }
+    TodaySwiftUIListContent(
+      colors: colors,
+      showCompleted: showCompleted,
+      timelineRailEnabled: timelineRailEnabled,
+      displayMode: displayMode,
+      t2RowsPlaceholder: t2RowsPlaceholder,
+      reduceMotion: reduceMotion,
+      completedExpanded: $completedExpanded,
+      allowRowHeavyWork: allowRowHeavyWork,
+      detailRoute: $detailRoute,
+      subtaskDetailRoute: $subtaskDetailRoute,
+      taskDetailZoom: taskDetailZoom
     )
-    .stackedScrollEdgeChrome()
   }
 }
 

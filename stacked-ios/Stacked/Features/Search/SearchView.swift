@@ -4,7 +4,6 @@ import SwiftUI
 struct SearchView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
   @State private var store = SearchStore.shared
   @State private var allowRowHeavyWork = false
@@ -38,8 +37,6 @@ struct SearchView: View {
         } else if store.groupedResults.isEmpty {
           EmptyStateView(illustration: .searchEmpty, title: "Nenhum resultado", subtitle: "Tente outro termo de busca")
             .stackedStandaloneEmptyState()
-        } else if useUIKitTaskList {
-          uikitSearchBody(colors: c)
         } else {
           List {
             ForEach(store.groupedResults, id: \.title) { group in
@@ -98,43 +95,6 @@ struct SearchView: View {
         .environment(ThemeManager.shared)
       }
     }
-  }
-
-  @ViewBuilder
-  private func uikitSearchBody(colors: AppThemeColors) -> some View {
-    UIKitHostedTaskList(
-      sections: store.groupedResults.map { group in
-        UIKitTaskSection(
-          id: group.title,
-          header: .plain(group.title.uppercased()),
-          tasks: group.tasks
-        )
-      },
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: colors.background,
-      onToggle: { store.complete($0) },
-      onTap: { task in
-        dismissedTaskId = task.id
-        detailRoute = TaskDetailRoute(task: task)
-      },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { store.applySubtaskPatch($0) },
-      onSubtaskDeleted: { task, sub in
-        store.removeSubtask(parentId: task.id, subtask: sub)
-      },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: { store.complete($0) },
-      onDuplicate: { store.duplicate($0) },
-      onDelete: { store.delete($0) },
-      onRefresh: { _Concurrency.Task { await store.load() } },
-      onPostpone: { task in _Concurrency.Task { await store.postpone(task) } }
-    )
-    .stackedScrollEdgeChrome()
   }
 
   private var rowInsets: EdgeInsets {

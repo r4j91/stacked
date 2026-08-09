@@ -3,7 +3,6 @@ import SwiftUI
 // Paridade lib/screens/logbook_screen.dart
 struct LogbookView: View {
   @Environment(ThemeManager.self) private var theme
-  @AppStorage(UIKitTaskListStorage.key) private var useUIKitTaskList = UIKitTaskListStorage.defaultEnabled
   @AppStorage(ProjectDisplayMode.storageKey) private var displayModeRaw = ProjectDisplayMode.defaultRawValue
 
   @State private var tasks: [Task] = []
@@ -20,10 +19,6 @@ struct LogbookView: View {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
   ]
 
-  private var prefersUIKitList: Bool {
-    useUIKitTaskList && !loading && !tasks.isEmpty
-  }
-
   var body: some View {
     let c = theme.colors
 
@@ -37,8 +32,6 @@ struct LogbookView: View {
           subtitle: "As tarefas concluídas aparecerão aqui"
         )
         .stackedStandaloneEmptyState()
-      } else if prefersUIKitList {
-        uikitLogbookBody(colors: c)
       } else {
         swiftUILogbookBody(colors: c)
       }
@@ -68,41 +61,6 @@ struct LogbookView: View {
       }
       .environment(ThemeManager.shared)
     }
-  }
-
-  @ViewBuilder
-  private func uikitLogbookBody(colors: AppThemeColors) -> some View {
-    let grouped = groupedTasks
-    UIKitHostedTaskList(
-      sections: grouped.keys.map { key in
-        UIKitTaskSection(
-          id: key,
-          header: .plain(key),
-          tasks: grouped.groups[key] ?? [],
-          muted: true
-        )
-      },
-      showProject: true,
-      style: displayMode.taskRowStyle,
-      flatSubtaskQueue: displayMode.flatSubtaskQueue,
-      rowInsets: rowInsets,
-      background: colors.background,
-      onToggle: { uncomplete($0) },
-      onTap: { detailRoute = TaskDetailRoute(task: $0) },
-      onSubtaskTap: { task, sub in
-        subtaskDetailRoute = SubtaskDetailRoute(subtask: sub, parentTaskId: task.id)
-      },
-      onSubtaskChanged: { patchLogbookSubtask($0) },
-      onSubtaskDeleted: { task, sub in
-        SubtaskListPatch.remove(parentTaskId: task.id, subtask: sub, from: &tasks)
-      },
-      onEdit: { detailRoute = TaskDetailRoute(task: $0) },
-      onComplete: { uncomplete($0) },
-      onDuplicate: { duplicate($0) },
-      onDelete: { delete($0) },
-      onRefresh: { _Concurrency.Task { await load() } }
-    )
-    .stackedScrollEdgeChrome()
   }
 
   @ViewBuilder

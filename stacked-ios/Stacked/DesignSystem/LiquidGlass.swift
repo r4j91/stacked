@@ -166,10 +166,6 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
     GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
-  private var useStaticFrozen: Bool {
-    GlassChromePreference.prefersQuiet(mode: chromeMode)
-  }
-
   var body: some View {
     if useSolid {
       content
@@ -178,11 +174,6 @@ private struct GlassSurface<S: InsettableShape, Content: View>: View {
     } else if useStaticFrosted {
       content
         .background { LiquidGlass.frostedFill(shape: shape, tint: navBarColor) }
-        .clipShape(shape)
-    } else if useStaticFrozen {
-      // Mesmo look do dock congelado: translúcido, sem glassEffect.
-      content
-        .background(shape.fill(navBarColor.opacity(LiquidGlass.frozenTrackOpacity)))
         .clipShape(shape)
     } else {
       content
@@ -230,27 +221,18 @@ private struct PopoverCardSurface<Content: View>: View {
     )
   }
 
-  private var useStaticFrozen: Bool {
-    GlassChromePreference.prefersQuiet(mode: chromeMode)
-  }
-
   private var useStaticFrosted: Bool {
     GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
-  /// Quieto: card de menu/notas opaco (paridade Quick Add). Fosco usa Material.
-  private var useOpaqueQuietPopover: Bool {
-    chromeMode == .quiet
-  }
-
   private var suppressShadow: Bool {
-    useSolid || useStaticFrozen || useStaticFrosted || useOpaqueQuietPopover
+    useSolid || useStaticFrosted
   }
 
   var body: some View {
     let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     Group {
-      if useSolid || useOpaqueQuietPopover {
+      if useSolid {
         content
           .background(shape.fill(theme.colors.surface))
           .clipShape(shape)
@@ -322,10 +304,6 @@ private struct FabGlassSurface<Content: View>: View {
     GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
-  private var useStaticFrozen: Bool {
-    GlassChromePreference.prefersQuiet(mode: chromeMode)
-  }
-
   private var fabFill: AnyShapeStyle {
     if let gradientStart, let gradientEnd {
       return AnyShapeStyle(
@@ -337,22 +315,6 @@ private struct FabGlassSurface<Content: View>: View {
       )
     }
     return AnyShapeStyle(solidFallback)
-  }
-
-  private var frozenFill: AnyShapeStyle {
-    if let gradientStart, let gradientEnd {
-      return AnyShapeStyle(
-        LinearGradient(
-          colors: [
-            gradientStart.opacity(LiquidGlass.frozenTrackOpacity),
-            gradientEnd.opacity(LiquidGlass.frozenTrackOpacity),
-          ],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        )
-      )
-    }
-    return AnyShapeStyle(tintColor.opacity(LiquidGlass.frozenTrackOpacity))
   }
 
   private var frostedTint: Color {
@@ -371,12 +333,6 @@ private struct FabGlassSurface<Content: View>: View {
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { LiquidGlass.frostedFill(shape: Circle(), tint: frostedTint) }
-        .clipShape(Circle())
-        .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
-    } else if useStaticFrozen {
-      content
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Circle().fill(frozenFill))
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 0.5))
     } else {
@@ -426,10 +382,6 @@ private struct ToolbarGlassPill<Content: View>: View {
     GlassChromePreference.prefersFrosted(mode: chromeMode)
   }
 
-  private var useStaticFrozen: Bool {
-    GlassChromePreference.prefersQuiet(mode: chromeMode)
-  }
-
   /// Em claro, surfaceVariant ≈ fundo — eleva com `surface` + borda legível.
   private var pillFill: Color {
     let c = theme.colors
@@ -448,8 +400,6 @@ private struct ToolbarGlassPill<Content: View>: View {
         padded.background(Capsule().fill(pillFill))
       } else if useStaticFrosted {
         padded.background { LiquidGlass.frostedFill(shape: Capsule(), tint: pillFill) }
-      } else if useStaticFrozen {
-        padded.background(Capsule().fill(pillFill.opacity(LiquidGlass.frozenTrackOpacity)))
       } else {
         padded.glassEffect(
           .regular.tint(pillFill.opacity(LiquidGlass.glassTintOpacity)),

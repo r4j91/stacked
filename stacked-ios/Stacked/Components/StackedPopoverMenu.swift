@@ -20,7 +20,6 @@ struct PopoverMenuItem: Identifiable {
 struct StackedPopoverOverlay: View {
   @Environment(ThemeManager.self) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
   let anchorRect: CGRect
   let keyboardHeight: CGFloat
   var hostBounds: CGRect = DisplayScreen.bounds
@@ -42,10 +41,7 @@ struct StackedPopoverOverlay: View {
   @State private var isPresented = false
   @State private var isDismissing = false
 
-  /// Quick Add já força opaco; no Quieto os menus de contexto também.
-  private var useOpaqueMenuSurface: Bool {
-    opaqueSurface || ChromeGlassModeStorage.mode(from: chromeGlassModeRaw) == .quiet
-  }
+  private var useOpaqueMenuSurface: Bool { opaqueSurface }
 
   var body: some View {
     ZStack {

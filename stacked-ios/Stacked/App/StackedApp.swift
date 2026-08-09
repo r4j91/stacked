@@ -35,7 +35,6 @@ private struct AppRootView: View {
     }
     .syncWindowBackground(themeManager.colors.background)
     .onAppear {
-      UIKitTaskListStorage.registerDefaultsIfNeeded()
       ChromeGlassModeStorage.migrateIfNeeded()
       HomeHeroStyleStorage.migrateRetiredSelectionIfNeeded()
       HapticService.prepare()

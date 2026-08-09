@@ -322,9 +322,6 @@ final class SubtaskExpandContainerView: UIView {
     // Só layoutPass com painel já aberto (etiqueta etc.).
     // contentRevision (done/título) NÃO remede aqui — zerar altura no toggle matava o painel.
     if layoutPassChanged, expanded, !stateChanged, !isAnimating, fitWidth > 1 {
-      if let cell = enclosingCell() as? UIKitSizedTaskCell {
-        cell.lockedHeight = nil
-      }
       contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
       lastExpanded = expanded
       scheduleContentRemeasure(hosting: hosting, width: fitWidth)
@@ -396,9 +393,6 @@ final class SubtaskExpandContainerView: UIView {
     guard pendingPostAnimationRemeasure else { return }
     pendingPostAnimationRemeasure = false
     guard lastExpanded == true, let hosting = hostedController, lastAppliedWidth > 1 else { return }
-    if let cell = enclosingCell() as? UIKitSizedTaskCell {
-      cell.lockedHeight = nil
-    }
     contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
     scheduleContentRemeasure(hosting: hosting, width: lastAppliedWidth)
   }
@@ -496,35 +490,18 @@ final class SubtaskExpandContainerView: UIView {
       expandWithPinnedParent(height: measured, animated: animated)
       return
     }
-    if let cell = enclosingCell() as? UIKitSizedTaskCell {
-      cell.lockedHeight = nil
-    }
     applyVisibleHeight(
       measured,
       expanded: true,
       animated: animated,
       pinParent: stabilizeSelfSizingParent
     )
-    enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
     if let collectionView = enclosingCollectionView() {
       collectionView.performBatchUpdates(nil)
       collectionView.layoutIfNeeded()
     }
-    if updateHeightCache {
-      syncExpandedHeightCacheAfterRemeasure()
-    }
   }
 
-  private func syncExpandedHeightCacheAfterRemeasure() {
-    guard let cell = enclosingCell() as? UIKitSizedTaskCell else { return }
-    let height = cell.bounds.height
-    guard height > 40 else { return }
-    cell.lockedHeight = height
-    if let taskId = enclosingSplitRowView()?.currentTaskId,
-       let list = enclosingCollectionView()?.delegate as? UIKitHostedTaskListController {
-      list.replaceExpandedRowHeightCache(taskId: taskId, height: height)
-    }
-  }
 
   private func measureHeight(hosting: UIHostingController<AnyView>, width: CGFloat) -> CGFloat {
     // Constraint de altura 0 (clip fechado) faz sizeThatFits devolver 0 — soltar na medida.
@@ -637,7 +614,6 @@ final class SubtaskExpandContainerView: UIView {
     guard animated else {
       UIView.performWithoutAnimation {
         applyLayout()
-        self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
         self.superview?.layoutIfNeeded()
         if let collectionView {
           collectionView.performBatchUpdates(nil)
@@ -669,7 +645,6 @@ final class SubtaskExpandContainerView: UIView {
       },
       completion: { [weak self] _ in
         // Só após a animação — batch no meio do grow quebrava o ease.
-        self?.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
         pin()
         self?.isAnimating = false
         self?.consumePendingPostAnimationRemeasure()
@@ -756,9 +731,6 @@ final class SubtaskExpandContainerView: UIView {
         cell.setNeedsLayout()
         cell.layoutIfNeeded()
       }
-      // UIKIT_SCROLL_POLISH: após constraints internas em 0 — remedir panelHost (ICS).
-      // Sem layoutIfNeeded no panelHost ainda; só se validação mostrar vão residual.
-      self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
       collectionView?.layoutIfNeeded()
     }
     CATransaction.commit()
@@ -790,8 +762,6 @@ final class SubtaskExpandContainerView: UIView {
         cell.setNeedsLayout()
         cell.layoutIfNeeded()
       }
-      // UIKIT_SCROLL_POLISH: após constraints internas em 0 — remedir panelHost (ICS).
-      self.enclosingSplitRowView()?.invalidatePanelHostIntrinsicSize()
       collectionView?.layoutIfNeeded()
       Self.restoreCellVisibleY(
         cell: self.enclosingCell(),
@@ -905,14 +875,6 @@ final class SubtaskExpandContainerView: UIView {
     return nil
   }
 
-  private func enclosingSplitRowView() -> UIKitSplitTaskRowView? {
-    var view: UIView? = superview
-    while let current = view {
-      if let split = current as? UIKitSplitTaskRowView { return split }
-      view = current.superview
-    }
-    return nil
-  }
 
   private func enclosingCell() -> UICollectionViewCell? {
     var view: UIView? = superview
