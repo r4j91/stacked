@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useWorkbench } from "@/components/shell/workbench-context";
-import { HomeDayRail } from "@/components/shell/home-day-rail";
+import { HomeGreetingHeader } from "@/components/shell/home-greeting-header";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { ReorderDragHandle } from "@/components/tasks/reorder-drag-handle";
@@ -46,7 +46,7 @@ export function HomeCanvas() {
       className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg)] outline-none"
     >
       <div className="mx-auto flex h-full w-full max-w-[var(--content-max-width)] min-w-0 flex-col px-4 lg:px-6">
-        <HomeDayRail />
+        <HomeGreetingHeader />
 
         <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto pb-4 pt-4 lg:pb-8">
           {filterCounts.overdue > 0 && (
