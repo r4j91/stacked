@@ -13,6 +13,8 @@ type TaskRowTrailingRailProps = {
   hasSubtasks: boolean;
   isExpanded: boolean;
   onToggleSubtasks: () => void;
+  /** Parcelas no card: anel some (paridade iOS). */
+  hideProgressRing?: boolean;
 };
 
 export function TaskRowTrailingRail({
@@ -20,9 +22,10 @@ export function TaskRowTrailingRail({
   hasSubtasks,
   isExpanded,
   onToggleSubtasks,
+  hideProgressRing = false,
 }: TaskRowTrailingRailProps) {
   const showWhatsApp = taskShowsWhatsAppCopy(task);
-  const progressRing = useSubtaskProgressRing();
+  const progressRing = useSubtaskProgressRing() && !hideProgressRing;
   const subs = task.subtasks ?? [];
   const doneSubs = subs.filter((s) => s.done).length;
 

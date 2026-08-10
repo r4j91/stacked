@@ -8,12 +8,15 @@ import { TaskRowEyebrow } from "@/components/tasks/task-row-eyebrow";
 import { TaskRowTime } from "@/components/tasks/task-time-chip";
 import { InlineSubtasks } from "@/components/tasks/task-list";
 import { TaskRowTrailingRail } from "@/components/tasks/task-row-trailing-rail";
+import { InstallmentProgressLine } from "@/components/tasks/installment-progress-line";
 import { useTaskContextMenu } from "@/components/tasks/task-context-menu";
 import { useWorkbench } from "@/components/shell/workbench-context";
 import { useTaskRowLayout } from "@/lib/theme/use-task-row-layout";
 import { showsTrailingTime, showsTaskRowEyebrow, taskRowCircleTopPx } from "@/lib/theme/task-row-layout";
 import { useDisplayMode } from "@/lib/theme/use-display-mode";
 import { isCardDisplayMode } from "@/lib/theme/display-mode";
+import { useInstallmentProgressOnCard } from "@/lib/theme/use-installment-progress-on-card";
+import { installmentProgressSnapshot } from "@/lib/utils/installment-progress";
 import { taskShowsWhatsAppCopy } from "@/lib/utils/whatsapp-routine-message";
 
 type ScheduleTaskRowProps = {
@@ -33,7 +36,9 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
   const { menu, onContextMenu, onTouchStart, onTouchMove, onTouchEnd } = useTaskContextMenu();
   const layout = useTaskRowLayout();
   const displayMode = useDisplayMode();
+  const installmentOnCard = useInstallmentProgressOnCard();
   const subs = task.subtasks ?? [];
+  const installment = installmentOnCard ? installmentProgressSnapshot(subs) : null;
   const isExpanded = expandedSubtasks.has(task.id);
   const hasRail = subs.length > 0 || taskShowsWhatsAppCopy(task);
   const trailingTime = showsTrailingTime(layout);
@@ -117,6 +122,9 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
               </p>
             )}
             <TaskMetaLine task={task} hideDate />
+            {installment ? (
+              <InstallmentProgressLine snapshot={installment} done={task.done} />
+            ) : null}
           </div>
           {hasRail ? (
             <TaskRowTrailingRail
@@ -124,6 +132,7 @@ export const ScheduleTaskRow = memo(function ScheduleTaskRow({
               hasSubtasks={subs.length > 0}
               isExpanded={isExpanded}
               onToggleSubtasks={() => toggleSubtaskExpand(task.id)}
+              hideProgressRing={installment != null}
             />
           ) : null}
         </div>

@@ -43,6 +43,8 @@ import { writeSubtaskProgressRing } from "@/lib/theme/subtask-progress-ring";
 import { useSubtaskProgressRing } from "@/lib/theme/use-subtask-progress-ring";
 import { writeSubtaskBranch } from "@/lib/theme/subtask-branch";
 import { useSubtaskBranch } from "@/lib/theme/use-subtask-branch";
+import { writeInstallmentProgressOnCard } from "@/lib/theme/installment-progress-on-card";
+import { useInstallmentProgressOnCard } from "@/lib/theme/use-installment-progress-on-card";
 import {
   DISPLAY_MODES,
   writeDisplayMode,
@@ -60,6 +62,7 @@ export function AppearanceSheet() {
   const taskRowLayout = useTaskRowLayout();
   const subtaskProgressRing = useSubtaskProgressRing();
   const subtaskBranch = useSubtaskBranch();
+  const installmentProgressOnCard = useInstallmentProgressOnCard();
   const displayMode = useDisplayMode();
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>({
     theme: true,
@@ -249,6 +252,7 @@ export function AppearanceSheet() {
               title="Subtarefas"
               summary={[
                 subtaskProgressRing ? "Anel" : null,
+                installmentProgressOnCard ? "Parcelas" : null,
                 subtaskBranch ? "Galho" : null,
               ]
                 .filter(Boolean)
@@ -262,6 +266,12 @@ export function AppearanceSheet() {
                   subtitle="Mostra o progresso das subtarefas no lugar da seta."
                   checked={subtaskProgressRing}
                   onChange={writeSubtaskProgressRing}
+                />
+                <AppearanceToggleRow
+                  title="Progresso de parcelas"
+                  subtitle={'Nas tarefas parceladas, troca o anel por “3/12 pagas · valor restante”.'}
+                  checked={installmentProgressOnCard}
+                  onChange={writeInstallmentProgressOnCard}
                 />
                 <AppearanceToggleRow
                   title="Galho"
