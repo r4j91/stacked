@@ -32,6 +32,12 @@ import {
   saveExpandedSubtaskIds,
 } from "@/lib/utils/subtask-expansion-preferences";
 import {
+  loadCollapsedSectionIds,
+  saveCollapsedSectionIds,
+  loadCompletedExpanded,
+  saveCompletedExpanded,
+} from "@/lib/utils/project-detail-preferences";
+import {
   MOCK_TASKS,
   mockProjectById,
   mockProjectTasks,
@@ -302,7 +308,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const [projectCompletedExpanded, setProjectCompletedExpanded] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedSubtaskKey, setSelectedSubtaskKey] = useState<SubtaskKey | null>(null);
-  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(() => loadExpandedSubtaskIds());
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const expandedSubtasksHydrated = useRef(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchTasks, setSearchTasks] = useState<Task[]>([]);
@@ -662,7 +669,21 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    if (!expandedSubtasksHydrated.current) {
+      expandedSubtasksHydrated.current = true;
+      setExpandedSubtasks(loadExpandedSubtaskIds());
+    }
   }, []);
+
+  useEffect(() => {
+    if (!projectId) {
+      setCollapsedSectionIds(new Set());
+      setProjectCompletedExpanded(false);
+      return;
+    }
+    setCollapsedSectionIds(loadCollapsedSectionIds(projectId));
+    setProjectCompletedExpanded(loadCompletedExpanded(projectId));
+  }, [projectId]);
 
   useEffect(() => {
     localStorage.setItem(SHOW_COMPLETED_KEY, JSON.stringify(showCompleted));
@@ -855,7 +876,12 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const selectSubtask = useCallback((taskId: string, index: number) => {
     setSelectedTaskId(taskId);
     setSelectedSubtaskKey(`${taskId}:${index}`);
-    setExpandedSubtasks((prev) => new Set(prev).add(taskId));
+    setExpandedSubtasks((prev) => {
+      if (prev.has(taskId)) return prev;
+      const next = new Set(prev).add(taskId);
+      saveExpandedSubtaskIds(next);
+      return next;
+    });
   }, []);
 
   const clearSubtaskSelection = useCallback(() => setSelectedSubtaskKey(null), []);
@@ -893,13 +919,18 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       const next = new Set(prev);
       if (next.has(sectionId)) next.delete(sectionId);
       else next.add(sectionId);
+      if (projectId) saveCollapsedSectionIds(projectId, next);
       return next;
     });
-  }, []);
+  }, [projectId]);
 
   const toggleProjectCompletedExpanded = useCallback(() => {
-    setProjectCompletedExpanded((v) => !v);
-  }, []);
+    setProjectCompletedExpanded((v) => {
+      const next = !v;
+      if (projectId) saveCompletedExpanded(projectId, next);
+      return next;
+    });
+  }, [projectId]);
 
   const createSection = useCallback(
     async (name: string) => {
