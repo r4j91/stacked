@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { CommandPalette } from "./command-palette";
 import { BottomNav } from "./bottom-nav";
@@ -16,6 +17,11 @@ const InspectorPanel = dynamic(
 
 const QuickAddSheet = dynamic(
   () => import("@/components/tasks/quick-add-sheet").then((m) => m.QuickAddSheet),
+  { ssr: false },
+);
+
+const NoteEditorDialog = dynamic(
+  () => import("@/components/notes/note-editor-dialog").then((m) => m.NoteEditorDialog),
   { ssr: false },
 );
 
@@ -65,10 +71,13 @@ const CalendarConnectNotice = dynamic(
 );
 
 function WorkbenchOverlays() {
+  const router = useRouter();
   const {
     quickAddOpen,
     closeQuickAdd,
     quickAddInitial,
+    noteCreateOpen,
+    closeNoteCreate,
     projectSheetOpen,
     projectSheetMode,
     projectSheetProject,
@@ -83,6 +92,16 @@ function WorkbenchOverlays() {
         initialProjectId={quickAddInitial.projectId}
         initialSectionId={quickAddInitial.sectionId}
       />
+      {noteCreateOpen && (
+        <NoteEditorDialog
+          note={null}
+          onClose={closeNoteCreate}
+          onChanged={() => {
+            closeNoteCreate();
+            router.push("/notes");
+          }}
+        />
+      )}
       <ProjectSheet
         open={projectSheetOpen}
         mode={projectSheetMode}

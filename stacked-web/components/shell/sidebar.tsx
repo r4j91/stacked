@@ -19,6 +19,7 @@ import {
   Settings01Icon,
   ViewIcon,
   ViewOffIcon,
+  Note01Icon,
 } from "@/lib/icons/nav-icons";
 
 const NAV_ICONS: Record<NavId, typeof Home01Icon> = {
@@ -148,6 +149,29 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {(() => {
+          const href = "/notes";
+          const active = pathname === href || pathname.startsWith(`${href}/`);
+          return (
+            <Link
+              href={href}
+              className={`mb-0.5 flex min-h-10 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-[13px] transition-colors ${
+                sidebarCollapsed ? "justify-center px-0" : ""
+              } ${
+                active
+                  ? "bg-[var(--color-nav-indicator)] font-semibold text-[var(--color-text)]"
+                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover-overlay)] hover:text-[var(--color-text)]"
+              }`}
+              title={sidebarCollapsed ? "Notas" : undefined}
+              aria-label={sidebarCollapsed ? "Notas" : undefined}
+            >
+              <span className="flex h-5 w-5 items-center justify-center">
+                <AppIcon icon={Note01Icon} size={18} />
+              </span>
+              {!sidebarCollapsed && <span className="flex-1">Notas</span>}
+            </Link>
+          );
+        })()}
       </nav>
 
       <div className="mx-3 my-2 h-px bg-[var(--color-border)]" />

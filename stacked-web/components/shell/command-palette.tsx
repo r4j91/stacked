@@ -17,6 +17,7 @@ import {
   InboxIcon,
   Calendar03Icon,
   Sun01Icon,
+  Note01Icon,
 } from "@/lib/icons/nav-icons";
 
 type PaletteItem = {
@@ -72,6 +73,7 @@ export function CommandPalette() {
     projects,
     openTaskInspector,
     openQuickAdd,
+    openNoteCreate,
     prefetchProject,
   } = useWorkbench();
 
@@ -103,6 +105,28 @@ export function CommandPalette() {
           openQuickAdd();
         },
       });
+    }
+
+    if (!q || "nova nota".includes(q) || "nota".includes(q) || "notas".includes(q)) {
+      list.push({
+        id: "action-new-note",
+        group: "Ações",
+        label: "Nova nota",
+        icon: Note01Icon,
+        action: () => {
+          closePalette();
+          openNoteCreate();
+        },
+      });
+      if (!q || "notas".includes(q) || "nota".includes(q)) {
+        list.push({
+          id: "nav-notes",
+          group: "Ir para",
+          label: "Notas",
+          icon: Note01Icon,
+          action: () => go("/notes"),
+        });
+      }
     }
 
     for (const nav of navItems) {
@@ -170,7 +194,7 @@ export function CommandPalette() {
     }
 
     return list.slice(0, 16);
-  }, [query, projects, filterCounts, searchTasks, go, openTaskInspector, closePalette, openQuickAdd, prefetchProject]);
+  }, [query, projects, filterCounts, searchTasks, go, openTaskInspector, closePalette, openQuickAdd, openNoteCreate, prefetchProject]);
 
   useEffect(() => {
     if (paletteOpen) {

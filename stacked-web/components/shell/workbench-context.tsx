@@ -162,6 +162,7 @@ type WorkbenchContextValue = {
   labels: Label[];
   quickAddOpen: boolean;
   quickAddInitial: QuickAddOptions;
+  noteCreateOpen: boolean;
   settingsOpen: boolean;
   appearanceOpen: boolean;
   profileOpen: boolean;
@@ -182,6 +183,8 @@ type WorkbenchContextValue = {
   showCompleted: Partial<Record<ViewMode, boolean>>;
   openQuickAdd: (opts?: QuickAddOptions) => void;
   closeQuickAdd: () => void;
+  openNoteCreate: () => void;
+  closeNoteCreate: () => void;
   openSettings: (anchor?: AnchorRect) => void;
   closeSettings: () => void;
   openAppearance: (anchor?: AnchorRect) => void;
@@ -314,6 +317,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   });
   const [labels, setLabels] = useState<Label[]>([]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [noteCreateOpen, setNoteCreateOpen] = useState(false);
   const [quickAddInitial, setQuickAddInitial] = useState<QuickAddOptions>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -728,6 +732,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           setShortcutsAnchor(null);
         }
         else if (quickAddOpen) setQuickAddOpen(false);
+        else if (noteCreateOpen) setNoteCreateOpen(false);
         else if (profileOpen) {
           setProfileOpen(false);
           setProfileAnchor(null);
@@ -760,6 +765,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   }, [
     paletteOpen,
     quickAddOpen,
+    noteCreateOpen,
     shortcutsOpen,
     settingsOpen,
     appearanceOpen,
@@ -1458,9 +1464,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
 
   const openQuickAdd = useCallback((opts?: QuickAddOptions) => {
     setQuickAddInitial(opts ?? {});
+    setNoteCreateOpen(false);
     setQuickAddOpen(true);
   }, []);
   const closeQuickAdd = useCallback(() => setQuickAddOpen(false), []);
+  const openNoteCreate = useCallback(() => {
+    setQuickAddOpen(false);
+    setNoteCreateOpen(true);
+  }, []);
+  const closeNoteCreate = useCallback(() => setNoteCreateOpen(false), []);
   const refreshUserProfile = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     const {
@@ -2212,6 +2224,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     labels,
     quickAddOpen,
     quickAddInitial,
+    noteCreateOpen,
     settingsOpen,
     appearanceOpen,
     profileOpen,
@@ -2232,6 +2245,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     showCompleted,
     openQuickAdd,
     closeQuickAdd,
+    openNoteCreate,
+    closeNoteCreate,
     openSettings,
     closeSettings,
     openAppearance,
@@ -2339,6 +2354,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       labels,
       quickAddOpen,
       quickAddInitial,
+      noteCreateOpen,
       settingsOpen,
       appearanceOpen,
       profileOpen,
@@ -2359,6 +2375,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       showCompleted,
       openQuickAdd,
       closeQuickAdd,
+      openNoteCreate,
+      closeNoteCreate,
       openSettings,
       closeSettings,
       openAppearance,
