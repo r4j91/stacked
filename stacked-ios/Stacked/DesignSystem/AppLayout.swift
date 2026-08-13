@@ -84,18 +84,15 @@ enum AppLayout {
     if expanded, let cachedHeight, cachedHeight > 1 {
       return pixelSnap(cachedHeight)
     }
-    let layout = TaskRowLayoutStorage.current
+    let appearance = TaskRowAppearance.current
+    let layout = appearance.layout
     let showsEyebrow = TaskRowLayoutStorage.showsEyebrow(
       layout: layout,
       projectName: task.project,
       showProject: showProject,
       priority: task.priority
     )
-    let showsMeta = taskRowShowsMeta(
-      task: task,
-      showProject: showProject,
-      layout: layout
-    )
+    let showsMeta = appearance.headerHasMetaBlock(task: task, showProject: showProject)
     guard expanded, task.hasSubtasks else {
       return estimatedUIKitTaskRowHeight(
         hasDescription: task.hasDescription,
@@ -122,18 +119,21 @@ enum AppLayout {
   }
 
   /// Meta line visível — em F2/X2 o projeto sobe pro eyebrow (não conta sozinho na meta).
+  /// `hideSubtasksCounter`: anel/parcelas no trailing — o 0/N não reserva os 26px da meta.
   static func taskRowShowsMeta(
     task: Task,
     showProject: Bool,
-    layout: TaskRowLayout = TaskRowLayoutStorage.current
+    layout: TaskRowLayout = TaskRowLayoutStorage.current,
+    hideSubtasksCounter: Bool = false
   ) -> Bool {
+    let showsSubtaskCount = !hideSubtasksCounter && task.subtasksTotalCount > 0
     if layout.usesEyebrow {
       if layout == .x2, task.priority != nil { return true }
       if task.dueDate != nil { return true }
       if task.deadline != nil { return true }
       if task.timeDisplay != nil { return true }
       if !task.labels.isEmpty { return true }
-      if task.subtasksTotalCount > 0 { return true }
+      if showsSubtaskCount { return true }
       if task.commentCount > 0 { return true }
       return false
     }
@@ -142,7 +142,7 @@ enum AppLayout {
       return !task.labels.isEmpty
         || task.dueDate != nil
         || task.deadline != nil
-        || task.subtasksTotalCount > 0
+        || showsSubtaskCount
         || task.commentCount > 0
     }
     if layout.isDense {
@@ -152,7 +152,7 @@ enum AppLayout {
         || task.dueDate != nil
         || task.deadline != nil
         || task.timeDisplay != nil
-        || task.subtasksTotalCount > 0
+        || showsSubtaskCount
         || task.commentCount > 0
     }
     let showsProject = showProject && !task.project.isEmpty && task.project != "Sem projeto"
@@ -160,7 +160,7 @@ enum AppLayout {
       || !task.labels.isEmpty
       || task.dueDate != nil
       || task.deadline != nil
-      || task.subtasksTotalCount > 0
+      || showsSubtaskCount
       || task.commentCount > 0
   }
 

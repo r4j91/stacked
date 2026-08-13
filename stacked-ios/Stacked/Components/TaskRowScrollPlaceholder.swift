@@ -3,6 +3,7 @@ import SwiftUI
 /// PERF_FASEB3_ETAPA2 T2 — retângulo estático com a mesma altura determinística da TaskRow.
 struct TaskRowScrollPlaceholder: View {
   @Environment(ThemeManager.self) private var theme
+  @Environment(\.taskRowAppearance) private var rowAppearance
 
   let task: Task
   var showProject: Bool = true
@@ -10,10 +11,10 @@ struct TaskRowScrollPlaceholder: View {
 
   var body: some View {
     let c = theme.colors
-    let layout = TaskRowLayoutStorage.current
+    let layout = rowAppearance.layout
     let height = AppLayout.taskRowHeaderHeight(
       hasDescription: task.hasDescription,
-      hasMeta: AppLayout.taskRowShowsMeta(task: task, showProject: showProject, layout: layout),
+      hasMeta: rowAppearance.headerHasMetaBlock(task: task, showProject: showProject),
       hasEyebrow: TaskRowLayoutStorage.showsEyebrow(
         layout: layout,
         projectName: showProject ? task.project : nil,

@@ -372,7 +372,7 @@ struct TaskRow: View {
   private var exactHeaderHeight: CGFloat {
     AppLayout.taskRowHeaderHeight(
       hasDescription: task.hasDescription,
-      hasMeta: rowShowsMeta,
+      hasMeta: rowShowsMeta || activeInstallmentSnapshot != nil,
       hasEyebrow: rowShowsEyebrow
     )
   }
@@ -381,7 +381,8 @@ struct TaskRow: View {
     AppLayout.taskRowShowsMeta(
       task: task,
       showProject: showProject,
-      layout: taskRowLayout
+      layout: taskRowLayout,
+      hideSubtasksCounter: hidesSubtasksFractionCounter
     )
   }
 

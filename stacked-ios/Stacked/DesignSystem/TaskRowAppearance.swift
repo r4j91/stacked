@@ -27,6 +27,22 @@ struct TaskRowAppearance: Equatable {
       dueDateChipStyle: DueDateChipStyleStorage.current
     )
   }
+
+  /// Bloco abaixo do título: chips visíveis ou progresso de parcelas.
+  func headerHasMetaBlock(task: Task, showProject: Bool) -> Bool {
+    let installment = hasInstallmentProgress(task)
+    return AppLayout.taskRowShowsMeta(
+      task: task,
+      showProject: showProject,
+      layout: layout,
+      hideSubtasksCounter: installment || (subtaskProgressRing && task.hasSubtasks)
+    ) || installment
+  }
+
+  private func hasInstallmentProgress(_ task: Task) -> Bool {
+    guard installmentProgressOnCard, task.hasSubtasks else { return false }
+    return InstallmentProgress.snapshot(from: task.subtasks) != nil
+  }
 }
 
 private struct TaskRowAppearanceKey: EnvironmentKey {
