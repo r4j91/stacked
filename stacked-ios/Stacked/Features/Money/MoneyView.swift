@@ -96,11 +96,15 @@ struct MoneyView: View {
     .stackedThemeBackground(theme)
     .navigationTitle("Dinheiro")
     .navigationBarTitleDisplayMode(.inline)
-    .searchable(
-      text: $searchText,
-      placement: .navigationBarDrawer(displayMode: .always),
-      prompt: "Conta, parcela ou mês"
-    )
+    .safeAreaInset(edge: .top, spacing: 0) {
+      StackedChromeSearchField(
+        text: $searchText,
+        prompt: "Conta, parcela ou mês"
+      )
+      .padding(.horizontal, 16)
+      .padding(.top, 2)
+      .padding(.bottom, 8)
+    }
     .stackedAdaptiveDrillDownBack()
     .toolbar {
       let isolate = GlassChromePreference.prefersStaticToolbarPills()

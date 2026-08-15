@@ -234,6 +234,94 @@ extension ToolbarContent {
   }
 }
 
+/// Campo de busca com o **mesmo** chrome das pills da toolbar
+/// (`ToolbarGlassPill` / voltar / +): Fosco, Ao vivo ou sólido.
+/// Largura flexível — `toolbarPill` em si é `fixedSize` e não serve de shell.
+struct StackedChromeSearchField: View {
+  @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+  @Binding var text: String
+  var prompt: String
+  @FocusState private var focused: Bool
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
+
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      mode: chromeMode
+    )
+  }
+
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
+  }
+
+  /// Mesmo `pillFill` de `ToolbarGlassPill`.
+  private var pillFill: Color {
+    let c = theme.colors
+    return c.isDark ? c.surfaceVariant : c.surface
+  }
+
+  var body: some View {
+    let c = theme.colors
+    let isLight = !c.isDark
+    let field = HStack(spacing: 8) {
+      StackedIcons.image(.search)
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(c.textSecondary)
+        .accessibilityHidden(true)
+      TextField(prompt, text: $text)
+        .font(.system(size: 15))
+        .foregroundStyle(c.textPrimary)
+        .tint(c.accent)
+        .focused($focused)
+        .submitLabel(.search)
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+      if !text.isEmpty {
+        Button {
+          text = ""
+        } label: {
+          Image(systemName: "xmark.circle.fill")
+            .font(.system(size: 16))
+            .foregroundStyle(c.textTertiary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Limpar busca")
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 7)
+    .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+
+    Group {
+      if useSolid {
+        field.background(Capsule().fill(pillFill))
+      } else if useStaticFrosted {
+        field.background { LiquidGlass.frostedFill(shape: Capsule(), tint: pillFill) }
+      } else {
+        field.glassEffect(
+          .regular.tint(pillFill.opacity(LiquidGlass.glassTintOpacity)),
+          in: .capsule
+        )
+      }
+    }
+    .overlay {
+      if isLight {
+        Capsule()
+          .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+      }
+    }
+    .shadow(color: isLight ? Color.black.opacity(0.06) : .clear, radius: isLight ? 2 : 0, y: isLight ? 1 : 0)
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel("Buscar")
+  }
+}
+
 // MARK: - Form / editor sheets (handle + presentation)
 
 struct SheetDragHandle: View {
