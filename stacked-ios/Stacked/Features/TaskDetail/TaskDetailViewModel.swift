@@ -26,11 +26,13 @@ struct TaskDetailRoute: Identifiable, Equatable {
 struct SubtaskDetailRoute: Identifiable {
   let subtask: Subtask
   let parentTaskId: String
+  let parentTaskTitle: String?
   let id: String
 
-  init(subtask: Subtask, parentTaskId: String) {
+  init(subtask: Subtask, parentTaskId: String, parentTaskTitle: String? = nil) {
     self.subtask = subtask
     self.parentTaskId = parentTaskId
+    self.parentTaskTitle = parentTaskTitle
     if let sid = subtask.id, !sid.isEmpty {
       id = sid
     } else {
@@ -133,6 +135,7 @@ final class TaskDetailViewModel {
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     guard snapshot.parentTaskId == taskId else { return }
     SubtaskListPatch.apply(snapshot, to: &subtasks)
+    publishCardSnapshot()
   }
 
   private func apply(_ task: Task) {

@@ -75,10 +75,33 @@ enum InstallmentGeneratorLogic {
   }
 
   static func parseValor(_ raw: String) -> Double? {
-    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmed = raw
+      .replacingOccurrences(of: "R$", with: "", options: .caseInsensitive)
+      .trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
-    let normalized = trimmed.replacingOccurrences(of: ",", with: ".")
-    return Double(normalized)
+    var normalized = trimmed
+    if normalized.contains(",") && normalized.contains(".") {
+      normalized = normalized.replacingOccurrences(of: ".", with: "")
+      normalized = normalized.replacingOccurrences(of: ",", with: ".")
+    } else {
+      normalized = normalized.replacingOccurrences(of: ",", with: ".")
+    }
+    guard let value = Double(normalized), value.isFinite else { return nil }
+    return value
+  }
+
+  static func editingText(for valor: Double?) -> String {
+    guard let valor, valor.isFinite else { return "" }
+    return String(format: "%.2f", valor).replacingOccurrences(of: ".", with: ",")
+  }
+
+  /// PostgREST pode mandar numeric como Double, Int ou String.
+  static func decodeValor<K: CodingKey>(_ c: KeyedDecodingContainer<K>, forKey key: K) -> Double? {
+    if (try? c.decodeNil(forKey: key)) == true { return nil }
+    if let d = try? c.decode(Double.self, forKey: key), d.isFinite { return d }
+    if let i = try? c.decode(Int.self, forKey: key) { return Double(i) }
+    if let s = try? c.decode(String.self, forKey: key) { return parseValor(s) }
+    return nil
   }
 
   private static func addMonths(_ date: Date, months: Int, calendar: Calendar) -> Date {

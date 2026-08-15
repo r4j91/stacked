@@ -11,6 +11,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
   let stabilizeSelfSizingParent: Bool
   /// Remount/recycle já aberto: aplica altura final sem animar 0→full.
   let snapOpen: Bool
+  /// Conteúdo interno mudou de altura (submenu) — remede sem reabrir de 0.
+  let sizeRevision: Int
   /// Preenche slack de altura no clip (evita tarja do card atrás do painel).
   let panelFill: Color?
   let content: Content
@@ -22,6 +24,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     contentRevision: Int = 0,
     stabilizeSelfSizingParent: Bool = false,
     snapOpen: Bool = false,
+    sizeRevision: Int = 0,
     panelFill: Color? = nil,
     @ViewBuilder content: () -> Content
   ) {
@@ -31,6 +34,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     self.contentRevision = contentRevision
     self.stabilizeSelfSizingParent = stabilizeSelfSizingParent
     self.snapOpen = snapOpen
+    self.sizeRevision = sizeRevision
     self.panelFill = panelFill
     self.content = content()
   }
@@ -54,10 +58,12 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     let hosting = context.coordinator.hosting(in: uiView)
 
     let revisionChanged = contentRevision != context.coordinator.lastContentRevision
+    let sizeChanged = sizeRevision != context.coordinator.lastSizeRevision
     let openingOrOpen = expanded || context.coordinator.wasExpanded
-    if openingOrOpen, revisionChanged || expanded != context.coordinator.wasExpanded || !context.coordinator.hasPushedContent {
+    if openingOrOpen, revisionChanged || sizeChanged || expanded != context.coordinator.wasExpanded || !context.coordinator.hasPushedContent {
       context.coordinator.updateContent(AnyView(content), hosting: hosting)
       context.coordinator.lastContentRevision = contentRevision
+      context.coordinator.lastSizeRevision = sizeRevision
       context.coordinator.hasPushedContent = true
     }
     context.coordinator.wasExpanded = expanded
@@ -71,7 +77,8 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
       layoutPass: layoutPass,
       contentRevision: contentRevision,
       stabilizeSelfSizingParent: stabilizeSelfSizingParent,
-      snapOpen: snapOpen
+      snapOpen: snapOpen,
+      sizeRevision: sizeRevision
     )
   }
 
@@ -81,6 +88,7 @@ struct SubtaskExpandReveal<Content: View>: UIViewRepresentable {
     var lastWidth: CGFloat = 0
     var wasExpanded = false
     var lastContentRevision: Int = .min
+    var lastSizeRevision: Int = .min
     var hasPushedContent = false
 
     func hosting(in container: SubtaskExpandContainerView) -> UIHostingController<AnyView> {
@@ -122,6 +130,7 @@ final class SubtaskExpandContainerView: UIView {
   private var lastAppliedWidth: CGFloat = 0
   private var lastLayoutPass: Int = -1
   private var lastContentRevision: Int = .min
+  private var lastSizeRevision: Int = .min
   private var isAnimating = false
   /// Remasure async precisa saber se o open usa pin (stabilize).
   private var stabilizeSelfSizingParent = false
@@ -136,6 +145,8 @@ final class SubtaskExpandContainerView: UIView {
   /// re-pin do scroll, visto só na lista UIKit (a SwiftUI List não tem esse
   /// segundo reconfigure independente). Guardado para reaplicar no fim da animação.
   private var pendingPostAnimationRemeasure = false
+  /// Cold open: sizeThatFits às vezes devolve curto; verify pós-commit só cresce.
+  private var openVerifyGeneration = 0
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -254,7 +265,8 @@ final class SubtaskExpandContainerView: UIView {
     layoutPass: Int = 0,
     contentRevision: Int = 0,
     stabilizeSelfSizingParent: Bool = false,
-    snapOpen: Bool = false
+    snapOpen: Bool = false,
+    sizeRevision: Int = 0
   ) {
     attachHostedControllerIfNeeded()
     self.stabilizeSelfSizingParent = stabilizeSelfSizingParent
@@ -279,12 +291,16 @@ final class SubtaskExpandContainerView: UIView {
     if contentChanged {
       lastContentRevision = contentRevision
     }
+    let sizeChanged = sizeRevision != lastSizeRevision
+    if sizeChanged {
+      lastSizeRevision = sizeRevision
+    }
 
     // Reconfigure chegou no meio de uma animação em voo (mesma transição, não um
     // novo open/close) — adia em vez de aplicar via expandWithPinnedParent(animated:
     // false), que causaria o snap abrupto descrito acima do isAnimating.
     if isAnimating, !stateChanged {
-      if layoutPassChanged || contentChanged {
+      if layoutPassChanged || contentChanged || sizeChanged {
         pendingPostAnimationRemeasure = true
       }
       return
@@ -325,6 +341,22 @@ final class SubtaskExpandContainerView: UIView {
       contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
       lastExpanded = expanded
       scheduleContentRemeasure(hosting: hosting, width: fitWidth)
+      return
+    }
+
+    if sizeChanged, expanded, !stateChanged, !isAnimating, fitWidth > 1 {
+      let measured = measureHeight(hosting: hosting, width: fitWidth)
+      lastExpanded = expanded
+      if measured > 0 {
+        fullHeight = measured
+        applyVisibleHeight(
+          measured,
+          expanded: true,
+          animated: animated && !snapOpen,
+          pinParent: stabilizeSelfSizingParent
+        )
+        scheduleOpenHeightVerify(hosting: hosting, width: fitWidth)
+      }
       return
     }
 
@@ -395,6 +427,105 @@ final class SubtaskExpandContainerView: UIView {
     guard lastExpanded == true, let hosting = hostedController, lastAppliedWidth > 1 else { return }
     contentRemeasureBaseline = max(selfHeightConstraint?.constant ?? 0, fullHeight)
     scheduleContentRemeasure(hosting: hosting, width: lastAppliedWidth)
+    scheduleOpenHeightVerify(hosting: hosting, width: lastAppliedWidth)
+  }
+
+  /// Pós-open: remede após settle — só cresce se sizeThatFits cold ficou curto.
+  private func scheduleOpenHeightVerifyAfterCommit() {
+    guard let hosting = hostedController else { return }
+    let width = resolvedMeasureWidth(fallback: lastAppliedWidth)
+    guard width > 1 else { return }
+    scheduleOpenHeightVerify(hosting: hosting, width: width)
+  }
+
+  /// Dois turns (igual content remasure): SwiftUI pode assentar mais alto depois.
+  private func scheduleOpenHeightVerify(
+    hosting: UIHostingController<AnyView>,
+    width: CGFloat,
+    attempt: Int = 0,
+    generation: Int? = nil
+  ) {
+    let gen = generation ?? openVerifyGeneration
+    DispatchQueue.main.async { [weak self] in
+      DispatchQueue.main.async { [weak self] in
+        self?.verifyOpenHeight(
+          hosting: hosting,
+          width: width,
+          attempt: attempt,
+          generation: gen
+        )
+      }
+    }
+  }
+
+  private func verifyOpenHeight(
+    hosting: UIHostingController<AnyView>,
+    width: CGFloat,
+    attempt: Int,
+    generation: Int
+  ) {
+    guard generation == openVerifyGeneration, lastExpanded == true else { return }
+    if isAnimating {
+      if attempt < 6 {
+        scheduleOpenHeightVerify(
+          hosting: hosting,
+          width: width,
+          attempt: attempt + 1,
+          generation: generation
+        )
+      }
+      return
+    }
+
+    hosting.view.invalidateIntrinsicContentSize()
+    hosting.view.setNeedsLayout()
+    hosting.view.layoutIfNeeded()
+    let measured = measureHeight(hosting: hosting, width: width)
+    if measured <= 0 {
+      if attempt < 4 {
+        scheduleOpenHeightVerify(
+          hosting: hosting,
+          width: width,
+          attempt: attempt + 1,
+          generation: generation
+        )
+      }
+      return
+    }
+
+    let current = max(selfHeightConstraint?.constant ?? 0, fullHeight)
+    if measured > current + 0.5 {
+      fullHeight = measured
+      applyVisibleHeight(
+        measured,
+        expanded: true,
+        animated: false,
+        pinParent: stabilizeSelfSizingParent
+      )
+      if let collectionView = enclosingCollectionView() {
+        collectionView.performBatchUpdates(nil)
+        collectionView.layoutIfNeeded()
+      }
+      if attempt < 3 {
+        scheduleOpenHeightVerify(
+          hosting: hosting,
+          width: width,
+          attempt: attempt + 1,
+          generation: generation
+        )
+      }
+      return
+    }
+
+    // Mesma altura: SwiftUI ainda pode crescer — tenta de novo.
+    if attempt < 3 {
+      scheduleOpenHeightVerify(
+        hosting: hosting,
+        width: width,
+        attempt: attempt + 1,
+        generation: generation
+      )
+    }
   }
 
   private func scheduleRemeasure(
@@ -586,6 +717,7 @@ final class SubtaskExpandContainerView: UIView {
 
   /// Cresce a cell reancorando o contentOffset — pai fica parado na abertura.
   private func expandWithPinnedParent(height: CGFloat, animated: Bool) {
+    openVerifyGeneration &+= 1
     hostView?.transform = .identity
 
     let collectionView = enclosingCollectionView()
@@ -621,6 +753,7 @@ final class SubtaskExpandContainerView: UIView {
         }
         pin()
       }
+      scheduleOpenHeightVerifyAfterCommit()
       return
     }
 
@@ -648,6 +781,7 @@ final class SubtaskExpandContainerView: UIView {
         pin()
         self?.isAnimating = false
         self?.consumePendingPostAnimationRemeasure()
+        self?.scheduleOpenHeightVerifyAfterCommit()
       }
     )
   }
@@ -655,6 +789,7 @@ final class SubtaskExpandContainerView: UIView {
   /// Visual = altura do clip full→0 (conteúdo parado, some por baixo).
   /// Lista = altura travada até o fim; aí zera (opcionalmente reancora o pai).
   private func collapseWithVisualClip(animated: Bool, reanchorParent: Bool = true) {
+    openVerifyGeneration &+= 1
     hostView?.transform = .identity
 
     let from = max(selfHeightConstraint?.constant ?? 0, fullHeight)
@@ -712,6 +847,7 @@ final class SubtaskExpandContainerView: UIView {
 
   /// Zera altura reportada sem reancorar contentOffset (evita deslize no fechar UIKit).
   private func snapReportedHeightToZero() {
+    openVerifyGeneration &+= 1
     let collectionView = enclosingCollectionView()
 
     selfHeightConstraint?.constant = 0
@@ -739,6 +875,7 @@ final class SubtaskExpandContainerView: UIView {
   }
 
   private func snapReportedHeightToZeroAndPin() {
+    openVerifyGeneration &+= 1
     let collectionView = enclosingCollectionView()
     let anchorVisibleY: CGFloat? = {
       guard let cell = enclosingCell(), let collectionView else { return nil }

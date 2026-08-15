@@ -223,7 +223,8 @@ final class TaskStore {
         dueDate: entry.subtask.dueDate,
         time: entry.subtask.time,
         deadline: entry.subtask.deadline,
-        labelIds: entry.subtask.labelIds
+        labelIds: entry.subtask.labelIds,
+        valor: entry.subtask.valor
       ))
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.today])
     }

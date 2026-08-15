@@ -52,7 +52,7 @@ struct SubtaskRowDTO: Decodable {
     concluida = try c.decodeIfPresent(Bool.self, forKey: .concluida)
     ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
-    valor = try c.decodeIfPresent(Double.self, forKey: .valor)
+    valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)

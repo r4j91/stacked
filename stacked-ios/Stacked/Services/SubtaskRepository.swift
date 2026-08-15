@@ -17,7 +17,7 @@ final class SubtaskRepository {
   private var client: SupabaseClient { SupabaseService.client }
   private init() {}
 
-  func toggleDone(id: String?, taskId: String?, order: Int, done: Bool) async throws {
+  func toggleDone(id: String?, taskId: String?, order: Int, done: Bool, title: String? = nil) async throws {
     struct Payload: Encodable {
       let concluida: Bool
       let data_conclusao: String?
@@ -26,7 +26,8 @@ final class SubtaskRepository {
       concluida: done,
       data_conclusao: done ? TaskMapper.isoTimestamp(Date()) : nil
     )
-    _ = try await persistSubtask(id: id, taskId: taskId, order: order, payload: payload)
+    let resolved = try await persistSubtask(id: id, taskId: taskId, order: order, payload: payload)
+    MoneyStore.shared.handleToggleDone(subtaskId: resolved ?? id, done: done, valor: nil, title: title)
   }
 
   func toggleDone(id: String, done: Bool) async throws {
@@ -198,6 +199,24 @@ final class SubtaskRepository {
     )
   }
 
+  func updateValor(id: String?, taskId: String?, order: Int, valor: Double?) async throws {
+    struct Payload: Encodable {
+      let valor: Double?
+
+      enum CodingKeys: String, CodingKey { case valor }
+
+      func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let valor {
+          try container.encode(valor, forKey: .valor)
+        } else {
+          try container.encodeNil(forKey: .valor)
+        }
+      }
+    }
+    try await persistSubtask(id: id, taskId: taskId, order: order, payload: Payload(valor: valor))
+  }
+
   func updateDescription(id: String?, taskId: String?, order: Int, description: String?) async throws {
     struct Payload: Encodable { let descricao: String? }
     do {
@@ -359,12 +378,56 @@ final class SubtaskRepository {
     return rows.count
   }
 
-  private func mapScheduleEntries(_ rows: [ScheduledSubtaskRowDTO]) -> [SubtaskScheduleEntry] {
+  /// Subtarefas pendentes com valor — obrigações financeiras (com ou sem data).
+  func fetchPendingValorEntries() async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: false)
+      .not("valor", operator: .is, value: "null")
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows, requireDueDate: false)
+  }
+
+  /// Subtarefas concluídas com valor — histórico do a pagar por mês.
+  func fetchCompletedValorEntries() async throws -> [SubtaskScheduleEntry] {
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .eq("concluida", value: true)
+      .not("valor", operator: .is, value: "null")
+      .order("data_vencimento", ascending: true)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows, requireDueDate: false)
+  }
+
+  /// Todas as subtarefas dos pais (pagas e não) — para o snapshot de parcelas.
+  func fetchEntriesForParentIds(_ taskIds: [String]) async throws -> [SubtaskScheduleEntry] {
+    guard !taskIds.isEmpty else { return [] }
+    let rows: [ScheduledSubtaskRowDTO] = try await client
+      .from("subtasks")
+      .select(Self.scheduleSubtaskSelect)
+      .in("task_id", values: taskIds)
+      .order("ordem", ascending: true)
+      .execute()
+      .value
+    return mapScheduleEntries(rows, requireDueDate: false)
+  }
+
+  private func mapScheduleEntries(
+    _ rows: [ScheduledSubtaskRowDTO],
+    requireDueDate: Bool = true
+  ) -> [SubtaskScheduleEntry] {
     rows.compactMap { row in
       guard let parentDTO = row.tasks else { return nil }
       let parent = TaskMapper.mapRow(parentDTO)
       let due = TaskMapper.parseDueDate(row.data_vencimento)
-      guard due != nil else { return nil }
+      if requireDueDate, due == nil { return nil }
       let deadline = TaskMapper.parseDueDate(row.deadline)
       let done = row.concluida ?? false
       let subtask = Subtask(
@@ -419,7 +482,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
     concluida = try c.decodeIfPresent(Bool.self, forKey: .concluida)
     ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
-    valor = try c.decodeIfPresent(Double.self, forKey: .valor)
+    valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)

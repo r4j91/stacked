@@ -18,6 +18,7 @@ struct HomeView: View {
   @State private var showSearch = false
   @State private var showLabels = false
   @State private var showNotes = false
+  @State private var showMoney = false
   @State private var projectOptions: ProjectRoute?
   @State private var projectsEditMode: EditMode = .inactive
   @State private var router = AppNavigationRouter.shared
@@ -50,6 +51,7 @@ struct HomeView: View {
           )
         }
         HomeOverviewSection(onNavigateToTab: onNavigateToTab, onOpenFilter: onOpenFilter)
+        HomeMoneySection(onOpen: { showMoney = true })
         HomeProjectsSection(
           selectedProject: $selectedProject,
           showNewProject: $showNewProject,
@@ -82,7 +84,10 @@ struct HomeView: View {
           showSearch: $showSearch
         )
       }
-      .refreshable { await store.load() }
+      .refreshable {
+        await store.load()
+        await MoneyStore.shared.load()
+      }
       .task {
         store.hydrateFromDisk()
         store.refreshTemporal()
@@ -122,6 +127,9 @@ struct HomeView: View {
       }
       .navigationDestination(isPresented: $showNotes) {
         NotesBoardView().environment(ThemeManager.shared)
+      }
+      .navigationDestination(isPresented: $showMoney) {
+        MoneyView().environment(ThemeManager.shared)
       }
     }
     .toolbarBackground(.hidden, for: .navigationBar)
@@ -172,7 +180,10 @@ struct HomeView: View {
   private func refreshHomeOnFocus(reloadCounts: Bool) {
     store.refreshTemporal()
     guard reloadCounts else { return }
-    _Concurrency.Task { await store.refreshCounts() }
+    _Concurrency.Task {
+      await store.refreshCounts()
+      await MoneyStore.shared.load()
+    }
   }
 
   private func projectModel(for route: ProjectRoute) -> Project {

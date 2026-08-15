@@ -349,6 +349,7 @@ struct TaskRow: View {
       hasher.combine(sub.priority)
       hasher.combine(sub.dueDate?.timeIntervalSince1970)
       hasher.combine(sub.time)
+      hasher.combine(sub.valor)
     }
     hasher.combine(task.subtasksDoneCount)
     return hasher.finalize()
@@ -1100,8 +1101,8 @@ struct TaskRow: View {
       hasher.combine(sub.timeDisplay)
       hasher.combine(sub.description)
       hasher.combine(sub.labelIds)
+      hasher.combine(sub.valor)
     }
-    hasher.combine(subtaskBranch)
     hasher.combine(subtaskProgressRing)
     hasher.combine(installmentProgressOnCard)
     return hasher.finalize()
@@ -1138,6 +1139,7 @@ struct TaskRow: View {
       hasher.combine(sub.description?.isEmpty == false)
       hasher.combine(sub.dueDate != nil)
       hasher.combine(sub.priority != nil)
+      hasher.combine(sub.valor != nil)
       // Ids (não só count) — trocar etiqueta de mesmo N muda chip/wrap.
       hasher.combine(sub.labelIds)
     }
@@ -1346,7 +1348,8 @@ struct TaskRow: View {
           id: sub.id,
           taskId: sub.taskId,
           order: sub.order,
-          done: newDone
+          done: newDone,
+          title: sub.title
         )
       } catch {
         // Reverte store + UI se o backend falhar.
@@ -1421,7 +1424,8 @@ struct TaskRow: View {
       dueDate: sub.dueDate,
       time: sub.time,
       deadline: sub.deadline,
-      labelIds: sub.labelIds
+      labelIds: sub.labelIds,
+      valor: sub.valor
     )
   }
 
@@ -1444,10 +1448,14 @@ struct TaskRow: View {
   }
 }
 
-/// Long-press abre popover “Excluir”; tap abre detalhe — sem PressableStyle/contextMenu do sistema.
+/// Long-press abre popover; tap abre detalhe — sem PressableStyle/contextMenu do sistema.
 struct SubtaskTitlePressArea<Content: View>: View {
   let onTap: () -> Void
-  let onDelete: () -> Void
+  var onDelete: () -> Void = {}
+  var deleteLabel: String = "Excluir subtarefa"
+  var extraItems: [PopoverMenuItem] = []
+  var showsDelete: Bool = true
+  var onMenuResult: ((String) -> Void)? = nil
   @ViewBuilder var content: () -> Content
 
   /// PERF: reader só no long-press — GeometryReader+PreferenceKey por frame matava o scroll com subtarefas abertas.
@@ -1500,19 +1508,28 @@ struct SubtaskTitlePressArea<Content: View>: View {
 
       let screenH = ScreenMetrics.bounds.height
       let preferAbove = (resolved.isValidAnchor ? resolved.midY : screenH * 0.5) > screenH * 0.55
-      presentAnchoredPopover(
-        anchorRect: resolved,
-        items: [
+      let items = extraItems + (showsDelete
+        ? [
           PopoverMenuItem(
             id: "delete",
             icon: Hugeicons.delete01,
-            label: "Excluir subtarefa",
+            label: deleteLabel,
             destructive: true
           ),
-        ],
+        ]
+        : [])
+      guard !items.isEmpty else { return }
+      presentAnchoredPopover(
+        anchorRect: resolved,
+        items: items,
         preferAbove: preferAbove
       ) { result in
-        if result == "delete" { onDelete() }
+        guard let result else { return }
+        if result == "delete" {
+          onDelete()
+        } else {
+          onMenuResult?(result)
+        }
       }
     }
   }

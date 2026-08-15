@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Hugeicons
 
 // Paridade lib/widgets/task_detail/sheets/subtask_detail_sheet.dart
@@ -10,6 +11,7 @@ struct SubtaskDetailView: View {
   let parentTaskId: String
   var parentTaskTitle: String?
   var onChanged: (SubtaskSaveSnapshot?) async -> Void
+  private let initialAccountId: String?
 
   @State private var title: String
   @State private var descriptionText: String
@@ -20,6 +22,10 @@ struct SubtaskDetailView: View {
   @State private var deadline: Date?
   @State private var selectedLabelIds: [String] = []
   @State private var labels: [TaskLabel] = []
+  @State private var valorText: String
+  @FocusState private var valorFieldFocused: Bool
+  @State private var selectedAccountId: String?
+  @State private var moneyStore = MoneyStore.shared
   @State private var saving = false
   @State private var saveError: String?
   @State private var showDatePicker = false
@@ -49,6 +55,7 @@ struct SubtaskDetailView: View {
     self.parentTaskId = parentTaskId
     self.parentTaskTitle = parentTaskTitle
     self.onChanged = onChanged
+    initialAccountId = MoneyStore.shared.linkedAccountId(forSubtaskId: subtask.id)
     _title = State(initialValue: subtask.title)
     _descriptionText = State(initialValue: subtask.description ?? "")
     _done = State(initialValue: subtask.done)
@@ -61,6 +68,8 @@ struct SubtaskDetailView: View {
     _deadline = State(initialValue: subtask.deadline)
     _selectedLabelIds = State(initialValue: subtask.labelIds)
     _resolvedSubtaskId = State(initialValue: subtask.id)
+    _valorText = State(initialValue: InstallmentGeneratorLogic.editingText(for: subtask.valor))
+    _selectedAccountId = State(initialValue: initialAccountId)
   }
 
   var body: some View {
@@ -82,7 +91,7 @@ struct SubtaskDetailView: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(c.textPrimary)
                 .onSubmit { _Concurrency.Task { await flushPending() } }
-              if let valor = subtask.valor {
+              if let valor = parsedValor {
                 Text(CurrencyFormat.brl(valor))
                   .font(.system(size: 16, weight: .semibold))
                   .foregroundStyle(c.accent)
@@ -153,6 +162,7 @@ struct SubtaskDetailView: View {
         let isolate = GlassChromePreference.prefersStaticToolbarPills()
         ToolbarItem(id: "stacked-subtask-close", placement: .cancellationAction) {
           StackedToolbarTextButton(title: "Fechar") {
+            resignValorField()
             _Concurrency.Task {
               await flushPending(playSaveHaptic: true)
               dismiss()
@@ -163,6 +173,7 @@ struct SubtaskDetailView: View {
 
         ToolbarItem(id: "stacked-subtask-save", placement: .confirmationAction) {
           StackedToolbarTextButton(title: "Salvar", accent: true, enabled: !saving) {
+            resignValorField()
             _Concurrency.Task {
               await flushPending(playSaveHaptic: true)
               if saveError == nil { dismiss() }
@@ -170,6 +181,16 @@ struct SubtaskDetailView: View {
           }
         }
         .stackedToolbarGlassIsolation(isolate)
+      }
+      .toolbar {
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+          Button("OK") {
+            resignValorField()
+            _Concurrency.Task { await flushPending() }
+          }
+          .font(.system(size: 16, weight: .semibold))
+        }
       }
       .popoverHostScope()
       .overlay {
@@ -221,6 +242,10 @@ struct SubtaskDetailView: View {
     .onDisappear {
       _Concurrency.Task { await flushPending() }
     }
+  }
+
+  private var parsedValor: Double? {
+    InstallmentGeneratorLogic.parseValor(valorText)
   }
 
   private var metadataCard: some View {
@@ -278,8 +303,19 @@ struct SubtaskDetailView: View {
         ) { showLabelsMenu(anchor: $0) }
       }
 
+      if hasFilledMeta { metaDivider }
+      valorMetaRow
+      metaDivider
+      metaRow(
+        icon: .money,
+        title: "Conta",
+        value: accountLabel,
+        active: selectedAccountId != nil,
+        valueColor: selectedAccountId != nil ? c.accent : nil
+      ) { showAccountMenu(anchor: $0) }
+
       if showPills {
-        if hasFilledMeta { metaDivider }
+        metaDivider
         ScrollView(.horizontal, showsIndicators: false) {
           HStack(spacing: 8) {
             if !hasDueDate {
@@ -306,6 +342,43 @@ struct SubtaskDetailView: View {
     .background(c.surface)
     .clipShape(RoundedRectangle(cornerRadius: 14))
     .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.textPrimary.opacity(0.06)))
+  }
+
+  private var valorMetaRow: some View {
+    let c = theme.colors
+    let hasValor = parsedValor != nil
+    return HStack(spacing: 12) {
+      StackedIcons.icon(.money, size: 16, color: hasValor ? c.accent : c.textTertiary)
+        .frame(width: 22)
+      Text("Valor")
+        .font(.system(size: 13))
+        .foregroundStyle(c.textTertiary)
+      Spacer(minLength: 8)
+      TextField("0,00", text: $valorText)
+        .font(.system(size: 13, weight: .medium))
+        .foregroundStyle(hasValor ? c.accent : c.textTertiary)
+        .keyboardType(.decimalPad)
+        .multilineTextAlignment(.trailing)
+        .focused($valorFieldFocused)
+        .onSubmit { _Concurrency.Task { await flushPending() } }
+        .onChange(of: valorFieldFocused) { _, focused in
+          if !focused {
+            _Concurrency.Task { await flushPending() }
+          }
+        }
+      Color.clear
+        .frame(width: 12)
+        .accessibilityHidden(true)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+  }
+
+  private var accountLabel: String {
+    if let id = selectedAccountId, let account = moneyStore.accounts.first(where: { $0.id == id }) {
+      return moneyStore.displayName(for: account)
+    }
+    return "Nenhuma"
   }
 
   private var metaDivider: some View {
@@ -446,6 +519,54 @@ struct SubtaskDetailView: View {
     }
   }
 
+  private func showAccountMenu(anchor: CGRect) {
+    let c = theme.colors
+    var items: [PopoverMenuItem] = [
+      PopoverMenuItem(
+        id: "none",
+        icon: Hugeicons.cancel01,
+        label: "Nenhuma",
+        selected: selectedAccountId == nil,
+        iconColor: c.textTertiary
+      )
+    ]
+    items.append(contentsOf: moneyStore.accounts.map { account in
+      PopoverMenuItem(
+        id: account.id,
+        icon: Hugeicons.money01,
+        label: moneyStore.displayName(for: account),
+        selected: selectedAccountId == account.id,
+        iconColor: c.accent
+      )
+    })
+    presentAnchoredPopover(anchorRect: anchor, items: items) { result in
+      guard let result else { return }
+      selectedAccountId = result == "none" ? nil : result
+      persistObligationLink(subtaskId: persistSubtaskId)
+      _Concurrency.Task { await flushPending() }
+    }
+  }
+
+  private func persistObligationLink(subtaskId: String?) {
+    guard let subtaskId, !subtaskId.isEmpty else { return }
+    MoneyStore.shared.setAccount(
+      forSubtaskId: subtaskId,
+      accountId: selectedAccountId,
+      valor: parsedValor
+    )
+  }
+
+  private static func sameValor(_ lhs: Double?, _ rhs: Double?) -> Bool {
+    switch (lhs, rhs) {
+    case (nil, nil):
+      return true
+    case let (a?, b?):
+      return abs(a - b) < 0.000_1
+    default:
+      return false
+    }
+  }
+
   private func currentSnapshot(resolvedId: String?) -> SubtaskSaveSnapshot {
     SubtaskSaveSnapshot(
       parentTaskId: parentTaskId,
@@ -461,7 +582,8 @@ struct SubtaskDetailView: View {
       dueDate: dueDate,
       time: currentTimeString,
       deadline: deadline,
-      labelIds: selectedLabelIds
+      labelIds: selectedLabelIds,
+      valor: parsedValor
     )
   }
 
@@ -494,6 +616,12 @@ struct SubtaskDetailView: View {
       }
       await notifyChanged(resolvedId: activeId)
       if let activeId {
+        MoneyStore.shared.handleToggleDone(
+          subtaskId: activeId,
+          done: newValue,
+          valor: parsedValor,
+          title: title.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
         if newValue {
           await NotificationService.shared.cancelSubtaskNotification(id: activeId)
           TaskCalendarSync.remove(subtaskId: activeId)
@@ -525,7 +653,14 @@ struct SubtaskDetailView: View {
     let data_conclusao: String?
   }
 
+  private func resignValorField() {
+    valorFieldFocused = false
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+  }
+
   private func flushPending(playSaveHaptic: Bool = false) async {
+    resignValorField()
+    try? await _Concurrency.Task.sleep(for: .milliseconds(80))
     saving = true
     saveError = nil
     defer { saving = false }
@@ -540,8 +675,10 @@ struct SubtaskDetailView: View {
       || currentTimeString != subtask.time
       || deadline != subtask.deadline
       || selectedLabelIds != subtask.labelIds
+    let valorChanged = !Self.sameValor(parsedValor, subtask.valor)
+    let accountChanged = selectedAccountId != initialAccountId
 
-    guard titleChanged || descChanged || metaChanged else { return }
+    guard titleChanged || descChanged || metaChanged || valorChanged || accountChanged else { return }
 
     var activeId = persistSubtaskId
 
@@ -607,6 +744,21 @@ struct SubtaskDetailView: View {
           )
         }
       }
+
+      if valorChanged {
+        try await SubtaskRepository.shared.updateValor(
+          id: activeId,
+          taskId: parentTaskId,
+          order: subtask.order,
+          valor: parsedValor
+        )
+        if let activeId {
+          MoneyStore.shared.updateLinkedValor(subtaskId: activeId, valor: parsedValor)
+        }
+        _Concurrency.Task { await MoneyStore.shared.load() }
+      }
+
+      persistObligationLink(subtaskId: activeId)
 
       await notifyChanged(resolvedId: activeId)
       if playSaveHaptic {

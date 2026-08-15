@@ -49,6 +49,7 @@ final class AuthManager {
   func signOut() async {
     await NotificationService.shared.cancelAllNotifications()
     HomeStore.shared.resetForSignOut()
+    MoneyStore.shared.resetForSignOut()
     try? await SupabaseService.client.auth.signOut()
     WidgetSnapshotSync.clear()
   }

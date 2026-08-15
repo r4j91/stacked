@@ -520,6 +520,7 @@ final class ProjectDetailStore {
   func applySubtaskPatch(_ snapshot: SubtaskSaveSnapshot) {
     SubtaskListPatch.apply(snapshot, to: &pending)
     SubtaskListPatch.apply(snapshot, to: &completed)
+    syncCache()
   }
 
   func removeSubtask(parentId: String, subtask: Subtask) {

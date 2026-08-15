@@ -13,6 +13,7 @@ struct SubtaskSaveSnapshot: Sendable {
   let time: String?
   let deadline: Date?
   let labelIds: [String]
+  let valor: Double?
 }
 
 enum SubtaskListPatch {
@@ -37,7 +38,7 @@ enum SubtaskListPatch {
       done: snapshot.done,
       priority: snapshot.priority,
       order: snapshot.order,
-      valor: previous.valor,
+      valor: snapshot.valor,
       dueDate: due,
       time: time,
       deadline: deadline,

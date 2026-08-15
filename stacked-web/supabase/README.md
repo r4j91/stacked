@@ -16,6 +16,9 @@ Projeto: `gbpoenvogrcqhcqfjldd` · compartilhado entre **stacked-web** e **stack
 | `task_comments` | Comentários |
 | `saved_filters` | Filtros salvos (JSON) |
 | `google_calendar_connections` | OAuth Google (só service role) |
+| `money_accounts` | Contas e cartões do Dinheiro |
+| `money_ledger` | Extrato (entradas, saídas, transferências) |
+| `money_obligation_links` | Vínculo subtarefa ↔ conta |
 
 Storage: buckets `avatars` (público leitura) e `attachments` (privado, path `{user_id}/…`).
 
