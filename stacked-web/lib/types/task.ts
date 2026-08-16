@@ -16,6 +16,8 @@ export type Subtask = {
   labelIds?: string[];
   /** Valor monetário (parcelas). */
   valor?: number | null;
+  /** Se false, esta subtarefa fica fora do fluxo de caixa. */
+  includeInCashFlow?: boolean;
 };
 
 export type Task = {
@@ -41,6 +43,8 @@ export type Task = {
   recurrence?: string;
   order?: number;
   whatsappRoutine?: boolean;
+  /** Se false, valores desta tarefa ficam fora do fluxo de caixa (iOS). */
+  includeInCashFlow?: boolean;
 };
 
 export type ViewMode = "today" | "inbox" | "upcoming" | "done" | "project" | "filters";

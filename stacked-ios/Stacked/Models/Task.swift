@@ -27,6 +27,8 @@ struct Task: Identifiable, Equatable {
   var commentCount: Int
   var recurrence: String?
   var whatsappRoutine: Bool = false
+  /// Se false, obrigações com valor desta tarefa ficam fora do fluxo de caixa.
+  var includeInCashFlow: Bool = true
   /// PERF_FASEB2_ETAPA4: contadores memoizados — zero filter no body da row.
   var subtasksDoneCount: Int = 0
   var subtasksTotalCount: Int = 0

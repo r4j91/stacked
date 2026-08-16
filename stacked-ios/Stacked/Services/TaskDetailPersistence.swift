@@ -142,6 +142,12 @@ enum TaskDetailPersistence {
     }
   }
 
+  static func autosaveIncludeInCashFlow(taskId: String, enabled: Bool) async {
+    await persist(operation: "tasks.update.incluir_fluxo", taskId: taskId) {
+      try await client.from("tasks").update(["incluir_fluxo_caixa": enabled]).eq("id", value: taskId).execute()
+    }
+  }
+
   static func autosaveProject(taskId: String, projectId: String?) async {
     await persist(operation: "tasks.update.project", taskId: taskId) {
       if let projectId {

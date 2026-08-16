@@ -169,6 +169,7 @@ final class TaskRepository {
         concluida: false,
         recorrencia: recurrence,
         whatsapp_rotina: task.whatsappRoutine,
+        incluir_fluxo_caixa: task.includeInCashFlow,
         ordem: ordem
       )
     ).select("id").single().execute().value
@@ -861,10 +862,11 @@ private struct NextOccurrenceInsertPayload: Encodable {
   let concluida: Bool
   let recorrencia: String
   let whatsapp_rotina: Bool
+  let incluir_fluxo_caixa: Bool
   let ordem: Int?
 
   enum CodingKeys: String, CodingKey {
-    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida, recorrencia, whatsapp_rotina, ordem
+    case titulo, descricao, prioridade, project_id, section_id, data_vencimento, hora, user_id, concluida, recorrencia, whatsapp_rotina, incluir_fluxo_caixa, ordem
   }
 
   func encode(to encoder: Encoder) throws {
@@ -900,6 +902,7 @@ private struct NextOccurrenceInsertPayload: Encodable {
     try c.encode(concluida, forKey: .concluida)
     try c.encode(recorrencia, forKey: .recorrencia)
     try c.encode(whatsapp_rotina, forKey: .whatsapp_rotina)
+    try c.encode(incluir_fluxo_caixa, forKey: .incluir_fluxo_caixa)
     if let ordem {
       try c.encode(ordem, forKey: .ordem)
     } else {

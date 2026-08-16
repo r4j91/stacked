@@ -51,7 +51,8 @@ enum TaskMapper {
       done: done,
       commentCount: commentCount,
       recurrence: row.recorrencia,
-      whatsappRoutine: row.whatsapp_rotina ?? false
+      whatsappRoutine: row.whatsapp_rotina ?? false,
+      includeInCashFlow: row.incluir_fluxo_caixa ?? true
     )
     // PERF_FASEB2_ETAPA2/4: garante contadores mesmo se chips já vieram preenchidos.
     refreshSubtaskCounters(on: &task)
@@ -72,6 +73,7 @@ enum TaskMapper {
       priority: Priority.parse(row.prioridade),
       order: row.ordem ?? 0,
       valor: row.valor,
+      includeInCashFlow: row.incluir_fluxo_caixa ?? true,
       dueDate: due,
       time: time,
       deadline: deadline,

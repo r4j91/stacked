@@ -62,6 +62,7 @@ final class TaskDetailViewModel {
   var comments: [TaskComment] = []
   var newCommentText = ""
   var whatsappRoutine = false
+  var includeInCashFlow = true
 
   var allProjects: [Project] = []
   var allLabels: [TaskLabel] = []
@@ -77,6 +78,7 @@ final class TaskDetailViewModel {
   private var subtaskSortHoldId: String?
   private var loadGeneration = 0
   private var whatsappRoutineReady = false
+  private var includeInCashFlowReady = false
   private var seedLabels: [TaskLabel] = []
 
   init(taskId: String, seed: Task? = nil) {
@@ -160,6 +162,8 @@ final class TaskDetailViewModel {
     recurrence = task.recurrence
     whatsappRoutine = task.whatsappRoutine
     whatsappRoutineReady = true
+    includeInCashFlow = task.includeInCashFlow
+    includeInCashFlowReady = true
     seedLabels = task.labels
     selectedLabelIds = task.labels.map(\.id)
   }
@@ -170,6 +174,16 @@ final class TaskDetailViewModel {
     guard whatsappRoutineReady else { return }
     enqueueSave { [self] in
       await TaskDetailPersistence.autosaveWhatsappRoutine(taskId: taskId, enabled: enabled)
+    }
+  }
+
+  func setIncludeInCashFlow(_ enabled: Bool) {
+    includeInCashFlow = enabled
+    publishCardSnapshot()
+    guard includeInCashFlowReady else { return }
+    enqueueSave { [self] in
+      await TaskDetailPersistence.autosaveIncludeInCashFlow(taskId: taskId, enabled: enabled)
+      await MoneyStore.shared.load()
     }
   }
 
@@ -347,7 +361,8 @@ final class TaskDetailViewModel {
           done: false,
           commentCount: comments.count,
           recurrence: recurrence,
-          whatsappRoutine: whatsappRoutine
+          whatsappRoutine: whatsappRoutine,
+          includeInCashFlow: includeInCashFlow
         )
         // PERF_FASEB2_ETAPA2: snapshot de complete também leva memos.
         TaskMapper.applyDisplayMemos(to: &snapshot)
@@ -497,7 +512,8 @@ final class TaskDetailViewModel {
       done: done,
       commentCount: comments.count,
       recurrence: recurrence,
-      whatsappRoutine: whatsappRoutine
+      whatsappRoutine: whatsappRoutine,
+      includeInCashFlow: includeInCashFlow
     )
     TaskMapper.applyDisplayMemos(to: &snapshot)
 
@@ -575,7 +591,8 @@ final class TaskDetailViewModel {
       done: done,
       commentCount: comments.count,
       recurrence: recurrence,
-      whatsappRoutine: whatsappRoutine
+      whatsappRoutine: whatsappRoutine,
+      includeInCashFlow: includeInCashFlow
     )
     TaskMapper.applyDisplayMemos(to: &snapshot)
     TaskCardMutationCenter.publish(snapshot)

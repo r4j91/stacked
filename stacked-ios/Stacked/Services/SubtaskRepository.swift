@@ -217,6 +217,16 @@ final class SubtaskRepository {
     try await persistSubtask(id: id, taskId: taskId, order: order, payload: Payload(valor: valor))
   }
 
+  func updateIncludeInCashFlow(id: String?, taskId: String?, order: Int, enabled: Bool) async throws {
+    struct Payload: Encodable { let incluir_fluxo_caixa: Bool }
+    try await persistSubtask(
+      id: id,
+      taskId: taskId,
+      order: order,
+      payload: Payload(incluir_fluxo_caixa: enabled)
+    )
+  }
+
   func updateDescription(id: String?, taskId: String?, order: Int, description: String?) async throws {
     struct Payload: Encodable { let descricao: String? }
     do {
@@ -242,13 +252,13 @@ final class SubtaskRepository {
   // MARK: - Agenda (Hoje / Em breve)
 
   private static let scheduleParentSelect = """
-    id, titulo, descricao, prioridade, hora, ordem, concluida, data_vencimento, recorrencia, project_id, section_id,
+    id, titulo, descricao, prioridade, hora, ordem, concluida, data_vencimento, recorrencia, whatsapp_rotina, incluir_fluxo_caixa, project_id, section_id,
     projects ( nome ),
     task_labels ( sort_order, labels ( id, nome, cor ) )
     """
 
   private static let scheduleSubtaskSelect = """
-    id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids, task_id,
+    id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids, task_id,
     tasks ( \(scheduleParentSelect) )
     """
 
@@ -439,6 +449,7 @@ final class SubtaskRepository {
         priority: Priority.parse(row.prioridade),
         order: row.ordem ?? 0,
         valor: row.valor,
+        includeInCashFlow: row.incluir_fluxo_caixa ?? true,
         dueDate: due,
         time: row.hora,
         deadline: deadline,
@@ -462,6 +473,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
   let ordem: Int?
   let prioridade: String?
   let valor: Double?
+  let incluir_fluxo_caixa: Bool?
   let data_vencimento: String?
   let hora: String?
   let deadline: String?
@@ -483,6 +495,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
     ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
     valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
+    incluir_fluxo_caixa = try c.decodeIfPresent(Bool.self, forKey: .incluir_fluxo_caixa)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
@@ -491,7 +504,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids, tasks
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids, tasks
   }
 }
 

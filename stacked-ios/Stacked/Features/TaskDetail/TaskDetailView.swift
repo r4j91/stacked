@@ -252,6 +252,9 @@ struct TaskDetailView: View {
       whatsappRoutineRow
 
       divider
+      cashFlowIncludeRow
+
+      divider
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
@@ -669,11 +672,13 @@ struct TaskDetailView: View {
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
     return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
-        StackedIcons.icon(icon, size: 16, color: active ? accent : c.textTertiary)
+        StackedIcons.image(icon)
+          .font(AppTypography.body)
+          .foregroundStyle(active ? accent : c.textTertiary)
           .frame(width: 22)
         Text(title)
-          .font(AppTypography.meta)
-          .foregroundStyle(c.textTertiary)
+          .font(AppTypography.metadataLabel)
+          .foregroundStyle(c.textPrimary)
         Spacer()
         Text(value)
           .font(AppTypography.metadataLabel)
@@ -756,6 +761,44 @@ struct TaskDetailView: View {
     .accessibilityElement(children: .combine)
     .accessibilityLabel("Rotina WhatsApp")
     .accessibilityValue(vm.whatsappRoutine ? "Ativada" : "Desativada")
+  }
+
+  private var cashFlowIncludeRow: some View {
+    let c = theme.colors
+    let binding = Binding(
+      get: { vm.includeInCashFlow },
+      set: { vm.setIncludeInCashFlow($0) }
+    )
+    return HStack(spacing: 12) {
+      StackedIcons.image(.cashFlow)
+        .font(AppTypography.body)
+        .foregroundStyle(c.textTertiary)
+        .frame(width: 22)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Fluxo de caixa")
+          .font(AppTypography.metadataLabel)
+          .foregroundStyle(c.textPrimary)
+        Text("Incluir valores da tarefa no fluxo")
+          .font(AppTypography.metaSmall)
+          .foregroundStyle(c.textTertiary)
+      }
+      Spacer(minLength: 8)
+      Group {
+        if vm.isLoading {
+          Capsule()
+            .fill(c.textTertiary.opacity(0.35))
+            .frame(width: 51, height: 31)
+        } else {
+          SettingsSwitchToggle(isOn: binding, tint: c.actionAccent)
+        }
+      }
+      .frame(width: 51, height: 44)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Incluir no fluxo de caixa")
+    .accessibilityValue(vm.includeInCashFlow ? "Ativado" : "Desativado")
   }
 
   private func showPriorityMenu(anchor: CGRect) {

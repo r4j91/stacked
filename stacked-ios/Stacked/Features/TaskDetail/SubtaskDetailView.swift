@@ -26,6 +26,8 @@ struct SubtaskDetailView: View {
   @FocusState private var valorFieldFocused: Bool
   @State private var selectedAccountId: String?
   @State private var moneyStore = MoneyStore.shared
+  @State private var includeInCashFlow = true
+  @State private var includeInCashFlowReady = false
   @State private var saving = false
   @State private var saveError: String?
   @State private var showDatePicker = false
@@ -70,6 +72,7 @@ struct SubtaskDetailView: View {
     _resolvedSubtaskId = State(initialValue: subtask.id)
     _valorText = State(initialValue: InstallmentGeneratorLogic.editingText(for: subtask.valor))
     _selectedAccountId = State(initialValue: initialAccountId)
+    _includeInCashFlow = State(initialValue: subtask.includeInCashFlow)
   }
 
   var body: some View {
@@ -207,7 +210,10 @@ struct SubtaskDetailView: View {
           .ignoresSafeArea()
         }
       }
-      .task { await reloadLabels() }
+      .task {
+        await reloadLabels()
+        await loadCashFlowPreference()
+      }
       .onReceive(NotificationCenter.default.publisher(for: .labelsCatalogDidChange)) { _ in
         _Concurrency.Task { await reloadLabels() }
       }
@@ -313,6 +319,8 @@ struct SubtaskDetailView: View {
         active: selectedAccountId != nil,
         valueColor: selectedAccountId != nil ? c.accent : nil
       ) { showAccountMenu(anchor: $0) }
+      metaDivider
+      cashFlowIncludeRow
 
       if showPills {
         metaDivider
@@ -348,14 +356,16 @@ struct SubtaskDetailView: View {
     let c = theme.colors
     let hasValor = parsedValor != nil
     return HStack(spacing: 12) {
-      StackedIcons.icon(.money, size: 16, color: hasValor ? c.accent : c.textTertiary)
+      StackedIcons.image(.money)
+        .font(AppTypography.body)
+        .foregroundStyle(hasValor ? c.accent : c.textTertiary)
         .frame(width: 22)
       Text("Valor")
-        .font(.system(size: 13))
-        .foregroundStyle(c.textTertiary)
+        .font(AppTypography.metadataLabel)
+        .foregroundStyle(c.textPrimary)
       Spacer(minLength: 8)
       TextField("0,00", text: $valorText)
-        .font(.system(size: 13, weight: .medium))
+        .font(AppTypography.metadataLabel)
         .foregroundStyle(hasValor ? c.accent : c.textTertiary)
         .keyboardType(.decimalPad)
         .multilineTextAlignment(.trailing)
@@ -372,6 +382,67 @@ struct SubtaskDetailView: View {
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 14)
+  }
+
+  private var cashFlowIncludeRow: some View {
+    let c = theme.colors
+    let binding = Binding(
+      get: { includeInCashFlow },
+      set: { setIncludeInCashFlow($0) }
+    )
+    return HStack(spacing: 12) {
+      StackedIcons.image(.cashFlow)
+        .font(AppTypography.body)
+        .foregroundStyle(c.textTertiary)
+        .frame(width: 22)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Fluxo de caixa")
+          .font(AppTypography.metadataLabel)
+          .foregroundStyle(c.textPrimary)
+        Text("Incluir valores desta tarefa no fluxo")
+          .font(AppTypography.metaSmall)
+          .foregroundStyle(c.textTertiary)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: binding, tint: c.actionAccent)
+        .frame(width: 51, height: 44)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Incluir no fluxo de caixa")
+    .accessibilityValue(includeInCashFlow ? "Ativado" : "Desativado")
+  }
+
+  private func loadCashFlowPreference() async {
+    // Preferência já vem da subtarefa; se o select ainda não tinha a coluna, recarrega o pai
+    // só para sincronizar o interruptor geral da tarefa (não sobrescreve a subtarefa).
+    includeInCashFlowReady = true
+    if let refreshed = try? await TaskRepository.shared.fetchTaskById(parentTaskId),
+       let sid = persistSubtaskId,
+       let match = refreshed.subtasks.first(where: { $0.id == sid })
+    {
+      includeInCashFlow = match.includeInCashFlow
+    }
+  }
+
+  private func setIncludeInCashFlow(_ enabled: Bool) {
+    includeInCashFlow = enabled
+    guard includeInCashFlowReady else { return }
+    _Concurrency.Task {
+      do {
+        try await SubtaskRepository.shared.updateIncludeInCashFlow(
+          id: persistSubtaskId,
+          taskId: parentTaskId,
+          order: subtask.order,
+          enabled: enabled
+        )
+        await MoneyStore.shared.load()
+      } catch {
+        saveError = error.localizedDescription
+        includeInCashFlow = !enabled
+      }
+    }
   }
 
   private var accountLabel: String {
@@ -442,14 +513,16 @@ struct SubtaskDetailView: View {
     let accent = valueColor ?? (active ? c.textPrimary : c.textTertiary)
     return AnchoredTapButton(action: action) {
       HStack(spacing: 12) {
-        StackedIcons.icon(icon, size: 16, color: active ? accent : c.textTertiary)
+        StackedIcons.image(icon)
+          .font(AppTypography.body)
+          .foregroundStyle(active ? accent : c.textTertiary)
           .frame(width: 22)
         Text(title)
-          .font(.system(size: 13))
-          .foregroundStyle(c.textTertiary)
+          .font(AppTypography.metadataLabel)
+          .foregroundStyle(c.textPrimary)
         Spacer()
         Text(value)
-          .font(.system(size: 13, weight: .medium))
+          .font(AppTypography.metadataLabel)
           .foregroundStyle(active ? accent : c.textTertiary)
           .lineLimit(1)
         DisclosureChevron()

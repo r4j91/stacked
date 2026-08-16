@@ -13,6 +13,7 @@ struct TaskRowDTO: Decodable {
   let deadline: String?
   let recorrencia: String?
   let whatsapp_rotina: Bool?
+  let incluir_fluxo_caixa: Bool?
   let project_id: String?
   let section_id: String?
   let projects: ProjectRefDTO?
@@ -33,6 +34,7 @@ struct SubtaskRowDTO: Decodable {
   let ordem: Int?
   let prioridade: String?
   let valor: Double?
+  let incluir_fluxo_caixa: Bool?
   let data_vencimento: String?
   let hora: String?
   let deadline: String?
@@ -53,6 +55,7 @@ struct SubtaskRowDTO: Decodable {
     ordem = try c.decodeIfPresent(Int.self, forKey: .ordem)
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
     valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
+    incluir_fluxo_caixa = try c.decodeIfPresent(Bool.self, forKey: .incluir_fluxo_caixa)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
@@ -60,7 +63,7 @@ struct SubtaskRowDTO: Decodable {
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, data_vencimento, hora, deadline, label_ids
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids
   }
 }
 
@@ -99,6 +102,7 @@ extension TaskRowDTO {
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
     recorrencia = try c.decodeIfPresent(String.self, forKey: .recorrencia)
     whatsapp_rotina = try c.decodeIfPresent(Bool.self, forKey: .whatsapp_rotina)
+    incluir_fluxo_caixa = try c.decodeIfPresent(Bool.self, forKey: .incluir_fluxo_caixa)
     project_id = Self.stringOrNil(c, .project_id)
     section_id = Self.stringOrNil(c, .section_id)
     projects = try c.decodeIfPresent(ProjectRefDTO.self, forKey: .projects)
@@ -109,7 +113,7 @@ extension TaskRowDTO {
 
   private enum CodingKeys: String, CodingKey {
     case id, titulo, descricao, prioridade, hora, ordem, concluida
-    case data_vencimento, deadline, recorrencia, whatsapp_rotina, project_id, section_id
+    case data_vencimento, deadline, recorrencia, whatsapp_rotina, incluir_fluxo_caixa, project_id, section_id
     case projects, subtasks, task_labels, task_comments
   }
 

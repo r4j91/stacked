@@ -45,6 +45,7 @@ enum StackedIcons {
     case .target: Hugeicons.target01
     case .attachment: Hugeicons.attachment01
     case .money: Hugeicons.money01
+    case .cashFlow: Hugeicons.chart01
     case .arrowUp: Hugeicons.arrowUp01
     case .comment: Hugeicons.comment01
     case .note: Hugeicons.note01
@@ -81,7 +82,7 @@ enum StackedIconKey: String {
   case check, clock, trash, copy, tag, logbook, productivity
   case chevronRight, chevronDown, exclamation, list, paintbrush, logout
   case edit, more, flag, move, arrowLeft, close, text, grid, plus
-  case checkCircle, repeatIcon, sun, calendar, target, attachment, money, arrowUp, comment
+  case checkCircle, repeatIcon, sun, calendar, target, attachment, money, cashFlow, arrowUp, comment
   case note
 }
 

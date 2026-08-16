@@ -32,6 +32,7 @@ function mapSubtask(row: DbRow): Subtask {
     priority: parsePriority(row.prioridade),
     labelIds: labelIds?.length ? labelIds : undefined,
     valor: row.valor != null && Number.isFinite(Number(row.valor)) ? Number(row.valor) : null,
+    includeInCashFlow: row.incluir_fluxo_caixa !== false,
   };
 }
 
@@ -97,6 +98,7 @@ export function mapTaskRow(row: DbRow): Task {
         : undefined,
     order: row.ordem != null ? Number(row.ordem) : undefined,
     whatsappRoutine: Boolean(row.whatsapp_rotina),
+    includeInCashFlow: row.incluir_fluxo_caixa !== false,
   };
 }
 

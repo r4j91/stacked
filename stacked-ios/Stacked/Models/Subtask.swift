@@ -11,6 +11,8 @@ struct Subtask: Identifiable, Equatable {
   let priority: Priority?
   let order: Int
   let valor: Double?
+  /// Se false, esta subtarefa fica fora do fluxo de caixa (respeita também a tarefa-pai).
+  var includeInCashFlow: Bool = true
   let dueDate: Date?
   let time: String?
   /// Prazo final — independente de dueDate.

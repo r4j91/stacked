@@ -544,6 +544,7 @@ final class MoneyStore {
 
     let dueGroup = monthGroups.first { $0.id == monthId }
     for item in dueGroup?.items ?? [] {
+      guard item.parent.includeInCashFlow, item.subtask.includeInCashFlow else { continue }
       let due = item.dueDate ?? monthStart
       guard due >= monthStart && due < monthEnd else { continue }
       built.append(
