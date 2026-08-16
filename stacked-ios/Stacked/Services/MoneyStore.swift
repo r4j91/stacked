@@ -1165,6 +1165,8 @@ final class MoneyStore {
   }
 
   private static func dueItem(from entry: SubtaskScheduleEntry) -> MoneyDueItem? {
+    // Mesmo flag do detalhe: fora do fluxo = fora de A PAGAR (pai e subtarefa).
+    guard entry.parent.includeInCashFlow, entry.subtask.includeInCashFlow else { return nil }
     guard let valor = entry.subtask.valor, valor.isFinite else { return nil }
     let due = entry.subtask.dueDate
     let dueLabel: String

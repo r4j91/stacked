@@ -396,10 +396,10 @@ struct SubtaskDetailView: View {
         .foregroundStyle(c.textTertiary)
         .frame(width: 22)
       VStack(alignment: .leading, spacing: 2) {
-        Text("Fluxo de caixa")
+        Text("A pagar e fluxo")
           .font(AppTypography.metadataLabel)
           .foregroundStyle(c.textPrimary)
-        Text("Incluir valores desta tarefa no fluxo")
+        Text("Incluir valores desta subtarefa no Dinheiro")
           .font(AppTypography.metaSmall)
           .foregroundStyle(c.textTertiary)
       }
@@ -410,7 +410,7 @@ struct SubtaskDetailView: View {
     .padding(.horizontal, 16)
     .padding(.vertical, 14)
     .accessibilityElement(children: .combine)
-    .accessibilityLabel("Incluir no fluxo de caixa")
+    .accessibilityLabel("Incluir em A pagar e no fluxo de caixa")
     .accessibilityValue(includeInCashFlow ? "Ativado" : "Desativado")
   }
 
