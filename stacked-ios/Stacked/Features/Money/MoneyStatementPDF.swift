@@ -413,6 +413,14 @@ enum MoneyDuePDF {
         startPage(continuation: false)
         for month in months {
           drawMonth(month, showMonthTitle: months.count > 1, cols: cols, flow: flow, newPageIfNeeded: newPageIfNeeded)
+          if let report = MoneyStore.shared.cashFlow(monthId: month.id) {
+            MoneyCashFlowPDF.draw(
+              report,
+              flow: flow,
+              newPageIfNeeded: newPageIfNeeded,
+              showTitle: true
+            )
+          }
         }
         MoneyPDF.drawFooter(page: flow.pageNumber)
       }
@@ -563,7 +571,311 @@ enum MoneyDuePDF {
   }
 }
 
-private final class MoneyPDFFlow {
+/// Bloco de fluxo de caixa no rodapé do PDF de A pagar (mês).
+enum MoneyCashFlowPDF {
+  private static let rowHeight: CGFloat = 22
+
+  static func draw(
+    _ report: MoneyCashFlowReport,
+    flow: MoneyPDFFlow,
+    newPageIfNeeded: (CGFloat) -> Void,
+    showTitle: Bool
+  ) {
+    flow.y += 8
+    newPageIfNeeded(120)
+    MoneyPDF.rule(y: flow.y)
+    flow.y += 18
+
+    if showTitle {
+      MoneyPDF.text(
+        "Fluxo de caixa",
+        x: MoneyPDF.contentMinX,
+        y: flow.y,
+        width: MoneyPDF.contentWidth,
+        font: .systemFont(ofSize: 16, weight: .bold),
+        color: MoneyPDF.ink
+      )
+      flow.y += 22
+      MoneyPDF.text(
+        report.title,
+        x: MoneyPDF.contentMinX,
+        y: flow.y,
+        width: MoneyPDF.contentWidth,
+        font: .systemFont(ofSize: 11, weight: .medium),
+        color: MoneyPDF.muted
+      )
+      flow.y += 18
+    }
+
+    drawSummaryBand(report, flow: flow, newPageIfNeeded: newPageIfNeeded)
+
+    let cash = report.cashLines
+    newPageIfNeeded(36)
+    MoneyPDF.label("Movimentos de caixa", x: MoneyPDF.contentMinX, y: flow.y, width: 220)
+    flow.y += 16
+    drawTableHeader(flow: flow)
+
+    if cash.isEmpty {
+      newPageIfNeeded(24)
+      MoneyPDF.text(
+        "Nenhum movimento de caixa neste mês.",
+        x: MoneyPDF.contentMinX + 62,
+        y: flow.y + 4,
+        width: 280,
+        font: .systemFont(ofSize: 11),
+        color: MoneyPDF.muted
+      )
+      flow.y += 24
+    } else {
+      var running = report.opening
+      for (index, line) in cash.enumerated() {
+        newPageIfNeeded(rowHeight)
+        running += line.amount
+        drawLine(line, running: running, y: flow.y, striped: index.isMultiple(of: 2))
+        flow.y += rowHeight
+      }
+    }
+
+    flow.y += 10
+    newPageIfNeeded(72)
+    MoneyPDF.rule(y: flow.y)
+    flow.y += 12
+    drawTotals(report, flow: flow)
+
+    if !report.weeks.isEmpty {
+      flow.y += 16
+      newPageIfNeeded(40)
+      MoneyPDF.label("Por semana (início na segunda)", x: MoneyPDF.contentMinX, y: flow.y, width: 280)
+      flow.y += 16
+      for week in report.weeks {
+        newPageIfNeeded(28)
+        drawWeekRow(week, y: flow.y)
+        flow.y += 26
+      }
+    }
+
+    if report.cardPurchases > 0 {
+      flow.y += 10
+      newPageIfNeeded(28)
+      MoneyPDF.text(
+        "Compras no cartão (fora do caixa): \(CurrencyFormat.brl(report.cardPurchases))",
+        x: MoneyPDF.contentMinX,
+        y: flow.y,
+        width: MoneyPDF.contentWidth,
+        font: .systemFont(ofSize: 10.5),
+        color: MoneyPDF.muted
+      )
+      flow.y += 20
+    }
+
+    flow.y += 8
+  }
+
+  private static func drawSummaryBand(
+    _ report: MoneyCashFlowReport,
+    flow: MoneyPDFFlow,
+    newPageIfNeeded: (CGFloat) -> Void
+  ) {
+    newPageIfNeeded(64)
+    let items: [(String, String, UIColor)] = [
+      ("Saldo inicial", CurrencyFormat.brl(report.opening), MoneyPDF.ink),
+      ("Entradas", "+\(CurrencyFormat.brl(report.income))", MoneyPDF.accent),
+      ("Saídas", "−\(CurrencyFormat.brl(report.expense))", MoneyPDF.ink),
+      (
+        "Projetado",
+        CurrencyFormat.brl(report.closingProjected),
+        report.isNegativeProjected
+          ? UIColor(red: 220 / 255, green: 76 / 255, blue: 62 / 255, alpha: 1)
+          : MoneyPDF.accent
+      ),
+    ]
+    let height: CGFloat = 52
+    let rect = CGRect(x: MoneyPDF.contentMinX, y: flow.y, width: MoneyPDF.contentWidth, height: height)
+    UIBezierPath(roundedRect: rect, cornerRadius: 10).fill(with: MoneyPDF.band)
+    let colW = MoneyPDF.contentWidth / CGFloat(items.count)
+    for (index, item) in items.enumerated() {
+      let x = MoneyPDF.contentMinX + colW * CGFloat(index)
+      if index > 0 {
+        let divider = UIBezierPath()
+        divider.move(to: CGPoint(x: x, y: flow.y + 10))
+        divider.addLine(to: CGPoint(x: x, y: flow.y + height - 10))
+        MoneyPDF.ruleColor.setStroke()
+        divider.lineWidth = 0.5
+        divider.stroke()
+      }
+      MoneyPDF.label(item.0, x: x + 10, y: flow.y + 9, width: colW - 20)
+      MoneyPDF.text(
+        item.1,
+        x: x + 10,
+        y: flow.y + 24,
+        width: colW - 20,
+        font: .monospacedDigitSystemFont(ofSize: 11, weight: .semibold),
+        color: item.2
+      )
+    }
+    flow.y += height + 20
+  }
+
+  private static func drawTableHeader(flow: MoneyPDFFlow) {
+    let cols = Columns()
+    MoneyPDF.label("Data", x: cols.date, y: flow.y, width: cols.dateWidth)
+    MoneyPDF.label("Descrição", x: cols.desc, y: flow.y, width: cols.descWidth)
+    MoneyPDF.label("Tipo", x: cols.kind, y: flow.y, width: cols.kindWidth)
+    MoneyPDF.label("Valor", x: cols.value, y: flow.y, width: cols.valueWidth, align: .right)
+    MoneyPDF.label("Saldo", x: cols.running, y: flow.y, width: cols.runningWidth, align: .right)
+    flow.y += 14
+    MoneyPDF.rule(y: flow.y)
+    flow.y += 6
+  }
+
+  private static func drawLine(_ line: MoneyCashFlowLine, running: Double, y: CGFloat, striped: Bool) {
+    let cols = Columns()
+    if striped {
+      let row = CGRect(x: MoneyPDF.contentMinX, y: y, width: MoneyPDF.contentWidth, height: rowHeight)
+      UIBezierPath(roundedRect: row, cornerRadius: 4).fill(with: MoneyPDF.stripe)
+    }
+    let textY = y + 5
+    MoneyPDF.text(
+      line.dayLabel,
+      x: cols.date,
+      y: textY,
+      width: cols.dateWidth,
+      font: .systemFont(ofSize: 10),
+      color: MoneyPDF.muted
+    )
+    let title = line.isProjected ? "\(line.title) *" : line.title
+    MoneyPDF.text(
+      title,
+      x: cols.desc,
+      y: textY,
+      width: cols.descWidth,
+      font: .systemFont(ofSize: 10.5, weight: .medium),
+      color: MoneyPDF.ink
+    )
+    MoneyPDF.text(
+      line.kind.label,
+      x: cols.kind,
+      y: textY,
+      width: cols.kindWidth,
+      font: .systemFont(ofSize: 9.5),
+      color: MoneyPDF.muted
+    )
+    let valueText = line.amount >= 0
+      ? "+\(CurrencyFormat.brl(line.amount))"
+      : "−\(CurrencyFormat.brl(abs(line.amount)))"
+    MoneyPDF.money(
+      valueText,
+      x: cols.value,
+      y: textY,
+      width: cols.valueWidth,
+      color: line.amount >= 0 ? MoneyPDF.accent : MoneyPDF.ink
+    )
+    MoneyPDF.money(
+      CurrencyFormat.brl(running),
+      x: cols.running,
+      y: textY,
+      width: cols.runningWidth,
+      color: MoneyPDF.ink
+    )
+  }
+
+  private static func drawTotals(_ report: MoneyCashFlowReport, flow: MoneyPDFFlow) {
+    let cols = Columns()
+    MoneyPDF.text(
+      "Caixa realizado",
+      x: cols.desc,
+      y: flow.y,
+      width: cols.descWidth,
+      font: .systemFont(ofSize: 11),
+      color: MoneyPDF.muted
+    )
+    MoneyPDF.money(
+      CurrencyFormat.brl(report.closingRealized),
+      x: cols.running,
+      y: flow.y,
+      width: cols.runningWidth,
+      color: MoneyPDF.ink,
+      weight: .medium
+    )
+    flow.y += 18
+    MoneyPDF.text(
+      "Caixa projetado",
+      x: cols.desc,
+      y: flow.y,
+      width: cols.descWidth,
+      font: .systemFont(ofSize: 12, weight: .semibold),
+      color: MoneyPDF.ink
+    )
+    MoneyPDF.money(
+      CurrencyFormat.brl(report.closingProjected),
+      x: cols.running,
+      y: flow.y,
+      width: cols.runningWidth,
+      color: report.isNegativeProjected
+        ? UIColor(red: 220 / 255, green: 76 / 255, blue: 62 / 255, alpha: 1)
+        : MoneyPDF.accent,
+      weight: .semibold,
+      size: 12
+    )
+    flow.y += 16
+    if report.projectedOut > 0 {
+      MoneyPDF.text(
+        "* Inclui \(CurrencyFormat.brl(report.projectedOut)) ainda a sair (a pagar e faturas).",
+        x: MoneyPDF.contentMinX,
+        y: flow.y,
+        width: MoneyPDF.contentWidth,
+        font: .systemFont(ofSize: 9.5),
+        color: MoneyPDF.muted
+      )
+      flow.y += 14
+    }
+  }
+
+  private static func drawWeekRow(_ week: MoneyCashFlowWeek, y: CGFloat) {
+    MoneyPDF.text(
+      "\(week.title)  ·  \(week.rangeLabel)",
+      x: MoneyPDF.contentMinX,
+      y: y,
+      width: 220,
+      font: .systemFont(ofSize: 10.5, weight: .medium),
+      color: MoneyPDF.ink
+    )
+    MoneyPDF.text(
+      "\(CurrencyFormat.brl(week.opening)) → \(CurrencyFormat.brl(week.closing))",
+      x: MoneyPDF.contentMaxX - 200,
+      y: y,
+      width: 200,
+      font: .monospacedDigitSystemFont(ofSize: 10.5, weight: .semibold),
+      color: week.isNegative
+        ? UIColor(red: 220 / 255, green: 76 / 255, blue: 62 / 255, alpha: 1)
+        : MoneyPDF.ink,
+      align: .right
+    )
+  }
+
+  private struct Columns {
+    let date = MoneyPDF.contentMinX
+    let dateWidth: CGFloat = 52
+    let desc: CGFloat
+    let descWidth: CGFloat
+    let kind: CGFloat
+    let kindWidth: CGFloat = 70
+    let value: CGFloat
+    let valueWidth: CGFloat = 78
+    let running: CGFloat
+    let runningWidth: CGFloat = 86
+
+    init() {
+      running = MoneyPDF.contentMaxX - runningWidth
+      value = running - 8 - valueWidth
+      kind = value - 8 - kindWidth
+      desc = date + dateWidth + 8
+      descWidth = kind - 8 - desc
+    }
+  }
+}
+
+final class MoneyPDFFlow {
   var y: CGFloat = 0
   var pageNumber = 1
 }

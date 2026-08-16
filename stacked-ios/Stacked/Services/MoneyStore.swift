@@ -477,6 +477,208 @@ final class MoneyStore {
     )
   }
 
+  /// Fluxo de caixa do mês civil (contas líquidas + a pagar + faturas + compras no cartão).
+  func cashFlow(monthId: String) -> MoneyCashFlowReport? {
+    guard let monthStart = MoneyCalendar.monthStart(fromMonthId: monthId) else { return nil }
+    let monthEnd = MoneyCalendar.shiftMonth(monthStart, by: 1)
+    let liquidIds = Set(
+      accounts
+        .filter { $0.kind == .checking || $0.kind == .cash }
+        .map(\.id)
+    )
+    let creditIds = Set(accounts.filter { $0.kind == .credit }.map(\.id))
+    let accountName: [String: String] = Dictionary(
+      uniqueKeysWithValues: accounts.map { ($0.id, $0.name) }
+    )
+
+    let opening = liquidOpeningBalance(liquidIds: liquidIds, at: monthStart)
+
+    var built: [MoneyCashFlowLine] = []
+
+    for entry in ledger where entry.date >= monthStart && entry.date < monthEnd {
+      let isTransfer = entry.title.hasPrefix("Transferência")
+      if liquidIds.contains(entry.accountId) {
+        let kind: MoneyCashFlowLineKind
+        if isTransfer {
+          kind = .transfer
+        } else {
+          kind = entry.isIncome ? .income : .expense
+        }
+        let signed = entry.isIncome ? entry.amount : -entry.amount
+        built.append(
+          MoneyCashFlowLine(
+            id: entry.id,
+            date: entry.date,
+            title: entry.title,
+            subtitle: [
+              accountName[entry.accountId],
+              entry.installmentCaption,
+            ].compactMap { $0 }.joined(separator: " · ").moneyNilIfEmpty,
+            amount: signed,
+            kind: kind,
+            affectsCash: true,
+            isProjected: false,
+            dayLabel: MoneyCalendar.dayLabel(for: entry.date)
+          )
+        )
+      } else if creditIds.contains(entry.accountId), !entry.isIncome, !isTransfer {
+        built.append(
+          MoneyCashFlowLine(
+            id: "card-\(entry.id)",
+            date: entry.date,
+            title: entry.title,
+            subtitle: [
+              accountName[entry.accountId],
+              entry.installmentCaption,
+              "não sai do caixa",
+            ].compactMap { $0 }.joined(separator: " · ").moneyNilIfEmpty,
+            amount: -entry.amount,
+            kind: .cardPurchase,
+            affectsCash: false,
+            isProjected: false,
+            dayLabel: MoneyCalendar.dayLabel(for: entry.date)
+          )
+        )
+      }
+    }
+
+    let dueGroup = monthGroups.first { $0.id == monthId }
+    for item in dueGroup?.items ?? [] {
+      let due = item.dueDate ?? monthStart
+      guard due >= monthStart && due < monthEnd else { continue }
+      built.append(
+        MoneyCashFlowLine(
+          id: "due-\(item.id)",
+          date: due,
+          title: item.title,
+          subtitle: [item.projectName, "a pagar"].filter { !$0.isEmpty }.joined(separator: " · ").moneyNilIfEmpty,
+          amount: -item.valor,
+          kind: .obligation,
+          affectsCash: true,
+          isProjected: true,
+          dayLabel: item.dueLabel
+        )
+      )
+    }
+
+    for account in accounts where account.kind == .credit {
+      let invoice = account.invoiceAmount ?? 0
+      guard invoice > 0, let due = account.nextDueDate() else { continue }
+      guard MoneyCalendar.monthId(for: due) == monthId else { continue }
+      built.append(
+        MoneyCashFlowLine(
+          id: "invoice-\(account.id)",
+          date: due,
+          title: "Fatura \(account.name)",
+          subtitle: "vence \(MoneyCalendar.dayLabel(for: due))",
+          amount: -invoice,
+          kind: .invoice,
+          affectsCash: true,
+          isProjected: true,
+          dayLabel: MoneyCalendar.dayLabel(for: due)
+        )
+      )
+    }
+
+    built.sort {
+      if $0.date != $1.date { return $0.date < $1.date }
+      if $0.isProjected != $1.isProjected { return !$0.isProjected && $1.isProjected }
+      return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+    }
+
+    let income = built.filter { $0.affectsCash && $0.kind == .income }.reduce(0) { $0 + $1.amount }
+    let expense = built
+      .filter { $0.affectsCash && $0.kind == .expense && !$0.isProjected }
+      .reduce(0) { $0 + abs($1.amount) }
+    let transferNet = built
+      .filter { $0.affectsCash && $0.kind == .transfer }
+      .reduce(0) { $0 + $1.amount }
+    let projectedOut = built
+      .filter { $0.affectsCash && $0.isProjected }
+      .reduce(0) { $0 + abs($1.amount) }
+    let cardPurchases = built
+      .filter { $0.kind == .cardPurchase }
+      .reduce(0) { $0 + abs($1.amount) }
+
+    let realizedDelta = built
+      .filter { $0.affectsCash && !$0.isProjected }
+      .reduce(0) { $0 + $1.amount }
+    let projectedDelta = built
+      .filter { $0.affectsCash }
+      .reduce(0) { $0 + $1.amount }
+
+    let weeksMeta = MoneyCalendar.mondayWeeks(inMonthStarting: monthStart)
+    var weekOpening = opening
+    var weeks: [MoneyCashFlowWeek] = []
+    for meta in weeksMeta {
+      let weekLines = built.filter { $0.date >= meta.start && $0.date < meta.end }
+      let weekIncome = weekLines
+        .filter { $0.affectsCash && $0.kind == .income }
+        .reduce(0) { $0 + $1.amount }
+      let weekExpense = weekLines
+        .filter { $0.affectsCash && ($0.kind == .expense || $0.kind == .transfer) && !$0.isProjected && $0.amount < 0 }
+        .reduce(0) { $0 + abs($1.amount) }
+      let weekProjected = weekLines
+        .filter { $0.affectsCash && $0.isProjected }
+        .reduce(0) { $0 + abs($1.amount) }
+      let weekDelta = weekLines
+        .filter(\.affectsCash)
+        .reduce(0) { $0 + $1.amount }
+      let weekClosing = weekOpening + weekDelta
+      let range = MoneyCalendar.weekRangeLabel(start: meta.start, endExclusive: meta.end)
+      weeks.append(
+        MoneyCashFlowWeek(
+          id: "\(monthId)-w\(meta.index)",
+          index: meta.index,
+          title: "Semana \(meta.index)",
+          rangeLabel: range,
+          start: meta.start,
+          end: meta.end,
+          opening: weekOpening,
+          lines: weekLines,
+          income: weekIncome,
+          expense: weekExpense,
+          projectedOut: weekProjected,
+          closing: weekClosing
+        )
+      )
+      weekOpening = weekClosing
+    }
+
+    return MoneyCashFlowReport(
+      monthId: monthId,
+      title: MoneyCalendar.monthTitle(for: monthStart),
+      monthStart: monthStart,
+      monthEnd: monthEnd,
+      opening: opening,
+      lines: built,
+      weeks: weeks,
+      income: income,
+      expense: expense,
+      transferNet: transferNet,
+      projectedOut: projectedOut,
+      cardPurchases: cardPurchases,
+      closingRealized: opening + realizedDelta,
+      closingProjected: opening + projectedDelta
+    )
+  }
+
+  private func liquidOpeningBalance(liquidIds: Set<String>, at monthStart: Date) -> Double {
+    guard !liquidIds.isEmpty else { return 0 }
+    var balances: [String: Double] = [:]
+    for account in accounts where liquidIds.contains(account.id) {
+      balances[account.id] = account.balance
+    }
+    for entry in ledger where liquidIds.contains(entry.accountId) && entry.date >= monthStart {
+      if entry.isIncome {
+        balances[entry.accountId, default: 0] -= entry.amount
+      } else {
+        balances[entry.accountId, default: 0] += entry.amount
+      }
+    }
+    return balances.values.reduce(0, +)
+  }
+
   func shiftStatementAnchor(accountId: String, from date: Date, by steps: Int) -> Date {
     guard let account = account(id: accountId) else {
       return MoneyCalendar.shiftMonth(MoneyCalendar.monthStart(for: date), by: steps)
@@ -1100,5 +1302,12 @@ final class MoneyStore {
       )
     }
     .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+  }
+}
+
+private extension String {
+  var moneyNilIfEmpty: String? {
+    let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
   }
 }

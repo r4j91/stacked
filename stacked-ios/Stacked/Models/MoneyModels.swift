@@ -417,6 +417,54 @@ enum MoneyCalendar {
     let current = statementPeriod(for: account, containing: now)
     return viewing.start >= current.start
   }
+
+  /// Semanas do mês com início na segunda (salário). Intervalos `[start, end)` cortados no mês.
+  static func mondayWeeks(inMonthStarting monthStart: Date) -> [(index: Int, start: Date, end: Date)] {
+    let cal = Calendar.current
+    let monthEnd = shiftMonth(monthStart, by: 1)
+    var weeks: [(Int, Date, Date)] = []
+    var cursor = cal.startOfDay(for: monthStart)
+    var index = 1
+    while cursor < monthEnd {
+      let end = min(nextMonday(afterOrFrom: cursor), monthEnd)
+      weeks.append((index, cursor, end))
+      cursor = end
+      index += 1
+    }
+    return weeks
+  }
+
+  /// Próxima segunda a partir de `date`. Se já for segunda, avança 7 dias.
+  static func nextMonday(afterOrFrom date: Date) -> Date {
+    let cal = Calendar.current
+    let day = cal.startOfDay(for: date)
+    let weekday = cal.component(.weekday, from: day) // 1=dom … 2=seg
+    if weekday == 2 {
+      return cal.date(byAdding: .day, value: 7, to: day) ?? day
+    }
+    let delta = (9 - weekday) % 7
+    return cal.date(byAdding: .day, value: delta == 0 ? 7 : delta, to: day) ?? day
+  }
+
+  static func weekRangeLabel(start: Date, endExclusive: Date) -> String {
+    let cal = Calendar.current
+    let last = cal.date(byAdding: .day, value: -1, to: endExclusive) ?? start
+    if cal.isDate(start, inSameDayAs: last) {
+      return dayLabel(for: start)
+    }
+    return "\(dayLabel(for: start)) – \(dayLabel(for: last))"
+  }
+
+  /// Parse `YYYY-MM` → início do mês; `nil` se inválido / Sem data.
+  static func monthStart(fromMonthId id: String) -> Date? {
+    let parts = id.split(separator: "-")
+    guard parts.count == 2,
+          let year = Int(parts[0]),
+          let month = Int(parts[1]),
+          (1...12).contains(month)
+    else { return nil }
+    return clampedDate(year: year, month: month, day: 1)
+  }
 }
 
 struct MoneyStatementRoute: Identifiable, Hashable {
@@ -493,4 +541,88 @@ enum MoneyDueOutline: Identifiable, Equatable {
 struct MoneyObligationLink: Codable, Equatable {
   var accountId: String
   var valor: Double
+}
+
+// MARK: - Fluxo de caixa (mês civil)
+
+enum MoneyCashFlowLineKind: String, Equatable {
+  case income
+  case expense
+  case transfer
+  case obligation
+  case invoice
+  case cardPurchase
+
+  var label: String {
+    switch self {
+    case .income: "Entrada"
+    case .expense: "Saída"
+    case .transfer: "Transferência"
+    case .obligation: "A pagar"
+    case .invoice: "Fatura"
+    case .cardPurchase: "Cartão"
+    }
+  }
+}
+
+struct MoneyCashFlowLine: Identifiable, Equatable {
+  let id: String
+  let date: Date
+  let title: String
+  let subtitle: String?
+  let amount: Double
+  let kind: MoneyCashFlowLineKind
+  /// Entra no saldo líquido (corrente/dinheiro). Compras no cartão ficam de fora.
+  let affectsCash: Bool
+  /// Ainda não saiu do caixa (obrigação / fatura pendente).
+  let isProjected: Bool
+  let dayLabel: String
+}
+
+struct MoneyCashFlowWeek: Identifiable, Equatable {
+  let id: String
+  let index: Int
+  let title: String
+  let rangeLabel: String
+  let start: Date
+  let end: Date
+  let opening: Double
+  let lines: [MoneyCashFlowLine]
+  let income: Double
+  let expense: Double
+  let projectedOut: Double
+  let closing: Double
+
+  var net: Double { closing - opening }
+  var isNegative: Bool { closing < -0.005 }
+}
+
+struct MoneyCashFlowReport: Equatable {
+  let monthId: String
+  let title: String
+  let monthStart: Date
+  let monthEnd: Date
+  let opening: Double
+  let lines: [MoneyCashFlowLine]
+  let weeks: [MoneyCashFlowWeek]
+  let income: Double
+  let expense: Double
+  let transferNet: Double
+  let projectedOut: Double
+  let cardPurchases: Double
+  let closingRealized: Double
+  let closingProjected: Double
+
+  var netRealized: Double { closingRealized - opening }
+  var netProjected: Double { closingProjected - opening }
+  var isNegativeProjected: Bool { closingProjected < -0.005 }
+  var isNegativeRealized: Bool { closingRealized < -0.005 }
+
+  var cashLines: [MoneyCashFlowLine] { lines.filter(\.affectsCash) }
+  var cardLines: [MoneyCashFlowLine] { lines.filter { $0.kind == .cardPurchase } }
+}
+
+struct MoneyCashFlowRoute: Identifiable, Hashable {
+  let monthId: String
+  var id: String { monthId }
 }

@@ -11,6 +11,7 @@ struct MoneyView: View {
   @State private var showMovement = false
   @State private var editingAccount: MoneyAccount?
   @State private var statementRoute: MoneyStatementRoute?
+  @State private var cashFlowRoute: MoneyCashFlowRoute?
   @State private var accountPendingDelete: MoneyAccount?
   @State private var expandedMonthIds: Set<String> = []
   @State private var mountedMonthIds: Set<String> = []
@@ -127,6 +128,10 @@ struct MoneyView: View {
     .refreshable { await store.load() }
     .navigationDestination(item: $statementRoute) { route in
       MoneyAccountStatementView(accountId: route.accountId)
+        .environment(ThemeManager.shared)
+    }
+    .navigationDestination(item: $cashFlowRoute) { route in
+      MoneyCashFlowView(monthId: route.monthId)
         .environment(ThemeManager.shared)
     }
     .task {
@@ -448,14 +453,17 @@ struct MoneyView: View {
           subtitle: subtitle,
           total: total,
           expanded: expanded,
-          menuItems: [
-            PopoverMenuItem(id: "pdf", icon: Hugeicons.pdf01, label: "Gerar PDF"),
-          ],
-          onMenuResult: { result in
-            if result == "pdf" {
-              exportDuePDF(group)
-            }
+        menuItems: [
+          PopoverMenuItem(id: "cashflow", icon: Hugeicons.chart01, label: "Fluxo de caixa"),
+          PopoverMenuItem(id: "pdf", icon: Hugeicons.pdf01, label: "Gerar PDF"),
+        ],
+        onMenuResult: { result in
+          if result == "pdf" {
+            exportDuePDF(group)
+          } else if result == "cashflow" {
+            openCashFlow(group)
           }
+        }
         )
         if mounted {
           SubtaskExpandReveal(
@@ -542,7 +550,7 @@ struct MoneyView: View {
     }
     .accessibilityLabel(expanded ? "Recolher \(title)" : "Expandir \(title)")
     .accessibilityValue("\(subtitle), \(CurrencyFormat.brl(total))")
-    .accessibilityHint(menuItems.isEmpty ? "" : "Toque para abrir. Toque e segure para opções, inclusive PDF.")
+    .accessibilityHint(menuItems.isEmpty ? "" : "Toque para abrir. Toque e segure para fluxo de caixa ou PDF.")
   }
 
   private func accordionHeaderLabel(
@@ -591,6 +599,12 @@ struct MoneyView: View {
     if let url = MoneyDuePDF.fileURL(for: group) {
       MoneySharePresenter.present(url)
     }
+  }
+
+  private func openCashFlow(_ group: MoneyMonthGroup) {
+    HapticService.selection()
+    guard MoneyCalendar.monthStart(fromMonthId: group.id) != nil else { return }
+    cashFlowRoute = MoneyCashFlowRoute(monthId: group.id)
   }
 
   private func exportDuePDF(year: Int, months: [MoneyMonthGroup]) {
