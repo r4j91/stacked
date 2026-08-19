@@ -231,3 +231,23 @@ enum HomeTopCardStorage {
   static let key = "homeTopCardEnabled"
   static let defaultEnabled = false
 }
+
+/// Home · Dinheiro: segunda linha “Nas contas” (saldo + sobra projetada).
+enum HomeMoneyRichStorage {
+  static let key = "appearance.homeMoneyRich"
+  static let defaultEnabled = true
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
+  }
+}
+
+/// Mostra a seção DINHEIRO na Home (resumo; toque abre a aba).
+enum HomeMoneyOnHomeStorage {
+  static let key = "appearance.homeMoneyOnHome"
+  static let defaultEnabled = true
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
+  }
+}

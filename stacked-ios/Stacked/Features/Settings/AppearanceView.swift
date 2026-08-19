@@ -15,6 +15,8 @@ struct AppearanceView: View {
   @AppStorage(HomeHeaderStyleStorage.key) private var homeHeaderStyleRaw = HomeHeaderStyleStorage.defaultRawValue
   @AppStorage(HomeDailyGoalStorage.key) private var homeDailyGoalStored = HomeDailyGoalStorage.defaultGoal
   @AppStorage(HomeSectionStyleStorage.key) private var homeSectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
+  @AppStorage(HomeMoneyRichStorage.key) private var homeMoneyRich = HomeMoneyRichStorage.defaultEnabled
+  @AppStorage(HomeMoneyOnHomeStorage.key) private var homeMoneyOnHome = HomeMoneyOnHomeStorage.defaultEnabled
   @AppStorage(AppTypeScaleStorage.key) private var appTypeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
@@ -99,7 +101,12 @@ struct AppearanceView: View {
     let c = theme.colors
     let recommendedThemes = AppThemeId.recommended
     let moreThemes = AppThemeId.allCases.filter { !recommendedThemes.contains($0) }
-    let icons = AppIconId.allCases
+    let iconGroups: [(title: String, icons: [AppIconId])] = [
+      ("Atuais", AppIconId.classic),
+      ("S Puro", AppIconId.sPuro),
+      ("Fita S", AppIconId.fitaS),
+      ("Entrelaçado", AppIconId.entrelacado),
+    ].filter { !$0.icons.isEmpty }
     let navStyles = NavBarStyle.allCases
     let heroStyles = HomeHeroStyle.pickerStyles
     let hiddenStyles = HomeHeroStyleStorage.hiddenStyles()
@@ -209,7 +216,7 @@ struct AppearanceView: View {
             : "Sem card · \(homeHeaderStyle.displayName)",
           footer: homeTopCardEnabled
             ? "Aberto é o formato de sempre. Seguir a Home usa o agrupamento das seções."
-            : "Sem o card, o topo vira Relatórios, Filtros, Etiquetas e Notas. Com Busca no topo, o campo sai dos atalhos para não duplicar."
+            : "Sem o card, o topo vira Relatórios, Etiquetas e Notas. Com Busca no topo, o campo sai dos atalhos para não duplicar."
         ) {
           homeTopCardRow()
 
@@ -250,8 +257,10 @@ struct AppearanceView: View {
         appearancePanel(
           id: .homeSections,
           title: "Agrupamento das listas",
-          summary: homeSectionStyle.displayName,
-          footer: "Vale para Navegar e Filtros. As telas de tarefas seguem o Chrome da lista."
+          summary: homeMoneyRich
+            ? "\(homeSectionStyle.displayName) · A pagar e contas"
+            : homeSectionStyle.displayName,
+          footer: "Vale para Navegar e Dinheiro. As telas de tarefas seguem o Chrome da lista."
         ) {
           ForEach(Array(HomeSectionStyle.allCases.enumerated()), id: \.element) { index, style in
             homeSectionStyleRow(style)
@@ -259,13 +268,19 @@ struct AppearanceView: View {
               SettingsCardDivider(leadingPadding: 82)
             }
           }
+          appearanceGroupHeader("Dinheiro")
+          homeMoneyOnHomeRow()
+          if homeMoneyOnHome {
+            SettingsCardDivider(leadingPadding: 82)
+            homeMoneyRichRow()
+          }
         }
 
         appearancePanel(
           id: .typeScale,
           title: "Tamanho dos títulos",
           summary: appTypeScale.displayName,
-          footer: "Aplica em todos os títulos de seção do app — Navegar, Filtros, Hoje, Em breve e Busca."
+          footer: "Aplica em todos os títulos de seção do app — Navegar, Dinheiro, Hoje, Em breve e Busca."
         ) {
           ForEach(Array(AppTypeScale.allCases.enumerated()), id: \.element) { index, scale in
             appTypeScaleRow(scale)
@@ -282,10 +297,13 @@ struct AppearanceView: View {
             summary: iconManager.currentId.displayName,
             footer: "O iPhone pede confirmação antes de trocar."
           ) {
-            ForEach(Array(icons.enumerated()), id: \.element) { index, iconId in
-              iconRow(iconId)
-              if index < icons.count - 1 {
-                SettingsCardDivider(leadingPadding: 56)
+            ForEach(Array(iconGroups.enumerated()), id: \.offset) { groupIndex, group in
+              appearanceGroupHeader(group.title)
+              ForEach(Array(group.icons.enumerated()), id: \.element) { index, iconId in
+                iconRow(iconId)
+                if index < group.icons.count - 1 || groupIndex < iconGroups.count - 1 {
+                  SettingsCardDivider(leadingPadding: 56)
+                }
               }
             }
           }
@@ -469,6 +487,7 @@ struct AppearanceView: View {
     hasher.combine(homeTopCardEnabled)
     hasher.combine(homeHeroFrameRaw)
     hasher.combine(homeSectionStyleRaw)
+    hasher.combine(homeMoneyRich)
     hasher.combine(appTypeScaleRaw)
     hasher.combine(labelChipStyleRaw)
     hasher.combine(dueDateChipStyleRaw)
@@ -1087,7 +1106,7 @@ struct AppearanceView: View {
         Text("Card de saudação")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Desligado, o topo vira Buscar, Relatórios, Filtros, Etiquetas e Notas.")
+        Text("Desligado, o topo vira Buscar, Relatórios, Etiquetas e Notas.")
           .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(2)
@@ -1099,6 +1118,54 @@ struct AppearanceView: View {
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: homeTopCardEnabled) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func homeMoneyOnHomeRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Resumo na Home")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Mostra A pagar e saldo na Navegar. Toque abre a aba Dinheiro.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $homeMoneyOnHome, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: homeMoneyOnHome) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func homeMoneyRichRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Saldo nas contas")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Na Home, o Dinheiro ganha uma segunda linha com o saldo e a sobra projetada.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $homeMoneyRich, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: homeMoneyRich) { _, _ in
       HapticService.selection()
     }
   }

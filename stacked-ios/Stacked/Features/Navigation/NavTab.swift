@@ -6,7 +6,7 @@ enum NavTab: Int, CaseIterable, Identifiable {
   case inbox = 1
   case today = 2
   case upcoming = 3
-  case filters = 4
+  case money = 4
 
   var id: Int { rawValue }
 
@@ -16,7 +16,7 @@ enum NavTab: Int, CaseIterable, Identifiable {
     case .inbox: "Inbox"
     case .today: "Hoje"
     case .upcoming: "Em breve"
-    case .filters: "Filtros"
+    case .money: "Dinheiro"
     }
   }
 
@@ -26,13 +26,16 @@ enum NavTab: Int, CaseIterable, Identifiable {
     case .inbox: .navInbox
     case .today: .navToday
     case .upcoming: .navUpcoming
-    case .filters: .navFilters
+    case .money: .navMoney
     }
   }
 
-  /// Paridade lib/theme/app_icon_size.dart — calendário com padding interno maior no SVG.
+  /// Paridade lib/theme/app_icon_size.dart — calendário e carteira com arte mais “baixa” no SVG.
   var navIconSize: CGFloat {
-    self == .today ? 24 : 22
+    switch self {
+    case .today, .money: 24
+    default: 22
+    }
   }
 
   var subtitle: String? {
@@ -41,7 +44,7 @@ enum NavTab: Int, CaseIterable, Identifiable {
     case .inbox: "Tarefas sem data ou projeto"
     case .today: formattedTodaySubtitle
     case .upcoming: "Calendário e agenda"
-    case .filters: "Visão geral das suas tarefas"
+    case .money: "Contas, fluxo e lançamentos"
     }
   }
 

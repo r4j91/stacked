@@ -18,6 +18,8 @@ export type Subtask = {
   valor?: number | null;
   /** Se false, esta subtarefa fica fora do fluxo de caixa. */
   includeInCashFlow?: boolean;
+  /** Se true, o valor é entrada (A receber). Default: saída. */
+  isIncome?: boolean;
 };
 
 export type Task = {

@@ -78,11 +78,8 @@ struct NoteEditorSheet: View {
     let c = theme.colors
 
     NavigationStack {
-      VStack(spacing: 0) {
-        SheetDragHandle()
-
-        ScrollView {
-          VStack(alignment: .leading, spacing: 16) {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 16) {
             TextField(
               "Título (opcional)",
               text: $title,
@@ -174,10 +171,9 @@ struct NoteEditorSheet: View {
               .padding(.top, 8)
             }
           }
-          .padding(.horizontal, 20)
-          .padding(.top, 8)
-          .padding(.bottom, 24)
-        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
       }
       .background(c.background)
       .navigationTitle(route.existing == nil ? "Nova nota" : "Editar nota")

@@ -14,6 +14,8 @@ struct SubtaskSaveSnapshot: Sendable {
   let deadline: Date?
   let labelIds: [String]
   let valor: Double?
+  var includeInCashFlow: Bool = true
+  var isIncome: Bool = false
 }
 
 enum SubtaskListPatch {
@@ -39,6 +41,8 @@ enum SubtaskListPatch {
       priority: snapshot.priority,
       order: snapshot.order,
       valor: snapshot.valor,
+      includeInCashFlow: snapshot.includeInCashFlow,
+      isIncome: snapshot.isIncome,
       dueDate: due,
       time: time,
       deadline: deadline,

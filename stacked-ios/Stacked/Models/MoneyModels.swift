@@ -9,6 +9,7 @@ struct MoneyDueItem: Identifiable, Equatable {
   let projectName: String
   let parent: Task
   let subtask: Subtask
+  let isIncome: Bool
 
   var subtitle: String {
     var parts: [String] = []
@@ -34,6 +35,7 @@ struct MoneyDueItem: Identifiable, Equatable {
     if projectName.localizedStandardContains(query) { return true }
     if parent.title.localizedStandardContains(query) { return true }
     if query.localizedStandardContains("atras"), isOverdue { return true }
+    if isIncome, query.localizedStandardContains("receb") { return true }
     return false
   }
 }
@@ -484,6 +486,10 @@ struct MoneyMonthGroup: Identifiable, Equatable {
   var completedTotal: Double { completedItems.reduce(0) { $0 + $1.valor } }
   var completedCount: Int { completedItems.count }
   var completedSectionId: String { "\(id)-done" }
+  var calendarMonthId: String {
+    if id.hasPrefix("recv-") { return String(id.dropFirst(5)) }
+    return id
+  }
 
   func nameMatches(_ query: String) -> Bool {
     if title.localizedStandardContains(query) { return true }
@@ -591,6 +597,7 @@ struct MoneyCashFlowWeek: Identifiable, Equatable {
   let income: Double
   let expense: Double
   let projectedOut: Double
+  let projectedIn: Double
   let closing: Double
 
   var net: Double { closing - opening }
@@ -609,6 +616,7 @@ struct MoneyCashFlowReport: Equatable {
   let expense: Double
   let transferNet: Double
   let projectedOut: Double
+  let projectedIn: Double
   let cardPurchases: Double
   let closingRealized: Double
   let closingProjected: Double

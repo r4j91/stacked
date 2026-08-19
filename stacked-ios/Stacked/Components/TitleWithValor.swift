@@ -10,6 +10,7 @@ struct TitleWithValor: View {
   var done: Bool = false
   var lineLimit: Int = 2
   var valorFont: Font? = nil
+  var isIncome: Bool = false
 
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -21,7 +22,7 @@ struct TitleWithValor: View {
         .truncationMode(.tail)
         .layoutPriority(1)
       if let valor {
-        Text(CurrencyFormat.brl(valor))
+        Text(isIncome ? "+\(CurrencyFormat.brl(valor))" : CurrencyFormat.brl(valor))
           .font(valorFont ?? titleFont)
           .foregroundStyle(done ? accent.opacity(0.45) : accent)
           .monospacedDigit()

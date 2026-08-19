@@ -322,12 +322,12 @@ enum MoneySharePresenter {
 }
 
 enum MoneyDuePDF {
-  static func fileURL(for group: MoneyMonthGroup) -> URL? {
-    write(title: periodTitle(for: group), months: [group])
+  static func fileURL(for group: MoneyMonthGroup, income: Bool = false) -> URL? {
+    write(title: periodTitle(for: group), months: [group], income: income)
   }
 
-  static func fileURL(year: Int, months: [MoneyMonthGroup]) -> URL? {
-    write(title: "\(year)", months: months)
+  static func fileURL(year: Int, months: [MoneyMonthGroup], income: Bool = false) -> URL? {
+    write(title: "\(year)", months: months, income: income)
   }
 
   private static func periodTitle(for group: MoneyMonthGroup) -> String {
@@ -337,17 +337,19 @@ enum MoneyDuePDF {
     return group.title
   }
 
-  private static func write(title: String, months: [MoneyMonthGroup]) -> URL? {
+  private static func write(title: String, months: [MoneyMonthGroup], income: Bool) -> URL? {
+    let heading = income ? "A receber" : "A pagar"
     let safe = title
       .replacingOccurrences(of: "/", with: "-")
       .replacingOccurrences(of: ":", with: "-")
+    let slug = income ? "A-receber" : "A-pagar"
     let url = FileManager.default.temporaryDirectory
-      .appendingPathComponent("A-pagar-\(safe).pdf")
+      .appendingPathComponent("\(slug)-\(safe).pdf")
     let renderer = UIGraphicsPDFRenderer(bounds: MoneyPDF.page)
     do {
       try renderer.writePDF(to: url) { ctx in
         let flow = MoneyPDFFlow()
-        let caption = "A pagar  ·  \(title)"
+        let caption = "\(heading)  ·  \(title)"
         let cols = DueColumns()
 
         func startPage(continuation: Bool) {
@@ -390,7 +392,7 @@ enum MoneyDuePDF {
             MoneyPDF.rule(y: flow.y)
             flow.y += 18
             MoneyPDF.text(
-              "A pagar",
+              heading,
               x: MoneyPDF.contentMinX,
               y: flow.y,
               width: MoneyPDF.contentWidth,
@@ -412,8 +414,15 @@ enum MoneyDuePDF {
 
         startPage(continuation: false)
         for month in months {
-          drawMonth(month, showMonthTitle: months.count > 1, cols: cols, flow: flow, newPageIfNeeded: newPageIfNeeded)
-          if let report = MoneyStore.shared.cashFlow(monthId: month.id) {
+          drawMonth(
+            month,
+            showMonthTitle: months.count > 1,
+            cols: cols,
+            flow: flow,
+            newPageIfNeeded: newPageIfNeeded,
+            income: income
+          )
+          if !income, let report = MoneyStore.shared.cashFlow(monthId: month.calendarMonthId) {
             MoneyCashFlowPDF.draw(
               report,
               flow: flow,
@@ -435,7 +444,8 @@ enum MoneyDuePDF {
     showMonthTitle: Bool,
     cols: DueColumns,
     flow: MoneyPDFFlow,
-    newPageIfNeeded: (CGFloat) -> Void
+    newPageIfNeeded: (CGFloat) -> Void,
+    income: Bool
   ) {
     if showMonthTitle {
       newPageIfNeeded(36)
@@ -462,7 +472,7 @@ enum MoneyDuePDF {
     if group.items.isEmpty {
       newPageIfNeeded(24)
       MoneyPDF.text(
-        "Nada a pagar neste mês.",
+        income ? "Nada a receber neste mês." : "Nada a pagar neste mês.",
         x: cols.item,
         y: flow.y + 4,
         width: cols.itemWidth,

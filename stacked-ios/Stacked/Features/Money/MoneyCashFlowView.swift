@@ -160,6 +160,9 @@ struct MoneyCashFlowView: View {
       if report.projectedOut > 0 {
         summaryRow("A sair (projetado)", "−\(CurrencyFormat.brl(report.projectedOut))", colors: c)
       }
+      if report.projectedIn > 0 {
+        summaryRow("A entrar (projetado)", "+\(CurrencyFormat.brl(report.projectedIn))", accent: true, colors: c)
+      }
       Rectangle()
         .fill(c.textPrimary.opacity(0.08))
         .frame(height: 0.5)
@@ -239,7 +242,7 @@ struct MoneyCashFlowView: View {
     let radius = max(sectionStyle.metrics.cornerRadius, 12)
     return HStack(spacing: 12) {
       weekStat("Início", CurrencyFormat.brl(week.opening), colors: c)
-      weekStat("Entradas", "+\(CurrencyFormat.brl(week.income))", accent: true, colors: c)
+      weekStat("Entradas", "+\(CurrencyFormat.brl(week.income + week.projectedIn))", accent: true, colors: c)
       weekStat(
         "Saídas",
         "−\(CurrencyFormat.brl(week.expense + week.projectedOut))",

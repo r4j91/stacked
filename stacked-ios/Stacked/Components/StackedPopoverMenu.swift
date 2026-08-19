@@ -29,6 +29,7 @@ struct StackedPopoverOverlay: View {
   var forcePreferAbove: Bool = false
   /// Fundo sólido (Quick Add) — evita bandas do glass sobre scrim + painel.
   var opaqueSurface: Bool = false
+  var chromeTopInset: CGFloat = 12
   var preferAbove = false
   var alignTrailing = false
   let rootItems: [PopoverMenuItem]
@@ -93,10 +94,13 @@ struct StackedPopoverOverlay: View {
     let keyboardTop = screen.height - keyboardHeight
     let spaceBelow = keyboardTop - anchor.maxY - 10
     let spaceAbove = anchor.minY - topInset
-    return preferAbove || keyboardHeight > 0 || spaceBelow < h + 8 || spaceBelow < spaceAbove
+    if preferAbove { return spaceAbove >= min(h, 40) }
+    if spaceBelow >= h + 8 { return false }
+    if spaceAbove >= h + 8 { return true }
+    return spaceAbove > spaceBelow
   }
 
-  private var topInset: CGFloat { forcePreferAbove ? 8 : 12 }
+  private var topInset: CGFloat { forcePreferAbove ? 8 : chromeTopInset }
 
   private var scaleAnchor: UnitPoint {
     showsAbove ? .bottomLeading : .topLeading

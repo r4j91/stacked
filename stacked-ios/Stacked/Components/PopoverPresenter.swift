@@ -82,6 +82,8 @@ struct PopoverOverlayHost: View {
   var anchorYOffset: CGFloat = 0
   /// Sheet escopado: sempre abrir acima — não há espaço útil abaixo da âncora com teclado.
   var forcePreferAbove: Bool = false
+  /// Distância mínima do topo (nav bar do sheet). Overlay ignora safe area e senão cobre Cancelar.
+  var chromeTopInset: CGFloat = 12
   /// Quick Add: fundo opaco evita faixas do glass + scrim sobre o painel escuro.
   var opaquePopoverSurface: Bool = false
 
@@ -93,7 +95,8 @@ struct PopoverOverlayHost: View {
     hostBounds: CGRect = .zero,
     anchorYOffset: CGFloat = 0,
     forcePreferAbove: Bool = false,
-    opaquePopoverSurface: Bool = false
+    opaquePopoverSurface: Bool = false,
+    chromeTopInset: CGFloat = 12
   ) {
     let resolved = presenter ?? .shared
     self.presenter = resolved
@@ -101,6 +104,7 @@ struct PopoverOverlayHost: View {
     self.anchorYOffset = anchorYOffset
     self.forcePreferAbove = forcePreferAbove
     self.opaquePopoverSurface = opaquePopoverSurface
+    self.chromeTopInset = chromeTopInset
     _boundPresenter = Bindable(resolved)
   }
 
@@ -114,6 +118,7 @@ struct PopoverOverlayHost: View {
           anchorYOffset: anchorYOffset,
           forcePreferAbove: forcePreferAbove,
           opaqueSurface: opaquePopoverSurface,
+          chromeTopInset: chromeTopInset,
           preferAbove: boundPresenter.preferAbove,
           alignTrailing: boundPresenter.alignTrailing,
           rootItems: boundPresenter.items,

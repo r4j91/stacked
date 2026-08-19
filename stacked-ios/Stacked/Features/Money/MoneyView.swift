@@ -64,7 +64,7 @@ struct MoneyView: View {
   }
 
   private var hasSearchResults: Bool {
-    !visibleAccountRows.isEmpty || !dueRows.isEmpty || !visibleInstallments.isEmpty
+    !visibleAccountRows.isEmpty || !dueRows.isEmpty || !receivableRows.isEmpty || !visibleInstallments.isEmpty
   }
 
   var body: some View {
@@ -81,6 +81,7 @@ struct MoneyView: View {
         }
         accountsSection
         dueSection
+        receivableSection
         installmentSection
       }
       Section {
@@ -98,32 +99,21 @@ struct MoneyView: View {
     .navigationTitle("Dinheiro")
     .navigationBarTitleDisplayMode(.inline)
     .safeAreaInset(edge: .top, spacing: 0) {
-      StackedChromeSearchField(
-        text: $searchText,
-        prompt: "Conta, parcela ou mês"
-      )
+      HStack(alignment: .center, spacing: 10) {
+        StackedChromeSearchField(
+          text: $searchText,
+          prompt: "Conta, parcela ou mês"
+        )
+        StackedChromeIconButton(
+          icon: .plus,
+          accessibilityLabel: "Novo lançamento",
+          accent: true,
+          action: openNewMovement
+        )
+      }
       .padding(.horizontal, 16)
       .padding(.top, 2)
       .padding(.bottom, 8)
-    }
-    .stackedAdaptiveDrillDownBack()
-    .toolbar {
-      let isolate = GlassChromePreference.prefersStaticToolbarPills()
-      ToolbarItem(id: "stacked-money-add", placement: .topBarTrailing) {
-        StackedToolbarIconButton(icon: .plus, accessibilityLabel: "Novo lançamento", accent: true) {
-          if store.accounts.isEmpty {
-            editingAccount = MoneyAccount(
-              id: UUID().uuidString,
-              name: "",
-              kind: .checking,
-              balance: 0
-            )
-          } else {
-            showMovement = true
-          }
-        }
-      }
-      .stackedToolbarGlassIsolation(isolate)
     }
     .refreshable { await store.load() }
     .navigationDestination(item: $statementRoute) { route in
@@ -211,6 +201,19 @@ struct MoneyView: View {
       } else {
         Text("O extrato desta conta some junto.")
       }
+    }
+  }
+
+  private func openNewMovement() {
+    if store.accounts.isEmpty {
+      editingAccount = MoneyAccount(
+        id: UUID().uuidString,
+        name: "",
+        kind: .checking,
+        balance: 0
+      )
+    } else {
+      showMovement = true
     }
   }
 
@@ -317,50 +320,88 @@ struct MoneyView: View {
 
   @ViewBuilder
   private var dueSection: some View {
-    let rows = dueRows
+    obligationSection(
+      title: "A PAGAR",
+      rows: dueRows,
+      emptyHint: "Nada com valor pendente",
+      showWhenEmpty: true
+    )
+  }
+
+  @ViewBuilder
+  private var receivableSection: some View {
+    obligationSection(
+      title: "A RECEBER",
+      rows: receivableRows,
+      emptyHint: "Nada a receber",
+      showWhenEmpty: false
+    )
+  }
+
+  @ViewBuilder
+  private func obligationSection(
+    title: String,
+    rows: [DueRow],
+    emptyHint: String,
+    showWhenEmpty: Bool
+  ) -> some View {
     if isSearching, rows.isEmpty {
+      EmptyView()
+    } else if rows.isEmpty, !showWhenEmpty {
       EmptyView()
     } else {
       Section {
         if rows.isEmpty {
-          moneyHintRow("Nada com valor pendente", position: .only)
+          moneyHintRow(emptyHint, position: .only)
         } else {
           ForEach(rows) { row in
             switch row {
-            case .month(let group, let nested):
-              monthAccordion(group, nested: nested)
-            case .year(let year, let months):
-              yearHeaderCard(year: year, months: months)
+            case .month(let group, let nested, let income):
+              monthAccordion(group, nested: nested, income: income)
+            case .year(let year, let months, let id, let income):
+              yearHeaderCard(year: year, months: months, id: id, income: income)
             }
           }
         }
       } header: {
-          HomeSectionHeader(text: "A PAGAR", style: sectionStyle, scale: typeScale)
-            .homeSectionHeaderInsets(sectionStyle)
+        HomeSectionHeader(text: title, style: sectionStyle, scale: typeScale)
+          .homeSectionHeaderInsets(sectionStyle)
       }
     }
   }
 
   private enum DueRow: Identifiable {
-    case month(MoneyMonthGroup, nested: Bool)
-    case year(year: Int, months: [MoneyMonthGroup])
+    case month(MoneyMonthGroup, nested: Bool, income: Bool)
+    case year(year: Int, months: [MoneyMonthGroup], id: String, income: Bool)
 
     var id: String {
       switch self {
-      case .month(let group, _): group.id
-      case .year(let year, _): "year-\(year)"
+      case .month(let group, _, _): group.id
+      case .year(_, _, let id, _): id
       }
     }
   }
 
   private var dueRows: [DueRow] {
+    outlineRows(from: store.dueOutline, yearPrefix: "year-", income: false)
+  }
+
+  private var receivableRows: [DueRow] {
+    outlineRows(from: store.receivableOutline, yearPrefix: "recv-year-", income: true)
+  }
+
+  private func outlineRows(
+    from clusters: [MoneyDueOutline],
+    yearPrefix: String,
+    income: Bool
+  ) -> [DueRow] {
     var rows: [DueRow] = []
     let q = searchQuery
-    for cluster in store.dueOutline {
+    for cluster in clusters {
       switch cluster {
       case .month(let group):
         if !isSearching || group.matches(q) {
-          rows.append(.month(group, nested: false))
+          rows.append(.month(group, nested: false, income: income))
         }
       case .year(let year, let months):
         let yearHit = isSearching && queryMatchesYear(year)
@@ -368,11 +409,11 @@ struct MoneyView: View {
           ? (yearHit ? months : months.filter { $0.matches(q) })
           : months
         if isSearching, visibleMonths.isEmpty { continue }
-        rows.append(.year(year: year, months: visibleMonths))
-        let yearId = "year-\(year)"
+        let yearId = "\(yearPrefix)\(year)"
+        rows.append(.year(year: year, months: visibleMonths, id: yearId, income: income))
         if expandedMonthIds.contains(yearId) || isSearching {
           for group in visibleMonths {
-            rows.append(.month(group, nested: true))
+            rows.append(.month(group, nested: true, income: income))
           }
         }
       }
@@ -398,8 +439,12 @@ struct MoneyView: View {
     return group.completedItems.filter { $0.matches(searchQuery) }
   }
 
-  private func yearHeaderCard(year: Int, months: [MoneyMonthGroup]) -> some View {
-    let id = "year-\(year)"
+  private func yearHeaderCard(
+    year: Int,
+    months: [MoneyMonthGroup],
+    id: String,
+    income: Bool
+  ) -> some View {
     let expanded = expandedMonthIds.contains(id) || isSearching
     let currentYear = Calendar.current.component(.year, from: Date())
     let quiet = year != currentYear && !expanded
@@ -415,26 +460,27 @@ struct MoneyView: View {
         emphasizeTitle: !quiet,
         highlightAmount: !quiet,
         quiet: quiet,
+        income: income,
         menuItems: [
           PopoverMenuItem(id: "pdf", icon: Hugeicons.pdf01, label: "Gerar PDF"),
         ],
         onMenuResult: { result in
           if result == "pdf" {
-            exportDuePDF(year: year, months: months)
+            exportDuePDF(year: year, months: months, income: income)
           }
         }
       )
     }
   }
 
-  private func monthAccordion(_ group: MoneyMonthGroup, nested: Bool) -> some View {
+  private func monthAccordion(_ group: MoneyMonthGroup, nested: Bool, income: Bool) -> some View {
     let pending = visiblePendingItems(in: group)
     let completed = visibleCompletedItems(in: group)
     let searchingOpen = isSearching
     let expanded = expandedMonthIds.contains(group.id) || searchingOpen
     let mounted = mountedMonthIds.contains(group.id) || searchingOpen
     let completedExpanded = expandedMonthIds.contains(group.completedSectionId)
-    let isCurrent = group.id == store.currentMonthGroupId
+    let isCurrent = group.calendarMonthId == store.currentMonthGroupId
     let c = theme.colors
     let count = isSearching ? pending.count : group.count
     let total = isSearching ? pending.reduce(0) { $0 + $1.valor } : group.total
@@ -453,17 +499,18 @@ struct MoneyView: View {
           subtitle: subtitle,
           total: total,
           expanded: expanded,
-        menuItems: [
-          PopoverMenuItem(id: "cashflow", icon: Hugeicons.chart01, label: "Fluxo de caixa"),
-          PopoverMenuItem(id: "pdf", icon: Hugeicons.pdf01, label: "Gerar PDF"),
-        ],
-        onMenuResult: { result in
-          if result == "pdf" {
-            exportDuePDF(group)
-          } else if result == "cashflow" {
-            openCashFlow(group)
+          income: income,
+          menuItems: [
+            PopoverMenuItem(id: "cashflow", icon: Hugeicons.chart01, label: "Fluxo de caixa"),
+            PopoverMenuItem(id: "pdf", icon: Hugeicons.pdf01, label: "Gerar PDF"),
+          ],
+          onMenuResult: { result in
+            if result == "pdf" {
+              exportDuePDF(group, income: income)
+            } else if result == "cashflow" {
+              openCashFlow(group)
+            }
           }
-        }
         )
         if mounted {
           SubtaskExpandReveal(
@@ -478,7 +525,7 @@ struct MoneyView: View {
             VStack(spacing: 0) {
               ForEach(pending) { item in
                 accordionDivider
-                dueItemRow(item)
+                dueItemRow(item, income: income)
               }
               if !completed.isEmpty {
                 accordionDivider
@@ -487,12 +534,13 @@ struct MoneyView: View {
                   title: "Concluído",
                   subtitle: completed.count == 1 ? "1 item" : "\(completed.count) itens",
                   total: completed.reduce(0) { $0 + $1.valor },
-                  expanded: completedExpanded
+                  expanded: completedExpanded,
+                  income: income
                 )
                 if completedExpanded {
                   ForEach(completed) { item in
                     accordionDivider
-                    dueItemRow(item, completed: true)
+                    dueItemRow(item, completed: true, income: income)
                   }
                 }
               }
@@ -512,6 +560,7 @@ struct MoneyView: View {
     emphasizeTitle: Bool = false,
     highlightAmount: Bool = true,
     quiet: Bool = false,
+    income: Bool = false,
     menuItems: [PopoverMenuItem] = [],
     onMenuResult: ((String) -> Void)? = nil
   ) -> some View {
@@ -523,7 +572,8 @@ struct MoneyView: View {
       expanded: expanded,
       emphasizeTitle: emphasizeTitle,
       highlightAmount: highlightAmount,
-      quiet: quiet
+      quiet: quiet,
+      income: income
     )
     return Group {
       if menuItems.isEmpty {
@@ -561,7 +611,8 @@ struct MoneyView: View {
     expanded: Bool,
     emphasizeTitle: Bool,
     highlightAmount: Bool,
-    quiet: Bool
+    quiet: Bool,
+    income: Bool
   ) -> some View {
     let c = theme.colors
     let t = typeScale.metrics
@@ -581,7 +632,7 @@ struct MoneyView: View {
       }
       .layoutPriority(1)
       Spacer(minLength: 8)
-      Text(CurrencyFormat.brl(total))
+      Text(income ? "+\(CurrencyFormat.brl(total))" : CurrencyFormat.brl(total))
         .font(t.rowCountFont)
         .monospacedDigit()
         .fontWeight(.semibold)
@@ -594,27 +645,27 @@ struct MoneyView: View {
     .contentShape(Rectangle())
   }
 
-  private func exportDuePDF(_ group: MoneyMonthGroup) {
+  private func exportDuePDF(_ group: MoneyMonthGroup, income: Bool = false) {
     HapticService.selection()
-    if let url = MoneyDuePDF.fileURL(for: group) {
+    if let url = MoneyDuePDF.fileURL(for: group, income: income) {
       MoneySharePresenter.present(url)
     }
   }
 
   private func openCashFlow(_ group: MoneyMonthGroup) {
     HapticService.selection()
-    guard MoneyCalendar.monthStart(fromMonthId: group.id) != nil else { return }
-    cashFlowRoute = MoneyCashFlowRoute(monthId: group.id)
+    guard MoneyCalendar.monthStart(fromMonthId: group.calendarMonthId) != nil else { return }
+    cashFlowRoute = MoneyCashFlowRoute(monthId: group.calendarMonthId)
   }
 
-  private func exportDuePDF(year: Int, months: [MoneyMonthGroup]) {
+  private func exportDuePDF(year: Int, months: [MoneyMonthGroup], income: Bool = false) {
     HapticService.selection()
-    if let url = MoneyDuePDF.fileURL(year: year, months: months) {
+    if let url = MoneyDuePDF.fileURL(year: year, months: months, income: income) {
       MoneySharePresenter.present(url)
     }
   }
 
-  private func dueItemRow(_ item: MoneyDueItem, completed: Bool = false) -> some View {
+  private func dueItemRow(_ item: MoneyDueItem, completed: Bool = false, income: Bool = false) -> some View {
     let overdue = !completed && item.isOverdue
     return Button {
       HapticService.selection()
@@ -630,15 +681,16 @@ struct MoneyView: View {
         amount: item.valor,
         highlight: !completed,
         dimmed: completed,
-        overdue: overdue
+        overdue: overdue,
+        income: income
       )
       .padding(.horizontal, 12)
     }
     .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
     .accessibilityValue(
       overdue
-        ? "\(item.dueLabel), atrasado, \(CurrencyFormat.brl(item.valor))"
-        : "\(item.subtitle), \(CurrencyFormat.brl(item.valor))"
+        ? "\(item.dueLabel), atrasado, \(income ? "+" : "")\(CurrencyFormat.brl(item.valor))"
+        : "\(item.subtitle), \(income ? "+" : "")\(CurrencyFormat.brl(item.valor))"
     )
   }
 
@@ -747,8 +799,17 @@ struct MoneyView: View {
     if store.dueOutline.contains(where: { $0.id == yearId }) {
       initial.insert(yearId)
     }
+    if store.receivableOutline.contains(where: {
+      if case .year(let year, _) = $0 { return year == currentYear }
+      return false
+    }) {
+      initial.insert("recv-year-\(currentYear)")
+    }
     if store.monthGroups.contains(where: { $0.id == currentMonth }) {
       initial.insert(currentMonth)
+    }
+    if store.receivableMonthGroups.contains(where: { $0.calendarMonthId == currentMonth }) {
+      initial.insert("recv-\(currentMonth)")
     }
     expandedMonthIds = initial
     mountedMonthIds = initial
@@ -968,7 +1029,8 @@ struct MoneyView: View {
     highlight: Bool,
     dimmed: Bool = false,
     usage: Double? = nil,
-    overdue: Bool = false
+    overdue: Bool = false,
+    income: Bool = false
   ) -> some View {
     let c = theme.colors
     let t = typeScale.metrics
@@ -990,7 +1052,7 @@ struct MoneyView: View {
         }
         .layoutPriority(1)
         Spacer(minLength: 8)
-        Text(CurrencyFormat.brl(amount))
+        Text(income ? "+\(CurrencyFormat.brl(amount))" : CurrencyFormat.brl(amount))
           .font(t.rowCountFont)
           .monospacedDigit()
           .fontWeight(highlight ? .semibold : .regular)

@@ -560,31 +560,14 @@ final class FiltersStore {
         id: sub.id,
         taskId: sub.taskId ?? parent.id,
         order: sub.order,
-        done: true
+        done: true,
+        isIncome: sub.isIncome
       )
       if let subId = sub.id {
         TaskCalendarSync.remove(subtaskId: subId)
       }
       if case .savedFilter = mode {
-        let doneSub = Subtask(
-          id: subtask.id,
-          taskId: subtask.taskId ?? parent.id,
-          title: subtask.title,
-          description: subtask.description,
-          done: true,
-          priority: subtask.priority,
-          order: subtask.order,
-          valor: subtask.valor,
-          dueDate: subtask.dueDate,
-          time: subtask.time,
-          deadline: subtask.deadline,
-          dueDateChipLabel: subtask.dueDateChipLabel,
-          dueDateChipColor: subtask.dueDateChipColor,
-          deadlineChipLabel: subtask.deadlineChipLabel,
-          deadlineChipColor: subtask.deadlineChipColor,
-          timeDisplay: subtask.timeDisplay,
-          labelIds: subtask.labelIds
-        )
+        let doneSub = subtask.withDone(true)
         filterCompletedResults.insert(.subtask(doneSub, parent: parentTask, index: subIndex), at: 0)
       }
       await GlobalDataRefresh.refreshDashboardCounts()
@@ -640,7 +623,7 @@ final class FiltersStore {
             try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
             return
           }
-          GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
+          GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.money])
         },
         rollback: { [self] in
           filterResults.insert(.task(snapshot), at: min(originalIndex, filterResults.count))
@@ -700,7 +683,7 @@ final class FiltersStore {
           try? await self.taskRepo.toggleTaskDone(id: taskId, done: false)
           return
         }
-        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.filters])
+        GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.money])
       },
       rollback: { [self] in
         var restored = snapshot

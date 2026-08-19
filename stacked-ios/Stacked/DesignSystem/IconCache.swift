@@ -11,7 +11,7 @@ final class IconCache {
   private init() {}
 
   func warmUp() {
-    let navKeys: [StackedIconKey] = [.navHome, .navInbox, .navToday, .navUpcoming, .navFilters]
+    let navKeys: [StackedIconKey] = [.navHome, .navInbox, .navToday, .navUpcoming, .navMoney]
     for key in navKeys {
       if cache[key] == nil {
         cache[key] = StackedIcons.image(key)

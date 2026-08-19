@@ -322,6 +322,72 @@ struct StackedChromeSearchField: View {
   }
 }
 
+/// Botão circular com o mesmo chrome do `StackedChromeSearchField` — par de busca + ação.
+struct StackedChromeIconButton: View {
+  @Environment(ThemeManager.self) private var theme
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @AppStorage(ChromeGlassModeStorage.key) private var chromeGlassModeRaw = ChromeGlassModeStorage.defaultRawValue
+
+  let icon: StackedIconKey
+  var accessibilityLabel: String
+  var accent: Bool = false
+  let action: () -> Void
+
+  private var chromeMode: ChromeGlassMode {
+    ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
+  }
+
+  private var useSolid: Bool {
+    GlassChromePreference.prefersSolid(
+      reduceTransparency: reduceTransparency,
+      mode: chromeMode
+    )
+  }
+
+  private var useStaticFrosted: Bool {
+    GlassChromePreference.prefersFrosted(mode: chromeMode)
+  }
+
+  private var pillFill: Color {
+    let c = theme.colors
+    return c.isDark ? c.surfaceVariant : c.surface
+  }
+
+  var body: some View {
+    let c = theme.colors
+    let isLight = !c.isDark
+    let tint = accent ? c.accent : c.textPrimary
+    let label = Button(action: action) {
+      StackedIcons.image(icon)
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(tint)
+        .frame(width: 36, height: 36)
+    }
+    .buttonStyle(PressableStyle(cornerRadius: 18))
+    .accessibilityLabel(accessibilityLabel)
+
+    Group {
+      if useSolid {
+        label.background(Circle().fill(pillFill))
+      } else if useStaticFrosted {
+        label.background { LiquidGlass.frostedFill(shape: Circle(), tint: pillFill) }
+      } else {
+        label.glassEffect(
+          .regular.tint(pillFill.opacity(LiquidGlass.glassTintOpacity)),
+          in: .circle
+        )
+      }
+    }
+    .overlay {
+      if isLight {
+        Circle()
+          .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+      }
+    }
+    .shadow(color: isLight ? Color.black.opacity(0.06) : .clear, radius: isLight ? 2 : 0, y: isLight ? 1 : 0)
+  }
+}
+
 // MARK: - Form / editor sheets (handle + presentation)
 
 struct SheetDragHandle: View {

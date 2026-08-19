@@ -6,7 +6,6 @@ struct HomeUtilitySection: View {
   @Environment(ThemeManager.self) private var theme
   var onOpenSearch: () -> Void
   var onOpenReports: () -> Void
-  var onOpenFilters: () -> Void
   var onOpenLabels: () -> Void
   var onOpenNotes: () -> Void
 
@@ -35,7 +34,6 @@ struct HomeUtilitySection: View {
       list.append(UtilityEntry(icon: .search, label: "Buscar", action: onOpenSearch))
     }
     list.append(UtilityEntry(icon: .productivity, label: "Relatórios", action: onOpenReports))
-    list.append(UtilityEntry(icon: .navFilters, label: "Filtros", action: onOpenFilters))
     list.append(UtilityEntry(icon: .tag, label: "Etiquetas", action: onOpenLabels))
     list.append(UtilityEntry(icon: .note, label: "Notas", action: onOpenNotes))
     return list

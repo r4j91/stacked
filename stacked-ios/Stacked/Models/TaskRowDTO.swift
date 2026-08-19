@@ -35,6 +35,7 @@ struct SubtaskRowDTO: Decodable {
   let prioridade: String?
   let valor: Double?
   let incluir_fluxo_caixa: Bool?
+  let valor_entrada: Bool?
   let data_vencimento: String?
   let hora: String?
   let deadline: String?
@@ -56,6 +57,7 @@ struct SubtaskRowDTO: Decodable {
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
     valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
     incluir_fluxo_caixa = try c.decodeIfPresent(Bool.self, forKey: .incluir_fluxo_caixa)
+    valor_entrada = try c.decodeIfPresent(Bool.self, forKey: .valor_entrada)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
@@ -63,7 +65,7 @@ struct SubtaskRowDTO: Decodable {
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, valor_entrada, data_vencimento, hora, deadline, label_ids
   }
 }
 

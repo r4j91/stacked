@@ -74,6 +74,7 @@ enum TaskMapper {
       order: row.ordem ?? 0,
       valor: row.valor,
       includeInCashFlow: row.incluir_fluxo_caixa ?? true,
+      isIncome: row.valor_entrada ?? false,
       dueDate: due,
       time: time,
       deadline: deadline,

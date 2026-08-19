@@ -28,6 +28,8 @@ struct SubtaskDetailView: View {
   @State private var moneyStore = MoneyStore.shared
   @State private var includeInCashFlow = true
   @State private var includeInCashFlowReady = false
+  @State private var isIncome = false
+  @State private var isIncomeReady = false
   @State private var saving = false
   @State private var saveError: String?
   @State private var showDatePicker = false
@@ -38,6 +40,7 @@ struct SubtaskDetailView: View {
 
   @State private var showNotesPanel = false
   @State private var notesAnchor: CGRect = .zero
+  @State private var tipoMenuAnchor: CGRect = .zero
 
   @AppStorage(ProductivityPreferences.anchoredDetailNotesKey) private var anchoredDetailNotes = false
 
@@ -73,6 +76,7 @@ struct SubtaskDetailView: View {
     _valorText = State(initialValue: InstallmentGeneratorLogic.editingText(for: subtask.valor))
     _selectedAccountId = State(initialValue: initialAccountId)
     _includeInCashFlow = State(initialValue: subtask.includeInCashFlow)
+    _isIncome = State(initialValue: subtask.isIncome)
   }
 
   var body: some View {
@@ -95,7 +99,7 @@ struct SubtaskDetailView: View {
                 .foregroundStyle(c.textPrimary)
                 .onSubmit { _Concurrency.Task { await flushPending() } }
               if let valor = parsedValor {
-                Text(CurrencyFormat.brl(valor))
+                Text(isIncome ? "+\(CurrencyFormat.brl(valor))" : CurrencyFormat.brl(valor))
                   .font(.system(size: 16, weight: .semibold))
                   .foregroundStyle(c.accent)
                   .monospacedDigit()
@@ -313,6 +317,15 @@ struct SubtaskDetailView: View {
       valorMetaRow
       metaDivider
       metaRow(
+        icon: .valorTipo,
+        title: "Tipo",
+        value: isIncome ? "Entrada" : "Saída",
+        active: true,
+        valueColor: isIncome ? c.accent : nil
+      ) { showTipoMenu(anchor: $0) }
+      .readAnchor($tipoMenuAnchor)
+      metaDivider
+      metaRow(
         icon: .money,
         title: "Conta",
         value: accountLabel,
@@ -418,11 +431,13 @@ struct SubtaskDetailView: View {
     // Preferência já vem da subtarefa; se o select ainda não tinha a coluna, recarrega o pai
     // só para sincronizar o interruptor geral da tarefa (não sobrescreve a subtarefa).
     includeInCashFlowReady = true
+    isIncomeReady = true
     if let refreshed = try? await TaskRepository.shared.fetchTaskById(parentTaskId),
        let sid = persistSubtaskId,
        let match = refreshed.subtasks.first(where: { $0.id == sid })
     {
       includeInCashFlow = match.includeInCashFlow
+      isIncome = match.isIncome
     }
   }
 
@@ -441,6 +456,25 @@ struct SubtaskDetailView: View {
       } catch {
         saveError = error.localizedDescription
         includeInCashFlow = !enabled
+      }
+    }
+  }
+
+  private func setIsIncome(_ enabled: Bool) {
+    isIncome = enabled
+    guard isIncomeReady else { return }
+    _Concurrency.Task {
+      do {
+        try await SubtaskRepository.shared.updateValorEntrada(
+          id: persistSubtaskId,
+          taskId: parentTaskId,
+          order: subtask.order,
+          isIncome: enabled
+        )
+        await MoneyStore.shared.load()
+      } catch {
+        saveError = error.localizedDescription
+        isIncome = !enabled
       }
     }
   }
@@ -546,6 +580,45 @@ struct SubtaskDetailView: View {
       .padding(.vertical, 8)
       .background(c.surfaceVariant)
       .clipShape(Capsule())
+    }
+  }
+
+  private func showTipoMenu(anchor: CGRect) {
+    let waitForKeyboard = valorFieldFocused
+    resignValorField()
+    let items = [
+      PopoverMenuItem(
+        id: "expense",
+        icon: Hugeicons.moneySend01,
+        label: "Saída",
+        selected: !isIncome,
+        iconColor: theme.colors.textTertiary
+      ),
+      PopoverMenuItem(
+        id: "income",
+        icon: Hugeicons.moneyReceive01,
+        label: "Entrada",
+        selected: isIncome,
+        iconColor: theme.colors.accent
+      ),
+    ]
+    let present: () -> Void = {
+      presentAnchoredPopover(
+        anchorRect: tipoMenuAnchor.isValidAnchor ? tipoMenuAnchor : anchor,
+        items: items
+      ) { result in
+        guard let result else { return }
+        switch result {
+        case "income": setIsIncome(true)
+        case "expense": setIsIncome(false)
+        default: break
+        }
+      }
+    }
+    if waitForKeyboard {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: present)
+    } else {
+      present()
     }
   }
 
@@ -656,7 +729,9 @@ struct SubtaskDetailView: View {
       time: currentTimeString,
       deadline: deadline,
       labelIds: selectedLabelIds,
-      valor: parsedValor
+      valor: parsedValor,
+      includeInCashFlow: includeInCashFlow,
+      isIncome: isIncome
     )
   }
 
@@ -693,7 +768,8 @@ struct SubtaskDetailView: View {
           subtaskId: activeId,
           done: newValue,
           valor: parsedValor,
-          title: title.trimmingCharacters(in: .whitespacesAndNewlines)
+          title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+          isIncome: isIncome
         )
         if newValue {
           await NotificationService.shared.cancelSubtaskNotification(id: activeId)

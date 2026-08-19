@@ -798,7 +798,8 @@ struct TaskRow: View {
                       titleColor: done ? c.textTertiary : c.textPrimary,
                       accent: c.accent,
                       done: done,
-                      lineLimit: stabilizeExpandInSelfSizingCell ? 1 : 2
+                      lineLimit: stabilizeExpandInSelfSizingCell ? 1 : 2,
+                      isIncome: sub.isIncome
                     )
                     Spacer(minLength: 4)
                     if taskRowLayout == .default, let timeDisplay = sub.timeDisplay {
@@ -1294,25 +1295,7 @@ struct TaskRow: View {
   }
 
   private func subtaskWithDone(_ sub: Subtask, done: Bool) -> Subtask {
-    Subtask(
-      id: sub.id,
-      taskId: sub.taskId,
-      title: sub.title,
-      description: sub.description,
-      done: done,
-      priority: sub.priority,
-      order: sub.order,
-      valor: sub.valor,
-      dueDate: sub.dueDate,
-      time: sub.time,
-      deadline: sub.deadline,
-      dueDateChipLabel: sub.dueDateChipLabel,
-      dueDateChipColor: sub.dueDate.map { TaskMapper.dateColor(for: $0, done: done) } ?? sub.dueDateChipColor,
-      deadlineChipLabel: sub.deadlineChipLabel,
-      deadlineChipColor: sub.deadline.map { TaskMapper.deadlineColor(for: $0, done: done) } ?? sub.deadlineChipColor,
-      timeDisplay: sub.timeDisplay,
-      labelIds: sub.labelIds
-    )
+    sub.withDone(done)
   }
 
   private func toggleSubtask(at index: Int, sub: Subtask) {
@@ -1349,7 +1332,8 @@ struct TaskRow: View {
           taskId: sub.taskId,
           order: sub.order,
           done: newDone,
-          title: sub.title
+          title: sub.title,
+          isIncome: sub.isIncome
         )
       } catch {
         // Reverte store + UI se o backend falhar.
@@ -1425,7 +1409,9 @@ struct TaskRow: View {
       time: sub.time,
       deadline: sub.deadline,
       labelIds: sub.labelIds,
-      valor: sub.valor
+      valor: sub.valor,
+      includeInCashFlow: sub.includeInCashFlow,
+      isIncome: sub.isIncome
     )
   }
 

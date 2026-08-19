@@ -178,7 +178,7 @@ struct FiltersView: View {
 
     return List {
       Section {
-        ScreenHeader(title: "Filtros", subtitle: NavTab.filters.subtitle)
+        ScreenHeader(title: "Filtros", subtitle: "Visão geral das suas tarefas")
           .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)

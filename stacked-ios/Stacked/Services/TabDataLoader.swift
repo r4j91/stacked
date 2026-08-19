@@ -16,8 +16,8 @@ enum TabDataLoader {
       await TaskStore.shared.loadInbox()
     case .upcoming:
       await UpcomingStore.shared.load()
-    case .filters:
-      await FiltersStore.shared.loadDashboard()
+    case .money:
+      await MoneyStore.shared.load()
     }
     TabRefreshPolicy.markLoaded(tab)
     NetLog.record(
@@ -30,7 +30,7 @@ enum TabDataLoader {
 
   /// Ordem de prefetch após a aba inicial — uso típico do app.
   static func prefetchOrder(excluding priority: NavTab) -> [NavTab] {
-    let typical: [NavTab] = [.today, .inbox, .upcoming, .filters, .home]
+    let typical: [NavTab] = [.today, .inbox, .upcoming, .money, .home]
     return typical.filter { $0 != priority }
   }
 }
@@ -93,15 +93,13 @@ struct QuickAddSaveSummary: Sendable {
   }
 }
 
-/// Atualiza contagens globais (Home + Filtros) sem recarregar listas inteiras.
+/// Atualiza contagens globais (Home) sem recarregar listas inteiras.
 @MainActor
 enum GlobalDataRefresh {
   private static var refreshTask: _Concurrency.Task<Void, Never>?
 
   static func refreshDashboardCounts() async {
-    async let home: Void = HomeStore.shared.refreshCounts()
-    async let filters: Void = FiltersStore.shared.refreshDashboardCounts()
-    _ = await (home, filters)
+    await HomeStore.shared.refreshCounts()
   }
 
   /// Chips “Hoje”/atrasada memoizados — refreshing sem refetch ao voltar ao app.
@@ -113,7 +111,7 @@ enum GlobalDataRefresh {
 
   static func afterTaskMutation(invalidateTabs tabs: [NavTab] = []) {
     TabRefreshPolicy.invalidate(.home)
-    TabRefreshPolicy.invalidate(.filters)
+    TabRefreshPolicy.invalidate(.money)
     for tab in tabs {
       TabRefreshPolicy.invalidate(tab)
     }

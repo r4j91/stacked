@@ -41,7 +41,7 @@ final class AppNavigationRouter {
     case "today": open(tab: .today)
     case "inbox": open(tab: .inbox)
     case "upcoming": open(tab: .upcoming)
-    case "filters": open(tab: .filters)
+    case "filters", "money": open(tab: .money)
     case "home", "navigate": open(tab: .home)
     case "search": openSearch()
     case "notes": openNotes()

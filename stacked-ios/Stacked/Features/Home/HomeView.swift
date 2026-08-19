@@ -6,7 +6,6 @@ struct HomeView: View {
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.isTabActive) private var isTabActive
   var onNavigateToTab: (NavTab) -> Void
-  var onOpenFilter: (TaskFilterKind) -> Void
 
   @State private var store = HomeStore.shared
   @State private var selectedProject: ProjectRoute?
@@ -18,12 +17,16 @@ struct HomeView: View {
   @State private var showSearch = false
   @State private var showLabels = false
   @State private var showNotes = false
-  @State private var showMoney = false
+  @State private var presetFilterRoute: TaskFilterKind?
+  @State private var filterDetailRoute: TaskDetailRoute?
+  @State private var filterSubtaskDetailRoute: SubtaskDetailRoute?
+  @Namespace private var filterTaskDetailZoom
   @State private var projectOptions: ProjectRoute?
   @State private var projectsEditMode: EditMode = .inactive
   @State private var router = AppNavigationRouter.shared
   @AppStorage(HomeHeroStyleStorage.key) private var homeHeroStyleRaw = HomeHeroStyleStorage.defaultRawValue
   @AppStorage(HomeTopCardStorage.key) private var topCardEnabled = HomeTopCardStorage.defaultEnabled
+  @AppStorage(HomeMoneyOnHomeStorage.key) private var homeMoneyOnHome = HomeMoneyOnHomeStorage.defaultEnabled
 
   private var homeHeroStyle: HomeHeroStyle {
     HomeHeroStyleStorage.style(from: homeHeroStyleRaw)
@@ -38,20 +41,21 @@ struct HomeView: View {
           HomeHeroSection(
             style: homeHeroStyle,
             store: store,
-            onOpenFilter: onOpenFilter,
+            onOpenFilter: openPresetFilter,
             onRetry: { _Concurrency.Task { await store.load() } }
           )
         } else {
           HomeUtilitySection(
             onOpenSearch: { showSearch = true },
             onOpenReports: { showProductivity = true },
-            onOpenFilters: { onNavigateToTab(.filters) },
             onOpenLabels: { showLabels = true },
             onOpenNotes: { showNotes = true }
           )
         }
-        HomeOverviewSection(onNavigateToTab: onNavigateToTab, onOpenFilter: onOpenFilter)
-        HomeMoneySection(onOpen: { showMoney = true })
+        HomeOverviewSection(onNavigateToTab: onNavigateToTab, onOpenFilter: openPresetFilter)
+        if homeMoneyOnHome {
+          HomeMoneySection(onOpen: { onNavigateToTab(.money) })
+        }
         HomeProjectsSection(
           selectedProject: $selectedProject,
           showNewProject: $showNewProject,
@@ -122,14 +126,53 @@ struct HomeView: View {
         )
         .environment(ThemeManager.shared)
       }
+      .navigationDestination(item: $presetFilterRoute) { kind in
+        PresetFilterResultsScreen(
+          kind: kind,
+          taskDetailNamespace: filterTaskDetailZoom,
+          activeZoomTaskId: filterDetailRoute?.taskId,
+          onTaskTap: { filterDetailRoute = TaskDetailRoute(task: $0) },
+          onSubtaskTap: { filterSubtaskDetailRoute = $0 }
+        )
+      }
       .navigationDestination(isPresented: $showLabels) {
         LabelsManagementView().environment(ThemeManager.shared)
       }
       .navigationDestination(isPresented: $showNotes) {
         NotesBoardView().environment(ThemeManager.shared)
       }
-      .navigationDestination(isPresented: $showMoney) {
-        MoneyView().environment(ThemeManager.shared)
+    }
+    .taskDetailCover(item: $filterDetailRoute, namespace: filterTaskDetailZoom, onDismiss: {
+      _Concurrency.Task {
+        if case .presetFilter(let kind) = FiltersStore.shared.mode {
+          await FiltersStore.shared.openFilter(kind)
+        }
+        await store.refreshCounts()
+      }
+    }) { route in
+      TaskDetailView(taskId: route.taskId, seed: route.seed)
+        .environment(ThemeManager.shared)
+    }
+    .sheet(item: $filterSubtaskDetailRoute) { route in
+      SubtaskDetailView(subtask: route.subtask, parentTaskId: route.parentTaskId) { snapshot in
+        await SubtaskSaveHandler.handle(snapshot, patch: FiltersStore.shared.applySubtaskPatch) {
+          if case .presetFilter(let kind) = FiltersStore.shared.mode {
+            await FiltersStore.shared.openFilter(kind)
+          }
+          await store.refreshCounts()
+        }
+      }
+      .environment(ThemeManager.shared)
+    }
+    .onChange(of: presetFilterRoute) { _, route in
+      if route == nil, case .presetFilter = FiltersStore.shared.mode {
+        _Concurrency.Task {
+          await NavigationPushMotion.awaitSettle()
+          guard presetFilterRoute == nil else { return }
+          await NavigationPushMotion.afterSettle {
+            FiltersStore.shared.backToDashboard()
+          }
+        }
       }
     }
     .toolbarBackground(.hidden, for: .navigationBar)
@@ -183,6 +226,15 @@ struct HomeView: View {
     _Concurrency.Task {
       await store.refreshCounts()
       await MoneyStore.shared.load()
+    }
+  }
+
+  private func openPresetFilter(_ kind: TaskFilterKind) {
+    HapticService.selection()
+    FiltersStore.shared.preparePresetFilterSession(kind)
+    presetFilterRoute = kind
+    _Concurrency.Task {
+      await FiltersStore.shared.openFilter(kind)
     }
   }
 

@@ -33,6 +33,7 @@ function mapSubtask(row: DbRow): Subtask {
     labelIds: labelIds?.length ? labelIds : undefined,
     valor: row.valor != null && Number.isFinite(Number(row.valor)) ? Number(row.valor) : null,
     includeInCashFlow: row.incluir_fluxo_caixa !== false,
+    isIncome: row.valor_entrada === true,
   };
 }
 

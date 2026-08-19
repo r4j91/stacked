@@ -63,7 +63,8 @@ struct PopoverHostScope: ViewModifier {
             GeometryReader { geo in
               PopoverOverlayHost(
                 presenter: presenter,
-                hostBounds: geo.frame(in: .named(coordinateSpaceName))
+                hostBounds: geo.frame(in: .named(coordinateSpaceName)),
+                chromeTopInset: max(56, geo.safeAreaInsets.top)
               )
             }
           }

@@ -17,7 +17,14 @@ final class SubtaskRepository {
   private var client: SupabaseClient { SupabaseService.client }
   private init() {}
 
-  func toggleDone(id: String?, taskId: String?, order: Int, done: Bool, title: String? = nil) async throws {
+  func toggleDone(
+    id: String?,
+    taskId: String?,
+    order: Int,
+    done: Bool,
+    title: String? = nil,
+    isIncome: Bool = false
+  ) async throws {
     struct Payload: Encodable {
       let concluida: Bool
       let data_conclusao: String?
@@ -27,11 +34,17 @@ final class SubtaskRepository {
       data_conclusao: done ? TaskMapper.isoTimestamp(Date()) : nil
     )
     let resolved = try await persistSubtask(id: id, taskId: taskId, order: order, payload: payload)
-    MoneyStore.shared.handleToggleDone(subtaskId: resolved ?? id, done: done, valor: nil, title: title)
+    MoneyStore.shared.handleToggleDone(
+      subtaskId: resolved ?? id,
+      done: done,
+      valor: nil,
+      title: title,
+      isIncome: isIncome
+    )
   }
 
-  func toggleDone(id: String, done: Bool) async throws {
-    try await toggleDone(id: id, taskId: nil, order: 0, done: done)
+  func toggleDone(id: String, done: Bool, isIncome: Bool = false) async throws {
+    try await toggleDone(id: id, taskId: nil, order: 0, done: done, isIncome: isIncome)
   }
 
   /// Paridade lib/services/subtask_repository.dart — id ou task_id+ordem.
@@ -227,6 +240,16 @@ final class SubtaskRepository {
     )
   }
 
+  func updateValorEntrada(id: String?, taskId: String?, order: Int, isIncome: Bool) async throws {
+    struct Payload: Encodable { let valor_entrada: Bool }
+    try await persistSubtask(
+      id: id,
+      taskId: taskId,
+      order: order,
+      payload: Payload(valor_entrada: isIncome)
+    )
+  }
+
   func updateDescription(id: String?, taskId: String?, order: Int, description: String?) async throws {
     struct Payload: Encodable { let descricao: String? }
     do {
@@ -258,7 +281,7 @@ final class SubtaskRepository {
     """
 
   private static let scheduleSubtaskSelect = """
-    id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids, task_id,
+    id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, valor_entrada, data_vencimento, hora, deadline, label_ids, task_id,
     tasks ( \(scheduleParentSelect) )
     """
 
@@ -450,6 +473,7 @@ final class SubtaskRepository {
         order: row.ordem ?? 0,
         valor: row.valor,
         includeInCashFlow: row.incluir_fluxo_caixa ?? true,
+        isIncome: row.valor_entrada ?? false,
         dueDate: due,
         time: row.hora,
         deadline: deadline,
@@ -474,6 +498,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
   let prioridade: String?
   let valor: Double?
   let incluir_fluxo_caixa: Bool?
+  let valor_entrada: Bool?
   let data_vencimento: String?
   let hora: String?
   let deadline: String?
@@ -496,6 +521,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
     prioridade = try c.decodeIfPresent(String.self, forKey: .prioridade)
     valor = InstallmentGeneratorLogic.decodeValor(c, forKey: .valor)
     incluir_fluxo_caixa = try c.decodeIfPresent(Bool.self, forKey: .incluir_fluxo_caixa)
+    valor_entrada = try c.decodeIfPresent(Bool.self, forKey: .valor_entrada)
     data_vencimento = try c.decodeIfPresent(String.self, forKey: .data_vencimento)
     hora = try c.decodeIfPresent(String.self, forKey: .hora)
     deadline = try c.decodeIfPresent(String.self, forKey: .deadline)
@@ -504,7 +530,7 @@ private struct ScheduledSubtaskRowDTO: Decodable {
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, data_vencimento, hora, deadline, label_ids, tasks
+    case id, titulo, descricao, concluida, ordem, prioridade, valor, incluir_fluxo_caixa, valor_entrada, data_vencimento, hora, deadline, label_ids, tasks
   }
 }
 

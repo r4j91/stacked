@@ -400,25 +400,7 @@ final class TaskDetailViewModel {
     guard let i = subtasks.firstIndex(where: { $0.id == id }) else { return }
     let newDone = !subtask.done
 
-    subtasks[i] = Subtask(
-      id: subtask.id,
-      taskId: subtask.taskId,
-      title: subtask.title,
-      description: subtask.description,
-      done: newDone,
-      priority: subtask.priority,
-      order: subtask.order,
-      valor: subtask.valor,
-      dueDate: subtask.dueDate,
-      time: subtask.time,
-      deadline: subtask.deadline,
-      dueDateChipLabel: subtask.dueDateChipLabel,
-      dueDateChipColor: subtask.dueDate.map { TaskMapper.dateColor(for: $0, done: newDone) },
-      deadlineChipLabel: subtask.deadlineChipLabel,
-      deadlineChipColor: subtask.deadline.map { TaskMapper.deadlineColor(for: $0, done: newDone) },
-      timeDisplay: subtask.timeDisplay,
-      labelIds: subtask.labelIds
-    )
+    subtasks[i] = subtask.withDone(newDone)
 
     subtaskReorderTask?.cancel()
     subtaskReorderTask = _Concurrency.Task { @MainActor [weak self] in
@@ -444,7 +426,7 @@ final class TaskDetailViewModel {
         }
       }
 
-      try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone)
+      try? await SubtaskRepository.shared.toggleDone(id: id, done: newDone, isIncome: subtask.isIncome)
       if newDone {
         TaskCalendarSync.remove(subtaskId: id)
       } else if let synced = self.subtasks.first(where: { $0.id == id }) {

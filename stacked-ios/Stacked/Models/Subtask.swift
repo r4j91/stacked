@@ -13,6 +13,8 @@ struct Subtask: Identifiable, Equatable {
   let valor: Double?
   /// Se false, esta subtarefa fica fora do fluxo de caixa (respeita também a tarefa-pai).
   var includeInCashFlow: Bool = true
+  /// Se true, o valor entra em A receber (e no fluxo como entrada). Default: saída / A pagar.
+  var isIncome: Bool = false
   let dueDate: Date?
   let time: String?
   /// Prazo final — independente de dueDate.
@@ -30,6 +32,30 @@ struct Subtask: Identifiable, Equatable {
     if let id, !id.isEmpty { return id }
     if let taskId { return "\(taskId):\(order)" }
     return "sub-\(order)-\(title)"
+  }
+
+  func withDone(_ newDone: Bool) -> Subtask {
+    Subtask(
+      id: id,
+      taskId: taskId,
+      title: title,
+      description: description,
+      done: newDone,
+      priority: priority,
+      order: order,
+      valor: valor,
+      includeInCashFlow: includeInCashFlow,
+      isIncome: isIncome,
+      dueDate: dueDate,
+      time: time,
+      deadline: deadline,
+      dueDateChipLabel: dueDateChipLabel,
+      dueDateChipColor: dueDate.map { TaskMapper.dateColor(for: $0, done: newDone) } ?? dueDateChipColor,
+      deadlineChipLabel: deadlineChipLabel,
+      deadlineChipColor: deadline.map { TaskMapper.deadlineColor(for: $0, done: newDone) } ?? deadlineChipColor,
+      timeDisplay: timeDisplay,
+      labelIds: labelIds
+    )
   }
 
   // PERF_FASEB2_ETAPA4:

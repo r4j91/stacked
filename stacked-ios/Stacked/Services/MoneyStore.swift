@@ -8,9 +8,14 @@ final class MoneyStore {
 
   private(set) var dueItems: [MoneyDueItem] = []
   private(set) var completedItems: [MoneyDueItem] = []
+  private(set) var receivableItems: [MoneyDueItem] = []
+  private(set) var completedReceivableItems: [MoneyDueItem] = []
   private(set) var monthItems: [MoneyDueItem] = []
+  private(set) var monthReceivableItems: [MoneyDueItem] = []
   private(set) var monthGroups: [MoneyMonthGroup] = []
+  private(set) var receivableMonthGroups: [MoneyMonthGroup] = []
   private(set) var dueOutline: [MoneyDueOutline] = []
+  private(set) var receivableOutline: [MoneyDueOutline] = []
   private(set) var installments: [MoneyInstallmentGroup] = []
   private(set) var accounts: [MoneyAccount] = []
   private(set) var isLoading = false
@@ -33,6 +38,25 @@ final class MoneyStore {
       parts.append(credit)
     }
     return parts.joined(separator: " · ")
+  }
+
+  /// Saldo líquido (corrente + dinheiro). Cartão não entra.
+  var liquidBalance: Double {
+    accounts
+      .filter { $0.kind == .checking || $0.kind == .cash }
+      .reduce(0) { $0 + $1.balance }
+  }
+
+  /// Saldo atual menos a pagar do mês e faturas que vencem neste mês.
+  var projectedLeftover: Double {
+    liquidBalance - monthTotal - openInvoiceTotal
+  }
+
+  var accountsSubtitle: String {
+    if !accounts.contains(where: { $0.kind == .checking || $0.kind == .cash }) {
+      return "Nenhuma conta"
+    }
+    return "Sobra projetada \(CurrencyFormat.brl(projectedLeftover))"
   }
 
   var openInvoiceTotal: Double {
@@ -99,15 +123,25 @@ final class MoneyStore {
   func resetForSignOut() {
     dueItems = []
     completedItems = []
+    receivableItems = []
+    completedReceivableItems = []
     monthItems = []
+    monthReceivableItems = []
     monthGroups = []
+    receivableMonthGroups = []
     dueOutline = []
+    receivableOutline = []
     installments = []
     accounts = []
     obligationLinks = [:]
     ledger = []
     isLoading = false
     error = nil
+    if let userId = SupabaseService.client.auth.currentUser?.id {
+      UserDefaults.standard.removeObject(forKey: Self.accountsKey(userId))
+      UserDefaults.standard.removeObject(forKey: Self.linksKey(userId))
+      UserDefaults.standard.removeObject(forKey: Self.ledgerKey(userId))
+    }
   }
 
   func load() async {
@@ -122,16 +156,21 @@ final class MoneyStore {
       postInstallmentsToOpenInvoice()
       async let pendingReq = SubtaskRepository.shared.fetchPendingValorEntries()
       async let completedReq = SubtaskRepository.shared.fetchCompletedValorEntries()
-      let entries = try await pendingReq
+      let pendingEntries = try await pendingReq
       let completedEntries = try await completedReq
-      dueItems = entries.compactMap(Self.dueItem(from:)).sorted(by: Self.sortDue)
-      completedItems = completedEntries.compactMap(Self.dueItem(from:)).sorted(by: Self.sortDue)
+      let pending = pendingEntries.compactMap(Self.dueItem(from:))
+      let completed = completedEntries.compactMap(Self.dueItem(from:))
+      dueItems = pending.filter { !$0.isIncome }.sorted(by: Self.sortDue)
+      receivableItems = pending.filter(\.isIncome).sorted(by: Self.sortDue)
+      completedItems = completed.filter { !$0.isIncome }.sorted(by: Self.sortDue)
+      completedReceivableItems = completed.filter(\.isIncome).sorted(by: Self.sortDue)
       monthItems = dueItems.filter(Self.isInCurrentMonth)
+      monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
       rebuildDueGroups()
 
       let parentIds = Array(
         Set(
-          entries.compactMap { entry -> String? in
+          pendingEntries.compactMap { entry -> String? in
             guard InstallmentProgress.isInstallmentTitle(entry.subtask.title) else { return nil }
             return entry.parent.id
           }
@@ -543,7 +582,7 @@ final class MoneyStore {
     }
 
     let dueGroup = monthGroups.first { $0.id == monthId }
-    for item in dueGroup?.items ?? [] {
+    for item in (dueGroup?.items ?? []) + pendingReceivables(in: monthId) {
       guard item.parent.includeInCashFlow, item.subtask.includeInCashFlow else { continue }
       let due = item.dueDate ?? monthStart
       guard due >= monthStart && due < monthEnd else { continue }
@@ -552,9 +591,12 @@ final class MoneyStore {
           id: "due-\(item.id)",
           date: due,
           title: item.title,
-          subtitle: [item.projectName, "a pagar"].filter { !$0.isEmpty }.joined(separator: " · ").moneyNilIfEmpty,
-          amount: -item.valor,
-          kind: .obligation,
+          subtitle: [
+            item.projectName,
+            item.isIncome ? "a receber" : "a pagar",
+          ].filter { !$0.isEmpty }.joined(separator: " · ").moneyNilIfEmpty,
+          amount: item.isIncome ? item.valor : -item.valor,
+          kind: item.isIncome ? .income : .obligation,
           affectsCash: true,
           isProjected: true,
           dayLabel: item.dueLabel
@@ -587,7 +629,7 @@ final class MoneyStore {
       return $0.title.localizedStandardCompare($1.title) == .orderedAscending
     }
 
-    let income = built.filter { $0.affectsCash && $0.kind == .income }.reduce(0) { $0 + $1.amount }
+    let income = built.filter { $0.affectsCash && $0.kind == .income && !$0.isProjected }.reduce(0) { $0 + $1.amount }
     let expense = built
       .filter { $0.affectsCash && $0.kind == .expense && !$0.isProjected }
       .reduce(0) { $0 + abs($1.amount) }
@@ -595,8 +637,11 @@ final class MoneyStore {
       .filter { $0.affectsCash && $0.kind == .transfer }
       .reduce(0) { $0 + $1.amount }
     let projectedOut = built
-      .filter { $0.affectsCash && $0.isProjected }
+      .filter { $0.affectsCash && $0.isProjected && $0.amount < 0 }
       .reduce(0) { $0 + abs($1.amount) }
+    let projectedIn = built
+      .filter { $0.affectsCash && $0.isProjected && $0.amount > 0 }
+      .reduce(0) { $0 + $1.amount }
     let cardPurchases = built
       .filter { $0.kind == .cardPurchase }
       .reduce(0) { $0 + abs($1.amount) }
@@ -614,14 +659,17 @@ final class MoneyStore {
     for meta in weeksMeta {
       let weekLines = built.filter { $0.date >= meta.start && $0.date < meta.end }
       let weekIncome = weekLines
-        .filter { $0.affectsCash && $0.kind == .income }
+        .filter { $0.affectsCash && $0.kind == .income && !$0.isProjected }
         .reduce(0) { $0 + $1.amount }
       let weekExpense = weekLines
         .filter { $0.affectsCash && ($0.kind == .expense || $0.kind == .transfer) && !$0.isProjected && $0.amount < 0 }
         .reduce(0) { $0 + abs($1.amount) }
       let weekProjected = weekLines
-        .filter { $0.affectsCash && $0.isProjected }
+        .filter { $0.affectsCash && $0.isProjected && $0.amount < 0 }
         .reduce(0) { $0 + abs($1.amount) }
+      let weekProjectedIn = weekLines
+        .filter { $0.affectsCash && $0.isProjected && $0.amount > 0 }
+        .reduce(0) { $0 + $1.amount }
       let weekDelta = weekLines
         .filter(\.affectsCash)
         .reduce(0) { $0 + $1.amount }
@@ -640,6 +688,7 @@ final class MoneyStore {
           income: weekIncome,
           expense: weekExpense,
           projectedOut: weekProjected,
+          projectedIn: weekProjectedIn,
           closing: weekClosing
         )
       )
@@ -658,6 +707,7 @@ final class MoneyStore {
       expense: expense,
       transferNet: transferNet,
       projectedOut: projectedOut,
+      projectedIn: projectedIn,
       cardPurchases: cardPurchases,
       closingRealized: opening + realizedDelta,
       closingProjected: opening + projectedDelta
@@ -727,18 +777,25 @@ final class MoneyStore {
     persistLinks()
   }
 
-  /// Concluir desconta o valor da conta ligada; desfazer devolve e tira a linha do extrato.
-  func handleToggleDone(subtaskId: String?, done: Bool, valor: Double?, title: String? = nil) {
+  /// Concluir desconta (saída) ou soma (entrada) na conta ligada; desfazer reverte o extrato.
+  func handleToggleDone(
+    subtaskId: String?,
+    done: Bool,
+    valor: Double?,
+    title: String? = nil,
+    isIncome: Bool = false
+  ) {
     guard let subtaskId else { return }
+    let income = isIncome || obligationIsIncome(subtaskId)
     if let link = obligationLinks[subtaskId] {
       let amount = (valor ?? link.valor)
       if amount > 0 {
-        applyAccountDelta(accountId: link.accountId, amount: amount, reverse: !done)
+        applyAccountDelta(accountId: link.accountId, amount: amount, reverse: income ? done : !done)
         if done {
           appendLedger(
             accountId: link.accountId,
             amount: amount,
-            isIncome: false,
+            isIncome: income,
             title: title,
             subtaskId: subtaskId
           )
@@ -751,7 +808,9 @@ final class MoneyStore {
     }
     let tracked = obligationLinks[subtaskId] != nil
       || dueItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
+      || receivableItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
       || completedItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
+      || completedReceivableItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
     guard tracked else { return }
     if done {
       moveDueItemToCompleted(subtaskId: subtaskId)
@@ -760,17 +819,35 @@ final class MoneyStore {
     }
   }
 
+  private func obligationIsIncome(_ subtaskId: String) -> Bool {
+    let match: (MoneyDueItem) -> Bool = { $0.subtask.id == subtaskId || $0.id == subtaskId }
+    return dueItems.first(where: match)?.isIncome
+      ?? receivableItems.first(where: match)?.isIncome
+      ?? completedItems.first(where: match)?.isIncome
+      ?? completedReceivableItems.first(where: match)?.isIncome
+      ?? false
+  }
+
   private func moveDueItemToCompleted(subtaskId: String) {
-    guard let item = dueItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) else {
-      _Concurrency.Task { await load() }
+    if let item = dueItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
+      dueItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+      completedItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
+      completedItems.append(item)
+      completedItems.sort(by: Self.sortDue)
+      monthItems = dueItems.filter(Self.isInCurrentMonth)
+      rebuildDueGroups()
       return
     }
-    dueItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
-    completedItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
-    completedItems.append(item)
-    completedItems.sort(by: Self.sortDue)
-    monthItems = dueItems.filter(Self.isInCurrentMonth)
-    rebuildDueGroups()
+    if let item = receivableItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
+      receivableItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+      completedReceivableItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
+      completedReceivableItems.append(item)
+      completedReceivableItems.sort(by: Self.sortDue)
+      monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
+      rebuildDueGroups()
+      return
+    }
+    _Concurrency.Task { await load() }
   }
 
   private func moveCompletedItemToDue(subtaskId: String) {
@@ -783,12 +860,30 @@ final class MoneyStore {
       rebuildDueGroups()
       return
     }
+    if let item = completedReceivableItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
+      completedReceivableItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+      receivableItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
+      receivableItems.append(item)
+      receivableItems.sort(by: Self.sortDue)
+      monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
+      rebuildDueGroups()
+      return
+    }
     _Concurrency.Task { await load() }
   }
 
   private func rebuildDueGroups() {
     monthGroups = Self.groupedByMonth(pending: dueItems, completed: completedItems)
     dueOutline = Self.outline(from: monthGroups)
+    receivableMonthGroups = Self.prefixed(
+      Self.groupedByMonth(pending: receivableItems, completed: completedReceivableItems),
+      prefix: "recv-"
+    )
+    receivableOutline = Self.outline(from: receivableMonthGroups)
+  }
+
+  private func pendingReceivables(in monthId: String) -> [MoneyDueItem] {
+    receivableMonthGroups.first { $0.calendarMonthId == monthId }?.items ?? []
   }
 
   private func currentAmount(_ account: MoneyAccount) -> Double {
@@ -1111,36 +1206,34 @@ final class MoneyStore {
 
   private func mergeRemoteMoney() async {
     do {
-      if !accounts.isEmpty {
-        try await MoneyRepository.upsertAccounts(accounts)
-      }
-      if !ledger.isEmpty {
-        try await MoneyRepository.upsertLedger(ledger)
-      }
-      if !obligationLinks.isEmpty {
-        try await MoneyRepository.upsertLinks(obligationLinks)
-      }
-
+      // Remoto primeiro — cache local (UserDefaults) é por aparelho; empurrar local
+      // antes do fetch sobrescrevia Supabase com snapshot velho do simulador.
       let remote = try await MoneyRepository.fetchSnapshot()
-      let remoteAccountIds = Set(remote.accounts.compactMap { UUID(uuidString: $0.id) })
-      let localOnlyAccounts = accounts.filter { account in
-        guard let id = UUID(uuidString: account.id) else { return true }
-        return !remoteAccountIds.contains(id)
-      }
+
+      let remoteAccountIds = Set(remote.accounts.map(\.id))
+      let localOnlyAccounts = accounts.filter { !remoteAccountIds.contains($0.id) }
       accounts = remote.accounts + localOnlyAccounts
 
-      let remoteLedgerIds = Set(remote.ledger.compactMap { UUID(uuidString: $0.id) })
-      let localOnlyLedger = ledger.filter { entry in
-        guard let id = UUID(uuidString: entry.id) else { return true }
-        return !remoteLedgerIds.contains(id)
-      }
+      let remoteLedgerIds = Set(remote.ledger.map(\.id))
+      let localOnlyLedger = ledger.filter { !remoteLedgerIds.contains($0.id) }
       ledger = (remote.ledger + localOnlyLedger).sorted { $0.date < $1.date }
 
       var mergedLinks = remote.links
       for (id, link) in obligationLinks where mergedLinks[id] == nil {
         mergedLinks[id] = link
       }
+      let localOnlyLinks = mergedLinks.filter { remote.links[$0.key] == nil }
       obligationLinks = mergedLinks
+
+      if !localOnlyAccounts.isEmpty {
+        try await MoneyRepository.upsertAccounts(localOnlyAccounts)
+      }
+      if !localOnlyLedger.isEmpty {
+        try await MoneyRepository.upsertLedger(localOnlyLedger)
+      }
+      if !localOnlyLinks.isEmpty {
+        try await MoneyRepository.upsertLinks(localOnlyLinks)
+      }
 
       relinkOrphanCards()
       persistAccountsCache()
@@ -1183,7 +1276,8 @@ final class MoneyStore {
       dueLabel: dueLabel,
       projectName: entry.parent.project,
       parent: entry.parent,
-      subtask: entry.subtask
+      subtask: entry.subtask,
+      isIncome: entry.subtask.isIncome
     )
   }
 
@@ -1240,6 +1334,18 @@ final class MoneyStore {
     }
   }
 
+  private static func prefixed(_ groups: [MoneyMonthGroup], prefix: String) -> [MoneyMonthGroup] {
+    groups.map {
+      MoneyMonthGroup(
+        id: prefix + $0.id,
+        title: $0.title,
+        year: $0.year,
+        items: $0.items,
+        completedItems: $0.completedItems
+      )
+    }
+  }
+
   private static func monthBuckets(
     from items: [MoneyDueItem]
   ) -> [String: (title: String, year: Int?, items: [MoneyDueItem])] {
@@ -1274,7 +1380,7 @@ final class MoneyStore {
     var undated: MoneyMonthGroup?
 
     for group in months {
-      if group.id == "undated" {
+      if group.calendarMonthId == "undated" {
         undated = group
       } else if let year = group.year {
         byYear[year, default: []].append(group)

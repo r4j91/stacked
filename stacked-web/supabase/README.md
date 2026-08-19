@@ -9,7 +9,7 @@ Projeto: `gbpoenvogrcqhcqfjldd` · compartilhado entre **stacked-web** e **stack
 | `projects` | Projetos do usuário |
 | `sections` | Seções dentro de um projeto |
 | `tasks` | Tarefas (`data_vencimento` date, `hora` time, `deadline` date, `data_conclusao` timestamptz, `incluir_fluxo_caixa` bool) |
-| `subtasks` | Subtarefas (`data_vencimento` timestamptz, `hora` text, `deadline` date) |
+| `subtasks` | Subtarefas (`data_vencimento` timestamptz, `hora` text, `deadline` date, `incluir_fluxo_caixa` bool, `valor_entrada` bool) |
 | `task_attachments` | Metadados de anexos (imagem/PDF); arquivos no Storage |
 | `labels` | Etiquetas |
 | `task_labels` | Vínculo tarefa ↔ etiqueta |

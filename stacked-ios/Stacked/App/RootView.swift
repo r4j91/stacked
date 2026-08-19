@@ -92,7 +92,7 @@ struct RootView: View {
       TabRefreshPolicy.invalidate()
       _Concurrency.Task {
         await HomeStore.shared.load()
-        await FiltersStore.shared.loadDashboard()
+        await MoneyStore.shared.load()
       }
     }
     .sheet(item: $noteEditorRoute) { route in
@@ -235,7 +235,7 @@ struct RootView: View {
       await TabDataLoader.load(.inbox)
       await TabDataLoader.load(.upcoming)
       await TabDataLoader.load(.home)
-      await TabDataLoader.load(.filters)
+      await TabDataLoader.load(.money)
     }
   }
 }
@@ -250,18 +250,16 @@ struct RootTabContent: View {
   var body: some View {
     ZStack {
       preservedTab(.home) {
-        HomeView(
-          onNavigateToTab: { chrome.selectTab($0) },
-          onOpenFilter: { kind in
-            FiltersStore.shared.requestPresetFilterNavigation(kind)
-            chrome.selectTab(.filters)
-          }
-        )
+        HomeView(onNavigateToTab: { chrome.selectTab($0) })
       }
       preservedTab(.inbox) { InboxView() }
       preservedTab(.today) { TodayView() }
       preservedTab(.upcoming) { UpcomingView() }
-      preservedTab(.filters) { FiltersView() }
+      preservedTab(.money) {
+        NavigationStack {
+          MoneyView().environment(ThemeManager.shared)
+        }
+      }
     }
     .stackedThemeBackground(theme)
   }

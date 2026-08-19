@@ -201,7 +201,7 @@ final class UpcomingStore {
     HapticService.taskCompleted()
 
     _Concurrency.Task {
-      try? await SubtaskRepository.shared.toggleDone(id: subId, done: true)
+      try? await SubtaskRepository.shared.toggleDone(id: subId, done: true, isIncome: entry.subtask.isIncome)
       await NotificationService.shared.cancelSubtaskNotification(id: subId)
       TaskCalendarSync.remove(subtaskId: subId)
       applySubtaskPatch(SubtaskSaveSnapshot(
@@ -216,7 +216,9 @@ final class UpcomingStore {
         time: entry.subtask.time,
         deadline: entry.subtask.deadline,
         labelIds: entry.subtask.labelIds,
-        valor: entry.subtask.valor
+        valor: entry.subtask.valor,
+        includeInCashFlow: entry.subtask.includeInCashFlow,
+        isIncome: entry.subtask.isIncome
       ))
       GlobalDataRefresh.afterTaskMutation(invalidateTabs: [.upcoming])
     }

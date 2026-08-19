@@ -10,6 +10,7 @@ enum StackedIcons {
     case .navToday: Hugeicons.calendar02
     case .navUpcoming: Hugeicons.calendar03
     case .navFilters: Hugeicons.filterHorizontal
+    case .navMoney: Hugeicons.wallet01
     case .settings: Hugeicons.settings01
     case .notifications: Hugeicons.notification01
     case .search: Hugeicons.search01
@@ -46,7 +47,9 @@ enum StackedIcons {
     case .attachment: Hugeicons.attachment01
     case .money: Hugeicons.money01
     case .cashFlow: Hugeicons.chart01
+    case .valorTipo: Hugeicons.arrowDataTransferVertical
     case .arrowUp: Hugeicons.arrowUp01
+    case .arrowDown: Hugeicons.arrowDown01
     case .comment: Hugeicons.comment01
     case .note: Hugeicons.note01
     }
@@ -77,12 +80,12 @@ enum StackedIcons {
 }
 
 enum StackedIconKey: String {
-  case navHome, navInbox, navToday, navUpcoming, navFilters
+  case navHome, navInbox, navToday, navUpcoming, navFilters, navMoney
   case settings, notifications, search, newTask, newProject, folder
   case check, clock, trash, copy, tag, logbook, productivity
   case chevronRight, chevronDown, exclamation, list, paintbrush, logout
   case edit, more, flag, move, arrowLeft, close, text, grid, plus
-  case checkCircle, repeatIcon, sun, calendar, target, attachment, money, cashFlow, arrowUp, comment
+  case checkCircle, repeatIcon, sun, calendar, target, attachment, money, cashFlow, valorTipo, arrowUp, arrowDown, comment
   case note
 }
 

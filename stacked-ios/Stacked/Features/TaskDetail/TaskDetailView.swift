@@ -402,7 +402,8 @@ struct TaskDetailView: View {
               titleColor: sub.done ? c.textTertiary : c.textPrimary,
               accent: c.accent,
               done: sub.done,
-              lineLimit: 2
+              lineLimit: 2,
+              isIncome: sub.isIncome
             )
             Spacer(minLength: 4)
             if layout == .default, let timeDisplay = sub.timeDisplay, !timeDisplay.isEmpty {
