@@ -104,21 +104,15 @@ struct MoneyView: View {
     .navigationTitle("Dinheiro")
     .navigationBarTitleDisplayMode(.inline)
     .safeAreaInset(edge: .top, spacing: 0) {
-      HStack(alignment: .center, spacing: 10) {
-        StackedChromeSearchField(
-          text: $searchText,
-          prompt: "Conta, parcela ou mês"
-        )
-        StackedChromeIconButton(
-          icon: .plus,
-          accessibilityLabel: "Adicionar",
-          accent: true,
-          anchoredAction: openAddMenu
-        )
-      }
-      .padding(.horizontal, 16)
+      StackedChromeSearchActionBar(
+        text: $searchText,
+        prompt: "Conta, parcela ou mês",
+        actionAccessibilityLabel: "Adicionar",
+        action: openAddMenu
+      )
+      .padding(.horizontal, 18)
       .padding(.top, 2)
-      .padding(.bottom, 8)
+      .padding(.bottom, 6)
     }
     .refreshable { await store.load() }
     .navigationDestination(item: $statementRoute) { route in

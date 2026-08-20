@@ -430,6 +430,76 @@ struct StackedChromeIconButton: View {
   }
 }
 
+/// Busca + ação no mesmo shell dos cards da lista (raio contínuo, fill `surface`).
+struct StackedChromeSearchActionBar: View {
+  @Environment(ThemeManager.self) private var theme
+  @Binding var text: String
+  var prompt: String
+  var actionAccessibilityLabel: String
+  var actionIcon: StackedIconKey = .plus
+  var action: (CGRect) -> Void
+  @FocusState private var focused: Bool
+
+  private let barHeight: CGFloat = 44
+  private let cornerRadius: CGFloat = 16
+
+  var body: some View {
+    let c = theme.colors
+    let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    HStack(spacing: 0) {
+      HStack(spacing: 8) {
+        StackedIcons.image(.search)
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundStyle(c.textSecondary)
+          .accessibilityHidden(true)
+        TextField(prompt, text: $text)
+          .font(.system(size: 15))
+          .foregroundStyle(c.textPrimary)
+          .tint(c.accent)
+          .focused($focused)
+          .submitLabel(.search)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+        if !text.isEmpty {
+          Button {
+            text = ""
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+              .font(.system(size: 16))
+              .foregroundStyle(c.textTertiary)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Limpar busca")
+        }
+      }
+      .padding(.leading, 14)
+      .padding(.trailing, 8)
+      .frame(maxWidth: .infinity, minHeight: barHeight, alignment: .leading)
+
+      Rectangle()
+        .fill(c.textPrimary.opacity(0.08))
+        .frame(width: 1, height: 18)
+
+      AnchoredTapButton(action: action) {
+        StackedIcons.image(actionIcon)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(c.accent)
+          .frame(width: barHeight, height: barHeight)
+      }
+      .accessibilityLabel(actionAccessibilityLabel)
+    }
+    .background(shape.fill(c.surface))
+    .clipShape(shape)
+    .overlay {
+      if !c.isDark {
+        shape.strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+      }
+    }
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel("Buscar")
+  }
+}
+
 // MARK: - Form / editor sheets (handle + presentation)
 
 struct SheetDragHandle: View {
