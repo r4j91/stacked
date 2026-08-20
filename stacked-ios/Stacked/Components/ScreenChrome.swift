@@ -331,7 +331,36 @@ struct StackedChromeIconButton: View {
   let icon: StackedIconKey
   var accessibilityLabel: String
   var accent: Bool = false
-  let action: () -> Void
+  private let tap: TapKind
+
+  private enum TapKind {
+    case simple(() -> Void)
+    case anchored((CGRect) -> Void)
+  }
+
+  init(
+    icon: StackedIconKey,
+    accessibilityLabel: String,
+    accent: Bool = false,
+    action: @escaping () -> Void
+  ) {
+    self.icon = icon
+    self.accessibilityLabel = accessibilityLabel
+    self.accent = accent
+    self.tap = .simple(action)
+  }
+
+  init(
+    icon: StackedIconKey,
+    accessibilityLabel: String,
+    accent: Bool = false,
+    anchoredAction: @escaping (CGRect) -> Void
+  ) {
+    self.icon = icon
+    self.accessibilityLabel = accessibilityLabel
+    self.accent = accent
+    self.tap = .anchored(anchoredAction)
+  }
 
   private var chromeMode: ChromeGlassMode {
     ChromeGlassModeStorage.mode(from: chromeGlassModeRaw)
@@ -357,13 +386,19 @@ struct StackedChromeIconButton: View {
     let c = theme.colors
     let isLight = !c.isDark
     let tint = accent ? c.accent : c.textPrimary
-    let label = Button(action: action) {
-      StackedIcons.image(icon)
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(tint)
-        .frame(width: 36, height: 36)
+    let label = Group {
+      switch tap {
+      case .simple(let action):
+        Button(action: action) {
+          iconLabel(tint: tint)
+        }
+        .buttonStyle(PressableStyle(cornerRadius: 18))
+      case .anchored(let action):
+        AnchoredTapButton(action: action) {
+          iconLabel(tint: tint)
+        }
+      }
     }
-    .buttonStyle(PressableStyle(cornerRadius: 18))
     .accessibilityLabel(accessibilityLabel)
 
     Group {
@@ -385,6 +420,13 @@ struct StackedChromeIconButton: View {
       }
     }
     .shadow(color: isLight ? Color.black.opacity(0.06) : .clear, radius: isLight ? 2 : 0, y: isLight ? 1 : 0)
+  }
+
+  private func iconLabel(tint: Color) -> some View {
+    StackedIcons.image(icon)
+      .font(.system(size: 16, weight: .semibold))
+      .foregroundStyle(tint)
+      .frame(width: 36, height: 36)
   }
 }
 

@@ -144,6 +144,15 @@ struct MoneyAccount: Identifiable, Equatable, Codable {
   var isCard: Bool { kind == .credit }
 }
 
+/// Banco com cartões aninhados, ou um cartão sem conta pai.
+struct MoneyAccountGroup: Identifiable, Equatable {
+  var id: String
+  var bank: MoneyAccount?
+  var cards: [MoneyAccount]
+
+  var isOrphan: Bool { bank == nil }
+}
+
 struct MoneyLedgerEntry: Identifiable, Equatable, Codable {
   var id: String
   var accountId: String

@@ -241,7 +241,20 @@ final class MoneyStore {
 
   /// Banco + cartões aninhados; cartões sem banco ficam no fim.
   func accountOutline() -> [(account: MoneyAccount, nested: Bool)] {
-    var rows: [(MoneyAccount, Bool)] = []
+    accountGroups().flatMap { group in
+      var rows: [(account: MoneyAccount, nested: Bool)] = []
+      if let bank = group.bank {
+        rows.append((bank, false))
+        rows.append(contentsOf: group.cards.map { ($0, true) })
+      } else {
+        rows.append(contentsOf: group.cards.map { ($0, false) })
+      }
+      return rows
+    }
+  }
+
+  func accountGroups() -> [MoneyAccountGroup] {
+    var groups: [MoneyAccountGroup] = []
     let banks = accounts.filter { $0.kind != .credit }
       .sorted { lhs, rhs in
         let rank: (MoneyAccount.Kind) -> Int = { $0 == .checking ? 0 : 1 }
@@ -249,17 +262,14 @@ final class MoneyStore {
         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
       }
     for bank in banks {
-      rows.append((bank, false))
-      for card in cards(forBankId: bank.id) {
-        rows.append((card, true))
-      }
+      groups.append(MoneyAccountGroup(id: bank.id, bank: bank, cards: cards(forBankId: bank.id)))
     }
     let orphans = accounts.filter { $0.kind == .credit && ($0.parentAccountId == nil || account(id: $0.parentAccountId ?? "") == nil) }
       .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     for card in orphans {
-      rows.append((card, false))
+      groups.append(MoneyAccountGroup(id: card.id, bank: nil, cards: [card]))
     }
-    return rows
+    return groups
   }
 
   func applySpend(accountId: String, amount: Double) {
@@ -1101,21 +1111,6 @@ final class MoneyStore {
       return
     }
     accounts = decoded
-    relinkOrphanCards()
-  }
-
-  private func relinkOrphanCards() {
-    var changed = false
-    for i in accounts.indices where accounts[i].kind == .credit && accounts[i].parentAccountId == nil {
-      let cardName = accounts[i].name
-      if let bank = bankAccounts().first(where: { bank in
-        cardName.localizedCaseInsensitiveContains(bank.name) && bank.name.count >= 3
-      }) {
-        accounts[i].parentAccountId = bank.id
-        changed = true
-      }
-    }
-    if changed { persistAccounts() }
   }
 
   private func persistAccounts() {
@@ -1235,13 +1230,11 @@ final class MoneyStore {
         try await MoneyRepository.upsertLinks(localOnlyLinks)
       }
 
-      relinkOrphanCards()
       persistAccountsCache()
       persistLinksCache()
       persistLedgerCache()
     } catch {
       self.error = error.localizedDescription
-      relinkOrphanCards()
     }
   }
 

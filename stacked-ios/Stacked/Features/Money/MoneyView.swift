@@ -31,19 +31,15 @@ struct MoneyView: View {
     AppTypeScaleStorage.scale(from: typeScaleRaw)
   }
 
-  private var accountRows: [(account: MoneyAccount, nested: Bool)] {
-    store.accountOutline()
-  }
-
   private var searchQuery: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
   private var isSearching: Bool { !searchQuery.isEmpty }
 
-  private var visibleAccountRows: [(account: MoneyAccount, nested: Bool)] {
-    let rows = accountRows
-    guard isSearching else { return rows }
+  private var visibleAccountGroups: [MoneyAccountGroup] {
+    let groups = store.accountGroups()
+    guard isSearching else { return groups }
     let q = searchQuery
     var keep = Set(store.accounts.filter { $0.name.localizedStandardContains(q) }.map(\.id))
     keep.formUnion(store.accountsMatchingLedger(query: q))
@@ -55,7 +51,16 @@ struct MoneyView: View {
         keep.insert(card.id)
       }
     }
-    return rows.filter { keep.contains($0.account.id) }
+    return groups.compactMap { group in
+      if let bank = group.bank {
+        let visibleCards = group.cards.filter { keep.contains($0.id) }
+        if !keep.contains(bank.id), visibleCards.isEmpty { return nil }
+        return MoneyAccountGroup(id: group.id, bank: bank, cards: visibleCards)
+      }
+      let visibleCards = group.cards.filter { keep.contains($0.id) }
+      guard !visibleCards.isEmpty else { return nil }
+      return MoneyAccountGroup(id: group.id, bank: nil, cards: visibleCards)
+    }
   }
 
   private var visibleInstallments: [MoneyInstallmentGroup] {
@@ -64,7 +69,7 @@ struct MoneyView: View {
   }
 
   private var hasSearchResults: Bool {
-    !visibleAccountRows.isEmpty || !dueRows.isEmpty || !receivableRows.isEmpty || !visibleInstallments.isEmpty
+    !visibleAccountGroups.isEmpty || !dueRows.isEmpty || !receivableRows.isEmpty || !visibleInstallments.isEmpty
   }
 
   var body: some View {
@@ -106,9 +111,9 @@ struct MoneyView: View {
         )
         StackedChromeIconButton(
           icon: .plus,
-          accessibilityLabel: "Novo lançamento",
+          accessibilityLabel: "Adicionar",
           accent: true,
-          action: openNewMovement
+          anchoredAction: openAddMenu
         )
       }
       .padding(.horizontal, 16)
@@ -204,16 +209,82 @@ struct MoneyView: View {
     }
   }
 
-  private func openNewMovement() {
-    if store.accounts.isEmpty {
-      editingAccount = MoneyAccount(
-        id: UUID().uuidString,
-        name: "",
-        kind: .checking,
-        balance: 0
+  private func openNewBankAccount() {
+    editingAccount = MoneyAccount(
+      id: UUID().uuidString,
+      name: "",
+      kind: .checking,
+      balance: 0
+    )
+  }
+
+  private func openAddMenu(anchor: CGRect) {
+    let c = theme.colors
+    let banks = store.bankAccounts()
+    var items: [PopoverMenuItem] = []
+
+    if !store.accounts.isEmpty {
+      items.append(
+        PopoverMenuItem(
+          id: "movement",
+          icon: Hugeicons.moneySend01,
+          label: "Novo lançamento",
+          iconColor: c.textSecondary
+        )
       )
-    } else {
-      showMovement = true
+    }
+    items.append(
+      PopoverMenuItem(
+        id: "bank",
+        icon: Hugeicons.wallet01,
+        label: "Nova conta bancária",
+        iconColor: c.textSecondary
+      )
+    )
+    if !banks.isEmpty {
+      if banks.count == 1, let bank = banks.first {
+        items.append(
+          PopoverMenuItem(
+            id: "card_\(bank.id)",
+            icon: Hugeicons.creditCard,
+            label: "Novo cartão",
+            iconColor: c.textSecondary
+          )
+        )
+      } else {
+        items.append(
+          PopoverMenuItem(
+            id: "card_menu",
+            icon: Hugeicons.creditCard,
+            label: "Novo cartão",
+            hasArrow: true,
+            iconColor: c.textSecondary,
+            children: banks.map { bank in
+              PopoverMenuItem(
+                id: "card_\(bank.id)",
+                icon: Hugeicons.creditCard,
+                label: bank.name,
+                iconColor: c.textSecondary
+              )
+            }
+          )
+        )
+      }
+    }
+
+    presentAnchoredPopover(anchorRect: anchor, items: items, alignTrailing: true) { result in
+      guard let result else { return }
+      switch result {
+      case "movement":
+        showMovement = true
+      case "bank":
+        openNewBankAccount()
+      default:
+        if result.hasPrefix("card_") {
+          let bankId = String(result.dropFirst("card_".count))
+          editingAccount = newCardDraft(under: store.account(id: bankId))
+        }
+      }
     }
   }
 
@@ -873,120 +944,17 @@ struct MoneyView: View {
   @ViewBuilder
   private var accountsSection: some View {
     let c = theme.colors
-    let rows = visibleAccountRows
-    let extra = (!isSearching && rows.isEmpty) ? 1 : 0
-    let addCard = (!isSearching && !store.bankAccounts().isEmpty) ? 1 : 0
-    let addBank = isSearching ? 0 : 1
-    let total = rows.count + extra + addCard + addBank
-    if isSearching, rows.isEmpty {
+    let groups = visibleAccountGroups
+    if isSearching, groups.isEmpty {
       EmptyView()
     } else {
     Section {
-      if rows.isEmpty {
+      if groups.isEmpty {
         moneyHintRow("O saldo de cada banco aparece aqui. Cartões ficam dentro do banco.", position: .first)
-      }
-      ForEach(Array(rows.enumerated()), id: \.element.account.id) { index, row in
-        SubtaskTitlePressArea(
-          onTap: {
-            HapticService.selection()
-            statementRoute = MoneyStatementRoute(accountId: row.account.id)
-          },
-          onDelete: {
-            accountPendingDelete = row.account
-          },
-          deleteLabel: row.account.kind == .credit ? "Excluir cartão" : "Excluir conta",
-          extraItems: row.account.kind == .credit ? [] : [
-            PopoverMenuItem(
-              id: "new-card",
-              icon: Hugeicons.creditCard,
-              label: "Novo cartão"
-            )
-          ],
-          onMenuResult: { result in
-            if result == "new-card" {
-              editingAccount = newCardDraft(under: row.account)
-            }
-          }
-        ) {
-          moneyValueRow(
-            title: row.account.name,
-            subtitle: cardSubtitle(row.account),
-            amount: row.account.displayAmount,
-            highlight: row.account.highlightsAmount,
-            usage: store.limitUsage(for: row.account) ?? row.account.limitUsage
-          )
-          .padding(.leading, row.nested ? HomeSectionRowLayout.iconWidth : 0)
+      } else {
+        ForEach(groups) { group in
+          accountGroupCard(group)
         }
-        .listRowInsets(sectionStyle.metrics.rowInsets)
-        .listRowSeparator(.hidden)
-        .listRowBackground(
-          HomeSectionRowBackground(
-            style: sectionStyle,
-            position: .at(index: index, count: total),
-            colors: c
-          )
-        )
-      }
-      if addCard == 1 {
-        Button {
-          HapticService.selection()
-          editingAccount = newCardDraft(under: store.bankAccounts().first)
-        } label: {
-          HStack(spacing: HomeSectionRowLayout.iconSpacing) {
-            StackedIcons.image(.plus)
-              .font(.system(size: 18))
-              .foregroundStyle(c.accent)
-              .frame(width: HomeSectionRowLayout.iconWidth)
-            Text("Novo cartão")
-              .font(typeScale.metrics.rowTitleFont)
-              .foregroundStyle(c.textPrimary)
-            Spacer()
-          }
-          .padding(.vertical, sectionStyle.metrics.rowPaddingV)
-        }
-        .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
-        .listRowInsets(sectionStyle.metrics.rowInsets)
-        .listRowSeparator(.hidden)
-        .listRowBackground(
-          HomeSectionRowBackground(
-            style: sectionStyle,
-            position: .at(index: rows.count + extra, count: total),
-            colors: c
-          )
-        )
-      }
-      if addBank == 1 {
-        Button {
-          HapticService.selection()
-          editingAccount = MoneyAccount(
-            id: UUID().uuidString,
-            name: "",
-            kind: .checking,
-            balance: 0
-          )
-        } label: {
-          HStack(spacing: HomeSectionRowLayout.iconSpacing) {
-            StackedIcons.image(.plus)
-              .font(.system(size: 18))
-              .foregroundStyle(c.accent)
-              .frame(width: HomeSectionRowLayout.iconWidth)
-            Text("Nova conta bancária")
-              .font(typeScale.metrics.rowTitleFont)
-              .foregroundStyle(c.textPrimary)
-            Spacer()
-          }
-          .padding(.vertical, sectionStyle.metrics.rowPaddingV)
-        }
-        .buttonStyle(PressableStyle(cornerRadius: AppSpacing.md))
-        .listRowInsets(sectionStyle.metrics.rowInsets)
-        .listRowSeparator(.hidden)
-        .listRowBackground(
-          HomeSectionRowBackground(
-            style: sectionStyle,
-            position: .at(index: rows.count + extra + addCard, count: total),
-            colors: c
-          )
-        )
       }
     } header: {
       HomeSectionHeader(
@@ -994,10 +962,141 @@ struct MoneyView: View {
         style: sectionStyle,
         scale: typeScale,
         isFirstSection: !store.showsHubSnapshot || isSearching
-      )
+      ) {
+        if !isSearching, groups.contains(where: { $0.bank != nil }) {
+          HStack(spacing: 4) {
+            Text(CurrencyFormat.brl(store.liquidBalance))
+              .foregroundStyle(c.accent)
+              .fontWeight(.semibold)
+            Text("líquido")
+              .foregroundStyle(c.textSecondary)
+          }
+          .font(typeScale.metrics.actionFont)
+          .monospacedDigit()
+          .textCase(nil)
+          .accessibilityLabel("\(CurrencyFormat.brl(store.liquidBalance)) líquido")
+        }
+      }
         .homeSectionHeaderInsets(sectionStyle)
     }
     }
+  }
+
+  private func accountGroupCard(_ group: MoneyAccountGroup) -> some View {
+    let c = theme.colors
+    let radius = max(sectionStyle.metrics.cornerRadius, 14)
+    let innerFill = c.isDark ? Color.black.opacity(0.18) : Color.black.opacity(0.04)
+    return VStack(spacing: 0) {
+      if let bank = group.bank {
+        accountPressRow(bank, nested: false, orphan: false)
+          .padding(.horizontal, 12)
+        if !group.cards.isEmpty {
+          accountGroupHairline()
+          VStack(spacing: 0) {
+            ForEach(Array(group.cards.enumerated()), id: \.element.id) { index, card in
+              if index > 0 {
+                accountGroupHairline()
+              }
+              accountPressRow(card, nested: true, orphan: false)
+                .padding(.horizontal, 12)
+            }
+          }
+          .background(innerFill)
+        }
+      } else {
+        ForEach(group.cards) { card in
+          accountPressRow(card, nested: true, orphan: true)
+            .padding(.horizontal, 12)
+        }
+      }
+    }
+    .background {
+      RoundedRectangle(cornerRadius: radius, style: .continuous)
+        .fill(c.surface)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    .listRowInsets(EdgeInsets(top: 3, leading: 18, bottom: 3, trailing: 18))
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
+  }
+
+  private func accountGroupHairline() -> some View {
+    let c = theme.colors
+    return Rectangle()
+      .fill(c.textPrimary.opacity(TaskExpandDividerStyle.cardLightStrokeAlpha))
+      .frame(height: TaskExpandDividerStyle.listHairlineThickness)
+  }
+
+  @ViewBuilder
+  private func accountPressRow(_ account: MoneyAccount, nested: Bool, orphan: Bool) -> some View {
+    let banks = store.bankAccounts()
+    let extraItems: [PopoverMenuItem] = {
+      if account.kind != .credit {
+        return [
+          PopoverMenuItem(
+            id: "new-card",
+            icon: Hugeicons.creditCard,
+            label: "Novo cartão"
+          )
+        ]
+      }
+      guard orphan, !banks.isEmpty else { return [] }
+      if banks.count == 1, let bank = banks.first {
+        return [
+          PopoverMenuItem(
+            id: "link_\(bank.id)",
+            icon: Hugeicons.wallet01,
+            label: "Vincular a \(bank.name)"
+          )
+        ]
+      }
+      return [
+        PopoverMenuItem(
+          id: "link_menu",
+          icon: Hugeicons.wallet01,
+          label: "Vincular a conta",
+          hasArrow: true,
+          children: banks.map { bank in
+            PopoverMenuItem(
+              id: "link_\(bank.id)",
+              icon: Hugeicons.wallet01,
+              label: bank.name
+            )
+          }
+        )
+      ]
+    }()
+    SubtaskTitlePressArea(
+      onTap: {
+        HapticService.selection()
+        statementRoute = MoneyStatementRoute(accountId: account.id)
+      },
+      onDelete: {
+        accountPendingDelete = account
+      },
+      deleteLabel: account.kind == .credit ? "Excluir cartão" : "Excluir conta",
+      extraItems: extraItems,
+      onMenuResult: { result in
+        if result == "new-card" {
+          editingAccount = newCardDraft(under: account)
+          return
+        }
+        if result.hasPrefix("link_") {
+          let bankId = String(result.dropFirst("link_".count))
+          linkCard(account, toBankId: bankId)
+        }
+      }
+    ) {
+      accountValueRow(account, nested: nested, orphan: orphan)
+    }
+  }
+
+  private func linkCard(_ card: MoneyAccount, toBankId: String) {
+    guard store.account(id: toBankId) != nil else { return }
+    HapticService.selection()
+    var updated = card
+    updated.parentAccountId = toBankId
+    store.updateAccount(updated)
   }
 
   private func newCardDraft(under bank: MoneyAccount?) -> MoneyAccount {
@@ -1013,13 +1112,52 @@ struct MoneyView: View {
     )
   }
 
-  private func cardSubtitle(_ account: MoneyAccount) -> String {
-    var parts = [account.kindCaption]
+  private func accountLimitUsage(for account: MoneyAccount) -> Double? {
+    guard let usage = store.limitUsage(for: account) ?? account.limitUsage, usage > 0 else {
+      return nil
+    }
+    return usage
+  }
+
+  @ViewBuilder
+  private func accountValueRow(_ account: MoneyAccount, nested: Bool, orphan: Bool) -> some View {
+    moneyValueRow(
+      title: account.name,
+      subtitle: cardSubtitle(account, orphan: orphan),
+      amount: account.displayAmount,
+      highlight: account.highlightsAmount,
+      dimmed: account.kind == .credit && (account.invoiceAmount ?? 0) == 0,
+      usage: accountLimitUsage(for: account),
+      leadingIcon: nested || orphan ? Hugeicons.creditCard : nil,
+      nestedIndent: nested && !orphan,
+      subtitleEmphasis: limitCaption(for: account)
+    )
+  }
+
+  private func cardSubtitle(_ account: MoneyAccount, orphan: Bool) -> String {
+    var parts: [String] = []
+    if orphan {
+      parts.append("Sem banco vinculado")
+      if account.kind == .credit {
+        let dates = account.kindCaption
+        if !dates.isEmpty, dates != "Fatura aberta" {
+          parts.append(dates)
+        }
+      }
+    } else {
+      parts.append(account.kindCaption)
+    }
     let remaining = store.futureInstallmentCount(for: account.id)
     if remaining > 0 {
       parts.append("\(remaining)×")
     }
     return parts.joined(separator: " · ")
+  }
+
+  private func limitCaption(for account: MoneyAccount) -> String? {
+    guard let usage = accountLimitUsage(for: account) else { return nil }
+    let percent = Int((usage * 100).rounded())
+    return "\(percent)% do limite"
   }
 
   private func moneyValueRow(
@@ -1030,35 +1168,48 @@ struct MoneyView: View {
     dimmed: Bool = false,
     usage: Double? = nil,
     overdue: Bool = false,
-    income: Bool = false
+    income: Bool = false,
+    leadingIcon: HugeiconsAsset? = nil,
+    nestedIndent: Bool = false,
+    subtitleEmphasis: String? = nil
   ) -> some View {
     let c = theme.colors
     let t = typeScale.metrics
+    let contentLeadingInset = leadingIcon != nil
+      ? HomeSectionRowLayout.iconWidth + HomeSectionRowLayout.iconSpacing
+      : 0
     return VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: HomeSectionRowLayout.iconSpacing) {
+      HStack(alignment: .top, spacing: HomeSectionRowLayout.iconSpacing) {
+        if let leadingIcon {
+          StackedIcons.image(leadingIcon)
+            .font(.system(size: 20))
+            .foregroundStyle(c.textSecondary)
+            .frame(width: HomeSectionRowLayout.iconWidth, alignment: .center)
+            .padding(.top, 1)
+        }
         VStack(alignment: .leading, spacing: 2) {
-          Text(title)
-            .font(t.rowTitleFont)
-            .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
-            .lineLimit(1)
+          HStack(spacing: 8) {
+            Text(title)
+              .font(t.rowTitleFont)
+              .foregroundStyle(dimmed ? c.textTertiary : c.textPrimary)
+              .lineLimit(1)
+              .layoutPriority(1)
+            Spacer(minLength: 8)
+            Text(income ? "+\(CurrencyFormat.brl(amount))" : CurrencyFormat.brl(amount))
+              .font(t.rowCountFont)
+              .monospacedDigit()
+              .fontWeight(highlight ? .semibold : .regular)
+              .foregroundStyle(highlight ? c.accent : c.textSecondary)
+              .lineLimit(1)
+              .fixedSize()
+          }
           if overdue {
             overdueSubtitle(subtitle, colors: c)
-          } else if !subtitle.isEmpty {
-            Text(subtitle)
-              .font(AppTypography.screenSubtitle)
-              .foregroundStyle(c.textTertiary)
-              .lineLimit(1)
+          } else if !subtitle.isEmpty || subtitleEmphasis != nil {
+            accountSubtitleText(base: subtitle, emphasis: subtitleEmphasis, colors: c)
           }
         }
         .layoutPriority(1)
-        Spacer(minLength: 8)
-        Text(income ? "+\(CurrencyFormat.brl(amount))" : CurrencyFormat.brl(amount))
-          .font(t.rowCountFont)
-          .monospacedDigit()
-          .fontWeight(highlight ? .semibold : .regular)
-          .foregroundStyle(highlight ? c.accent : c.textSecondary)
-          .lineLimit(1)
-          .fixedSize()
       }
       if let usage {
         GeometryReader { geo in
@@ -1071,9 +1222,29 @@ struct MoneyView: View {
           }
         }
         .frame(height: 3)
+        .padding(.leading, contentLeadingInset)
       }
     }
+    .padding(.leading, nestedIndent ? 10 : 0)
     .padding(.vertical, sectionStyle.metrics.rowPaddingV)
+  }
+
+  private func accountSubtitleText(base: String, emphasis: String?, colors c: AppThemeColors) -> some View {
+    var text = AttributedString(base)
+    text.foregroundColor = c.textTertiary
+    if let emphasis, !emphasis.isEmpty {
+      if !base.isEmpty {
+        var sep = AttributedString(" · ")
+        sep.foregroundColor = c.textTertiary
+        text.append(sep)
+      }
+      var extra = AttributedString(emphasis)
+      extra.foregroundColor = c.textSecondary
+      text.append(extra)
+    }
+    return Text(text)
+      .font(AppTypography.screenSubtitle)
+      .lineLimit(1)
   }
 
   private func overdueSubtitle(_ subtitle: String, colors c: AppThemeColors) -> some View {
@@ -1157,9 +1328,7 @@ struct MoneyAccountSheet: View {
         ? ""
         : String(format: "%.2f", account.invoiceAmount ?? 0)
     )
-    let banks = MoneyStore.shared.bankAccounts(excluding: account.id)
-    let initialParent = account.parentAccountId ?? (account.kind == .credit ? banks.first?.id : nil)
-    _parentAccountId = State(initialValue: initialParent)
+    _parentAccountId = State(initialValue: account.parentAccountId)
   }
 
   private var trimmedName: String {
@@ -1279,9 +1448,6 @@ struct MoneyAccountSheet: View {
     presentAnchoredPopover(anchorRect: anchor, items: items) { result in
       guard let result, let selected = MoneyAccount.Kind(rawValue: result) else { return }
       kind = selected
-      if selected == .credit, parentAccountId == nil {
-        parentAccountId = moneyStore.bankAccounts(excluding: accountId).first?.id
-      }
     }
   }
 
@@ -1289,7 +1455,7 @@ struct MoneyAccountSheet: View {
     if let parentAccountId, let bank = moneyStore.account(id: parentAccountId) {
       return bank.name
     }
-    return "Nenhum"
+    return "Nenhuma conta"
   }
 
   private func showBankMenu(anchor: CGRect) {
@@ -1298,7 +1464,7 @@ struct MoneyAccountSheet: View {
       PopoverMenuItem(
         id: "none",
         icon: Hugeicons.cancel01,
-        label: "Nenhum",
+        label: "Nenhuma conta",
         selected: parentAccountId == nil
       )
     ]
