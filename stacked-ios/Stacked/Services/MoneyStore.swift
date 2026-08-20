@@ -530,6 +530,7 @@ final class MoneyStore {
   func cashFlow(monthId: String) -> MoneyCashFlowReport? {
     guard let monthStart = MoneyCalendar.monthStart(fromMonthId: monthId) else { return nil }
     let monthEnd = MoneyCalendar.shiftMonth(monthStart, by: 1)
+    let cal = Calendar.current
     let liquidIds = Set(
       accounts
         .filter { $0.kind == .checking || $0.kind == .cash }
@@ -542,10 +543,20 @@ final class MoneyStore {
 
     let opening = liquidOpeningBalance(liquidIds: liquidIds, at: monthStart)
 
+    /// Só esconde o projetado quando a subtarefa já gerou lançamento no extrato (conclusão).
+    let settledSubtaskIds = Set(ledger.compactMap(\.subtaskId).filter { !$0.isEmpty })
+
     var built: [MoneyCashFlowLine] = []
+    var seenLineIds = Set<String>()
+
+    func appendUnique(_ line: MoneyCashFlowLine) {
+      guard seenLineIds.insert(line.id).inserted else { return }
+      built.append(line)
+    }
 
     for entry in ledger where entry.date >= monthStart && entry.date < monthEnd {
       let isTransfer = entry.title.hasPrefix("Transferência")
+      let day = cal.startOfDay(for: entry.date)
       if liquidIds.contains(entry.accountId) {
         let kind: MoneyCashFlowLineKind
         if isTransfer {
@@ -554,10 +565,10 @@ final class MoneyStore {
           kind = entry.isIncome ? .income : .expense
         }
         let signed = entry.isIncome ? entry.amount : -entry.amount
-        built.append(
+        appendUnique(
           MoneyCashFlowLine(
             id: entry.id,
-            date: entry.date,
+            date: day,
             title: entry.title,
             subtitle: [
               accountName[entry.accountId],
@@ -567,14 +578,14 @@ final class MoneyStore {
             kind: kind,
             affectsCash: true,
             isProjected: false,
-            dayLabel: MoneyCalendar.dayLabel(for: entry.date)
+            dayLabel: MoneyCalendar.dayLabel(for: day)
           )
         )
       } else if creditIds.contains(entry.accountId), !entry.isIncome, !isTransfer {
-        built.append(
+        appendUnique(
           MoneyCashFlowLine(
             id: "card-\(entry.id)",
-            date: entry.date,
+            date: day,
             title: entry.title,
             subtitle: [
               accountName[entry.accountId],
@@ -585,7 +596,7 @@ final class MoneyStore {
             kind: .cardPurchase,
             affectsCash: false,
             isProjected: false,
-            dayLabel: MoneyCalendar.dayLabel(for: entry.date)
+            dayLabel: MoneyCalendar.dayLabel(for: day)
           )
         )
       }
@@ -594,9 +605,11 @@ final class MoneyStore {
     let dueGroup = monthGroups.first { $0.id == monthId }
     for item in (dueGroup?.items ?? []) + pendingReceivables(in: monthId) {
       guard item.parent.includeInCashFlow, item.subtask.includeInCashFlow else { continue }
-      let due = item.dueDate ?? monthStart
+      if let sid = item.subtask.id, settledSubtaskIds.contains(sid) { continue }
+      let due = cal.startOfDay(for: item.dueDate ?? monthStart)
       guard due >= monthStart && due < monthEnd else { continue }
-      built.append(
+      let signed = item.isIncome ? item.valor : -item.valor
+      appendUnique(
         MoneyCashFlowLine(
           id: "due-\(item.id)",
           date: due,
@@ -605,7 +618,7 @@ final class MoneyStore {
             item.projectName,
             item.isIncome ? "a receber" : "a pagar",
           ].filter { !$0.isEmpty }.joined(separator: " · ").moneyNilIfEmpty,
-          amount: item.isIncome ? item.valor : -item.valor,
+          amount: signed,
           kind: item.isIncome ? .income : .obligation,
           affectsCash: true,
           isProjected: true,
@@ -616,9 +629,10 @@ final class MoneyStore {
 
     for account in accounts where account.kind == .credit {
       let invoice = account.invoiceAmount ?? 0
-      guard invoice > 0, let due = account.nextDueDate() else { continue }
+      guard invoice > 0, let dueRaw = account.nextDueDate() else { continue }
+      let due = cal.startOfDay(for: dueRaw)
       guard MoneyCalendar.monthId(for: due) == monthId else { continue }
-      built.append(
+      appendUnique(
         MoneyCashFlowLine(
           id: "invoice-\(account.id)",
           date: due,
@@ -667,7 +681,9 @@ final class MoneyStore {
     var weekOpening = opening
     var weeks: [MoneyCashFlowWeek] = []
     for meta in weeksMeta {
-      let weekLines = built.filter { $0.date >= meta.start && $0.date < meta.end }
+      let weekStart = cal.startOfDay(for: meta.start)
+      let weekEnd = cal.startOfDay(for: meta.end)
+      let weekLines = built.filter { $0.date >= weekStart && $0.date < weekEnd }
       let weekIncome = weekLines
         .filter { $0.affectsCash && $0.kind == .income && !$0.isProjected }
         .reduce(0) { $0 + $1.amount }
@@ -684,15 +700,15 @@ final class MoneyStore {
         .filter(\.affectsCash)
         .reduce(0) { $0 + $1.amount }
       let weekClosing = weekOpening + weekDelta
-      let range = MoneyCalendar.weekRangeLabel(start: meta.start, endExclusive: meta.end)
+      let range = MoneyCalendar.weekRangeLabel(start: weekStart, endExclusive: weekEnd)
       weeks.append(
         MoneyCashFlowWeek(
           id: "\(monthId)-w\(meta.index)",
           index: meta.index,
           title: "Semana \(meta.index)",
           rangeLabel: range,
-          start: meta.start,
-          end: meta.end,
+          start: weekStart,
+          end: weekEnd,
           opening: weekOpening,
           lines: weekLines,
           income: weekIncome,
@@ -730,7 +746,13 @@ final class MoneyStore {
     for account in accounts where liquidIds.contains(account.id) {
       balances[account.id] = account.balance
     }
-    for entry in ledger where liquidIds.contains(entry.accountId) && entry.date >= monthStart {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: Date())
+    // Só desfaz o extrato até hoje. Lançamentos futuros (out/nov…) no livro-razão
+    // não podem “roubar” o saldo inicial do mês — era isso que inventava o −R$ 6.793.
+    for entry in ledger where liquidIds.contains(entry.accountId) {
+      let day = cal.startOfDay(for: entry.date)
+      guard day >= monthStart, day <= today else { continue }
       if entry.isIncome {
         balances[entry.accountId, default: 0] -= entry.amount
       } else {
@@ -800,16 +822,22 @@ final class MoneyStore {
     if let link = obligationLinks[subtaskId] {
       let amount = (valor ?? link.valor)
       if amount > 0 {
-        applyAccountDelta(accountId: link.accountId, amount: amount, reverse: income ? done : !done)
         if done {
-          appendLedger(
-            accountId: link.accountId,
-            amount: amount,
-            isIncome: income,
-            title: title,
-            subtaskId: subtaskId
-          )
+          let alreadyPosted = ledger.contains { $0.subtaskId == subtaskId }
+          if !alreadyPosted {
+            applyAccountDelta(accountId: link.accountId, amount: amount, reverse: income)
+            let due = obligationDueDate(subtaskId) ?? Date()
+            appendLedger(
+              accountId: link.accountId,
+              amount: amount,
+              isIncome: income,
+              title: title,
+              subtaskId: subtaskId,
+              date: due
+            )
+          }
         } else {
+          applyAccountDelta(accountId: link.accountId, amount: amount, reverse: !income)
           let removed = ledger.filter { $0.subtaskId == subtaskId }.map(\.id)
           ledger.removeAll { $0.subtaskId == subtaskId }
           persistLedger(deletedIds: removed)
@@ -836,6 +864,15 @@ final class MoneyStore {
       ?? completedItems.first(where: match)?.isIncome
       ?? completedReceivableItems.first(where: match)?.isIncome
       ?? false
+  }
+
+  private func obligationDueDate(_ subtaskId: String) -> Date? {
+    let match: (MoneyDueItem) -> Bool = { $0.subtask.id == subtaskId || $0.id == subtaskId }
+    let due = dueItems.first(where: match)?.dueDate
+      ?? receivableItems.first(where: match)?.dueDate
+      ?? completedItems.first(where: match)?.dueDate
+      ?? completedReceivableItems.first(where: match)?.dueDate
+    return due.map { Calendar.current.startOfDay(for: $0) }
   }
 
   private func moveDueItemToCompleted(subtaskId: String) {

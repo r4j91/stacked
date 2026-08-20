@@ -229,7 +229,11 @@ struct MoneyCashFlowView: View {
         if week.lines.filter(\.affectsCash).isEmpty {
           hintRow("Sem movimentos nesta semana")
         } else {
-          runningList(week.lines.filter(\.affectsCash), opening: week.opening)
+          runningList(
+            week.lines.filter(\.affectsCash),
+            opening: week.opening,
+            idPrefix: week.id
+          )
         }
       } header: {
         sectionHeader("\(week.title.uppercased()) · \(week.rangeLabel.uppercased())")
@@ -406,15 +410,22 @@ struct MoneyCashFlowView: View {
 
   // MARK: - Rows
 
-  private func runningList(_ lines: [MoneyCashFlowLine], opening: Double) -> some View {
-    let rows: [(line: MoneyCashFlowLine, running: Double)] = {
-      var running = opening
-      return lines.map { line in
-        running += line.amount
-        return (line, running)
-      }
-    }()
-    return ForEach(rows, id: \.line.id) { row in
+  private func runningList(
+    _ lines: [MoneyCashFlowLine],
+    opening: Double,
+    idPrefix: String = "month"
+  ) -> some View {
+    struct Row: Identifiable {
+      let id: String
+      let line: MoneyCashFlowLine
+      let running: Double
+    }
+    var running = opening
+    let rows: [Row] = lines.map { line in
+      running += line.amount
+      return Row(id: "\(idPrefix)|\(line.id)", line: line, running: running)
+    }
+    return ForEach(rows) { row in
       cashLineRow(row.line, running: row.running)
     }
   }
