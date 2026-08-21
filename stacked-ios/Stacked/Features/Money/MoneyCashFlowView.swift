@@ -199,7 +199,7 @@ struct MoneyCashFlowView: View {
         icon: Hugeicons.chart01,
         label: "Resultado do mês",
         value: signed(report.netProjected),
-        tint: report.isNegativeMonthNet ? AppColors.dateOverdue : AppColors.tagGreen,
+        tint: report.isNegativeMonthNet ? AppColors.dateOverdue : AppColors.cashFlowPositive,
         colors: c
       )
       Rectangle()

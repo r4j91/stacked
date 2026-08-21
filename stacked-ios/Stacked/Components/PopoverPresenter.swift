@@ -71,7 +71,13 @@ final class PopoverPresenter {
   private static func fallbackAnchor(near rect: CGRect) -> CGRect {
     if rect.isValidAnchor { return rect }
     let screen = DisplayScreen.bounds
-    return CGRect(x: screen.width - 56, y: max(100, rect.minY), width: 44, height: 44)
+    // Centro-direita: evita menu “no topo” quando a âncora falha (ex.: expand aberto).
+    return CGRect(
+      x: screen.width - 56,
+      y: max(120, min(rect.minY > 1 ? rect.minY : screen.midY - 22, screen.height - 120)),
+      width: 44,
+      height: 44
+    )
   }
 }
 

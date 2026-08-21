@@ -1459,6 +1459,7 @@ struct SubtaskTitlePressArea<Content: View>: View {
         }
       }
       .contentShape(Rectangle())
+      // Só LongPress+Tap — qualquer DragGesture aqui (mesmo sequenced) bloqueia scroll da List.
       .gesture(
         LongPressGesture(minimumDuration: TaskContextLift.minimumDuration)
           .onEnded { _ in openDeleteMenu() }
@@ -1487,12 +1488,20 @@ struct SubtaskTitlePressArea<Content: View>: View {
         guard generation == anchorCaptureGeneration else { return }
         if anchorFrame.isValidAnchor {
           resolved = anchorFrame
+          // 2ª captura após layout — expand UIKit às vezes devolve frame stale no 1º hit.
+          if attempt < 2 {
+            try? await _Concurrency.Task.sleep(for: .milliseconds(16))
+            guard generation == anchorCaptureGeneration else { return }
+            if anchorFrame.isValidAnchor { resolved = anchorFrame }
+          }
           break
         }
       }
       guard generation == anchorCaptureGeneration else { return }
 
       let screenH = ScreenMetrics.bounds.height
+      // Se a âncora veio no topo sem sentido (bug com mês expandido), usa o centro do frame
+      // capturado após remedia; fallback do presenter evita y≈100.
       let preferAbove = (resolved.isValidAnchor ? resolved.midY : screenH * 0.5) > screenH * 0.55
       let items = extraItems + (showsDelete
         ? [
@@ -1510,6 +1519,7 @@ struct SubtaskTitlePressArea<Content: View>: View {
         items: items,
         preferAbove: preferAbove
       ) { result in
+        needsAnchorReader = false
         guard let result else { return }
         if result == "delete" {
           onDelete()

@@ -11,6 +11,8 @@ enum AppColors {
 
   /// Âmbar do tema Abismo Cinza Sólido — faturas / cartão no Dinheiro premium.
   static let invoiceAmber = Color(hex: 0xC9A06E)
+  /// Resultado positivo no fluxo de caixa — mais verde que `tagGreen` (evita ler como amarelo).
+  static let cashFlowPositive = Color(hex: 0x5ECF6A)
 
   static let success = Color(hex: 0x22C55E)
   static let overdue = priorityHigh

@@ -152,7 +152,7 @@ final class SubtaskExpandContainerView: UIView {
     super.init(frame: frame)
     clipsToBounds = true
     backgroundColor = .clear
-    isUserInteractionEnabled = true
+    isUserInteractionEnabled = false
     setContentHuggingPriority(.required, for: .vertical)
     setContentCompressionResistancePriority(.required, for: .vertical)
     selfHeightConstraint = heightAnchor.constraint(equalToConstant: 0)
@@ -376,7 +376,8 @@ final class SubtaskExpandContainerView: UIView {
     let interactive = expanded
     hosting.view.isUserInteractionEnabled = interactive
     clipView?.isUserInteractionEnabled = interactive
-    isUserInteractionEnabled = true
+    // Colapsado: altura 0 ainda com hit-test ligado atrapalhava pan da List (Dinheiro).
+    isUserInteractionEnabled = interactive || (selfHeightConstraint?.constant ?? 0) > 0.5
 
     let target = expanded ? fullHeight : 0
     lastExpanded = expanded
@@ -854,6 +855,9 @@ final class SubtaskExpandContainerView: UIView {
     clipHeightConstraint?.constant = 0
     hostHeightConstraint?.constant = 0
     fullHeight = 0
+    isUserInteractionEnabled = false
+    clipView?.isUserInteractionEnabled = false
+    hostView?.isUserInteractionEnabled = false
     invalidateIntrinsicContentSize()
 
     CATransaction.begin()
@@ -886,6 +890,9 @@ final class SubtaskExpandContainerView: UIView {
     clipHeightConstraint?.constant = 0
     hostHeightConstraint?.constant = 0
     fullHeight = 0
+    isUserInteractionEnabled = false
+    clipView?.isUserInteractionEnabled = false
+    hostView?.isUserInteractionEnabled = false
     invalidateIntrinsicContentSize()
 
     CATransaction.begin()
