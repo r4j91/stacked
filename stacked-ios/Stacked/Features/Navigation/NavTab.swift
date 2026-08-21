@@ -30,10 +30,11 @@ enum NavTab: Int, CaseIterable, Identifiable {
     }
   }
 
-  /// Paridade lib/theme/app_icon_size.dart — calendário e carteira com arte mais “baixa” no SVG.
+  /// Paridade lib/theme/app_icon_size.dart — calendário com arte mais “baixa” no SVG.
+  /// Carteira (`wallet01`) preenche o viewBox; 24pt fazia ela parecer maior que o resto.
   var navIconSize: CGFloat {
     switch self {
-    case .today, .money: 24
+    case .today: 24
     default: 22
     }
   }

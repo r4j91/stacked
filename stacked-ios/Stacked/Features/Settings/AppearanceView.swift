@@ -18,6 +18,7 @@ struct AppearanceView: View {
   @AppStorage(HomeMoneyRichStorage.key) private var homeMoneyRich = HomeMoneyRichStorage.defaultEnabled
   @AppStorage(HomeMoneyOnHomeStorage.key) private var homeMoneyOnHome = HomeMoneyOnHomeStorage.defaultEnabled
   @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
+  @AppStorage(MoneyProposedAppearanceStorage.key) private var moneyProposed = MoneyProposedAppearanceStorage.defaultEnabled
   @AppStorage(AppTypeScaleStorage.key) private var appTypeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
@@ -277,6 +278,10 @@ struct AppearanceView: View {
           }
           SettingsCardDivider(leadingPadding: 82)
           moneyPremiumRow()
+          if moneyPremium {
+            SettingsCardDivider(leadingPadding: 82)
+            moneyProposedRow()
+          }
         }
 
         appearancePanel(
@@ -1181,7 +1186,7 @@ struct AppearanceView: View {
         Text("Dinheiro premium")
           .font(AppTypography.settingsTitle)
           .foregroundStyle(c.textPrimary)
-        Text("Cores por tipo (entrada, fatura, a pagar), ícones Hugeicons e cascata no fluxo. Desligado volta ao visual atual.")
+        Text("Hero de caixa, ícones Hugeicons e cascata no fluxo. Desligado volta ao clássico.")
           .font(AppTypography.meta)
           .foregroundStyle(c.textSecondary)
           .lineLimit(3)
@@ -1192,7 +1197,32 @@ struct AppearanceView: View {
     .frame(minHeight: 44)
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
-    .onChange(of: moneyPremium) { _, _ in
+    .onChange(of: moneyPremium) { _, enabled in
+      HapticService.selection()
+      if !enabled { moneyProposed = false }
+    }
+  }
+
+  private func moneyProposedRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Layout proposto")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Chips a entrar/a pagar/fatura, contas e A pagar refinados (mockup B+C). Desligado mantém o premium atual.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(3)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $moneyProposed, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: moneyProposed) { _, _ in
       HapticService.selection()
     }
   }

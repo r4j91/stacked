@@ -23,6 +23,8 @@ struct MoneyView: View {
   @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
+  @AppStorage(MoneyProposedAppearanceStorage.key) private var moneyProposed = MoneyProposedAppearanceStorage.defaultEnabled
+  @State private var scrollToSection: String?
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -33,6 +35,7 @@ struct MoneyView: View {
   }
 
   private var isMoneyPremium: Bool { moneyPremium }
+  private var isMoneyProposed: Bool { moneyPremium && moneyProposed }
 
   private var searchQuery: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,30 +81,42 @@ struct MoneyView: View {
   var body: some View {
     let c = theme.colors
 
-    List {
-      if isSearching && !hasSearchResults {
+    ScrollViewReader { proxy in
+      List {
+        if isSearching && !hasSearchResults {
+          Section {
+            moneyHintRow("Nenhum resultado", position: .only)
+          }
+        } else {
+          if store.showsHubSnapshot, !isSearching {
+            snapshotSection
+          }
+          accountsSection
+            .id("money-accounts")
+          dueSection
+            .id("money-due")
+          receivableSection
+            .id("money-receivable")
+          installmentSection
+        }
         Section {
-          moneyHintRow("Nenhum resultado", position: .only)
+          ListTailSpacer()
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
         }
-      } else {
-        if store.showsHubSnapshot, !isSearching {
-          snapshotSection
-        }
-        accountsSection
-        dueSection
-        receivableSection
-        installmentSection
       }
-      Section {
-        ListTailSpacer()
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
+      .listStyle(.plain)
+      .scrollContentBackground(.hidden)
+      .stackedDashboardListChrome()
+      .onChange(of: scrollToSection) { _, target in
+        guard let target else { return }
+        withAnimation(AppMotion.smooth(reduceMotion: reduceMotion)) {
+          proxy.scrollTo(target, anchor: .top)
+        }
+        scrollToSection = nil
       }
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .stackedDashboardListChrome()
     .stackedTabletCentered()
     .stackedThemeBackground(theme)
     .navigationTitle("Dinheiro")
@@ -287,7 +302,9 @@ struct MoneyView: View {
 
   @ViewBuilder
   private var snapshotSection: some View {
-    if isMoneyPremium {
+    if isMoneyProposed {
+      proposedSnapshotSection
+    } else if isMoneyPremium {
       premiumSnapshotSection
     } else {
       classicSnapshotSection
@@ -438,6 +455,124 @@ struct MoneyView: View {
     }
   }
 
+  @ViewBuilder
+  private var proposedSnapshotSection: some View {
+    let c = theme.colors
+    let liquid = store.liquidBalance
+    let due = store.monthTotal
+    let invoice = store.openInvoiceTotal
+    let incoming = store.monthReceivableItems.reduce(0) { $0 + $1.valor }
+    let radius = max(sectionStyle.metrics.cornerRadius, 18)
+    Section {
+      VStack(alignment: .leading, spacing: 0) {
+        HStack {
+          Text("Caixa líquido")
+            .font(AppTypography.screenSubtitle)
+            .foregroundStyle(c.textSecondary)
+          Spacer(minLength: 8)
+          Text(liquid < -0.005 ? "Negativo" : "Em dia")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(liquid < -0.005 ? AppColors.dateOverdue : c.textSecondary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+              Capsule().fill(
+                (liquid < -0.005 ? AppColors.dateOverdue : c.textPrimary).opacity(
+                  liquid < -0.005 ? 0.14 : 0.06
+                )
+              )
+            )
+        }
+        Text(CurrencyFormat.brl(liquid))
+          .font(AppTypography.screenGreeting)
+          .monospacedDigit()
+          .foregroundStyle(liquid < -0.005 ? AppColors.dateOverdue : c.accent)
+          .padding(.top, 6)
+        Text("Corrente + dinheiro · agora")
+          .font(.system(size: 12.5))
+          .foregroundStyle(c.textTertiary)
+          .padding(.top, 3)
+
+        HStack(spacing: 7) {
+          proposedHeroChip(
+            label: "A entrar",
+            value: "+\(CurrencyFormat.brl(incoming))",
+            tint: c.accent,
+            colors: c
+          ) {
+            scrollToSection = "money-receivable"
+          }
+          proposedHeroChip(
+            label: "A pagar",
+            value: "−\(CurrencyFormat.brl(due))",
+            tint: AppColors.dateOverdue,
+            colors: c
+          ) {
+            scrollToSection = "money-due"
+          }
+          proposedHeroChip(
+            label: "Fatura",
+            value: "−\(CurrencyFormat.brl(invoice))",
+            tint: AppColors.invoiceAmber,
+            colors: c
+          ) {
+            scrollToSection = "money-accounts"
+          }
+        }
+        .padding(.top, 14)
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+          .fill(c.surface)
+          .overlay {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+              .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 1)
+          }
+      }
+      .accessibilityElement(children: .contain)
+      .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 6, trailing: 18))
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
+  }
+
+  private func proposedHeroChip(
+    label: String,
+    value: String,
+    tint: Color,
+    colors c: AppThemeColors,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: {
+      HapticService.selection()
+      action()
+    }) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(label)
+          .font(.system(size: 10.5, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+          .lineLimit(1)
+          .minimumScaleFactor(0.85)
+        Text(value)
+          .font(.system(size: 13, weight: .bold))
+          .monospacedDigit()
+          .foregroundStyle(tint)
+          .lineLimit(1)
+          .minimumScaleFactor(0.75)
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 10)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(Color.black.opacity(c.isDark ? 0.22 : 0.04))
+      }
+    }
+    .buttonStyle(.plain)
+  }
+
   private func premiumHeroChip(
     icon: HugeiconsAsset,
     label: String,
@@ -517,7 +652,8 @@ struct MoneyView: View {
       title: "A PAGAR",
       rows: dueRows,
       emptyHint: "Nada com valor pendente",
-      showWhenEmpty: true
+      showWhenEmpty: true,
+      income: false
     )
   }
 
@@ -527,7 +663,8 @@ struct MoneyView: View {
       title: "A RECEBER",
       rows: receivableRows,
       emptyHint: "Nada a receber",
-      showWhenEmpty: false
+      showWhenEmpty: false,
+      income: true
     )
   }
 
@@ -536,7 +673,8 @@ struct MoneyView: View {
     title: String,
     rows: [DueRow],
     emptyHint: String,
-    showWhenEmpty: Bool
+    showWhenEmpty: Bool,
+    income: Bool
   ) -> some View {
     if isSearching, rows.isEmpty {
       EmptyView()
@@ -549,15 +687,27 @@ struct MoneyView: View {
         } else {
           ForEach(rows) { row in
             switch row {
-            case .month(let group, let nested, let income):
-              monthAccordion(group, nested: nested, income: income)
-            case .year(let year, let months, let id, let income):
-              yearHeaderCard(year: year, months: months, id: id, income: income)
+            case .month(let group, let nested, let incomeFlag):
+              monthAccordion(group, nested: nested, income: incomeFlag)
+            case .year(let year, let months, let id, let incomeFlag):
+              yearHeaderCard(year: year, months: months, id: id, income: incomeFlag)
             }
           }
         }
       } header: {
-        HomeSectionHeader(text: title, style: sectionStyle, scale: typeScale)
+        HomeSectionHeader(text: title, style: sectionStyle, scale: typeScale) {
+          if isMoneyProposed, !isSearching {
+            let monthTotal = income
+              ? store.monthReceivableItems.reduce(0) { $0 + $1.valor }
+              : store.monthTotal
+            Text(income ? "+\(CurrencyFormat.brl(monthTotal)) · este mês" : "−\(CurrencyFormat.brl(monthTotal)) · este mês")
+              .font(typeScale.metrics.actionFont)
+              .fontWeight(.semibold)
+              .monospacedDigit()
+              .foregroundStyle(income ? theme.colors.accent : theme.colors.textPrimary)
+              .textCase(nil)
+          }
+        }
           .homeSectionHeaderInsets(sectionStyle)
       }
     }
@@ -590,6 +740,7 @@ struct MoneyView: View {
   ) -> [DueRow] {
     var rows: [DueRow] = []
     let q = searchQuery
+    let currentId = store.currentMonthGroupId
     for cluster in clusters {
       switch cluster {
       case .month(let group):
@@ -598,15 +749,25 @@ struct MoneyView: View {
         }
       case .year(let year, let months):
         let yearHit = isSearching && queryMatchesYear(year)
-        let visibleMonths = isSearching
+        var visibleMonths = isSearching
           ? (yearHit ? months : months.filter { $0.matches(q) })
           : months
         if isSearching, visibleMonths.isEmpty { continue }
         let yearId = "\(yearPrefix)\(year)"
-        rows.append(.year(year: year, months: visibleMonths, id: yearId, income: income))
-        if expandedMonthIds.contains(yearId) || isSearching {
-          for group in visibleMonths {
-            rows.append(.month(group, nested: true, income: income))
+
+        if isMoneyProposed, !isSearching,
+           let current = visibleMonths.first(where: { $0.calendarMonthId == currentId })
+        {
+          rows.append(.month(current, nested: false, income: income))
+          visibleMonths = visibleMonths.filter { $0.id != current.id }
+        }
+
+        if !visibleMonths.isEmpty {
+          rows.append(.year(year: year, months: visibleMonths, id: yearId, income: income))
+          if expandedMonthIds.contains(yearId) || isSearching {
+            for group in visibleMonths {
+              rows.append(.month(group, nested: true, income: income))
+            }
           }
         }
       }
@@ -643,11 +804,17 @@ struct MoneyView: View {
     let quiet = year != currentYear && !expanded
     let monthCount = months.count
     let total = months.reduce(0.0) { $0 + $1.total }
+    let subtitle: String = {
+      if isMoneyProposed, !isSearching {
+        return monthCount == 1 ? "1 mês restante" : "\(monthCount) meses restantes"
+      }
+      return monthCount == 1 ? "1 mês" : "\(monthCount) meses"
+    }()
     return moneyAccordionCard {
       accordionHeader(
         id: id,
         title: "\(year)",
-        subtitle: monthCount == 1 ? "1 mês" : "\(monthCount) meses",
+        subtitle: subtitle,
         total: total,
         expanded: expanded,
         emphasizeTitle: !quiet,
@@ -684,12 +851,14 @@ struct MoneyView: View {
       subtitle = count == 1 ? "1 item" : "\(count) itens"
       if isCurrent { subtitle += " · este mês" }
     }
-    return moneyAccordionCard(nested: nested) {
+    return moneyAccordionCard(nested: nested, emphasizeCurrent: isMoneyProposed && isCurrent) {
       VStack(spacing: 0) {
         accordionHeader(
           id: group.id,
           title: group.title,
-          subtitle: subtitle,
+          subtitle: isMoneyProposed && isCurrent
+            ? (count == 1 ? "este mês · 1 pendente" : "este mês · \(count) pendentes")
+            : subtitle,
           total: total,
           expanded: expanded,
           income: income,
@@ -728,6 +897,8 @@ struct MoneyView: View {
                   subtitle: completed.count == 1 ? "1 item" : "\(completed.count) itens",
                   total: completed.reduce(0) { $0 + $1.valor },
                   expanded: completedExpanded,
+                  highlightAmount: !isMoneyProposed,
+                  quiet: isMoneyProposed,
                   income: income
                 )
                 if completedExpanded {
@@ -832,7 +1003,7 @@ struct MoneyView: View {
         .foregroundStyle(
           highlightAmount
             ? (isMoneyPremium
-              ? (income ? c.accent : AppColors.dateOverdue)
+              ? (income ? c.accent : c.textPrimary)
               : c.accent)
             : c.textTertiary
         )
@@ -887,7 +1058,7 @@ struct MoneyView: View {
           ? (income ? Hugeicons.banknoteArrowUp : Hugeicons.banknoteArrowDown)
           : nil,
         amountColor: isMoneyPremium && !completed
-          ? (income ? c.accent : AppColors.dateOverdue)
+          ? (income ? c.accent : (overdue ? AppColors.dateOverdue : c.textPrimary))
           : nil,
         iconColor: isMoneyPremium ? c.textSecondary : nil
       )
@@ -911,17 +1082,25 @@ struct MoneyView: View {
 
   private func moneyAccordionCard<Content: View>(
     nested: Bool = false,
+    emphasizeCurrent: Bool = false,
     @ViewBuilder content: () -> Content
   ) -> some View {
     let c = theme.colors
     let radius = max(sectionStyle.metrics.cornerRadius, 14)
+    let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
     let leading: CGFloat = nested ? 18 + HomeSectionRowLayout.iconWidth : 18
+    // Stroke no overlay (por cima): o painel expandido é full-bleed e cobria a
+    // borda quando ela vivia no background — só o header “este mês” ficava contornado.
     return content()
       .background {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-          .fill(c.surface)
+        shape.fill(c.surface)
       }
-      .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+      .clipShape(shape)
+      .overlay {
+        if emphasizeCurrent {
+          shape.strokeBorder(c.accent.opacity(0.28), lineWidth: 1)
+        }
+      }
       .listRowInsets(EdgeInsets(top: 3, leading: leading, bottom: 3, trailing: 18))
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
@@ -1003,10 +1182,11 @@ struct MoneyView: View {
     let currentYear = Calendar.current.component(.year, from: Date())
     let yearId = "year-\(currentYear)"
     var initial: Set<String> = []
-    if store.dueOutline.contains(where: { $0.id == yearId }) {
+    // Proposto: só o mês atual aberto — o ano fica colapsado.
+    if !isMoneyProposed, store.dueOutline.contains(where: { $0.id == yearId }) {
       initial.insert(yearId)
     }
-    if store.receivableOutline.contains(where: {
+    if !isMoneyProposed, store.receivableOutline.contains(where: {
       if case .year(let year, _) = $0 { return year == currentYear }
       return false
     }) {
@@ -1100,17 +1280,26 @@ struct MoneyView: View {
         isFirstSection: !store.showsHubSnapshot || isSearching
       ) {
         if !isSearching, groups.contains(where: { $0.bank != nil }) {
-          HStack(spacing: 4) {
-            Text(CurrencyFormat.brl(store.liquidBalance))
-              .foregroundStyle(c.accent)
-              .fontWeight(.semibold)
-            Text("líquido")
+          if isMoneyProposed {
+            let banks = groups.filter { $0.bank != nil }.count
+            let cards = groups.reduce(0) { $0 + $1.cards.count }
+            Text("\(banks) bancos · \(cards) cartões")
               .foregroundStyle(c.textSecondary)
+              .font(typeScale.metrics.actionFont)
+              .textCase(nil)
+          } else {
+            HStack(spacing: 4) {
+              Text(CurrencyFormat.brl(store.liquidBalance))
+                .foregroundStyle(c.accent)
+                .fontWeight(.semibold)
+              Text("líquido")
+                .foregroundStyle(c.textSecondary)
+            }
+            .font(typeScale.metrics.actionFont)
+            .monospacedDigit()
+            .textCase(nil)
+            .accessibilityLabel("\(CurrencyFormat.brl(store.liquidBalance)) líquido")
           }
-          .font(typeScale.metrics.actionFont)
-          .monospacedDigit()
-          .textCase(nil)
-          .accessibilityLabel("\(CurrencyFormat.brl(store.liquidBalance)) líquido")
         }
       }
         .homeSectionHeaderInsets(sectionStyle)
@@ -1274,6 +1463,7 @@ struct MoneyView: View {
       if isCredit {
         return (account.invoiceAmount ?? 0) > 0 ? c.textPrimary : c.textTertiary
       }
+      if isMoneyProposed { return c.accent }
       return nil
     }()
     let iconTint: Color? = {
@@ -1295,10 +1485,12 @@ struct MoneyView: View {
       usage: accountLimitUsage(for: account),
       leadingIcon: premiumIcon,
       nestedIndent: nested && !orphan,
-      subtitleEmphasis: limitCaption(for: account),
+      subtitleEmphasis: isMoneyProposed ? nil : limitCaption(for: account),
       amountColor: amountTint,
       iconColor: iconTint,
-      usageColor: barTint
+      usageColor: barTint,
+      limitPercentLabel: isMoneyProposed ? limitPercentChip(for: account) : nil,
+      thickerLimitBar: isMoneyProposed
     )
   }
 
@@ -1328,6 +1520,11 @@ struct MoneyView: View {
     return "\(percent)% do limite"
   }
 
+  private func limitPercentChip(for account: MoneyAccount) -> String? {
+    guard let usage = accountLimitUsage(for: account) else { return nil }
+    return "\(Int((usage * 100).rounded()))%"
+  }
+
   private func moneyValueRow(
     title: String,
     subtitle: String,
@@ -1342,7 +1539,9 @@ struct MoneyView: View {
     subtitleEmphasis: String? = nil,
     amountColor: Color? = nil,
     iconColor: Color? = nil,
-    usageColor: Color? = nil
+    usageColor: Color? = nil,
+    limitPercentLabel: String? = nil,
+    thickerLimitBar: Bool = false
   ) -> some View {
     let c = theme.colors
     let t = typeScale.metrics
@@ -1389,26 +1588,39 @@ struct MoneyView: View {
       }
       if let usage {
         let fill = usageColor ?? c.accent
-        GeometryReader { geo in
-          ZStack(alignment: .leading) {
-            Capsule()
-              .fill(c.surfaceVariant)
-            Capsule()
-              .fill(
-                LinearGradient(
-                  colors: [
-                    fill.opacity(0.35),
-                    fill.opacity(0.75),
-                    fill,
-                  ],
-                  startPoint: .leading,
-                  endPoint: .trailing
+        HStack(spacing: 8) {
+          GeometryReader { geo in
+            ZStack(alignment: .leading) {
+              Capsule()
+                .fill(c.surfaceVariant)
+              Capsule()
+                .fill(
+                  LinearGradient(
+                    colors: [
+                      fill.opacity(0.18),
+                      fill.opacity(0.55),
+                      fill.opacity(0.92),
+                      fill,
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                  )
                 )
-              )
-              .frame(width: max(4, geo.size.width * usage))
+                .frame(width: max(4, geo.size.width * usage))
+            }
+          }
+          .frame(height: thickerLimitBar ? 5 : 3)
+          if let limitPercentLabel {
+            Text(limitPercentLabel)
+              .font(.system(size: 10.5, weight: .bold))
+              .foregroundStyle(c.textTertiary)
+              .padding(.horizontal, 7)
+              .padding(.vertical, 3)
+              .background {
+                Capsule().fill(c.textPrimary.opacity(0.05))
+              }
           }
         }
-        .frame(height: 3)
         .padding(.leading, contentLeadingInset)
       }
     }

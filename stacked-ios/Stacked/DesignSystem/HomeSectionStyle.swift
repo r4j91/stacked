@@ -261,3 +261,13 @@ enum MoneyPremiumAppearanceStorage {
     UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
   }
 }
+
+/// Dinheiro · layout proposto (mockup B+C). Só se aplica com premium ligado.
+enum MoneyProposedAppearanceStorage {
+  static let key = "appearance.moneyProposed"
+  static let defaultEnabled = false
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
+  }
+}
