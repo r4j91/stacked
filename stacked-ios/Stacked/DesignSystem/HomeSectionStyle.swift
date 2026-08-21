@@ -251,3 +251,13 @@ enum HomeMoneyOnHomeStorage {
     UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
   }
 }
+
+/// Dinheiro · visual premium (cores semânticas, ícones, cascata no fluxo). Desligado = layout clássico.
+enum MoneyPremiumAppearanceStorage {
+  static let key = "appearance.moneyPremium"
+  static let defaultEnabled = false
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.object(forKey: key) as? Bool ?? defaultEnabled
+  }
+}

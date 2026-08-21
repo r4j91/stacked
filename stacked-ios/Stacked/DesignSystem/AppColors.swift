@@ -9,6 +9,9 @@ enum AppColors {
   static let tagPurple = Color(hex: 0xB18CF5)
   static let tagGreen = Color(hex: 0x8FD46B)
 
+  /// Âmbar do tema Abismo Cinza Sólido — faturas / cartão no Dinheiro premium.
+  static let invoiceAmber = Color(hex: 0xC9A06E)
+
   static let success = Color(hex: 0x22C55E)
   static let overdue = priorityHigh
   static let onColoredFill = Color.white

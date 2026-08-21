@@ -17,6 +17,7 @@ struct AppearanceView: View {
   @AppStorage(HomeSectionStyleStorage.key) private var homeSectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(HomeMoneyRichStorage.key) private var homeMoneyRich = HomeMoneyRichStorage.defaultEnabled
   @AppStorage(HomeMoneyOnHomeStorage.key) private var homeMoneyOnHome = HomeMoneyOnHomeStorage.defaultEnabled
+  @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
   @AppStorage(AppTypeScaleStorage.key) private var appTypeScaleRaw = AppTypeScaleStorage.defaultRawValue
   @AppStorage(LabelChipStyleStorage.key) private var labelChipStyleRaw = LabelChipStyleStorage.defaultRawValue
   @AppStorage(DueDateChipStyleStorage.key) private var dueDateChipStyleRaw = DueDateChipStyleStorage.defaultRawValue
@@ -274,6 +275,8 @@ struct AppearanceView: View {
             SettingsCardDivider(leadingPadding: 82)
             homeMoneyRichRow()
           }
+          SettingsCardDivider(leadingPadding: 82)
+          moneyPremiumRow()
         }
 
         appearancePanel(
@@ -1166,6 +1169,30 @@ struct AppearanceView: View {
     .padding(.horizontal, SettingsChrome.rowPaddingH)
     .padding(.vertical, SettingsChrome.rowPaddingV)
     .onChange(of: homeMoneyRich) { _, _ in
+      HapticService.selection()
+    }
+  }
+
+  private func moneyPremiumRow() -> some View {
+    let c = theme.colors
+
+    return HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Dinheiro premium")
+          .font(AppTypography.settingsTitle)
+          .foregroundStyle(c.textPrimary)
+        Text("Cores por tipo (entrada, fatura, a pagar), ícones Hugeicons e cascata no fluxo. Desligado volta ao visual atual.")
+          .font(AppTypography.meta)
+          .foregroundStyle(c.textSecondary)
+          .lineLimit(3)
+      }
+      Spacer(minLength: 8)
+      SettingsSwitchToggle(isOn: $moneyPremium, tint: c.actionAccent)
+    }
+    .frame(minHeight: 44)
+    .padding(.horizontal, SettingsChrome.rowPaddingH)
+    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .onChange(of: moneyPremium) { _, _ in
       HapticService.selection()
     }
   }

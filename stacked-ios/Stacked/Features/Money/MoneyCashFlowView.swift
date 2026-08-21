@@ -1,4 +1,5 @@
 import SwiftUI
+import Hugeicons
 
 /// Fluxo de caixa do mês civil — visão mensal ou por semanas (segunda a domingo).
 struct MoneyCashFlowView: View {
@@ -12,6 +13,7 @@ struct MoneyCashFlowView: View {
 
   @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+  @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -20,6 +22,8 @@ struct MoneyCashFlowView: View {
   private var typeScale: AppTypeScale {
     AppTypeScaleStorage.scale(from: typeScaleRaw)
   }
+
+  private var isMoneyPremium: Bool { moneyPremium }
 
   private var report: MoneyCashFlowReport? {
     store.cashFlow(monthId: monthId)
@@ -130,8 +134,17 @@ struct MoneyCashFlowView: View {
           )
       }
 
-      summaryGrid(report, colors: c)
+      if isMoneyPremium {
+        premiumWaterfall(report, colors: c)
+      } else {
+        summaryGrid(report, colors: c)
+      }
 
+      Text(
+        "Resultado do mês é só \(report.monthName); \(report.openingLabel.lowercased()) entra no caixa projetado."
+      )
+      .font(.system(size: 12.5))
+      .foregroundStyle(c.textTertiary)
       if report.projectedOut > 0 {
         Text("Inclui \(CurrencyFormat.brl(report.projectedOut)) ainda a sair (a pagar e faturas).")
           .font(.system(size: 12.5))
@@ -143,15 +156,100 @@ struct MoneyCashFlowView: View {
     .background {
       RoundedRectangle(cornerRadius: radius, style: .continuous)
         .fill(c.surface)
+        .overlay {
+          if isMoneyPremium {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+              .strokeBorder(c.accent.opacity(0.12), lineWidth: 1)
+          }
+        }
     }
     .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 4, trailing: 18))
     .listRowSeparator(.hidden)
     .listRowBackground(Color.clear)
   }
 
+  private func premiumWaterfall(_ report: MoneyCashFlowReport, colors c: AppThemeColors) -> some View {
+    VStack(spacing: 0) {
+      premiumWfRow(
+        icon: Hugeicons.wallet01,
+        label: report.openingLabel,
+        value: CurrencyFormat.brl(report.opening),
+        tint: c.textSecondary,
+        colors: c
+      )
+      if report.projectedIn > 0 || report.income > 0 {
+        premiumWfRow(
+          icon: Hugeicons.banknoteArrowUp,
+          label: report.projectedIn > 0 ? "A entrar" : "Entradas",
+          value: "+\(CurrencyFormat.brl(report.projectedIn + report.income))",
+          tint: c.accent,
+          colors: c
+        )
+      }
+      if report.projectedOut > 0 || report.expense > 0 {
+        premiumWfRow(
+          icon: Hugeicons.banknoteArrowDown,
+          label: report.projectedOut > 0 ? "A sair" : "Saídas",
+          value: "−\(CurrencyFormat.brl(report.projectedOut + report.expense))",
+          tint: AppColors.dateOverdue,
+          colors: c
+        )
+      }
+      premiumWfRow(
+        icon: Hugeicons.chart01,
+        label: "Resultado do mês",
+        value: signed(report.netProjected),
+        tint: report.isNegativeMonthNet ? AppColors.dateOverdue : AppColors.tagGreen,
+        colors: c
+      )
+      Rectangle()
+        .fill(c.textPrimary.opacity(0.1))
+        .frame(height: 0.5)
+        .padding(.vertical, 8)
+      HStack {
+        Text("Caixa projetado")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundStyle(c.textPrimary)
+        Spacer()
+        Text(CurrencyFormat.brl(report.closingProjected))
+          .font(.system(size: 17, weight: .bold))
+          .monospacedDigit()
+          .foregroundStyle(resultColor(report, colors: c))
+      }
+    }
+  }
+
+  private func premiumWfRow(
+    icon: HugeiconsAsset,
+    label: String,
+    value: String,
+    tint: Color,
+    colors c: AppThemeColors
+  ) -> some View {
+    HStack(spacing: 10) {
+      StackedIcons.image(icon)
+        .font(.system(size: 15))
+        .foregroundStyle(tint)
+        .frame(width: 22, alignment: .center)
+      Text(label)
+        .font(.system(size: 13.5))
+        .foregroundStyle(c.textSecondary)
+      Spacer(minLength: 8)
+      Text(value)
+        .font(.system(size: 13.5, weight: .semibold))
+        .monospacedDigit()
+        .foregroundStyle(tint)
+    }
+    .padding(.vertical, 7)
+  }
+
   private func summaryGrid(_ report: MoneyCashFlowReport, colors c: AppThemeColors) -> some View {
     VStack(spacing: 10) {
-      summaryRow("Saldo inicial", CurrencyFormat.brl(report.opening), colors: c)
+      summaryRow(
+        report.openingLabel,
+        CurrencyFormat.brl(report.opening),
+        colors: c
+      )
       summaryRow("Entradas", "+\(CurrencyFormat.brl(report.income))", accent: true, colors: c)
       summaryRow("Saídas", "−\(CurrencyFormat.brl(report.expense))", colors: c)
       if abs(report.transferNet) > 0.005 {
@@ -163,6 +261,12 @@ struct MoneyCashFlowView: View {
       if report.projectedIn > 0 {
         summaryRow("A entrar (projetado)", "+\(CurrencyFormat.brl(report.projectedIn))", accent: true, colors: c)
       }
+      summaryRow(
+        "Resultado do mês",
+        signed(report.netProjected),
+        tint: report.isNegativeMonthNet ? AppColors.dateOverdue : c.accent,
+        colors: c
+      )
       Rectangle()
         .fill(c.textPrimary.opacity(0.08))
         .frame(height: 0.5)
@@ -209,6 +313,7 @@ struct MoneyCashFlowView: View {
   private func monthSections(_ report: MoneyCashFlowReport) -> some View {
     let cash = report.cashLines
     Section {
+      carryoverRow(report)
       if cash.isEmpty {
         hintRow("Nenhum movimento de caixa neste mês")
       } else {
@@ -217,6 +322,75 @@ struct MoneyCashFlowView: View {
     } header: {
       sectionHeader("MOVIMENTOS")
     }
+  }
+
+  private func carryoverRow(_ report: MoneyCashFlowReport) -> some View {
+    let c = theme.colors
+    let t = typeScale.metrics
+    let radius = max(sectionStyle.metrics.cornerRadius, 12)
+    return HStack(alignment: .center, spacing: 12) {
+      if isMoneyPremium {
+        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+          .fill(c.textSecondary.opacity(0.7))
+          .frame(width: 3)
+          .padding(.vertical, 2)
+        StackedIcons.image(Hugeicons.wallet01)
+          .font(.system(size: 18))
+          .foregroundStyle(c.textSecondary)
+          .frame(width: 22)
+      }
+      VStack(alignment: .leading, spacing: 2) {
+        Text(report.openingLabel)
+          .font(t.rowTitleFont)
+          .foregroundStyle(c.textPrimary)
+          .lineLimit(2)
+        HStack(spacing: 6) {
+          Text(MoneyCalendar.dayLabel(for: report.monthStart))
+            .font(.system(size: 12.5))
+            .foregroundStyle(c.textTertiary)
+          Text("Mês anterior")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(c.textSecondary)
+        }
+      }
+      Spacer(minLength: 8)
+      VStack(alignment: .trailing, spacing: 2) {
+        Text(CurrencyFormat.brl(report.opening))
+          .font(t.rowTitleFont)
+          .monospacedDigit()
+          .foregroundStyle(report.opening < -0.005 ? AppColors.dateOverdue : c.textPrimary)
+        Text(CurrencyFormat.brl(report.opening))
+          .font(.system(size: 11.5, weight: .medium))
+          .monospacedDigit()
+          .foregroundStyle(c.textTertiary)
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
+    .background {
+      RoundedRectangle(cornerRadius: radius, style: .continuous)
+        .fill(
+          isMoneyPremium
+            ? LinearGradient(
+              colors: [
+                c.textSecondary.opacity(0.1),
+                c.surface,
+              ],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
+            : LinearGradient(colors: [c.surface, c.surface], startPoint: .top, endPoint: .bottom)
+        )
+        .overlay {
+          if isMoneyPremium {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+              .strokeBorder(c.textSecondary.opacity(0.18), lineWidth: 1)
+          }
+        }
+    }
+    .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18))
+    .listRowSeparator(.hidden)
+    .listRowBackground(Color.clear)
   }
 
   // MARK: - Weeks
@@ -434,7 +608,18 @@ struct MoneyCashFlowView: View {
     let c = theme.colors
     let t = typeScale.metrics
     let radius = max(sectionStyle.metrics.cornerRadius, 12)
+    let railTint = kindColor(line, colors: c)
     return HStack(alignment: .center, spacing: 12) {
+      if isMoneyPremium {
+        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+          .fill(railTint)
+          .frame(width: 3)
+          .padding(.vertical, 2)
+        StackedIcons.image(lineIcon(line))
+          .font(.system(size: 17))
+          .foregroundStyle(railTint)
+          .frame(width: 22)
+      }
       VStack(alignment: .leading, spacing: 2) {
         Text(line.title)
           .font(t.rowTitleFont)
@@ -485,6 +670,16 @@ struct MoneyCashFlowView: View {
     .listRowBackground(Color.clear)
   }
 
+  private func lineIcon(_ line: MoneyCashFlowLine) -> HugeiconsAsset {
+    switch line.kind {
+    case .income: Hugeicons.banknoteArrowUp
+    case .expense, .obligation: Hugeicons.banknoteArrowDown
+    case .invoice: Hugeicons.creditCard
+    case .transfer: Hugeicons.arrowDataTransferHorizontal
+    case .cardPurchase: Hugeicons.creditCard
+    }
+  }
+
   private func hintRow(_ text: String) -> some View {
     let c = theme.colors
     return Text(text)
@@ -518,11 +713,19 @@ struct MoneyCashFlowView: View {
   }
 
   private func kindColor(_ line: MoneyCashFlowLine, colors c: AppThemeColors) -> Color {
+    guard isMoneyPremium else {
+      switch line.kind {
+      case .income: return c.accent
+      case .obligation, .invoice: return AppColors.dateOverdue.opacity(0.9)
+      case .cardPurchase: return c.textTertiary
+      default: return c.textSecondary
+      }
+    }
     switch line.kind {
-    case .income: c.accent
-    case .obligation, .invoice: AppColors.dateOverdue.opacity(0.9)
-    case .cardPurchase: c.textTertiary
-    default: c.textSecondary
+    case .income: return c.accent
+    case .obligation, .invoice: return AppColors.dateOverdue
+    case .cardPurchase: return c.textTertiary
+    default: return c.textSecondary
     }
   }
 

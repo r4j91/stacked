@@ -22,6 +22,7 @@ struct MoneyView: View {
 
   @AppStorage(HomeSectionStyleStorage.key) private var sectionStyleRaw = HomeSectionStyleStorage.defaultRawValue
   @AppStorage(AppTypeScaleStorage.key) private var typeScaleRaw = AppTypeScaleStorage.defaultRawValue
+  @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -30,6 +31,8 @@ struct MoneyView: View {
   private var typeScale: AppTypeScale {
     AppTypeScaleStorage.scale(from: typeScaleRaw)
   }
+
+  private var isMoneyPremium: Bool { moneyPremium }
 
   private var searchQuery: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -284,6 +287,15 @@ struct MoneyView: View {
 
   @ViewBuilder
   private var snapshotSection: some View {
+    if isMoneyPremium {
+      premiumSnapshotSection
+    } else {
+      classicSnapshotSection
+    }
+  }
+
+  @ViewBuilder
+  private var classicSnapshotSection: some View {
     let c = theme.colors
     let due = store.monthTotal
     let invoice = store.openInvoiceTotal
@@ -340,6 +352,122 @@ struct MoneyView: View {
       .listRowBackground(
         HomeSectionRowBackground(style: sectionStyle, position: .only, colors: c)
       )
+    }
+  }
+
+  @ViewBuilder
+  private var premiumSnapshotSection: some View {
+    let c = theme.colors
+    let liquid = store.liquidBalance
+    let due = store.monthTotal + store.openInvoiceTotal
+    let incoming = store.monthReceivableItems.reduce(0) { $0 + $1.valor }
+    let radius = max(sectionStyle.metrics.cornerRadius, 18)
+    Section {
+      VStack(alignment: .leading, spacing: 0) {
+        HStack {
+          Text("Caixa líquido")
+            .font(AppTypography.screenSubtitle)
+            .foregroundStyle(c.textSecondary)
+          Spacer(minLength: 8)
+          Text(liquid < -0.005 ? "Negativo" : "Em dia")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(liquid < -0.005 ? AppColors.dateOverdue : c.textSecondary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+              Capsule().fill(
+                (liquid < -0.005 ? AppColors.dateOverdue : c.textPrimary).opacity(
+                  liquid < -0.005 ? 0.14 : 0.06
+                )
+              )
+            )
+        }
+        Text(CurrencyFormat.brl(liquid))
+          .font(AppTypography.screenGreeting)
+          .monospacedDigit()
+          .foregroundStyle(liquid < -0.005 ? AppColors.dateOverdue : c.accent)
+          .padding(.top, 6)
+        Text("Corrente + dinheiro · agora")
+          .font(.system(size: 12.5))
+          .foregroundStyle(c.textTertiary)
+          .padding(.top, 3)
+
+        HStack(spacing: 8) {
+          premiumHeroChip(
+            icon: Hugeicons.banknoteArrowUp,
+            label: "A entrar",
+            value: "+\(CurrencyFormat.brl(incoming))",
+            tint: c.accent,
+            colors: c
+          )
+          premiumHeroChip(
+            icon: Hugeicons.banknoteArrowDown,
+            label: "A sair",
+            value: "−\(CurrencyFormat.brl(due))",
+            tint: AppColors.dateOverdue,
+            colors: c
+          )
+        }
+        .padding(.top, 14)
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+          .fill(c.surface)
+          .overlay(alignment: .top) {
+            Capsule()
+              .fill(c.accent.opacity(0.55))
+              .frame(height: 2)
+              .padding(.horizontal, 18)
+              .padding(.top, 1)
+          }
+          .overlay {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+              .strokeBorder(c.textPrimary.opacity(0.06), lineWidth: 1)
+          }
+      }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel("Caixa líquido")
+      .accessibilityValue(
+        "\(CurrencyFormat.brl(liquid)). A entrar \(CurrencyFormat.brl(incoming)). A sair \(CurrencyFormat.brl(due))"
+      )
+      .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 6, trailing: 18))
+      .listRowSeparator(.hidden)
+      .listRowBackground(Color.clear)
+    }
+  }
+
+  private func premiumHeroChip(
+    icon: HugeiconsAsset,
+    label: String,
+    value: String,
+    tint: Color,
+    colors c: AppThemeColors
+  ) -> some View {
+    HStack(spacing: 8) {
+      StackedIcons.image(icon)
+        .font(.system(size: 16))
+        .foregroundStyle(tint)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(label)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(c.textTertiary)
+        Text(value)
+          .font(.system(size: 14, weight: .bold))
+          .monospacedDigit()
+          .foregroundStyle(tint)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 11)
+    .padding(.vertical, 10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(Color.black.opacity(c.isDark ? 0.22 : 0.04))
     }
   }
 
@@ -697,11 +825,17 @@ struct MoneyView: View {
       }
       .layoutPriority(1)
       Spacer(minLength: 8)
-      Text(income ? "+\(CurrencyFormat.brl(total))" : CurrencyFormat.brl(total))
+      Text(income ? "+\(CurrencyFormat.brl(total))" : (isMoneyPremium && !income ? "−\(CurrencyFormat.brl(total))" : CurrencyFormat.brl(total)))
         .font(t.rowCountFont)
         .monospacedDigit()
         .fontWeight(.semibold)
-        .foregroundStyle(highlightAmount ? c.accent : c.textTertiary)
+        .foregroundStyle(
+          highlightAmount
+            ? (isMoneyPremium
+              ? (income ? c.accent : AppColors.dateOverdue)
+              : c.accent)
+            : c.textTertiary
+        )
         .lineLimit(1)
         .fixedSize()
     }
@@ -732,6 +866,7 @@ struct MoneyView: View {
 
   private func dueItemRow(_ item: MoneyDueItem, completed: Bool = false, income: Bool = false) -> some View {
     let overdue = !completed && item.isOverdue
+    let c = theme.colors
     return Button {
       HapticService.selection()
       subtaskDetailRoute = SubtaskDetailRoute(
@@ -747,7 +882,14 @@ struct MoneyView: View {
         highlight: !completed,
         dimmed: completed,
         overdue: overdue,
-        income: income
+        income: income,
+        leadingIcon: isMoneyPremium
+          ? (income ? Hugeicons.banknoteArrowUp : Hugeicons.banknoteArrowDown)
+          : nil,
+        amountColor: isMoneyPremium && !completed
+          ? (income ? c.accent : AppColors.dateOverdue)
+          : nil,
+        iconColor: isMoneyPremium ? c.textSecondary : nil
       )
       .padding(.horizontal, 12)
     }
@@ -1115,16 +1257,48 @@ struct MoneyView: View {
 
   @ViewBuilder
   private func accountValueRow(_ account: MoneyAccount, nested: Bool, orphan: Bool) -> some View {
+    let c = theme.colors
+    let isCredit = account.kind == .credit
+    let premiumIcon: HugeiconsAsset? = {
+      guard isMoneyPremium else {
+        return nested || orphan ? Hugeicons.creditCard : nil
+      }
+      switch account.kind {
+      case .credit: return Hugeicons.creditCard
+      case .cash: return Hugeicons.money01
+      case .checking: return Hugeicons.wallet01
+      }
+    }()
+    let amountTint: Color? = {
+      guard isMoneyPremium else { return nil }
+      if isCredit {
+        return (account.invoiceAmount ?? 0) > 0 ? c.textPrimary : c.textTertiary
+      }
+      return nil
+    }()
+    let iconTint: Color? = {
+      guard isMoneyPremium else { return nil }
+      return c.textSecondary
+    }()
+    let barTint: Color? = {
+      guard isMoneyPremium, let usage = accountLimitUsage(for: account) else { return nil }
+      if usage >= 0.8 { return AppColors.dateOverdue }
+      if usage >= 0.55 { return AppColors.invoiceAmber }
+      return c.textQuaternary
+    }()
     moneyValueRow(
       title: account.name,
       subtitle: cardSubtitle(account, orphan: orphan),
       amount: account.displayAmount,
       highlight: account.highlightsAmount,
-      dimmed: account.kind == .credit && (account.invoiceAmount ?? 0) == 0,
+      dimmed: isCredit && (account.invoiceAmount ?? 0) == 0,
       usage: accountLimitUsage(for: account),
-      leadingIcon: nested || orphan ? Hugeicons.creditCard : nil,
+      leadingIcon: premiumIcon,
       nestedIndent: nested && !orphan,
-      subtitleEmphasis: limitCaption(for: account)
+      subtitleEmphasis: limitCaption(for: account),
+      amountColor: amountTint,
+      iconColor: iconTint,
+      usageColor: barTint
     )
   }
 
@@ -1165,19 +1339,27 @@ struct MoneyView: View {
     income: Bool = false,
     leadingIcon: HugeiconsAsset? = nil,
     nestedIndent: Bool = false,
-    subtitleEmphasis: String? = nil
+    subtitleEmphasis: String? = nil,
+    amountColor: Color? = nil,
+    iconColor: Color? = nil,
+    usageColor: Color? = nil
   ) -> some View {
     let c = theme.colors
     let t = typeScale.metrics
     let contentLeadingInset = leadingIcon != nil
       ? HomeSectionRowLayout.iconWidth + HomeSectionRowLayout.iconSpacing
       : 0
+    let resolvedAmount: Color = {
+      if let amountColor { return amountColor }
+      if highlight { return c.accent }
+      return c.textSecondary
+    }()
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .top, spacing: HomeSectionRowLayout.iconSpacing) {
         if let leadingIcon {
           StackedIcons.image(leadingIcon)
             .font(.system(size: 20))
-            .foregroundStyle(c.textSecondary)
+            .foregroundStyle(iconColor ?? c.textSecondary)
             .frame(width: HomeSectionRowLayout.iconWidth, alignment: .center)
             .padding(.top, 1)
         }
@@ -1192,8 +1374,8 @@ struct MoneyView: View {
             Text(income ? "+\(CurrencyFormat.brl(amount))" : CurrencyFormat.brl(amount))
               .font(t.rowCountFont)
               .monospacedDigit()
-              .fontWeight(highlight ? .semibold : .regular)
-              .foregroundStyle(highlight ? c.accent : c.textSecondary)
+              .fontWeight(highlight || amountColor != nil ? .semibold : .regular)
+              .foregroundStyle(dimmed ? c.textTertiary : resolvedAmount)
               .lineLimit(1)
               .fixedSize()
           }
@@ -1206,12 +1388,23 @@ struct MoneyView: View {
         .layoutPriority(1)
       }
       if let usage {
+        let fill = usageColor ?? c.accent
         GeometryReader { geo in
           ZStack(alignment: .leading) {
             Capsule()
               .fill(c.surfaceVariant)
             Capsule()
-              .fill(c.accent)
+              .fill(
+                LinearGradient(
+                  colors: [
+                    fill.opacity(0.35),
+                    fill.opacity(0.75),
+                    fill,
+                  ],
+                  startPoint: .leading,
+                  endPoint: .trailing
+                )
+              )
               .frame(width: max(4, geo.size.width * usage))
           }
         }

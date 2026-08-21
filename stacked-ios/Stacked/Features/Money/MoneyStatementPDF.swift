@@ -626,6 +626,9 @@ enum MoneyCashFlowPDF {
     drawTableHeader(flow: flow)
 
     if cash.isEmpty {
+      newPageIfNeeded(rowHeight)
+      drawCarryoverLine(report, y: flow.y)
+      flow.y += rowHeight
       newPageIfNeeded(24)
       MoneyPDF.text(
         "Nenhum movimento de caixa neste mês.",
@@ -637,6 +640,9 @@ enum MoneyCashFlowPDF {
       )
       flow.y += 24
     } else {
+      newPageIfNeeded(rowHeight)
+      drawCarryoverLine(report, y: flow.y)
+      flow.y += rowHeight
       var running = report.opening
       for (index, line) in cash.enumerated() {
         newPageIfNeeded(rowHeight)
@@ -688,7 +694,7 @@ enum MoneyCashFlowPDF {
   ) {
     newPageIfNeeded(64)
     let items: [(String, String, UIColor)] = [
-      ("Saldo inicial", CurrencyFormat.brl(report.opening), MoneyPDF.ink),
+      (report.openingLabel, CurrencyFormat.brl(report.opening), MoneyPDF.ink),
       ("Entradas", "+\(CurrencyFormat.brl(report.income))", MoneyPDF.accent),
       ("Saídas", "−\(CurrencyFormat.brl(report.expense))", MoneyPDF.ink),
       (
@@ -736,6 +742,51 @@ enum MoneyCashFlowPDF {
     flow.y += 14
     MoneyPDF.rule(y: flow.y)
     flow.y += 6
+  }
+
+  private static func drawCarryoverLine(_ report: MoneyCashFlowReport, y: CGFloat) {
+    let cols = Columns()
+    let textY = y + 5
+    MoneyPDF.text(
+      MoneyCalendar.dayLabel(for: report.monthStart),
+      x: cols.date,
+      y: textY,
+      width: cols.dateWidth,
+      font: .systemFont(ofSize: 10),
+      color: MoneyPDF.muted
+    )
+    MoneyPDF.text(
+      report.openingLabel,
+      x: cols.desc,
+      y: textY,
+      width: cols.descWidth,
+      font: .systemFont(ofSize: 10.5, weight: .medium),
+      color: MoneyPDF.ink
+    )
+    MoneyPDF.text(
+      "Anterior",
+      x: cols.kind,
+      y: textY,
+      width: cols.kindWidth,
+      font: .systemFont(ofSize: 9.5),
+      color: MoneyPDF.muted
+    )
+    MoneyPDF.money(
+      CurrencyFormat.brl(report.opening),
+      x: cols.value,
+      y: textY,
+      width: cols.valueWidth,
+      color: MoneyPDF.ink,
+      weight: .medium
+    )
+    MoneyPDF.money(
+      CurrencyFormat.brl(report.opening),
+      x: cols.running,
+      y: textY,
+      width: cols.runningWidth,
+      color: MoneyPDF.muted,
+      weight: .medium
+    )
   }
 
   private static func drawLine(_ line: MoneyCashFlowLine, running: Double, y: CGFloat, striped: Bool) {

@@ -634,6 +634,21 @@ struct MoneyCashFlowReport: Equatable {
   var netProjected: Double { closingProjected - opening }
   var isNegativeProjected: Bool { closingProjected < -0.005 }
   var isNegativeRealized: Bool { closingRealized < -0.005 }
+  var isNegativeMonthNet: Bool { netProjected < -0.005 }
+
+  /// Ex.: "agosto" — rótulo do saldo que veio do mês anterior.
+  var priorMonthName: String {
+    let prior = MoneyCalendar.shiftMonth(monthStart, by: -1)
+    let month = Calendar.current.component(.month, from: prior)
+    return MoneyCalendar.monthNames[max(0, min(11, month - 1))].lowercased()
+  }
+
+  var monthName: String {
+    let month = Calendar.current.component(.month, from: monthStart)
+    return MoneyCalendar.monthNames[max(0, min(11, month - 1))].lowercased()
+  }
+
+  var openingLabel: String { "Saldo de \(priorMonthName)" }
 
   var cashLines: [MoneyCashFlowLine] { lines.filter(\.affectsCash) }
   var cardLines: [MoneyCashFlowLine] { lines.filter { $0.kind == .cardPurchase } }
