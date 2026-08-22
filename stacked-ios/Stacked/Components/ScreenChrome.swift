@@ -437,23 +437,29 @@ struct StackedChromeSearchActionBar: View {
   var prompt: String
   var actionAccessibilityLabel: String
   var actionIcon: StackedIconKey = .plus
+  /// Dinheiro: ao rolar, encolhe a barra sem esconder busca nem +.
+  var compact: Bool = false
   var action: (CGRect) -> Void
   @FocusState private var focused: Bool
 
-  private let barHeight: CGFloat = 44
-  private let cornerRadius: CGFloat = 16
+  private var barHeight: CGFloat { compact ? 32 : 44 }
+  private var cornerRadius: CGFloat { compact ? 11 : 16 }
+  private var fieldFont: CGFloat { compact ? 13 : 15 }
+  private var iconFont: CGFloat { compact ? 13 : 16 }
+  private var actionIconFont: CGFloat { compact ? 14 : 17 }
+  private var actionWidth: CGFloat { compact ? 34 : 44 }
 
   var body: some View {
     let c = theme.colors
     let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     HStack(spacing: 0) {
-      HStack(spacing: 8) {
+      HStack(spacing: compact ? 6 : 8) {
         StackedIcons.image(.search)
-          .font(.system(size: 16, weight: .semibold))
+          .font(.system(size: iconFont, weight: .semibold))
           .foregroundStyle(c.textSecondary)
           .accessibilityHidden(true)
-        TextField(prompt, text: $text)
-          .font(.system(size: 15))
+        TextField(compact && text.isEmpty ? "Buscar" : prompt, text: $text)
+          .font(.system(size: fieldFont))
           .foregroundStyle(c.textPrimary)
           .tint(c.accent)
           .focused($focused)
@@ -465,26 +471,26 @@ struct StackedChromeSearchActionBar: View {
             text = ""
           } label: {
             Image(systemName: "xmark.circle.fill")
-              .font(.system(size: 16))
+              .font(.system(size: compact ? 14 : 16))
               .foregroundStyle(c.textTertiary)
           }
           .buttonStyle(.plain)
           .accessibilityLabel("Limpar busca")
         }
       }
-      .padding(.leading, 14)
+      .padding(.leading, compact ? 12 : 14)
       .padding(.trailing, 8)
       .frame(maxWidth: .infinity, minHeight: barHeight, alignment: .leading)
 
       Rectangle()
         .fill(c.textPrimary.opacity(0.08))
-        .frame(width: 1, height: 18)
+        .frame(width: 1, height: compact ? 14 : 18)
 
       AnchoredTapButton(action: action) {
         StackedIcons.image(actionIcon)
-          .font(.system(size: 17, weight: .semibold))
+          .font(.system(size: actionIconFont, weight: .semibold))
           .foregroundStyle(c.accent)
-          .frame(width: barHeight, height: barHeight)
+          .frame(width: actionWidth, height: barHeight)
       }
       .accessibilityLabel(actionAccessibilityLabel)
     }
@@ -497,6 +503,7 @@ struct StackedChromeSearchActionBar: View {
     }
     .accessibilityElement(children: .contain)
     .accessibilityLabel("Buscar")
+    .animation(.smooth(duration: 0.28), value: compact)
   }
 }
 

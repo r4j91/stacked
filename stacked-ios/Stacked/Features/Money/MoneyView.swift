@@ -25,6 +25,7 @@ struct MoneyView: View {
   @AppStorage(MoneyPremiumAppearanceStorage.key) private var moneyPremium = MoneyPremiumAppearanceStorage.defaultEnabled
   @AppStorage(MoneyProposedAppearanceStorage.key) private var moneyProposed = MoneyProposedAppearanceStorage.defaultEnabled
   @State private var scrollToSection: String?
+  @State private var searchBarCompact = false
 
   private var sectionStyle: HomeSectionStyle {
     HomeSectionStyleStorage.style(from: sectionStyleRaw)
@@ -36,6 +37,21 @@ struct MoneyView: View {
 
   private var isMoneyPremium: Bool { moneyPremium }
   private var isMoneyProposed: Bool { moneyPremium && moneyProposed }
+
+  private func updateSearchBarCompact(scrolledPastTop offset: CGFloat) {
+    // Com texto na busca, mantém a barra grande.
+    if !searchText.isEmpty {
+      if searchBarCompact {
+        searchBarCompact = false
+      }
+      return
+    }
+    let shouldCompact = offset > 24
+    guard shouldCompact != searchBarCompact else { return }
+    withAnimation(AppMotion.smooth(reduceMotion: reduceMotion)) {
+      searchBarCompact = shouldCompact
+    }
+  }
 
   private var searchQuery: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -109,6 +125,12 @@ struct MoneyView: View {
       .listStyle(.plain)
       .scrollContentBackground(.hidden)
       .stackedDashboardListChrome()
+      // PreferenceKey dentro de List não sobe no scroll; ScrollGeometry sim.
+      .onScrollGeometryChange(for: CGFloat.self) { geo in
+        geo.contentOffset.y + geo.contentInsets.top
+      } action: { _, offset in
+        updateSearchBarCompact(scrolledPastTop: offset)
+      }
       .onChange(of: scrollToSection) { _, target in
         guard let target else { return }
         withAnimation(AppMotion.smooth(reduceMotion: reduceMotion)) {
@@ -122,15 +144,27 @@ struct MoneyView: View {
     .navigationTitle("Dinheiro")
     .navigationBarTitleDisplayMode(.inline)
     .safeAreaInset(edge: .top, spacing: 0) {
+      // Altura do inset fixa (44 + 8): encolher a barra não remexe contentInsets
+      // da List — o fade soft do dashboard volta a funcionar sem o “corte” no scroll.
+      let compact = searchBarCompact && searchText.isEmpty
       StackedChromeSearchActionBar(
         text: $searchText,
         prompt: "Conta, parcela ou mês",
         actionAccessibilityLabel: "Adicionar",
+        compact: compact,
         action: openAddMenu
       )
       .padding(.horizontal, 18)
-      .padding(.top, 2)
-      .padding(.bottom, 6)
+      .frame(maxWidth: .infinity, minHeight: 44, maxHeight: 44, alignment: .center)
+      .padding(.top, -6)
+      .padding(.bottom, 8)
+    }
+    .onChange(of: searchText) { _, text in
+      if !text.isEmpty, searchBarCompact {
+        withAnimation(AppMotion.smooth(reduceMotion: reduceMotion)) {
+          searchBarCompact = false
+        }
+      }
     }
     .refreshable { await store.load() }
     .navigationDestination(item: $statementRoute) { route in
@@ -449,7 +483,7 @@ struct MoneyView: View {
       .accessibilityValue(
         "\(CurrencyFormat.brl(liquid)). A entrar \(CurrencyFormat.brl(incoming)). A sair \(CurrencyFormat.brl(due))"
       )
-      .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 6, trailing: 18))
+      .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 6, trailing: 18))
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }
@@ -532,7 +566,7 @@ struct MoneyView: View {
           }
       }
       .accessibilityElement(children: .contain)
-      .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 6, trailing: 18))
+      .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 6, trailing: 18))
       .listRowSeparator(.hidden)
       .listRowBackground(Color.clear)
     }
