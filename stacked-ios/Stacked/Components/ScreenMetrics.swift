@@ -66,14 +66,20 @@ final class ScreenAnchorTapView: UIView {
     super.init(frame: frame)
     backgroundColor = .clear
     isUserInteractionEnabled = true
+    isMultipleTouchEnabled = false
+    let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+    tap.cancelsTouchesInView = true
+    addGestureRecognizer(tap)
   }
 
   @available(*, unavailable)
   required init?(coder: NSCoder) { nil }
 
-  override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-    super.touchesEnded(touches, with: event)
-    guard let touch = touches.first, touch.tapCount == 1 else { return }
+  override var intrinsicContentSize: CGSize {
+    CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
+  }
+
+  @objc private func handleTap() {
     guard bounds.width > 1, bounds.height > 1 else { return }
     onTap?(convert(bounds, to: nil))
   }

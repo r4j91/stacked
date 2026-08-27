@@ -22,6 +22,9 @@ export type AppThemeId =
   | "abyssAshSolidTeal"
   | "abyssAshSolidLime"
   | "abyssAshSolidPetrol"
+  | "abyssAshSolidRose"
+  | "abyssAshSolidSage"
+  | "abyssAshSolidLilac"
   | "abyssAshSoft"
 
 export type AppThemeColors = {
@@ -581,6 +584,81 @@ export const themes: Record<AppThemeId, AppTheme> = {
       isDark: true,
     },
   },
+  /** Canvas sólido + accent rose taupe. */
+  abyssAshSolidRose: {
+    id: "abyssAshSolidRose",
+    name: "Abismo Cinza Rosa",
+    subtitle: "Fundo sólido · rosa",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#C99A96",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#C99A96",
+      accentText: "#1A1212",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
+  /** Canvas sólido + accent sage. */
+  abyssAshSolidSage: {
+    id: "abyssAshSolidSage",
+    name: "Abismo Cinza Sage",
+    subtitle: "Fundo sólido · sage",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#9BB09A",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#9BB09A",
+      accentText: "#101410",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
+  /** Canvas sólido + accent lilás empoeirado. */
+  abyssAshSolidLilac: {
+    id: "abyssAshSolidLilac",
+    name: "Abismo Cinza Lilás",
+    subtitle: "Fundo sólido · lilás",
+    previewSwatch: {
+      background: "#141518",
+      surface: "#1C1E22",
+      accent: "#B09AB8",
+    },
+    colors: {
+      background: "#141518",
+      surface: "#1C1E22",
+      surfaceVariant: "#25282E",
+      textPrimary: "#E8ECF0",
+      textSecondary: "#9AA3B0",
+      textTertiary: "#6B7382",
+      textQuaternary: "#5A6270",
+      hairline: "#2E323A",
+      accent: "#B09AB8",
+      accentText: "#141016",
+      navBar: "#1C1E22",
+      isDark: true,
+    },
+  },
   /** Abismo Cinza Suave — cards iguais ao Abismo Cinza; canvas bem mais claro. */
   abyssAshSoft: {
     id: "abyssAshSoft",
@@ -617,6 +695,9 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
   "abyssAshSolidTeal",
   "abyssAshSolidLime",
   "abyssAshSolidPetrol",
+  "abyssAshSolidRose",
+  "abyssAshSolidSage",
+  "abyssAshSolidLilac",
   "abyssAshSoft",
   "slate",
   "slateEmber",
@@ -627,6 +708,28 @@ export const RECOMMENDED_THEME_IDS: AppThemeId[] = [
 
 export const DEFAULT_THEME_ID: AppThemeId = "graphite"
 
+/** Temas Abismo com degradê vertical (paridade iOS usesAtmosphericBackground). */
+const ATMOSPHERIC_THEME_IDS: AppThemeId[] = ["abyss", "abyssAsh", "abyssAshSoft"]
+
+const ATMOSPHERIC_GRADIENTS = {
+  abyss:
+    "linear-gradient(180deg, #0E1418 0%, #10181E 33%, #121C22 66%, #152028 100%)",
+  abyssAsh:
+    "linear-gradient(180deg, #141518 0%, #16171A 33%, #181A1E 66%, #1C1E22 100%)",
+  abyssAshSoft:
+    "linear-gradient(180deg, #1D2025 0%, #1E2126 33%, #202328 66%, #22252A 100%)",
+} as const
+
+function surfaceHoverColor(surfaceVariant: string, isLight: boolean): string {
+  if (isLight) return surfaceVariant
+  return `color-mix(in srgb, ${surfaceVariant} 72%, white 28%)`
+}
+
+function secondaryHoverBg(surfaceVariant: string, isLight: boolean): string {
+  if (isLight) return surfaceVariant
+  return `color-mix(in srgb, ${surfaceVariant} 72%, white 28%)`
+}
+
 export function isAppThemeId(value: string): value is AppThemeId {
   return value in themes
 }
@@ -636,16 +739,37 @@ export function applyThemeToDocument(themeId: AppThemeId) {
   const root = document.documentElement
   const isSlate = themeId === "slate"
   const isLight = !colors.isDark
+  const isAtmospheric = ATMOSPHERIC_THEME_IDS.includes(themeId)
 
   root.dataset.theme = themeId
+  if (isAtmospheric) {
+    root.dataset.atmospheric = "true"
+    root.style.setProperty(
+      "--color-bg-gradient",
+      ATMOSPHERIC_GRADIENTS[themeId as keyof typeof ATMOSPHERIC_GRADIENTS],
+    )
+  } else {
+    delete root.dataset.atmospheric
+    root.style.removeProperty("--color-bg-gradient")
+  }
+
   root.style.setProperty("color-scheme", isLight ? "light" : "dark")
   root.style.setProperty("--color-bg", colors.background)
   root.style.setProperty("--color-surface", colors.surface)
   root.style.setProperty("--color-surface-variant", colors.surfaceVariant)
   root.style.setProperty(
     "--color-surface-hover",
-    isLight ? colors.surfaceVariant : "#35353d",
+    surfaceHoverColor(colors.surfaceVariant, isLight),
   )
+  root.style.setProperty("--color-on-accent", colors.accentText)
+  root.style.setProperty("--color-action-accent", colors.accent)
+  root.style.setProperty("--color-on-action-accent", colors.accentText)
+  root.style.setProperty("--color-fab-gradient-start", colors.accent)
+  root.style.setProperty(
+    "--color-fab-gradient-end",
+    isLight ? colors.accent : `color-mix(in srgb, ${colors.accent} 75%, white 25%)`,
+  )
+  root.style.setProperty("--color-folder-tint", colors.accent)
   root.style.setProperty("--color-text", colors.textPrimary)
   root.style.setProperty("--color-text-secondary", colors.textSecondary)
   root.style.setProperty("--color-text-tertiary", colors.textTertiary)
@@ -689,7 +813,10 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     root.style.setProperty("--color-btn-secondary-bg", colors.surfaceVariant)
     root.style.setProperty("--color-btn-secondary-fg", colors.textPrimary)
     root.style.setProperty("--color-btn-secondary-border", "rgba(255, 255, 255, 0.08)")
-    root.style.setProperty("--color-btn-secondary-hover-bg", "#35353d")
+    root.style.setProperty(
+      "--color-btn-secondary-hover-bg",
+      secondaryHoverBg(colors.surfaceVariant, isLight),
+    )
     root.style.setProperty("--color-nav-badge", colors.textSecondary)
   } else {
     root.style.setProperty("--color-nav-indicator", `${colors.accent}24`)
@@ -708,7 +835,7 @@ export function applyThemeToDocument(themeId: AppThemeId) {
     )
     root.style.setProperty(
       "--color-btn-secondary-hover-bg",
-      isLight ? colors.surfaceVariant : "#35353d",
+      isLight ? colors.surfaceVariant : secondaryHoverBg(colors.surfaceVariant, isLight),
     )
     root.style.setProperty("--color-nav-badge", colors.textSecondary)
   }

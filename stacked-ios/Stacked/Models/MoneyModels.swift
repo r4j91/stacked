@@ -153,6 +153,13 @@ struct MoneyAccountGroup: Identifiable, Equatable {
   var isOrphan: Bool { bank == nil }
 }
 
+enum MoneyID {
+  /// UUID canônico em minúsculas — Postgres devolve minúsculo, `UUID().uuidString` vem maiúsculo.
+  static func canonical(_ raw: String) -> String {
+    UUID(uuidString: raw)?.uuidString.lowercased() ?? raw.lowercased()
+  }
+}
+
 struct MoneyLedgerEntry: Identifiable, Equatable, Codable {
   var id: String
   var accountId: String
@@ -193,7 +200,7 @@ struct MoneyLedgerEntry: Identifiable, Equatable, Codable {
     installmentCount: Int? = nil,
     invoiceApplied: Bool = false
   ) {
-    self.id = id
+    self.id = MoneyID.canonical(id)
     self.accountId = accountId
     self.date = date
     self.amount = amount
@@ -208,7 +215,7 @@ struct MoneyLedgerEntry: Identifiable, Equatable, Codable {
 
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
-    id = try c.decode(String.self, forKey: .id)
+    id = MoneyID.canonical(try c.decode(String.self, forKey: .id))
     accountId = try c.decode(String.self, forKey: .accountId)
     date = try c.decode(Date.self, forKey: .date)
     amount = try c.decode(Double.self, forKey: .amount)

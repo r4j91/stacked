@@ -9,8 +9,10 @@ enum AppColors {
   static let tagPurple = Color(hex: 0xB18CF5)
   static let tagGreen = Color(hex: 0x8FD46B)
 
-  /// Âmbar do tema Abismo Cinza Sólido — faturas / cartão no Dinheiro premium.
-  static let invoiceAmber = Color(hex: 0xC9A06E)
+  /// Fatura no card do Dinheiro — aço, não compete com o accent âmbar.
+  static let invoice = Color(hex: 0x8AA4B8)
+  /// Uso de limite no meio do caminho (semáforo). Distinto do accent do tema.
+  static let limitWarn = Color(hex: 0xD0895A)
   /// Resultado positivo no fluxo de caixa — mais verde que `tagGreen` (evita ler como amarelo).
   static let cashFlowPositive = Color(hex: 0x5ECF6A)
 

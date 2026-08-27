@@ -583,11 +583,21 @@ struct SettingsCardSurface<Content: View>: View {
 struct SettingsCardDivider: View {
   @Environment(ThemeManager.self) private var theme
   var leadingPadding: CGFloat = 52
+  /// Mesma tinta/peso dos divisores de LANÇAMENTOS (Home / extrato).
+  var prominent: Bool = false
 
   var body: some View {
-    Divider()
-      .overlay(theme.colors.surface)
-      .padding(.leading, leadingPadding)
+    let c = theme.colors
+    if prominent {
+      Rectangle()
+        .fill(c.textPrimary.opacity(TaskExpandDividerStyle.cardLightStrokeAlpha))
+        .frame(height: TaskExpandDividerStyle.listHairlineThickness)
+        .padding(.leading, leadingPadding)
+    } else {
+      Divider()
+        .overlay(c.surface)
+        .padding(.leading, leadingPadding)
+    }
   }
 }
 

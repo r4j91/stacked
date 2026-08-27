@@ -113,6 +113,8 @@ final class MoneyStore {
 
   private var obligationLinks: [String: MoneyObligationLink] = [:]
   private(set) var ledger: [MoneyLedgerEntry] = []
+  /// Contas cujo saldo/fatura mudou localmente e ainda precisa vencer o fetch remoto.
+  private var dirtyAccountIds: Set<String> = []
 
   private init() {
     hydrateAccounts()
@@ -135,12 +137,14 @@ final class MoneyStore {
     accounts = []
     obligationLinks = [:]
     ledger = []
+    dirtyAccountIds = []
     isLoading = false
     error = nil
     if let userId = SupabaseService.client.auth.currentUser?.id {
       UserDefaults.standard.removeObject(forKey: Self.accountsKey(userId))
       UserDefaults.standard.removeObject(forKey: Self.linksKey(userId))
       UserDefaults.standard.removeObject(forKey: Self.ledgerKey(userId))
+      UserDefaults.standard.removeObject(forKey: Self.dirtyAccountsKey(userId))
     }
   }
 
@@ -158,15 +162,7 @@ final class MoneyStore {
       async let completedReq = SubtaskRepository.shared.fetchCompletedValorEntries()
       let pendingEntries = try await pendingReq
       let completedEntries = try await completedReq
-      let pending = pendingEntries.compactMap(Self.dueItem(from:))
-      let completed = completedEntries.compactMap(Self.dueItem(from:))
-      dueItems = pending.filter { !$0.isIncome }.sorted(by: Self.sortDue)
-      receivableItems = pending.filter(\.isIncome).sorted(by: Self.sortDue)
-      completedItems = completed.filter { !$0.isIncome }.sorted(by: Self.sortDue)
-      completedReceivableItems = completed.filter(\.isIncome).sorted(by: Self.sortDue)
-      monthItems = dueItems.filter(Self.isInCurrentMonth)
-      monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
-      rebuildDueGroups()
+      applyValorSchedule(pendingEntries: pendingEntries, completedEntries: completedEntries)
 
       let parentIds = Array(
         Set(
@@ -187,6 +183,36 @@ final class MoneyStore {
       self.error = error.localizedDescription
     }
     isLoading = false
+  }
+
+  /// Recarrega A pagar / A receber a partir do Supabase — após concluir subtarefa com valor.
+  func refreshValorSchedule() async {
+    guard SupabaseService.client.auth.currentUser != nil else { return }
+    do {
+      async let pendingReq = SubtaskRepository.shared.fetchPendingValorEntries()
+      async let completedReq = SubtaskRepository.shared.fetchCompletedValorEntries()
+      let pendingEntries = try await pendingReq
+      let completedEntries = try await completedReq
+      applyValorSchedule(pendingEntries: pendingEntries, completedEntries: completedEntries)
+    } catch {
+      if AsyncLoad.isCancellation(error) { return }
+      self.error = error.localizedDescription
+    }
+  }
+
+  private func applyValorSchedule(
+    pendingEntries: [SubtaskScheduleEntry],
+    completedEntries: [SubtaskScheduleEntry]
+  ) {
+    let pending = pendingEntries.compactMap(Self.dueItem(from:))
+    let completed = completedEntries.compactMap(Self.dueItem(from:))
+    dueItems = pending.filter { !$0.isIncome }.sorted(by: Self.sortDue)
+    receivableItems = pending.filter(\.isIncome).sorted(by: Self.sortDue)
+    completedItems = completed.filter { !$0.isIncome }.sorted(by: Self.sortDue)
+    completedReceivableItems = completed.filter(\.isIncome).sorted(by: Self.sortDue)
+    monthItems = dueItems.filter(Self.isInCurrentMonth)
+    monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
+    rebuildDueGroups()
   }
 
   func addAccount(_ account: MoneyAccount) {
@@ -472,7 +498,8 @@ final class MoneyStore {
     let period = MoneyCalendar.statementPeriod(for: account, containing: monthStart)
     let current = MoneyCalendar.statementPeriod(for: account, containing: Date())
     let isFuturePreview = period.start >= current.end
-    let entries = ledger
+    let posted = ledgerForCashFlow
+    let entries = posted
       .filter { $0.accountId == accountId && $0.date >= period.start && $0.date < period.end }
       .sorted { $0.date < $1.date }
 
@@ -483,7 +510,7 @@ final class MoneyStore {
     if isFuturePreview {
       opening = 0
     } else {
-      let later = ledger.filter { entry in
+      let later = posted.filter { entry in
         entry.accountId == accountId
           && entry.date >= period.start
           && isPostedToOpenInvoice(entry, account: account, currentEnd: current.end)
@@ -542,19 +569,27 @@ final class MoneyStore {
     )
 
     let opening = liquidOpeningBalance(liquidIds: liquidIds, at: monthStart)
+    let flowLedger = ledgerForCashFlow
 
     /// Só esconde o projetado quando a subtarefa já gerou lançamento no extrato (conclusão).
-    let settledSubtaskIds = Set(ledger.compactMap(\.subtaskId).filter { !$0.isEmpty })
+    let settledSubtaskIds = Set(
+      flowLedger.compactMap { Self.canonicalSubtaskId($0.subtaskId) }.filter { !$0.isEmpty }
+    )
 
     var built: [MoneyCashFlowLine] = []
     var seenLineIds = Set<String>()
+    var seenLedgerSubtaskIds = Set<String>()
+    var seenProjectedSubtaskKeys = Set<String>()
 
     func appendUnique(_ line: MoneyCashFlowLine) {
       guard seenLineIds.insert(line.id).inserted else { return }
       built.append(line)
     }
 
-    for entry in ledger where entry.date >= monthStart && entry.date < monthEnd {
+    for entry in flowLedger where entry.date >= monthStart && entry.date < monthEnd {
+      if let sid = Self.canonicalSubtaskId(entry.subtaskId) {
+        guard seenLedgerSubtaskIds.insert(sid).inserted else { continue }
+      }
       let isTransfer = entry.title.hasPrefix("Transferência")
       let day = cal.startOfDay(for: entry.date)
       if liquidIds.contains(entry.accountId) {
@@ -604,8 +639,9 @@ final class MoneyStore {
 
     let dueGroup = monthGroups.first { $0.id == monthId }
     for item in (dueGroup?.items ?? []) + pendingReceivables(in: monthId) {
-      guard item.parent.includeInCashFlow, item.subtask.includeInCashFlow else { continue }
-      if let sid = item.subtask.id, settledSubtaskIds.contains(sid) { continue }
+      guard shouldIncludeAsProjected(item, settled: settledSubtaskIds) else { continue }
+      let projectedKey = item.subtask.id ?? Self.canonicalSubtaskId(item.id) ?? item.id
+      guard seenProjectedSubtaskKeys.insert(projectedKey).inserted else { continue }
       let due = cal.startOfDay(for: item.dueDate ?? monthStart)
       guard due >= monthStart && due < monthEnd else { continue }
       let signed = item.isIncome ? item.valor : -item.valor
@@ -740,19 +776,49 @@ final class MoneyStore {
     )
   }
 
+  private func shouldIncludeAsProjected(
+    _ item: MoneyDueItem,
+    settled: Set<String>
+  ) -> Bool {
+    guard item.parent.includeInCashFlow, item.subtask.includeInCashFlow else { return false }
+    // Pendentes já vêm de fetchPending (concluida=false). Só esconde se o extrato
+    // tem lançamento com o mesmo subtask_id — sem casar por valor/data (salários iguais).
+    if isSubtaskSettled(item, settled) { return false }
+    return true
+  }
+
+  /// Extrato sem duplicatas por subtarefa — base do fluxo de caixa e saldo de abertura.
+  private var ledgerForCashFlow: [MoneyLedgerEntry] {
+    Self.dedupeLedgerEntries(ledger).entries
+  }
+
+  /// Dois lançamentos com o mesmo UUID (maiúsculo no cache, minúsculo no Supabase) viram uma linha.
+  /// Não mexe em saldo — o valor só foi aplicado uma vez na conta.
+  private static func uniquedLedgerByCanonicalId(_ entries: [MoneyLedgerEntry]) -> [MoneyLedgerEntry] {
+    var seen = Set<String>()
+    var uniqued: [MoneyLedgerEntry] = []
+    uniqued.reserveCapacity(entries.count)
+    for entry in entries {
+      var copy = entry
+      copy.id = MoneyID.canonical(entry.id)
+      guard seen.insert(copy.id).inserted else { continue }
+      uniqued.append(copy)
+    }
+    return uniqued
+  }
+
   private func liquidOpeningBalance(liquidIds: Set<String>, at monthStart: Date) -> Double {
     guard !liquidIds.isEmpty else { return 0 }
     var balances: [String: Double] = [:]
     for account in accounts where liquidIds.contains(account.id) {
       balances[account.id] = account.balance
     }
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: Date())
-    // Só desfaz o extrato até hoje. Lançamentos futuros (out/nov…) no livro-razão
-    // não podem “roubar” o saldo inicial do mês — era isso que inventava o −R$ 6.793.
-    for entry in ledger where liquidIds.contains(entry.accountId) {
-      let day = cal.startOfDay(for: entry.date)
-      guard day >= monthStart, day <= today else { continue }
+    let monthEnd = MoneyCalendar.shiftMonth(monthStart, by: 1)
+    // Desfaz só o extrato deste mês civil — inclusive datas futuras no mês
+    // (ex.: salário dia 24 já lançado). Meses seguintes (out/nov) não entram.
+    for entry in ledgerForCashFlow where liquidIds.contains(entry.accountId) {
+      let day = Calendar.current.startOfDay(for: entry.date)
+      guard day >= monthStart, day < monthEnd else { continue }
       if entry.isIncome {
         balances[entry.accountId, default: 0] -= entry.amount
       } else {
@@ -780,31 +846,33 @@ final class MoneyStore {
   }
 
   func account(forSubtaskId id: String?) -> MoneyAccount? {
-    guard let id, let link = obligationLinks[id] else { return nil }
+    guard let id, let link = obligationLink(for: id) else { return nil }
     return accounts.first { $0.id == link.accountId }
   }
 
   func linkedAccountId(forSubtaskId id: String?) -> String? {
     guard let id else { return nil }
-    return obligationLinks[id]?.accountId
+    return obligationLink(for: id)?.accountId
   }
 
   func setAccount(forSubtaskId id: String, accountId: String?, valor: Double?) {
+    let key = Self.canonicalSubtaskId(id) ?? id
     if let accountId {
-      obligationLinks[id] = MoneyObligationLink(accountId: accountId, valor: valor ?? 0)
+      obligationLinks[key] = MoneyObligationLink(accountId: accountId, valor: valor ?? 0)
     } else {
-      obligationLinks.removeValue(forKey: id)
+      obligationLinks.removeValue(forKey: key)
     }
     persistLinks()
   }
 
   func updateLinkedValor(subtaskId: String, valor: Double?) {
-    guard var link = obligationLinks[subtaskId] else { return }
+    let key = Self.canonicalSubtaskId(subtaskId) ?? subtaskId
+    guard var link = obligationLinks[key] else { return }
     if let valor, valor.isFinite {
       link.valor = valor
-      obligationLinks[subtaskId] = link
+      obligationLinks[key] = link
     } else {
-      obligationLinks.removeValue(forKey: subtaskId)
+      obligationLinks.removeValue(forKey: key)
     }
     persistLinks()
   }
@@ -817,48 +885,69 @@ final class MoneyStore {
     title: String? = nil,
     isIncome: Bool = false
   ) {
-    guard let subtaskId else { return }
-    let income = isIncome || obligationIsIncome(subtaskId)
-    if let link = obligationLinks[subtaskId] {
-      let amount = (valor ?? link.valor)
-      if amount > 0 {
-        if done {
-          let alreadyPosted = ledger.contains { $0.subtaskId == subtaskId }
-          if !alreadyPosted {
-            applyAccountDelta(accountId: link.accountId, amount: amount, reverse: income)
-            let due = obligationDueDate(subtaskId) ?? Date()
-            appendLedger(
-              accountId: link.accountId,
-              amount: amount,
-              isIncome: income,
-              title: title,
-              subtaskId: subtaskId,
-              date: due
-            )
-          }
-        } else {
-          applyAccountDelta(accountId: link.accountId, amount: amount, reverse: !income)
-          let removed = ledger.filter { $0.subtaskId == subtaskId }.map(\.id)
-          ledger.removeAll { $0.subtaskId == subtaskId }
-          persistLedger(deletedIds: removed)
+    guard let rawId = subtaskId else { return }
+    let sid = Self.canonicalSubtaskId(rawId) ?? rawId
+
+    let income = isIncome || obligationIsIncome(sid)
+    let amount = resolvedObligationAmount(subtaskId: sid, valor: valor)
+    if let link = obligationLink(for: sid), amount > 0 {
+      if done {
+        let alreadyPosted = ledger.contains { Self.ledgerMatchesSubtask($0, subtaskId: sid) }
+        if !alreadyPosted {
+          applyAccountDelta(accountId: link.accountId, amount: amount, reverse: income)
+          let due = obligationDueDate(sid) ?? Date()
+          appendLedger(
+            accountId: link.accountId,
+            amount: amount,
+            isIncome: income,
+            title: title,
+            subtaskId: sid,
+            date: due
+          )
         }
+      } else {
+        applyAccountDelta(accountId: link.accountId, amount: amount, reverse: !income)
+        let removed = ledger.filter { Self.ledgerMatchesSubtask($0, subtaskId: sid) }.map(\.id)
+        ledger.removeAll { Self.ledgerMatchesSubtask($0, subtaskId: sid) }
+        persistLedger(deletedIds: removed)
+        UserDefaults.standard.removeObject(forKey: Self.balanceRepairKey(sid))
       }
     }
-    let tracked = obligationLinks[subtaskId] != nil
-      || dueItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
-      || receivableItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
-      || completedItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
-      || completedReceivableItems.contains { $0.subtask.id == subtaskId || $0.id == subtaskId }
-    guard tracked else { return }
-    if done {
-      moveDueItemToCompleted(subtaskId: subtaskId)
-    } else {
-      moveCompletedItemToDue(subtaskId: subtaskId)
+    let tracked = obligationLink(for: sid) != nil
+      || dueItems.contains { matchesSubtask($0, subtaskId: sid) }
+      || receivableItems.contains { matchesSubtask($0, subtaskId: sid) }
+      || completedItems.contains { matchesSubtask($0, subtaskId: sid) }
+      || completedReceivableItems.contains { matchesSubtask($0, subtaskId: sid) }
+      || amount > 0
+    if tracked {
+      if done {
+        moveDueItemToCompleted(subtaskId: sid)
+      } else {
+        moveCompletedItemToDue(subtaskId: sid)
+      }
+    }
+    if tracked || obligationLink(for: sid) != nil {
+      _Concurrency.Task {
+        await flushDirtyAccountsAndLedger()
+        await refreshValorSchedule()
+      }
     }
   }
 
+  private func resolvedObligationAmount(subtaskId: String, valor: Double?) -> Double {
+    if let valor, valor > 0 { return valor }
+    if let link = obligationLink(for: subtaskId), link.valor > 0 { return link.valor }
+    let match: (MoneyDueItem) -> Bool = { self.matchesSubtask($0, subtaskId: subtaskId) }
+    if let item = dueItems.first(where: match) ?? receivableItems.first(where: match)
+      ?? completedItems.first(where: match) ?? completedReceivableItems.first(where: match)
+    {
+      return item.valor
+    }
+    return 0
+  }
+
   private func obligationIsIncome(_ subtaskId: String) -> Bool {
-    let match: (MoneyDueItem) -> Bool = { $0.subtask.id == subtaskId || $0.id == subtaskId }
+    let match: (MoneyDueItem) -> Bool = { self.matchesSubtask($0, subtaskId: subtaskId) }
     return dueItems.first(where: match)?.isIncome
       ?? receivableItems.first(where: match)?.isIncome
       ?? completedItems.first(where: match)?.isIncome
@@ -867,7 +956,7 @@ final class MoneyStore {
   }
 
   private func obligationDueDate(_ subtaskId: String) -> Date? {
-    let match: (MoneyDueItem) -> Bool = { $0.subtask.id == subtaskId || $0.id == subtaskId }
+    let match: (MoneyDueItem) -> Bool = { self.matchesSubtask($0, subtaskId: subtaskId) }
     let due = dueItems.first(where: match)?.dueDate
       ?? receivableItems.first(where: match)?.dueDate
       ?? completedItems.first(where: match)?.dueDate
@@ -876,8 +965,8 @@ final class MoneyStore {
   }
 
   private func moveDueItemToCompleted(subtaskId: String) {
-    if let item = dueItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
-      dueItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+    if let item = dueItems.first(where: { matchesSubtask($0, subtaskId: subtaskId) }) {
+      dueItems.removeAll { matchesSubtask($0, subtaskId: subtaskId) }
       completedItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
       completedItems.append(item)
       completedItems.sort(by: Self.sortDue)
@@ -885,21 +974,19 @@ final class MoneyStore {
       rebuildDueGroups()
       return
     }
-    if let item = receivableItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
-      receivableItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+    if let item = receivableItems.first(where: { matchesSubtask($0, subtaskId: subtaskId) }) {
+      receivableItems.removeAll { matchesSubtask($0, subtaskId: subtaskId) }
       completedReceivableItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
       completedReceivableItems.append(item)
       completedReceivableItems.sort(by: Self.sortDue)
       monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
       rebuildDueGroups()
-      return
     }
-    _Concurrency.Task { await load() }
   }
 
   private func moveCompletedItemToDue(subtaskId: String) {
-    if let item = completedItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
-      completedItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+    if let item = completedItems.first(where: { matchesSubtask($0, subtaskId: subtaskId) }) {
+      completedItems.removeAll { matchesSubtask($0, subtaskId: subtaskId) }
       dueItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
       dueItems.append(item)
       dueItems.sort(by: Self.sortDue)
@@ -907,16 +994,14 @@ final class MoneyStore {
       rebuildDueGroups()
       return
     }
-    if let item = completedReceivableItems.first(where: { $0.id == subtaskId || $0.subtask.id == subtaskId }) {
-      completedReceivableItems.removeAll { $0.id == subtaskId || $0.subtask.id == subtaskId }
+    if let item = completedReceivableItems.first(where: { matchesSubtask($0, subtaskId: subtaskId) }) {
+      completedReceivableItems.removeAll { matchesSubtask($0, subtaskId: subtaskId) }
       receivableItems.removeAll { $0.id == item.id || $0.subtask.id == item.subtask.id }
       receivableItems.append(item)
       receivableItems.sort(by: Self.sortDue)
       monthReceivableItems = receivableItems.filter(Self.isInCurrentMonth)
       rebuildDueGroups()
-      return
     }
-    _Concurrency.Task { await load() }
   }
 
   private func rebuildDueGroups() {
@@ -969,7 +1054,7 @@ final class MoneyStore {
         amount: amount,
         isIncome: isIncome,
         title: trimmed.isEmpty ? fallback : trimmed,
-        subtaskId: subtaskId,
+        subtaskId: subtaskId.map { Self.canonicalSubtaskId($0) ?? $0 },
         installmentGroupId: installmentGroupId,
         installmentIndex: installmentIndex,
         installmentCount: installmentCount,
@@ -1133,13 +1218,21 @@ final class MoneyStore {
       account.balance -= signed
     }
     accounts[index] = account
+    dirtyAccountIds.insert(accountId)
+    persistDirtyAccountIds()
     persistAccounts()
   }
 
   private func hydrateAccounts() {
     guard let userId = SupabaseService.client.auth.currentUser?.id else {
       accounts = []
+      dirtyAccountIds = []
       return
+    }
+    if let dirtyData = UserDefaults.standard.array(forKey: Self.dirtyAccountsKey(userId)) as? [String] {
+      dirtyAccountIds = Set(dirtyData)
+    } else {
+      dirtyAccountIds = []
     }
     guard let data = UserDefaults.standard.data(forKey: Self.accountsKey(userId)),
           let decoded = try? JSONDecoder().decode([MoneyAccount].self, from: data)
@@ -1156,10 +1249,35 @@ final class MoneyStore {
     _Concurrency.Task { @MainActor in
       do {
         try await MoneyRepository.upsertAccounts(snapshot)
+        self.dirtyAccountIds.subtract(Set(snapshot.map(\.id)))
+        self.persistDirtyAccountIds()
       } catch {
         self.error = error.localizedDescription
       }
     }
+  }
+
+  /// Garante que saldo e extrato locais vão para o Supabase antes do próximo fetch.
+  private func flushDirtyAccountsAndLedger() async {
+    persistAccountsCache()
+    persistLedgerCache()
+    do {
+      if !accounts.isEmpty {
+        try await MoneyRepository.upsertAccounts(accounts)
+        dirtyAccountIds.removeAll()
+        persistDirtyAccountIds()
+      }
+      if !ledger.isEmpty {
+        try await MoneyRepository.upsertLedger(ledger)
+      }
+    } catch {
+      self.error = error.localizedDescription
+    }
+  }
+
+  private func persistDirtyAccountIds() {
+    guard let userId = SupabaseService.client.auth.currentUser?.id else { return }
+    UserDefaults.standard.set(Array(dirtyAccountIds), forKey: Self.dirtyAccountsKey(userId))
   }
 
   private func persistAccountsCache() {
@@ -1211,7 +1329,12 @@ final class MoneyStore {
       ledger = []
       return
     }
-    ledger = decoded
+    let uniqued = Self.uniquedLedgerByCanonicalId(decoded)
+    ledger = uniqued
+    if uniqued.count != decoded.count {
+      persistLedgerCache()
+    }
+    _ = reconcileLedgerDuplicates()
   }
 
   private func persistLedger(deletedIds: [String] = []) {
@@ -1241,14 +1364,34 @@ final class MoneyStore {
       // Remoto primeiro — cache local (UserDefaults) é por aparelho; empurrar local
       // antes do fetch sobrescrevia Supabase com snapshot velho do simulador.
       let remote = try await MoneyRepository.fetchSnapshot()
+      let localAccountsBeforeMerge = accounts
 
       let remoteAccountIds = Set(remote.accounts.map(\.id))
-      let localOnlyAccounts = accounts.filter { !remoteAccountIds.contains($0.id) }
-      accounts = remote.accounts + localOnlyAccounts
+      let localOnlyAccounts = localAccountsBeforeMerge.filter { !remoteAccountIds.contains($0.id) }
 
-      let remoteLedgerIds = Set(remote.ledger.map(\.id))
-      let localOnlyLedger = ledger.filter { !remoteLedgerIds.contains($0.id) }
-      ledger = (remote.ledger + localOnlyLedger).sorted { $0.date < $1.date }
+      let remoteLedgerIds = Set(remote.ledger.map { MoneyID.canonical($0.id) })
+      let localOnlyLedger = ledger.filter { !remoteLedgerIds.contains(MoneyID.canonical($0.id)) }
+      let accountsWithPendingLedger = Set(localOnlyLedger.map(\.accountId))
+
+      // Contas dirty (débito/crédito local) ou com lançamento ainda não remoto:
+      // mantém saldo local — o fetch não pode apagar o pagamento recém-baixado.
+      var mergedAccounts = remote.accounts.map { remoteAccount -> MoneyAccount in
+        let keepLocal = dirtyAccountIds.contains(remoteAccount.id)
+          || accountsWithPendingLedger.contains(remoteAccount.id)
+        guard keepLocal,
+              let local = localAccountsBeforeMerge.first(where: { $0.id == remoteAccount.id })
+        else { return remoteAccount }
+        var kept = remoteAccount
+        kept.balance = local.balance
+        kept.invoiceAmount = local.invoiceAmount
+        return kept
+      }
+      mergedAccounts.append(contentsOf: localOnlyAccounts)
+      accounts = mergedAccounts
+
+      ledger = Self.uniquedLedgerByCanonicalId(remote.ledger + localOnlyLedger)
+        .sorted { $0.date < $1.date }
+      _ = reconcileLedgerDuplicates(preferRemoteIds: remoteLedgerIds)
 
       var mergedLinks = remote.links
       for (id, link) in obligationLinks where mergedLinks[id] == nil {
@@ -1257,8 +1400,15 @@ final class MoneyStore {
       let localOnlyLinks = mergedLinks.filter { remote.links[$0.key] == nil }
       obligationLinks = mergedLinks
 
-      if !localOnlyAccounts.isEmpty {
-        try await MoneyRepository.upsertAccounts(localOnlyAccounts)
+      let accountsToPush = accounts.filter { account in
+        dirtyAccountIds.contains(account.id)
+          || localOnlyAccounts.contains(where: { $0.id == account.id })
+          || accountsWithPendingLedger.contains(account.id)
+      }
+      if !accountsToPush.isEmpty {
+        try await MoneyRepository.upsertAccounts(accountsToPush)
+        dirtyAccountIds.subtract(Set(accountsToPush.map(\.id)))
+        persistDirtyAccountIds()
       }
       if !localOnlyLedger.isEmpty {
         try await MoneyRepository.upsertLedger(localOnlyLedger)
@@ -1279,12 +1429,127 @@ final class MoneyStore {
     accountsKeyPrefix + userId.uuidString
   }
 
+  private static func dirtyAccountsKey(_ userId: UUID) -> String {
+    "money.dirtyAccounts.v1." + userId.uuidString
+  }
+
+  private static func balanceRepairKey(_ subtaskId: String) -> String {
+    "money.balanceRepair.\(subtaskId)"
+  }
+
   private static func linksKey(_ userId: UUID) -> String {
     linksKeyPrefix + userId.uuidString
   }
 
   private static func ledgerKey(_ userId: UUID) -> String {
     ledgerKeyPrefix + userId.uuidString
+  }
+
+  // MARK: - Subtask ID normalization (extrato / fluxo)
+
+  private static let subtaskIdPrefix = "subtask-"
+
+  /// UUID puro — tira prefixo `subtask-` das chaves de lista.
+  static func canonicalSubtaskId(_ raw: String?) -> String? {
+    guard let raw else { return nil }
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    if trimmed.hasPrefix(subtaskIdPrefix) {
+      let rest = String(trimmed.dropFirst(subtaskIdPrefix.count))
+      if rest.contains(":") { return nil }
+      return rest.isEmpty ? nil : rest
+    }
+    if trimmed.contains(":") { return nil }
+    return trimmed
+  }
+
+  static func ledgerMatchesSubtask(_ entry: MoneyLedgerEntry, subtaskId: String) -> Bool {
+    guard let entrySid = canonicalSubtaskId(entry.subtaskId) else { return false }
+    let targetSid = canonicalSubtaskId(subtaskId) ?? subtaskId
+    return entrySid == targetSid
+  }
+
+  private func obligationLink(for subtaskId: String) -> MoneyObligationLink? {
+    if let link = obligationLinks[subtaskId] { return link }
+    if let sid = Self.canonicalSubtaskId(subtaskId), let link = obligationLinks[sid] { return link }
+    return nil
+  }
+
+  private func matchesSubtask(_ item: MoneyDueItem, subtaskId: String) -> Bool {
+    let targets = Set(
+      [subtaskId, Self.canonicalSubtaskId(subtaskId)]
+        .compactMap { $0 }
+        .filter { !$0.isEmpty }
+    )
+    guard !targets.isEmpty else { return false }
+    if targets.contains(item.id) { return true }
+    if let sid = item.subtask.id, targets.contains(sid) { return true }
+    if let cid = Self.canonicalSubtaskId(item.id), targets.contains(cid) { return true }
+    return false
+  }
+
+  private func isSubtaskSettled(_ item: MoneyDueItem, _ settled: Set<String>) -> Bool {
+    if let sid = item.subtask.id, !sid.isEmpty, settled.contains(sid) { return true }
+    if let cid = Self.canonicalSubtaskId(item.id), settled.contains(cid) { return true }
+    return false
+  }
+
+  /// Um lançamento por subtarefa — corrige duplicata local+remota.
+  /// Não reverte saldo se ainda sobrou lançamento da mesma subtarefa (só remove o UUID duplicado).
+  @discardableResult
+  private func reconcileLedgerDuplicates(preferRemoteIds: Set<String> = []) -> [String] {
+    let (deduped, removedIds) = Self.dedupeLedgerEntries(ledger, preferIds: preferRemoteIds)
+    guard !removedIds.isEmpty else { return [] }
+    let removedEntries = ledger.filter { removedIds.contains($0.id) }
+    let keptSubtaskIds = Set(deduped.compactMap { Self.canonicalSubtaskId($0.subtaskId) })
+    for entry in removedEntries {
+      if let sid = Self.canonicalSubtaskId(entry.subtaskId), keptSubtaskIds.contains(sid) {
+        continue
+      }
+      applyAccountDelta(accountId: entry.accountId, amount: entry.amount, reverse: !entry.isIncome)
+    }
+    ledger = deduped
+    persistLedger(deletedIds: removedIds)
+    return removedIds
+  }
+
+  private static func dedupeLedgerEntries(
+    _ entries: [MoneyLedgerEntry],
+    preferIds: Set<String> = []
+  ) -> (entries: [MoneyLedgerEntry], removedIds: [String]) {
+    var withoutSubtask: [MoneyLedgerEntry] = []
+    var groups: [String: [MoneyLedgerEntry]] = [:]
+    let preferCanonical = Set(preferIds.map(MoneyID.canonical))
+
+    for entry in uniquedLedgerByCanonicalId(entries) {
+      guard let sid = canonicalSubtaskId(entry.subtaskId) else {
+        withoutSubtask.append(entry)
+        continue
+      }
+      groups[sid, default: []].append(entry)
+    }
+
+    var kept = withoutSubtask
+    var removedIds: [String] = []
+
+    for group in groups.values {
+      guard group.count > 1 else {
+        kept.append(group[0])
+        continue
+      }
+      let winner = group.max { lhs, rhs in
+        let lhsRemote = preferIds.contains(lhs.id)
+        let rhsRemote = preferIds.contains(rhs.id)
+        if lhsRemote != rhsRemote { return !lhsRemote }
+        if lhs.date != rhs.date { return lhs.date < rhs.date }
+        return lhs.id > rhs.id
+      }!
+      kept.append(winner)
+      removedIds.append(contentsOf: group.filter { $0.id != winner.id }.map(\.id))
+    }
+
+    kept.sort { $0.date < $1.date }
+    return (kept, removedIds)
   }
 
   private static func dueItem(from entry: SubtaskScheduleEntry) -> MoneyDueItem? {

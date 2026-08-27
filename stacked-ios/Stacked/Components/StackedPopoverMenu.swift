@@ -370,6 +370,7 @@ struct AnchoredTapButton<Label: View>: View {
 
   private var localAnchorButton: some View {
     label()
+      .contentShape(Rectangle())
       .overlay {
         GeometryReader { geo in
           Button {
@@ -378,18 +379,23 @@ struct AnchoredTapButton<Label: View>: View {
             Color.clear.contentShape(Rectangle())
           }
           .buttonStyle(.plain)
+          .frame(width: geo.size.width, height: geo.size.height)
         }
       }
-      .buttonStyle(PressableStyle(cornerRadius: 22))
+      .buttonStyle(PressableStyle(cornerRadius: 12))
   }
 
   // SUBSTITUIDO_FASE8A: captura frame de tela no toque via UIKit (confiável no .sheet).
   private var screenAnchorButton: some View {
     label()
+      .contentShape(Rectangle())
       .overlay {
-        ScreenAnchorTapOverlay(onTap: action)
+        GeometryReader { geo in
+          ScreenAnchorTapOverlay(onTap: action)
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
       }
-      .buttonStyle(PressableStyle(cornerRadius: 22))
+      .buttonStyle(PressableStyle(cornerRadius: 12))
   }
 }
 

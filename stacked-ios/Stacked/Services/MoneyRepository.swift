@@ -269,8 +269,12 @@ private struct MoneyLedgerRow: Decodable {
   }
 
   private static func stringId(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> String? {
-    if let s = try? c.decodeIfPresent(String.self, forKey: key), !s.isEmpty { return s }
-    if let u = try? c.decodeIfPresent(UUID.self, forKey: key) { return u.uuidString }
+    if let s = try? c.decodeIfPresent(String.self, forKey: key), !s.isEmpty {
+      return MoneyID.canonical(s)
+    }
+    if let u = try? c.decodeIfPresent(UUID.self, forKey: key) {
+      return MoneyID.canonical(u.uuidString)
+    }
     return nil
   }
 

@@ -547,7 +547,7 @@ struct MoneyView: View {
           proposedHeroChip(
             label: "Fatura",
             value: "−\(CurrencyFormat.brl(invoice))",
-            tint: AppColors.invoiceAmber,
+            tint: AppColors.invoice,
             colors: c
           ) {
             scrollToSection = "money-accounts"
@@ -1507,7 +1507,7 @@ struct MoneyView: View {
     let barTint: Color? = {
       guard isMoneyPremium, let usage = accountLimitUsage(for: account) else { return nil }
       if usage >= 0.8 { return AppColors.dateOverdue }
-      if usage >= 0.55 { return AppColors.invoiceAmber }
+      if usage >= 0.55 { return AppColors.limitWarn }
       return c.textQuaternary
     }()
     moneyValueRow(
@@ -1773,65 +1773,62 @@ struct MoneyAccountSheet: View {
   var body: some View {
     let c = theme.colors
     NavigationStack {
-      List {
-        Section {
-          SettingsCardSurface {
-            VStack(spacing: 0) {
-              MoneySheetFieldRow(
-                label: "Nome",
-                text: $name,
-                placeholder: kind == .credit ? "Ex: Itaú Cartão" : "Ex: Nubank"
-              )
-              SettingsCardDivider(leadingPadding: 14)
-              MoneySheetSelectRow(label: "Tipo", value: kind.label) { rect in
-                showKindMenu(anchor: rect)
-              }
-              SettingsCardDivider(leadingPadding: 14)
-              MoneySheetFieldRow(
-                label: kind == .credit ? "Limite" : "Saldo",
-                text: $balanceText,
-                placeholder: "0,00",
-                keyboard: .decimalPad
-              )
-              if kind == .credit {
-                SettingsCardDivider(leadingPadding: 14)
-                MoneySheetSelectRow(
-                  label: "Banco",
-                  value: parentBankName
-                ) { rect in
-                  showBankMenu(anchor: rect)
-                }
-                SettingsCardDivider(leadingPadding: 14)
-                MoneySheetFieldRow(
-                  label: "Fecha",
-                  text: $closingDayText,
-                  placeholder: "Dia",
-                  keyboard: .numberPad
-                )
-                SettingsCardDivider(leadingPadding: 14)
-                MoneySheetFieldRow(
-                  label: "Vencimento",
-                  text: $dueDayText,
-                  placeholder: "Dia",
-                  keyboard: .numberPad
-                )
-                SettingsCardDivider(leadingPadding: 14)
-                MoneySheetFieldRow(
-                  label: "Fatura",
-                  text: $invoiceText,
-                  placeholder: "0,00",
-                  keyboard: .decimalPad
-                )
-              }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+      MoneySheetFormCard {
+        VStack(spacing: 0) {
+          MoneySheetFieldRow(
+            label: "Nome",
+            text: $name,
+            placeholder: kind == .credit ? "Ex: Itaú Cartão" : "Ex: Nubank"
+          )
+          SettingsCardDivider(leadingPadding: 14, prominent: true)
+          MoneySheetSelectRow(label: "Tipo", value: kind.label) { rect in
+            showKindMenu(anchor: rect)
           }
-          .settingsListCardRow(top: 8, bottom: 8)
+          SettingsCardDivider(leadingPadding: 14, prominent: true)
+          MoneySheetFieldRow(
+            label: kind == .credit ? "Limite" : "Saldo",
+            text: $balanceText,
+            placeholder: "0,00",
+            keyboard: .decimalPad
+          )
+          if kind == .credit {
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetSelectRow(
+              label: "Banco",
+              value: parentBankName
+            ) { rect in
+              showBankMenu(anchor: rect)
+            }
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetFieldRow(
+              label: "Fecha",
+              text: $closingDayText,
+              placeholder: "Dia",
+              keyboard: .numberPad
+            )
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetFieldRow(
+              label: "Vencimento",
+              text: $dueDayText,
+              placeholder: "Dia",
+              keyboard: .numberPad
+            )
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetFieldRow(
+              label: "Fatura",
+              text: $invoiceText,
+              placeholder: "0,00",
+              keyboard: .decimalPad
+            )
+          }
         }
       }
-      .settingsDrillDownList(background: c.background)
-      .listSectionSpacing(16)
-      .popoverHostScope()
+      .background(c.background)
+      .popoverHostScope(
+        coordinateSpaceName: "moneyAccountSheet",
+        placement: .quickAddSheet,
+        windowPreferAbove: false
+      )
       .navigationTitle(
         trimmedName.isEmpty
           ? (kind == .credit ? "Novo cartão" : "Nova conta")
@@ -1866,6 +1863,7 @@ struct MoneyAccountSheet: View {
         }
         .stackedToolbarGlassIsolation(isolate)
       }
+      .moneySheetKeyboardDone(accent: c.accent)
     }
   }
 
@@ -2064,77 +2062,74 @@ struct MoneyMovementSheet: View {
   var body: some View {
     let c = theme.colors
     NavigationStack {
-      List {
-        Section {
-          SettingsCardSurface {
-            VStack(spacing: 0) {
+      MoneySheetFormCard {
+        VStack(spacing: 0) {
+            MoneySheetSelectRow(
+              label: "Tipo",
+              value: kind.typeLabel
+            ) { rect in
+              showTypeMenu(anchor: rect)
+            }
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetFieldRow(
+              label: "Quanto",
+              text: $amountText,
+              placeholder: "0,00",
+              keyboard: .decimalPad
+            )
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetFieldRow(
+              label: "O quê",
+              text: $note,
+              placeholder: "Opcional"
+            )
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            MoneySheetSelectRow(
+              label: "Quando",
+              value: MoneyCalendar.dayLabel(for: occurredOn)
+            ) { _ in
+              showDatePicker = true
+            }
+            SettingsCardDivider(leadingPadding: 14, prominent: true)
+            if kind == .transfer {
               MoneySheetSelectRow(
-                label: "Tipo",
-                value: kind.typeLabel
+                label: "Saiu de",
+                value: fromAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
               ) { rect in
-                showTypeMenu(anchor: rect)
+                showTransferAccountMenu(anchor: rect, pickingFrom: true)
               }
-              SettingsCardDivider(leadingPadding: 14)
-              MoneySheetFieldRow(
-                label: "Quanto",
-                text: $amountText,
-                placeholder: "0,00",
-                keyboard: .decimalPad
-              )
-              SettingsCardDivider(leadingPadding: 14)
-              MoneySheetFieldRow(
-                label: "O quê",
-                text: $note,
-                placeholder: "Opcional"
-              )
-              SettingsCardDivider(leadingPadding: 14)
+              SettingsCardDivider(leadingPadding: 14, prominent: true)
               MoneySheetSelectRow(
-                label: "Quando",
-                value: MoneyCalendar.dayLabel(for: occurredOn)
-              ) { _ in
-                showDatePicker = true
+                label: "Entrou em",
+                value: toAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
+              ) { rect in
+                showTransferAccountMenu(anchor: rect, pickingFrom: false)
               }
-              SettingsCardDivider(leadingPadding: 14)
-              if kind == .transfer {
+            } else {
+              MoneySheetSelectRow(
+                label: kind == .income ? "Entrou em" : "Saiu de",
+                value: selectedAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
+              ) { rect in
+                showAccountMenu(anchor: rect)
+              }
+              if showsInstallments {
+                SettingsCardDivider(leadingPadding: 14, prominent: true)
                 MoneySheetSelectRow(
-                  label: "Saiu de",
-                  value: fromAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
+                  label: "Parcelas",
+                  value: installmentRowValue
                 ) { rect in
-                  showTransferAccountMenu(anchor: rect, pickingFrom: true)
-                }
-                SettingsCardDivider(leadingPadding: 14)
-                MoneySheetSelectRow(
-                  label: "Entrou em",
-                  value: toAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
-                ) { rect in
-                  showTransferAccountMenu(anchor: rect, pickingFrom: false)
-                }
-              } else {
-                MoneySheetSelectRow(
-                  label: kind == .income ? "Entrou em" : "Saiu de",
-                  value: selectedAccount.map { MoneyStore.shared.displayName(for: $0) } ?? "Conta"
-                ) { rect in
-                  showAccountMenu(anchor: rect)
-                }
-                if showsInstallments {
-                  SettingsCardDivider(leadingPadding: 14)
-                  MoneySheetSelectRow(
-                    label: "Parcelas",
-                    value: installmentRowValue
-                  ) { rect in
-                    showInstallmentMenu(anchor: rect)
-                  }
+                  showInstallmentMenu(anchor: rect)
                 }
               }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-          }
-          .settingsListCardRow(top: 8, bottom: 8)
         }
       }
-      .settingsDrillDownList(background: c.background)
-      .listSectionSpacing(16)
-      .popoverHostScope()
+      .background(c.background)
+      .popoverHostScope(
+        coordinateSpaceName: "moneyAccountSheet",
+        placement: .quickAddSheet,
+        windowPreferAbove: false
+      )
       .navigationTitle(sheetTitle)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
@@ -2177,6 +2172,7 @@ struct MoneyMovementSheet: View {
         }
         .stackedToolbarGlassIsolation(isolate)
       }
+      .moneySheetKeyboardDone(accent: c.accent)
       .stackedTaskDatePickerSheet(
         isPresented: $showDatePicker,
         initialDate: occurredOn,
@@ -2192,7 +2188,9 @@ struct MoneyMovementSheet: View {
 
   private var sheetTitle: String {
     if isEditing { return "Editar lançamento" }
-    return kind == .transfer ? "Transferência" : "Lançamento"
+    if kind == .transfer { return "Transferência" }
+    if selectedAccount?.kind == .credit { return "Compra" }
+    return "Lançamento"
   }
 
   private var saveTitle: String {
@@ -2332,6 +2330,7 @@ struct MoneySheetFieldRow: View {
   @Binding var text: String
   var placeholder: String
   var keyboard: UIKeyboardType = .default
+  @FocusState private var isFocused: Bool
 
   var body: some View {
     let c = theme.colors
@@ -2344,11 +2343,17 @@ struct MoneySheetFieldRow: View {
         .font(AppTypography.fieldInput)
         .foregroundStyle(c.textPrimary)
         .keyboardType(keyboard)
+        .textInputAutocapitalization(keyboard == .default ? .sentences : .never)
+        .focused($isFocused)
+        .submitLabel(.done)
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     .padding(.horizontal, SettingsChrome.rowPaddingH)
-    .padding(.vertical, SettingsChrome.rowPaddingV)
+    .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
+    .contentShape(Rectangle())
+    .clipped()
+    .onTapGesture { isFocused = true }
   }
 }
 
@@ -2382,8 +2387,47 @@ struct MoneySheetSelectRow: View {
         DisclosureChevron()
       }
       .padding(.horizontal, SettingsChrome.rowPaddingH)
-      .padding(.vertical, SettingsChrome.rowPaddingV)
+      .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
       .contentShape(Rectangle())
+    }
+  }
+}
+
+/// Card de formulário do Dinheiro — ScrollView sem o delay de toque do List.
+struct MoneySheetFormCard<Content: View>: View {
+  @ViewBuilder var content: () -> Content
+
+  var body: some View {
+    ScrollView {
+      SettingsCardSurface {
+        content()
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .padding(.horizontal, SettingsChrome.horizontalPadding)
+      .padding(.top, 12)
+      .padding(.bottom, 24)
+    }
+    .scrollDismissesKeyboard(.interactively)
+    .scrollBounceBehavior(.basedOnSize)
+  }
+}
+
+extension View {
+  func moneySheetKeyboardDone(accent: Color) -> some View {
+    toolbar {
+      ToolbarItemGroup(placement: .keyboard) {
+        Spacer()
+        Button("OK") {
+          UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+          )
+        }
+        .fontWeight(.semibold)
+        .foregroundStyle(accent)
+      }
     }
   }
 }
