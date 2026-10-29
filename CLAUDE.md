@@ -101,6 +101,13 @@ O caminho `UIKitHostedTaskList` / toggle "Listas mais fluidas" foi removido.
 Não reintroduzir UICollectionView para listas de tarefa nem fade/pin
 específicos desse path (`TopFadeOverlayView`, `atmosphericHeaderFill`, etc.).
 
+### Widget sem dados (App Group sumiu)
+O app e o widget trocam dados pelo App Group `group.com.stacked.app`. O
+`xcodegen generate` regrava `.entitlements` e `Info.plist` a partir do
+`project.yml` — o que não estiver declarado lá some. Foi assim que o App Group
+(e a permissão de localização) desapareceram e o widget parou de carregar.
+Entitlements e chaves de Info.plist ficam **sempre** no `project.yml`.
+
 ### Coluna descricao na tabela subtasks
 A coluna `descricao text` precisa existir no Supabase antes de incluí-la em queries. Migration: `ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS descricao text;`. Sem ela, qualquer SELECT que inclua `descricao` retorna erro e a tela fica em branco.
 
